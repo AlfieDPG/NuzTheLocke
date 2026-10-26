@@ -11,6 +11,7 @@
 //                    (logros: { idLogro: fecha }, los apunta js/comun/logros.js)
 //   motes/{mote}     { uid, mote }  (el id va en minúsculas: así no hay dos iguales)
 //   amistades/{par}  { miembros: [uidA, uidB], estado, pidio, creado }
+//   estadisticas/usuarios  { total }  (cuántos perfiles hay; ver «Cuántos usuarios hay»)
 //
 //   · El correo NO va en el perfil ni se puede buscar por él: los perfiles los puede leer
 //     cualquiera con sesión. Tampoco el nombre ni la foto de Google, salvo que la persona
@@ -250,6 +251,8 @@ export function nuevoId() {
 
 export function iniciarPerfiles() {
   alCambiarSesion(async (usuario) => {
+    cargarTotalDeUsuarios();
+
     if (dejarDeEscuchar) {
       dejarDeEscuchar();
       dejarDeEscuchar = null;
@@ -333,14 +336,73 @@ async function asegurarPerfil(usuario) {
     // Y el correo se quita: los perfiles de antes lo llevaban dentro
     await fn.updateDoc(referencia, { ...cambios, correo: fn.deleteField() });
   } else {
-    await fn.setDoc(
-      referencia,
-      { ...PERFIL_VACIO, ...deLaCuenta, tipos: TIPOS_POR_DEFECTO },
-      { merge: true }
-    );
+    const datos = { ...PERFIL_VACIO, ...deLaCuenta, tipos: TIPOS_POR_DEFECTO };
+    await conContador(1, (lote) => lote.set(referencia, datos, { merge: true }));
   }
 
   await limpiarCorreoAntiguo(usuario);
+}
+
+// ---------- Cuántos usuarios hay ----------
+//
+// estadisticas/usuarios { total }: un número y nada más (ni uids ni correos), público para
+// leer. Sube 1 cuando se crea un perfil y baja 1 cuando se borra, SIEMPRE en el mismo lote
+// que el perfil (las reglas no dejan tocarlo de otra forma). Es aproximado: sin servidor no
+// hay forma de que sea exacto. El valor de partida se puso a mano en la consola (ver
+// LEEME-nube.md).
+//
+// Si el contador falla (no existe, reglas sin publicar...) el perfil se crea o se borra igual.
+
+let totalUsuarios = null;
+let cargandoTotal = false;
+const oyentesTotal = new Set();
+
+export function totalDeUsuarios() {
+  return totalUsuarios;
+}
+
+export function alCambiarTotalDeUsuarios(funcion) {
+  oyentesTotal.add(funcion);
+  return () => oyentesTotal.delete(funcion);
+}
+
+// Una sola lectura por visita, también sin sesión
+async function cargarTotalDeUsuarios() {
+  const acceso = baseDeDatos();
+  if (!acceso || totalUsuarios !== null || cargandoTotal) return;
+  cargandoTotal = true;
+
+  const { bd, fn } = acceso;
+  try {
+    const total = ((await fn.getDoc(fn.doc(bd, "estadisticas", "usuarios"))).data() || {}).total;
+    if (Number.isInteger(total) && total >= 0) {
+      totalUsuarios = total;
+      for (const funcion of oyentesTotal) funcion(total);
+    }
+  } catch (error) {
+    console.error("No se ha podido leer cuántos usuarios hay", error);
+  } finally {
+    cargandoTotal = false;
+  }
+}
+
+// Escribe en un lote lo que haga falta (con «armar») junto con el +1 / -1 del contador. Si el
+// lote con el contador falla, se repite sin él.
+async function conContador(cambio, armar) {
+  const { bd, fn } = baseDeDatos();
+  const contador = fn.doc(bd, "estadisticas", "usuarios");
+
+  try {
+    const lote = fn.writeBatch(bd);
+    armar(lote);
+    lote.update(contador, { total: fn.increment(cambio) });
+    await lote.commit();
+  } catch (error) {
+    console.error("No se ha podido tocar el contador de usuarios", error);
+    const lote = fn.writeBatch(bd);
+    armar(lote);
+    await lote.commit();
+  }
 }
 
 // Antes se apuntaba el correo de Google en correos/ para poder buscar a la gente por él. Ya no:
@@ -552,11 +614,11 @@ export async function borrarMiPerfil() {
   // Solo si es suyo: puede no estar (no llegó a apuntarse) y entonces las reglas no dejan
   const correoMio = correo && ((await fn.getDoc(fn.doc(bd, "correos", correo))).data() || {}).uid === usuario.uid;
 
-  const lote = fn.writeBatch(bd);
-  if (mote) lote.delete(fn.doc(bd, "motes", claveMote(mote)));
-  if (correoMio) lote.delete(fn.doc(bd, "correos", correo));
-  lote.delete(referencia);
-  await lote.commit();
+  await conContador(-1, (lote) => {
+    if (mote) lote.delete(fn.doc(bd, "motes", claveMote(mote)));
+    if (correoMio) lote.delete(fn.doc(bd, "correos", correo));
+    lote.delete(referencia);
+  });
 }
 
 export async function borrarMisAmistades() {

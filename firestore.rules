@@ -23,6 +23,9 @@ rules_version = '2';
 //                            consola) pueden borrar y fijar. Ver «Foro» más abajo.
 //   denuncias/{id}        -> solo la leen los moderadores. Cualquiera con sesión puede crearlas.
 //   silenciados, ritmo    -> quién no puede escribir en el foro, y el freno de 20 s entre mensajes.
+//   estadisticas/usuarios -> cuántos perfiles hay (solo un número). Lo lee cualquiera, incluso sin
+//                            sesión. Solo cambia de 1 en 1, junto con la creación o el borrado del
+//                            perfil propio. El documento se crea a mano (ver LEEME-nube.md).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -108,6 +111,31 @@ service cloud.firestore {
       allow create, update: if identificado() && request.auth.uid == uid && moteBien()
         && !request.resource.data.keys().hasAny(['correo']);
       allow delete: if identificado() && request.auth.uid == uid;
+    }
+
+    // ---------- Cuántos usuarios hay ----------
+    //
+    // Un único documento con un número: nada de uids ni de datos de nadie. Se crea a mano en la
+    // consola con el total de ahora (campo «total», tipo número). Después solo sube 1 cuando una
+    // persona crea SU perfil y baja 1 cuando borra el suyo, en el mismo lote (por eso se mira el
+    // perfil antes y después de la escritura).
+
+    match /estadisticas/usuarios {
+      function miPerfil() {
+        return /databases/$(database)/documents/perfiles/$(request.auth.uid);
+      }
+
+      allow get: if true;
+      allow update: if identificado()
+        && request.resource.data.keys().hasOnly(['total'])
+        && request.resource.data.total is int
+        && (
+          (!exists(miPerfil()) && existsAfter(miPerfil())
+            && request.resource.data.total == resource.data.total + 1)
+          || (exists(miPerfil()) && !existsAfter(miPerfil())
+            && resource.data.total > 0
+            && request.resource.data.total == resource.data.total - 1)
+        );
     }
 
     // ---------- Correos (ya no se usan) ----------

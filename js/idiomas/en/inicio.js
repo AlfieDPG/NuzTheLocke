@@ -32,6 +32,7 @@ export default {
   "lockes en marcha": "ongoing lockes",
   "amigo conectado": "friend online",
   "amigos conectados": "friends online",
+  "usuarios registrados": "registered users",
   "Victorias": "Wins",
   "Vidas": "Lives",
   "Lockes en marcha": "Ongoing lockes",

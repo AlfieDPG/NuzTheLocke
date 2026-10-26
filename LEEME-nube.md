@@ -224,6 +224,18 @@ que comentar y subir el contador vayan juntos. Si bajara, un id podría repetirs
   contraseñas**, y tiene que coincidir con `claveValida` de `js/sesion.js`. Las cuentas que ya existen
   siguen entrando con su contraseña.
 
+## Contador de usuarios registrados
+
+El inicio enseña «N usuarios registrados» (a partir de `MINIMO_REGISTRADOS` en `js/inicio/index.js`).
+Sale de un único documento `estadisticas/usuarios` con un número y nada más: ni uids ni correos.
+
+- **Hay que crearlo a mano**, una vez, para que empiece a contar: Firestore Database → Datos → **Iniciar colección** → ID de colección `estadisticas`
+  → ID del documento `usuarios` → campo `total`, tipo **número**, con el total de ahora (el de
+  Authentication → Usuarios).
+- Sube 1 al crearse un perfil y baja 1 al borrarlo, en el mismo lote (`conContador` en
+  `js/comun/perfiles.js`). Si el documento no existe o las reglas no están publicadas, el perfil se crea
+  igual y simplemente no cuenta. Sin servidor no es exacto: si se desvía, se corrige a mano en la consola.
+
 ## Protegerla de abusos (App Check y la clave)
 
 La `apiKey` es pública, así que cualquiera podría usarla desde un script y gastar tu cuota diaria

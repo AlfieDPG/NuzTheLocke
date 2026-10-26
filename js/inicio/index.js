@@ -19,7 +19,7 @@ import { carasDeEquipo } from "../comun/elegir-equipo.js";
 import { leerGuardados } from "../equipos/estado.js";
 import {
   miPerfil, alCambiarMiPerfil, amigosAceptados, solicitudesRecibidas, alCambiarAmistades,
-  perfilesDeAmigos, alCambiarPerfilesAmigos, colorDeTipo
+  perfilesDeAmigos, alCambiarPerfilesAmigos, colorDeTipo, totalDeUsuarios, alCambiarTotalDeUsuarios
 } from "../comun/perfiles.js";
 import { estaConectado, alCambiarPresencia } from "../comun/presencia.js";
 import {
@@ -32,6 +32,10 @@ let seccion = null;
 
 const MAX_LOCKES = 12; // los que se pintan; en pantalla se ven los que caben (ajustarListas)
 const MAX_EQUIPOS = 10;
+
+// El número de registrados solo sale a partir de aquí (con pocos, queda peor que no ponerlo).
+// Para esconderlo del todo, súbelo a un número que no se vaya a alcanzar.
+const MINIMO_REGISTRADOS = 50;
 
 // ---------- Notas y avisos (los escribe el desarrollador; los ven todos) ----------
 //
@@ -189,7 +193,13 @@ function plantillaCabecera() {
   const nombre = conSesion() ? (perfil && perfil.nombre) || "" : "";
   const pendientes = conSesion() ? invitacionesALockes().length + solicitudesRecibidas().length : 0;
 
-  // Con sesión, un vistazo: cuántos lockes en marcha y cuántos amigos conectados
+  // Con sesión, un vistazo: cuántos lockes en marcha y cuántos amigos conectados. Con o sin
+  // ella, cuánta gente se ha registrado (si ya hay un número que enseñar)
+  const total = totalDeUsuarios();
+  const registrados = total !== null && total >= MINIMO_REGISTRADOS
+    ? `<span><b>${total.toLocaleString(LOCALE)}</b> ${t("usuarios registrados")}</span>`
+    : "";
+
   let vistazo = "";
   if (conSesion()) {
     const lockes = lockesEnMarcha().length;
@@ -198,7 +208,10 @@ function plantillaCabecera() {
       <p class="inicio-resumen">
         <span><b>${lockes}</b> ${t(lockes === 1 ? "locke en marcha" : "lockes en marcha")}</span>
         <span class="${amigos ? "en-linea" : ""}"><b>${amigos}</b> ${t(amigos === 1 ? "amigo conectado" : "amigos conectados")}</span>
+        ${registrados}
       </p>`;
+  } else if (registrados) {
+    vistazo = `<p class="inicio-resumen">${registrados}</p>`;
   }
 
   return `
@@ -485,6 +498,7 @@ export function iniciar() {
   alCambiarAmistades(pintar);
   alCambiarPerfilesAmigos(pintar);
   alCambiarPresencia(pintar);
+  alCambiarTotalDeUsuarios(pintar);
 
   // Al cambiar el tamaño de la ventana (o cuando llegan las letras) cambia lo que cabe
   let esperando = false;
