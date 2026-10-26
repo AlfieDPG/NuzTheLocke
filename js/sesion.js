@@ -59,7 +59,8 @@ function pintarNombre() {
   nombre.textContent =
     (perfil && perfil.nombre) || nombreDeUsuario(usuario) || usuario.displayName || usuario.email || t("Tu cuenta");
 
-  const url = (perfil && perfil.foto) || usuario.photoURL || "";
+  // Solo la del perfil: la de Google no sale si no se ha pedido (ver perfiles.js)
+  const url = (perfil && perfil.foto) || "";
   foto.hidden = !url;
   if (url && foto.getAttribute("src") !== url) foto.src = url;
 }
@@ -81,6 +82,17 @@ function pintar(usuario) {
   }
 }
 
+// ---------- Contraseña ----------
+
+// Lo mismo que la política de contraseñas de Firebase (Authentication → Configuración →
+// Política de contraseñas): si se cambia allí, hay que cambiarlo aquí. Solo vale al crear la
+// cuenta; las que ya existen siguen entrando con la suya.
+const AVISO_CLAVE = "La contraseña tiene que tener al menos 8 caracteres, con mayúsculas, minúsculas y un número.";
+
+function claveValida(clave) {
+  return clave.length >= 8 && /[a-z]/.test(clave) && /[A-Z]/.test(clave) && /[0-9]/.test(clave);
+}
+
 // ---------- Errores ----------
 
 function textoDeError(error) {
@@ -92,7 +104,7 @@ function textoDeError(error) {
     return t("Usuario o contraseña incorrectos.");
   }
   if (codigo === "auth/email-already-in-use") return t("Ese usuario ya existe.");
-  if (codigo === "auth/weak-password") return t("La contraseña tiene que tener al menos 6 caracteres.");
+  if (codigo === "auth/weak-password" || codigo === "auth/password-does-not-meet-requirements") return t(AVISO_CLAVE);
   if (codigo === "auth/too-many-requests") return t("Demasiados intentos. Espera un poco.");
   if (codigo === "auth/popup-closed-by-user" || codigo === "auth/cancelled-popup-request") return "";
   if (codigo === "auth/user-mismatch") return t("Esa no es la cuenta de Google con la que estás dentro.");
@@ -199,8 +211,8 @@ function crearCuenta() {
       error.textContent = `${t("Usuario no válido.")} ${EXPLICACION_MOTE}`;
       return;
     }
-    if (clave.length < 6) {
-      error.textContent = t("La contraseña tiene que tener al menos 6 caracteres.");
+    if (!claveValida(clave)) {
+      error.textContent = t(AVISO_CLAVE);
       return;
     }
     if (clave !== repetida) {

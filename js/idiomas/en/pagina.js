@@ -18,7 +18,8 @@ export default {
   "Borrar esta ruleta": "Delete this wheel",
   "Añadir opción...": "Add option...",
   "Últimas tiradas": "Latest spins",
-  "Mote o correo de Google de tu amigo...": "Your friend's username or Google email...",
+  "Mote de tu amigo...": "Your friend's username...",
+  "Usar mi foto de Google": "Use my Google photo",
   "Agregar": "Add",
   "Randomlocke del grupo": "Group randomlocke",
 
@@ -203,8 +204,8 @@ export default {
   "Para equipos, rutas, level caps, normas y Pokédex, no: se guarda todo en este navegador. Con una cuenta (usuario y contraseña, o Google) se guarda además en tu cuenta, así que lo tienes en cualquier dispositivo, y puedes usar «Amigos» y «Lockes».":
     "For teams, routes, level caps, rules and the Pokédex, no: everything is saved in this browser. With an account (username and password, or Google) it's also saved to your account, so you have it on any device, and you can use “Friends” and “Lockes”.",
   "¿Cómo añado a un amigo?": "How do I add a friend?",
-  "En «Amigos», escribe su nombre de usuario (o el correo de su cuenta de Google) y pulsa «Agregar». Le llega una solicitud a la campana de abajo del panel; en cuanto la acepta, os salís el uno en la lista del otro.":
-    "In “Friends”, type their username (or the email of their Google account) and click “Add”. They get a request in the bell at the bottom of the panel; as soon as they accept it, you appear in each other's list.",
+  "En «Amigos», escribe su nombre de usuario y pulsa «Agregar». Le llega una solicitud a la campana de abajo del panel; en cuanto la acepta, os salís el uno en la lista del otro.":
+    "In “Friends”, type their username and click “Add”. They get a request in the bell at the bottom of the panel; as soon as they accept it, you appear in each other's list.",
   "¿Cómo funciona un locke?": "How does a locke work?",
   "Con «Nuevo locke» le pones nombre, tipo, juego, vidas y combates, eliges las normas, las rutas y los level caps, e invitas a tus amigos (les llega a la campana). Cada uno lleva lo suyo: quita sus vidas (y apunta qué Pokémon ha muerto, que va a su cementerio) y marca cuándo se pasa la ROM. Cuando acaba, quien lo creó pulsa «Terminar» y se le suma al ganador a sus lockes ganados.":
     "With “New locke” you give it a name, type, game, lives and battles, choose the rules, routes and level caps, and invite your friends (it reaches their bell). Everyone keeps track of their own: removes their lives (and records which Pokémon died, which goes to their graveyard) and marks when they beat the ROM. When it's over, whoever created it clicks “End” and it's added to the winner's won lockes.",

@@ -1067,7 +1067,7 @@ async function pintarModeradores() {
     lista.innerHTML = `
       <p class="moderadores-explicacion">${t("Un moderador puede borrar hilos y comentarios de otros, crear hilos principales, silenciar a gente y ver las denuncias. Solo tú, como administrador, puedes nombrar y quitar moderadores.")}</p>
       <div class="moderadores-nuevo">
-        <input class="moderadores-campo" type="text" placeholder="${t("Mote o correo de Google de la persona...")}">
+        <input class="moderadores-campo" type="text" placeholder="${t("Mote de la persona...")}">
         <button class="moderadores-nombrar">${icono("escudo")} ${t("Nombrar moderador")}</button>
         <span class="moderadores-aviso foro-error"></span>
       </div>
@@ -1095,7 +1095,7 @@ async function accionDeModeradores(e) {
       return;
     }
 
-    // Nombrar: se busca por mote o por correo de Google, como al añadir un amigo
+    // Nombrar: se busca por mote, como al añadir un amigo
     const texto = campo ? campo.value.trim() : "";
     if (!texto) return;
     const perfil = await buscarAmigo(texto);

@@ -11,8 +11,7 @@ rules_version = '2';
 //   perfiles/{uid}        -> lo lee cualquiera identificado, de uno en uno (hace falta para
 //                            ver el palmarés de un amigo). Lo escribe su dueño. Sin correo.
 //   motes/{mote}          -> qué cuenta tiene cada mote. Uno por persona, sin repetidos.
-//   correos/{correo}      -> de quién es cada correo de Google. Solo se puede mirar uno
-//                            sabiéndolo entero: no se puede sacar la lista.
+//   correos/{correo}      -> ya no se usa (antes: buscar por correo). Cada uno solo puede borrar el suyo.
 //   presencia/{uid}       -> cuándo se vio a cada uno con la web abierta. Lo escribe su dueño.
 //   amistades/{par}       -> solo los dos implicados. El id es los dos uid ordenados.
 //   lockes/{id}           -> solo los que juegan ese locke. Cada uno toca SOLO sus vidas,
@@ -49,6 +48,13 @@ service cloud.firestore {
     // Quien tiene un documento en silenciados/: no puede escribir en el foro
     function silenciado() {
       return exists(/databases/$(database)/documents/silenciados/$(request.auth.uid));
+    }
+
+    // Quien ya ha elegido su mote. Para escribir en el foro hace falta: así nadie aparece
+    // ahí con un nombre que no ha elegido (la web ya obliga a elegirlo al entrar, esto lo
+    // asegura también para quien se salte la web).
+    function tieneMote() {
+      return get(/databases/$(database)/documents/perfiles/$(request.auth.uid)).data.get('mote', '') != '';
     }
 
     // ---------- Datos privados ----------
@@ -104,19 +110,16 @@ service cloud.firestore {
       allow delete: if identificado() && request.auth.uid == uid;
     }
 
-    // ---------- Correos ----------
+    // ---------- Correos (ya no se usan) ----------
     //
-    // Para buscar a alguien de Google por su correo. Cada uno apunta solo el suyo (el que
-    // dice Google, no uno inventado).
+    // Antes servían para buscar a alguien de Google por su correo. Ya no se puede buscar por
+    // correo (así nadie puede comprobar si un correo usa la web), y no se crean más. Solo queda
+    // que cada uno pueda mirar y borrar el apunte que tuviera de antes con SU correo.
 
     match /correos/{correo} {
-      allow get: if identificado();
-      allow create, update: if identificado()
+      allow get, delete: if identificado()
         && request.auth.token.email != null
-        && request.auth.token.email.lower() == correo
-        && request.resource.data.keys().hasOnly(['uid'])
-        && request.resource.data.uid == request.auth.uid;
-      allow delete: if identificado() && resource.data.uid == request.auth.uid;
+        && request.auth.token.email.lower() == correo;
     }
 
     // ---------- Conectado ----------
@@ -461,7 +464,7 @@ service cloud.firestore {
       allow read: if identificado();
 
       // Cualquiera crea hilos, pero solo un moderador puede crearlos fijados («principales»)
-      allow create: if identificado() && !silenciado()
+      allow create: if identificado() && !silenciado() && tieneMote()
         && nuevo().keys().hasOnly(['uid', 'titulo', 'texto', 'categoria', 'juego', 'juegoOtro', 'tipo', 'huecos',
           'creado', 'ultimo', 'respuestas', 'cerrado', 'fijado'])
         && nuevo().get('fijado', false) is bool
@@ -503,7 +506,7 @@ service cloud.firestore {
 
       allow read: if identificado();
 
-      allow create: if identificado() && !silenciado()
+      allow create: if identificado() && !silenciado() && tieneMote()
         && request.resource.data.keys().hasOnly(['uid', 'texto', 'creado'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.creado == request.time

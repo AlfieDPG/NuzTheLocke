@@ -509,7 +509,7 @@ function pintarSolicitudes(pendientes, perfiles) {
 
 // ---------- Agregar un amigo ----------
 
-// Por mote o por correo de Google
+// Solo por mote (por correo ya no se puede buscar a nadie)
 async function agregar() {
   const texto = campoCorreo.value.trim();
   if (!texto) return;
@@ -526,7 +526,7 @@ async function agregar() {
     const perfil = await buscarAmigo(texto);
     if (!perfil) {
       aviso.textContent = texto.includes("@")
-        ? t("Nadie con ese correo. Tiene que entrar una vez en la web primero.")
+        ? t("Se busca por mote, no por correo.")
         : t("Nadie con ese mote.");
       return;
     }

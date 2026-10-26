@@ -754,7 +754,10 @@ function abrirAvatar() {
   avatarElegido = null;
   dialogoAvatar.querySelector(".avatar-pokemon").value = "";
   dialogoAvatar.querySelector(".avatar-error").textContent = "";
-  dialogoAvatar.querySelector(".avatar-quitar").hidden = !(miPerfil() || {}).avatar;
+  const mio = miPerfil() || {};
+  dialogoAvatar.querySelector(".avatar-quitar").hidden = !(mio.avatar || mio.fotoGoogle);
+  const usuario = usuarioActual();
+  dialogoAvatar.querySelector(".avatar-google").hidden = !(usuario && usuario.photoURL) || Boolean(mio.fotoGoogle);
   pintarMuestra();
   dialogoAvatar.showModal();
   dialogoAvatar.querySelector(".avatar-pokemon").focus();
@@ -821,7 +824,7 @@ async function guardarAvatar() {
     return;
   }
   if (avatarElegido.subida) {
-    await guardarMiPerfil({ avatar: "propia", foto: avatarElegido.subida });
+    await guardarMiPerfil({ avatar: "propia", fotoGoogle: false, foto: avatarElegido.subida });
     dialogoAvatar.close();
     return;
   }
@@ -833,14 +836,22 @@ async function guardarAvatar() {
       break;
     }
   }
-  await guardarMiPerfil({ avatar: avatarElegido.id, foto });
+  await guardarMiPerfil({ avatar: avatarElegido.id, fotoGoogle: false, foto });
   dialogoAvatar.close();
 }
 
-// Vuelve la de Google (o ninguna, en las cuentas de usuario)
+// Sin foto. La de Google no sale sola: solo si se pide con «Usar mi foto de Google»
 async function quitarAvatar() {
+  await guardarMiPerfil({ avatar: null, fotoGoogle: false, foto: "" });
+  dialogoAvatar.close();
+}
+
+// La foto de tu cuenta de Google en el perfil público. Se enseña a cualquiera con cuenta,
+// así que es una decisión de cada uno (por defecto no sale)
+async function usarFotoDeGoogle() {
   const usuario = usuarioActual();
-  await guardarMiPerfil({ avatar: null, foto: (usuario && usuario.photoURL) || "" });
+  if (!usuario || !usuario.photoURL) return;
+  await guardarMiPerfil({ avatar: null, fotoGoogle: true, foto: usuario.photoURL });
   dialogoAvatar.close();
 }
 
@@ -983,6 +994,9 @@ archivoAvatar.addEventListener("change", () => {
 });
 dialogoAvatar.querySelector(".avatar-quitar").addEventListener("click", () => {
   quitarAvatar().catch((error) => console.error(error));
+});
+dialogoAvatar.querySelector(".avatar-google").addEventListener("click", () => {
+  usarFotoDeGoogle().catch((error) => console.error(error));
 });
 
 // Al día mientras está abierto: tu perfil, el del amigo, quién está conectado

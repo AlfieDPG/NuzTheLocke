@@ -1296,6 +1296,10 @@ button.perfil-fondo:hover:not(:disabled) {
   background: rgba(var(--color-vista), 0.08);
 }
 
+.avatar-google {
+  margin-top: 0.5rem;
+}
+
 /* Las fotos subidas (data:) son fotos, no sprites: suavizadas, no pixeladas */
 .avatar-muestra img[src^="data:"],
 .perfil-foto[src^="data:"],

@@ -36,7 +36,7 @@ export default {
   "Nombrar": "Appoint",
   "Nombrar moderador": "Appoint as moderator",
   "Quitar como moderador": "Remove as moderator",
-  "Mote o correo de Google de la persona...": "Nickname or Google email of the person...",
+  "Mote de la persona...": "Nickname of the person...",
   "Un moderador puede borrar hilos y comentarios de otros, crear hilos principales, silenciar a gente y ver las denuncias. Solo tú, como administrador, puedes nombrar y quitar moderadores.": "A moderator can delete other people's threads and comments, create main threads, mute people and see the reports. Only you, as administrator, can appoint and remove moderators.",
   "No encuentro a nadie con eso.": "I can't find anyone with that.",
   "Esa eres tú.": "That's you.",

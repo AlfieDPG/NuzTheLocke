@@ -31,8 +31,8 @@ export default {
   // Agregar
   "Primero inicia sesión.": "Sign in first.",
   "Buscando...": "Searching...",
-  "Nadie con ese correo. Tiene que entrar una vez en la web primero.": "Nobody with that email. They have to sign in to the site once first.",
   "Nadie con ese mote.": "Nobody with that username.",
+  "Se busca por mote, no por correo.": "Search by username, not by email.",
   "Ese eres tú.": "That's you.",
   "{nombre} ya es tu amigo.": "{nombre} is already your friend.",
   "Solicitud enviada a {nombre}.": "Request sent to {nombre}.",

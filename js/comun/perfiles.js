@@ -7,15 +7,14 @@
 //
 // Colecciones (las reglas están en firestore.rules):
 //
-//   perfiles/{uid}   { nombre, foto, mote, tipos, ganados, avatar, escaparate, logros }
+//   perfiles/{uid}   { nombre, foto, mote, tipos, ganados, avatar, fotoGoogle, escaparate, logros }
 //                    (logros: { idLogro: fecha }, los apunta js/comun/logros.js)
 //   motes/{mote}     { uid, mote }  (el id va en minúsculas: así no hay dos iguales)
-//   correos/{correo} { uid }        (solo cuentas de Google, para buscarlas por correo)
 //   amistades/{par}  { miembros: [uidA, uidB], estado, pidio, creado }
 //
-//   · El correo NO va en el perfil: los perfiles los puede leer cualquiera con sesión, y
-//     así nadie puede sacar la lista de correos. Para encontrar a alguien por correo hay que
-//     saberlo entero: se mira correos/{ese correo} y, si existe, dice de quién es.
+//   · El correo NO va en el perfil ni se puede buscar por él: los perfiles los puede leer
+//     cualquiera con sesión. Tampoco el nombre ni la foto de Google, salvo que la persona
+//     elija usar su foto (fotoGoogle).
 //
 //   · mote:    nombre único elegido por la persona. Si lo tiene, «nombre» es el mote.
 //   · avatar:  número de Pokédex si ha elegido un Pokémon de foto. Entonces «foto» es su
@@ -30,6 +29,7 @@
 
 import { usuarioActual, baseDeDatos, alCambiarSesion, nombreDeUsuario, recordarNombreDeCuenta } from "./nube.js";
 import { t } from "./idioma.js";
+import { leer, escribir } from "./almacen.js";
 
 // Con lo que empieza una cuenta nueva: solo el locke normal. Cada uno puede renombrarlo,
 // cambiarle el color o añadir los suyos (Megalocke, Bebelocke... son inventos de cada grupo).
@@ -295,26 +295,23 @@ export function iniciarPerfiles() {
   });
 }
 
-// Nombre y foto según cómo se haya entrado. Las cuentas de usuario y contraseña no tienen
-// foto.
+// Nombre y foto del perfil público según cómo se haya entrado. Del nombre y la foto de Google
+// NO se copia nada: el perfil lo ve cualquiera con cuenta (foro, amigos...) y ahí no tiene que
+// salir el nombre real de nadie. El nombre es el mote (hasta que lo elige, «Jugador») y la foto
+// solo es la de Google si la persona lo pide (perfil.fotoGoogle, ver perfil.js).
 function datosDeLaCuenta(usuario) {
   const deUsuario = nombreDeUsuario(usuario);
-  if (deUsuario) return { nombre: deUsuario, foto: "" };
-
-  return {
-    nombre: usuario.displayName || (usuario.email || "").split("@")[0] || "Jugador",
-    foto: usuario.photoURL || ""
-  };
+  return { nombre: deUsuario || "Jugador", foto: "" };
 }
 
-// El correo con el que te pueden buscar: el de Google. Las cuentas de usuario y contraseña
-// no tienen (el suyo es inventado, ver nube.js): si no, se las podría buscar por él.
+// El correo de Google con el que, antes, te podían buscar. Ya no se usa para buscar a nadie:
+// solo para borrar el apunte de antes (correos/).
 function correoParaBuscar(usuario) {
   return nombreDeUsuario(usuario) ? "" : (usuario.email || "").toLowerCase();
 }
 
-// Crea el perfil la primera vez. Después solo refresca la foto, que la manda Google y
-// puede haber cambiado, y el nombre si no se ha puesto mote (con mote, el nombre es él).
+// Crea el perfil la primera vez. Después pone al día el nombre (con mote, el nombre es él) y la
+// foto (la de Google solo si se ha pedido; con un Pokémon o una foto propia, esa).
 //
 // merge y no setDoc a secas: al crear una cuenta de usuario, crearCuenta reserva el mote a
 // la vez, y si esto llegase después lo borraría.
@@ -325,14 +322,15 @@ async function asegurarPerfil(usuario) {
   const deLaCuenta = datosDeLaCuenta(usuario);
 
   if (guardado.exists()) {
-    const { mote, avatar } = guardado.data();
+    const { mote, avatar, fotoGoogle } = guardado.data();
     const cambios = { ...deLaCuenta };
-    // Con mote, el nombre es el mote: si se quedó con el de Google (se pisaron al ponerse
-    // el mote justo al entrar), aquí se arregla
+    // Con mote, el nombre es el mote: si se quedó con el de Google (los perfiles de antes
+    // lo copiaban), aquí se arregla
     if (mote) cambios.nombre = mote;
-    // Con un Pokémon de foto, la de Google no la pisa
+    // Con un Pokémon o una foto propia, esa foto no se pisa; la de Google, solo si la pidió
     if (avatar) delete cambios.foto;
-    // Y el correo se quita: los perfiles de antes lo llevaban dentro (ahora va en correos/)
+    else if (fotoGoogle && usuario.photoURL) cambios.foto = usuario.photoURL;
+    // Y el correo se quita: los perfiles de antes lo llevaban dentro
     await fn.updateDoc(referencia, { ...cambios, correo: fn.deleteField() });
   } else {
     await fn.setDoc(
@@ -342,19 +340,24 @@ async function asegurarPerfil(usuario) {
     );
   }
 
-  await apuntarCorreo(usuario);
+  await limpiarCorreoAntiguo(usuario);
 }
 
-// Aparte y sin que un fallo pare lo demás: sin esto solo se deja de poder buscarte por
-// correo (por mote se sigue pudiendo)
-async function apuntarCorreo(usuario) {
+// Antes se apuntaba el correo de Google en correos/ para poder buscar a la gente por él. Ya no:
+// se borra el apunte de antes, una sola vez por cuenta y navegador. Aparte y sin que un fallo
+// pare lo demás.
+async function limpiarCorreoAntiguo(usuario) {
   const correo = correoParaBuscar(usuario);
-  if (!correo) return;
+  const marca = `pokely-correo-limpio-${usuario.uid}`;
+  if (!correo || leer(marca, false)) return;
+
   const { bd, fn } = baseDeDatos();
   try {
-    await fn.setDoc(fn.doc(bd, "correos", correo), { uid: usuario.uid });
+    const referencia = fn.doc(bd, "correos", correo);
+    if ((await fn.getDoc(referencia)).exists()) await fn.deleteDoc(referencia);
+    escribir(marca, true);
   } catch (error) {
-    console.error("No se ha podido apuntar el correo para que te encuentren", error);
+    console.error("No se ha podido borrar el correo apuntado de antes", error);
   }
 }
 
@@ -525,22 +528,14 @@ export async function perfilesDe(uids) {
   return mapa;
 }
 
-// Por correo (si lleva @, tiene que ser exacto) o por mote
+// Solo por mote. Por correo ya no se puede: así nadie puede comprobar si un correo concreto
+// usa la web.
 export async function buscarAmigo(texto) {
   const acceso = baseDeDatos();
   texto = String(texto || "").trim();
   if (!acceso || !texto) return null;
 
-  const { bd, fn } = acceso;
-  let uid = null;
-
-  if (texto.includes("@")) {
-    const documento = await fn.getDoc(fn.doc(bd, "correos", texto.toLowerCase()));
-    uid = documento.exists() ? documento.data().uid : null;
-  } else {
-    uid = await dueñoDelMote(texto);
-  }
-
+  const uid = await dueñoDelMote(texto);
   if (!uid) return null;
   return (await perfilesDe([uid])).get(uid) || null;
 }

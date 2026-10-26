@@ -80,7 +80,8 @@ export default {
     "Username accounts aren't enabled in Firebase yet (Authentication → Sign-in method → Email/Password).",
   "Usuario o contraseña incorrectos.": "Wrong username or password.",
   "Ese usuario ya existe.": "That username already exists.",
-  "La contraseña tiene que tener al menos 6 caracteres.": "The password must be at least 6 characters long.",
+  "La contraseña tiene que tener al menos 8 caracteres, con mayúsculas, minúsculas y un número.":
+    "The password must be at least 8 characters long, with uppercase and lowercase letters and a number.",
   "Demasiados intentos. Espera un poco.": "Too many attempts. Wait a little.",
   "Esa no es la cuenta de Google con la que estás dentro.": "That's not the Google account you're signed in with.",
   "Escribe tu contraseña.": "Enter your password.",

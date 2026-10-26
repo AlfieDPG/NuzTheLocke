@@ -110,7 +110,7 @@ copia local volvería a plantear quién pisa a quién.
 | --- | --- | --- |
 | `perfiles/{uid}` | cualquiera con sesión, de uno en uno (sin lista) | solo su dueño; sin correo |
 | `motes/{mote}` | cualquiera (para ver si está libre) | solo su dueño; uno por persona |
-| `correos/{correo}` | cualquiera con sesión que sepa el correo entero | solo su dueño (el correo de su Google) |
+| `correos/{correo}` | ya no se usa (antes: buscar por correo); solo el dueño mira y borra el suyo | nadie |
 | `presencia/{uid}` | cualquiera con sesión | solo su dueño (la hora la pone el servidor) |
 | `amistades/{par}` | los dos implicados | los dos implicados |
 | `lockes/{id}` | los que juegan ese locke | cada uno sus vidas, victorias, muertos y respuesta; el creador el resto |
@@ -124,7 +124,7 @@ ficha sin recargar.
 
 Nadie entra en tu lista ni en un locke tuyo sin querer:
 
-- **Amigos.** Metes su mote o su correo de Google → le llega una solicitud → cuando la acepta, os
+- **Amigos.** Metes su mote (por correo ya no se busca a nadie) → le llega una solicitud → cuando la acepta, os
   salís el uno en la lista del otro. Hasta entonces en «Amigos» solo estás tú.
 - **Lockes.** Quien lo crea elige a los invitados, y puede no invitar a nadie: un locke
   para ti solo vale igual. Los invitados salen como «Sin contestar» hasta que entran, y el
@@ -182,8 +182,7 @@ comentarios se leen del más nuevo al más viejo, de 40 en 40.
    pendientes) y **Moderadores**, y en cada hilo la chincheta (hacer principal), la papelera
    (borrar el hilo de otro) y, en la ficha de cada persona, silenciar y nombrar moderador.
 
-**Nombrar y quitar moderadores (desde la web).** Pestaña **Moderadores**: escribe el mote o el correo de
-Google de la persona → **Nombrar moderador**. También desde su ficha (pulsa su foto en el foro). Para
+**Nombrar y quitar moderadores (desde la web).** Pestaña **Moderadores**: escribe el mote de la persona → **Nombrar moderador**. También desde su ficha (pulsa su foto en el foro). Para
 quitarlo, **Quitar** en la misma pestaña. Los administradores no se pueden quitar desde la web.
 Qué puede hacer un moderador: borrar hilos y comentarios de otros, crear y quitar hilos principales,
 silenciar y ver las denuncias.
@@ -210,6 +209,20 @@ volver a la sección pasado un minuto.
 **Al borrar un comentario el contador de respuestas no baja.** Es a propósito: el id de cada
 comentario es `uid_N` (N = el número de respuestas que dejó), y las reglas lo usan para exigir
 que comentar y subir el contador vayan juntos. Si bajara, un id podría repetirse.
+
+## Privacidad de los perfiles
+
+- **Mote obligatorio.** Al entrar sin mote sale una ventana que no se puede cerrar (`js/sesion.js`,
+  `revisarMote`), y las reglas exigen mote para escribir en el foro.
+- **Nombre y foto de Google no se copian al perfil.** El nombre es el mote (hasta elegirlo, «Jugador»).
+  La foto de Google solo sale si la persona pulsa «Usar mi foto de Google» (`fotoGoogle` en el perfil).
+  Quien tenía antes su foto de Google se queda sin foto hasta que la vuelva a pedir.
+- **No se busca por correo.** `correos/` ya no se escribe; al entrar, cada cuenta de Google borra el
+  apunte que tuviera de antes. Cuando ya no quede ningún documento en `correos`, se puede quitar de las reglas.
+- **Política de contraseñas** (solo cuentas de usuario y contraseña, al crearlas): mínimo 8 caracteres con
+  mayúscula, minúscula y número. Se activa en Firebase → Authentication → **Configuración → Política de
+  contraseñas**, y tiene que coincidir con `claveValida` de `js/sesion.js`. Las cuentas que ya existen
+  siguen entrando con su contraseña.
 
 ## Protegerla de abusos (App Check y la clave)
 
