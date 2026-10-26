@@ -176,10 +176,10 @@ function leerEntrenadores(tabla, perfil) {
 }
 
 // Los salvajes de Diamante (_d) y de Perla (_p): cada zona, un área; además el Jardín Trofeo, los árboles de miel
-// (con sus Pokémon raros) y la Gran Pradera. Los legendarios, como estáticos (los de Perla, iguales que los de Diamante)
+// (con sus Pokémon raros) y la Gran Pradera. (Su lista «legendpoke» no son encuentros: son la música, el fondo y la
+// entrada de cada legendario por su especie, y no se toca)
 function leerSalvajes(tablas) {
   const salvajes = [];
-  const estaticos = [];
   for (const [version, t] of Object.entries(tablas)) {
     t.table.forEach((zona, z) => {
       const zonas = [];
@@ -197,12 +197,75 @@ function leerSalvajes(tablas) {
     extra("pradera", t.safari, "MonsNo");
     extra("miel-normal", t.honeytree, "Normal");
     extra("miel-raro", t.honeytree, "Rare");
-    t.legendpoke.forEach((l, k) => {
-      const copiaDe = version === "p" ? k : undefined;
-      estaticos.push({ tabla: "legendario", fb: l, actual: l.monsNo, nivelActual: 0, ignorar: !l.monsNo || l.monsNo > ULTIMA_ESPECIE, ...(copiaDe !== undefined ? { copiaDe } : {}) });
+  }
+  return salvajes;
+}
+
+// Los estáticos y los huevos que se regalan van en los scripts: el combate (401 y 402: especie y nivel) y el huevo (219:
+// especie y lugar). Un estático por especie (Giratina sale dos veces: las dos, la misma nueva). En los scripts que los
+// tienen se cambia la especie también en el grito (112), en la comprobación de después (346) y en la de cada versión
+// (840: Dialga en Diamante, Palkia en Perla)
+const COMANDOS_ESTATICO = new Set([401, 402]);
+const COMANDO_HUEVO = 219;
+const COMANDO_VERSION = 840;
+const COMANDOS_ESPECIE = new Set([112, 346, 401, 402, COMANDO_HUEVO, COMANDO_VERSION]);
+function leerEstaticos(ab) {
+  const especies = new Map(); // especie -> ¿huevo?
+  const sitios = []; // [nombre del objeto, número de script]
+  const objetos = new Map();
+  for (const nombre of ab.porNombre.keys()) {
+    if (nombre === "fld_item") continue;
+    let o;
+    try {
+      o = leerPorNombre(ab, nombre);
+    } catch (e) {
+      continue;
+    }
+    if (!Array.isArray(o.Scripts)) continue;
+    o.Scripts.forEach((s, k) => {
+      let tiene = false;
+      for (const c of s.Commands || []) {
+        const a = c.Arg || [];
+        if (a.length < 2) continue;
+        if (a[0].data === COMANDO_VERSION) tiene = true;
+        if (a[1].argType !== 1 || !(COMANDOS_ESTATICO.has(a[0].data) || a[0].data === COMANDO_HUEVO)) continue;
+        const especie = deBits(a[1].data);
+        if (!Number.isInteger(especie) || especie < 1 || especie > ULTIMA_ESPECIE) continue;
+        tiene = true;
+        if (!especies.has(especie)) especies.set(especie, a[0].data === COMANDO_HUEVO);
+      }
+      if (tiene) {
+        sitios.push([nombre, k]);
+        objetos.set(nombre, o);
+      }
     });
   }
-  return { salvajes, estaticos };
+  // Los huevos, de una que no venga de otra (para que nazca algo con sentido)
+  const estaticos = [...especies].map(([actual, huevo]) => ({ actual, nivelActual: 0, ...(huevo ? { soloBase: true } : {}) }));
+  return { estaticos, sitios, objetos };
+}
+
+function escribirEstaticos(datos, b) {
+  const { estaticos, sitios, objetos } = datos.bd.estaticos;
+  const nueva = new Map();
+  for (const e of estaticos) if (e.nueva !== undefined && e.nueva !== e.actual) nueva.set(aBits(e.actual), aBits(e.nueva));
+  if (!nueva.size) return;
+  const cambiados = new Map();
+  for (const [nombre, k] of sitios) {
+    if (!cambiados.has(nombre)) cambiados.set(nombre, structuredClone(objetos.get(nombre)));
+    for (const c of cambiados.get(nombre).Scripts[k].Commands || []) {
+      const a = c.Arg || [];
+      if (!a.length || !COMANDOS_ESPECIE.has(a[0].data)) continue;
+      a.forEach((x, i) => {
+        if (i && x.argType === 1 && nueva.has(x.data)) {
+          x.data = nueva.get(x.data);
+          // En los combates, detrás del nivel va la forma (Giratina Origen en el Parque Hansa): la de siempre
+          if (i === 1 && COMANDOS_ESTATICO.has(a[0].data) && a[3] && a[3].argType === 1) a[3].data = aBits(0);
+        }
+      });
+    }
+  }
+  for (const [nombre, o] of cambiados) cambiarPorNombre(b.scripts, nombre, o);
 }
 
 // Las tiendas: la normal (todas las listas de la Tienda Pokémon juntas, la 0) y cada tienda especial (por su número).
@@ -283,12 +346,12 @@ export function leerBW2(sesion) {
   perfil.objetosInexistentes = (id) => precios[id] === undefined;
   const t = leerTiendas(shop);
   perfil.tiendas = t.tipo;
-  const s = leerSalvajes(tablas);
+  const est = leerEstaticos(b.scripts);
   return {
-    perfil, especies, aprende, ataques, salvajes: s.salvajes, entrenadores: leerEntrenadores(entrenadores, perfil),
-    iniciales: INICIALES.slice(), inicialesOriginales: INICIALES.slice(), estaticos: s.estaticos, intercambios: [], totems: [],
+    perfil, especies, aprende, ataques, salvajes: leerSalvajes(tablas), entrenadores: leerEntrenadores(entrenadores, perfil),
+    iniciales: INICIALES.slice(), inicialesOriginales: INICIALES.slice(), estaticos: est.estaticos, intercambios: [], totems: [],
     precios, tiendas: t.tiendas, objetosSuelo: fld ? leerObjetosSuelo(fld) : [], claros: null,
-    bd: { personal, evolucion, oboe, waza, items, entrenadores, shop, tablas, fld, maquinas }
+    bd: { personal, evolucion, oboe, waza, items, entrenadores, shop, tablas, fld, maquinas, estaticos: est }
   };
 }
 
@@ -356,6 +419,7 @@ export function escribirBW2(sesion, datos) {
 
   escribirEntrenadores(datos, b, copia, poner);
   escribirSalvajes(datos, b, copia, poner);
+  escribirEstaticos(datos, b);
   escribirTiendas(datos, b, copia, poner);
 
   // Objetos del suelo (cambiados en su sitio, en lo leído)
@@ -494,13 +558,6 @@ function escribirSalvajes(datos, b, copia, poner) {
         }
       }
     }
-  }
-  for (const e of datos.estaticos) {
-    const nueva = e.copiaDe !== undefined ? datos.estaticos[e.copiaDe].nueva : e.nueva;
-    if (nueva === undefined || nueva === e.actual || e.ignorar) continue;
-    e.fb.monsNo = nueva;
-    e.fb.formNo = 0;
-    e.fb.waza1 = e.fb.waza2 = e.fb.waza3 = e.fb.waza4 = 0;
   }
   // (los huecos apuntan a lo leído: se compara con el bundle tal cual)
   poner(b.ajustes, "FieldEncountTable_d", datos.bd.tablas.d, leerOriginal(b.ajustes, "FieldEncountTable_d"));

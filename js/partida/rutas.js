@@ -45,6 +45,8 @@ const POR_NOMBRE = {
   "Entrada Safari": "Entrada Zona Safari",
   "Alm. Frigoríficos": "Almacenes Frigoríficos",
   "Torre Duodraco": "Torre Dracoespiral",
+  "Escon. T. Rocket": "Escondite del Team Rocket",
+  "Cueva M Plateado": "Cueva del Monte Plateado",
   "Puente Villa": "Puente Aldea",
   "Puente Progreso": "Puente Maravilla",
   "Laboratorio P+P": "Laboratorio P2",

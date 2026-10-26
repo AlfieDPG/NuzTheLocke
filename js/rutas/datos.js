@@ -77,21 +77,29 @@ const CIUDADES_SINNOH = [
   "Ciudad Marina", "Zona Descanso"
 ];
 
-// Eventos de Diamante / Perla (los remakes tienen los mismos y alguno más). El fósil del Museo de Ciudad Pirita no:
-// depende de que salga uno en el Subsuelo (y en la partida se apunta en Ciudad Pirita, que no es ruta)
-const EVENTOS_DP = [
-  "Ruta 201: Pokémon inicial",
-  "Ciudad Vetusta: Huevo de Togepi (regalo de Cintia)",
-  "Ciudad Corazón: Eevee (regalo de Teo)",
-  "Ciudad Rocavelo: Porygon (regalo en una casa)",
-  "Isla Hierro: Huevo de Riolu (regalo de Quinoa)",
+// Los eventos de Sinnoh, comprobados con los regalos y estáticos de cada juego (sus scripts). Cada uno tiene los suyos:
+// el Huevo de Togepi y Porygon son de Platino; el Huevo de Happiny, de Diamante / Perla y los remakes; Eevee, de
+// Diamante / Perla y Platino. El fósil del Museo de Ciudad Pirita no: depende de que salga uno en el Subsuelo (y en la
+// partida se apunta en Ciudad Pirita, que no es ruta). Darkrai, Shaymin y Arceus tampoco: solo con objetos de evento
+const ESTATICOS_SINNOH = [
   "Valle Eólico: Drifloon (estático los viernes)",
   "Vieja Mansión: Rotom (estático en el televisor, de noche)",
-  "Ruta 209: Spiritomb (Torre Sagrada activada)",
-  "Columna Lanza: Dialga o Palkia (estático obligatorio)",
+  "Ruta 209: Spiritomb (Torre Sagrada activada)"
+];
+const LAGOS_SINNOH = [
   "Lago Agudeza: Uxie (estático)",
   "Lago Valor: Azelf (estático)",
   "Mesprit: errante por Sinnoh",
+  "Cresselia: errante por Sinnoh (después de verla en la Isla Plenilunio)"
+];
+const EVENTOS_DP = [
+  "Ruta 201: Pokémon inicial",
+  "Ciudad Corazón: Eevee (regalo de Teo)",
+  "Ciudad Corazón: Huevo de Happiny (regalo)",
+  "Isla Hierro: Huevo de Riolu (regalo de Quinoa)",
+  ...ESTATICOS_SINNOH,
+  "Columna Lanza: Dialga o Palkia (estático obligatorio)",
+  ...LAGOS_SINNOH,
   "Cueva Retorno: Giratina (estático)",
   "Montaña Dura: Heatran (estático)",
   "Templo Puntaneva: Regigigas (estático)"
@@ -191,11 +199,24 @@ export const LUGARES = {
       "Ciudad Trigal: Eevee (regalo de Bill en su casa)",
       "Casino de Ciudad Trigal: Comprándolos",
       "Ruta 36: Sudowoodo (estático)",
+      "Cueva Unión: Lapras (estático los viernes)",
       "Ciudad Orquídea: Shuckle (regalo de un personaje)",
       "Monte Mortero: Tyrogue (regalo del Rey del Kárate)",
       "Lago de la Furia: Gyarados rojo (estático)",
-      "Torre Campana / Torre Quemada: Ho-Oh / Raikou / Entei (estáticos / errantes)",
-      "Islas Remolino: Lugia (estático)"
+      "Escondite del Team Rocket: Voltorb, Koffing, Geodude y Electrode (Poké Balls trampa, en Pueblo Caoba)",
+      "Guarida Dragón: Dratini (regalo tras la prueba del anciano)",
+      "Torre Campana (Torre Hojalata): Ho-Oh (estático)",
+      "Islas Remolino: Lugia (estático)",
+      "Raikou y Entei: errantes por Johto (después de la Torre Quemada)",
+      "Ruta 25: Suicune (estático)",
+      "Torre Oculta: Groudon o Kyogre (según la versión) y Rayquaza (estáticos después de la Liga)",
+      "Pueblo Paleta: Bulbasaur, Charmander o Squirtle (regalo del Prof. Oak después de vencer a Rojo)",
+      "Ciudad Azafrán: Treecko, Torchic o Mudkip (regalo de Máximo)",
+      "Ruta 11 / Ruta 12: Snorlax (estático)",
+      "Ruta 10: Zapdos (estático)",
+      "Islas Espuma: Articuno (estático)",
+      "Cueva del Monte Plateado: Moltres (estático)",
+      "Cueva Celeste: Mewtwo (estático)"
     ]
   },
 
@@ -238,7 +259,18 @@ export const LUGARES = {
   bdsp: {
     rutas: [...RUTAS_SINNOH, "Grutas del Subsuelo"],
     ciudades: CIUDADES_SINNOH,
-    eventos: [...EVENTOS_DP, "Parque Hansa: Legendarios de otras regiones (estáticos después de la Liga)"]
+    eventos: [
+      "Ruta 201: Pokémon inicial",
+      "Ciudad Corazón: Huevo de Happiny (regalo)",
+      "Isla Hierro: Huevo de Riolu (regalo de Quinoa)",
+      ...ESTATICOS_SINNOH,
+      "Columna Lanza: Dialga o Palkia (estático obligatorio)",
+      ...LAGOS_SINNOH,
+      "Cueva Retorno: Giratina (estático)",
+      "Montaña Dura: Heatran (estático)",
+      "Templo Puntaneva: Regigigas (estático)",
+      "Parque Hansa: Legendarios de otras regiones (estáticos después de la Liga)"
+    ]
   },
 
   platino: {
@@ -250,16 +282,15 @@ export const LUGARES = {
       "Ciudad Corazón: Eevee (regalo de Teo)",
       "Ciudad Rocavelo: Porygon (regalo en una casa)",
       "Isla Hierro: Huevo de Riolu (regalo de Quinoa)",
-      "Valle Eólico: Drifloon (estático los viernes)",
-      "Vieja Mansión: Rotom (estático en el televisor, de noche)",
-      "Ruta 209: Spiritomb (Torre Sagrada activada)",
+      ...ESTATICOS_SINNOH,
       "Mundo Distorsión: Giratina (estático)",
-      "Lago Agudeza: Uxie (estático)",
-      "Lago Valor: Azelf (estático)",
-      "Mesprit: errante por Sinnoh",
+      ...LAGOS_SINNOH,
       "Columna Lanza: Dialga / Palkia (estáticos después de la Liga)",
       "Montaña Dura: Heatran (estático)",
-      "Templo Puntaneva: Regigigas (estático)"
+      "Templo Puntaneva: Regigigas (estático)",
+      "Ruinas Pico Roca: Regirock (estático, con Regigigas en el equipo)",
+      "Ruinas Iceberg: Regice (estático, con Regigigas en el equipo)",
+      "Ruinas Hierro: Registeel (estático, con Regigigas en el equipo)"
     ]
   },
 
@@ -277,16 +308,18 @@ export const LUGARES = {
     eventos: [
       "Pueblo Arcilla: Pokémon inicial",
       "Solar de los Sueños: Mono elemental (Pansage / Pansear / Panpour según tu inicial)",
-      "Ciudad Porcelana: Zorua (regalo de un personaje)",
+      "Solar de los Sueños: Musharna (estático)",
+      "Puente Maravilla: Magikarp (de un personaje)",
       "Ruta 18: Huevo de Larvesta (regalo en la casa de la playa)",
       "Zona Desierto: Darmanitan (estáticos en las estatuas)",
       "Castillo Ancestral: Volcarona (estático en el nivel más profundo)",
-      "Cueva Loza: Cobalion (estático)",
-      "Bosque Azulejo: Virizion (estático)",
-      "Calle Victoria: Terrakion (estático)",
-      "Castillo de N: Reshiram o Zekrom (estático obligatorio)",
+      "Cámara Orientación: Cobalion (estático, en la Cueva Loza)",
+      "Claro Filosofía: Virizion (estático, en el Bosque Azulejo)",
+      "Cámara de Pruebas: Terrakion (estático, en la Calle Victoria)",
+      "Palacio de N: Reshiram o Zekrom (estático obligatorio)",
       "Boquete Gigante: Kyurem (estático)",
-      "Tornadus o Thundurus: errante por Teselia (según la versión)"
+      "Tornadus o Thundurus: errante por Teselia (según la versión)",
+      "Santuario Abundancia: Landorus (estático, con Tornadus y Thundurus en el equipo)"
     ]
   },
 
@@ -310,13 +343,29 @@ export const LUGARES = {
       "Ciudad Fayenza: Zorua de N (regalo de Rodo)",
       "Ruta 6: Deerling (regalo en el Instituto Meteorológico)",
       "Ciudad Porcelana: Eevee (regalo de Aroma en su edificio)",
-      "Ciudad Negra / Bosque Blanco: Gible o Dratini variocolor (regalo tras superar la Torre Negra / el Árbol Blanco)",
+      "Acceso Esmalte: Huevo de Happiny (regalo)",
+      "Puente Maravilla: Magikarp (de un personaje)",
+      "Pueblo Ocre: Gible o Dratini variocolor (regalo tras superar la Torre Negra / el Árbol Blanco)",
       "Reserva Natural: Haxorus variocolor (estático)",
       "Castillo Ancestral: Volcarona (estático, nivel 35)",
+      "Ruta 4: Braviary o Mandibuzz (estático, según la versión)",
+      "Gruta Marina: Crustle (estático)",
+      "Bahía Arenisca: Jellicent (estático)",
       "Ruta 13: Cobalion (estático)",
       "Ruta 11: Virizion (estático)",
       "Ruta 22: Terrakion (estático)",
-      "Boquete Gigante: Kyurem / Reshiram / Zekrom (estáticos después de la Liga)"
+      "Ciudad Esmalte: Uxie (estático, después de la Cueva Psique)",
+      "Torre de los Cielos: Mesprit (estático, después de la Cueva Psique)",
+      "Ruta 23: Azelf (estático, después de la Cueva Psique)",
+      "Puente Maravilla: Cresselia (estático)",
+      "Montaña Reversia: Heatran (estático)",
+      "Sala Pico Roca: Regirock (estático)",
+      "Sala Iceberg: Regice (estático)",
+      "Sala Hierro: Registeel (estático)",
+      "Monte Tuerca: Regigigas (estático, con Regirock, Regice y Registeel en el equipo)",
+      "Solar de los Sueños: Latias o Latios (estático después de la Liga, según la versión)",
+      "Torre Dracoespiral: Reshiram o Zekrom (estático después de la Liga, según la versión)",
+      "Boquete Gigante: Kyurem (estático después de la Liga)"
     ]
   },
 
@@ -352,7 +401,12 @@ export const LUGARES = {
       "Ruinas de la Guerra: Tapu Koko (estático)",
       "Ruinas de la Vida: Tapu Lele (estático)",
       "Ruinas de la Cosecha: Tapu Bulu (estático)",
-      "Ruinas del Tránsito: Tapu Fini (estático)"
+      "Ruinas del Tránsito: Tapu Fini (estático)",
+      "Ruta 5: Huevo de Eevee (regalo en la guardería)",
+      "Lago del Sol / Lago de la Luna: Cosmog (regalo después de la Liga)",
+      "Colina Dequilate (Caldera Remota): Necrozma (estático después de la Liga)",
+      "Ruta 16: Zygarde (con el Cubo Zygarde y sus células)",
+      "Ultraentes: en sus zonas (misiones después de la Liga)"
     ]
   },
 

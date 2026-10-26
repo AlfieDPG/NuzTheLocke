@@ -410,7 +410,8 @@ function randomizarEstaticos(datos, reglas, azar) {
   for (const e of datos.estaticos) {
     if (e.huevo || e.ignorar || e.copiaDe !== undefined) continue; // el huevo que se da en el juego se queda como está
     const original = datos.especies[e.actual];
-    e.nueva = sustituta(azar, original, lista, reglas.estaticos.modo).id;
+    // (soloBase: los huevos que se regalan, de una que no venga de otra)
+    e.nueva = sustituta(azar, original, e.soloBase ? lista.filter((x) => !x.previa) : lista, reglas.estaticos.modo).id;
   }
   // Los que son el mismo Pokémon que otro, igual que él
   for (const e of datos.estaticos) if (e.copiaDe !== undefined) e.nueva = datos.estaticos[e.copiaDe].nueva;
