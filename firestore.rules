@@ -122,10 +122,11 @@ service cloud.firestore {
     // ---------- Conectado ----------
     //
     // Cada uno apunta en el suyo la hora (la del servidor, no vale inventársela) y si está
-    // conectado. Lo puede leer cualquiera con sesión: solo dice cuándo se vio por última vez.
+    // conectado. Lo puede leer cualquiera con sesión, de uno en uno (se mira el de un amigo
+    // sabiendo su uid; no se puede pedir la lista): solo dice cuándo se vio por última vez.
 
     match /presencia/{uid} {
-      allow read: if identificado();
+      allow get: if identificado();
       allow create, update: if identificado() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['visto', 'conectado'])
         && request.resource.data.visto == request.time
