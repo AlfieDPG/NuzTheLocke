@@ -12,6 +12,7 @@
 // con el límite de 1 MiB por documento de Firestore cuando haya muchos equipos.
 
 import { CONFIG_FIREBASE, hayConfiguracion } from "./firebase-config.js";
+import { activarAppCheck } from "./appcheck.js";
 import {
   CLAVES_SINCRONIZADAS, leer, escribir, tiempos, alCambiar, escribirDesdeLaNube, vaciarSincronizadas
 } from "./almacen.js";
@@ -142,6 +143,7 @@ async function cargarFirebase() {
   const nombreApp = cuentas().activa;
   const aplicacion = nombreApp ? app.initializeApp(CONFIG_FIREBASE, nombreApp) : app.initializeApp(CONFIG_FIREBASE);
   appActiva = nombreApp || "";
+  await activarAppCheck(BASE_SDK, aplicacion);
   funcionesAuth = autenticacion;
   funcionesBD = firestore;
   auth = autenticacion.getAuth(aplicacion);

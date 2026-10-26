@@ -53,8 +53,31 @@ service cloud.firestore {
 
     // ---------- Datos privados ----------
 
+    // Solo se pueden escribir las claves que la web sincroniza de verdad (CLAVES_SINCRONIZADAS
+    // en js/comun/almacen.js), con la forma { valor, actualizado }. Sin esto, una cuenta podría
+    // crear miles de documentos con nombres inventados y llenar el espacio de la base de datos.
+    // OJO: si se añade una clave nueva a CLAVES_SINCRONIZADAS, hay que añadirla aquí también o
+    // esa clave se quedará sin subir a la nube (en silencio).
     match /usuarios/{uid}/datos/{clave} {
-      allow read, write: if identificado() && request.auth.uid == uid;
+      function claveValida() {
+        return clave in [
+          'poketeams-equipo-v1', 'poketeams-equipos-v1', 'poketeams-actual-v1',
+          'poketeams-equipos-orden-v1', 'poketeams-equipos-vista-v1', 'poketeams-grupos-v1',
+          'poketeams-rutas-v2', 'poketeams-capturas-v1', 'poketeams-rutas-juego-v1',
+          'poketeams-rutas-hierba-v1', 'poketeams-levelcaps-v2', 'poketeams-levelcaps-juego-v1',
+          'poketeams-levelcaps-multiplicador-v1', 'poketeams-normas-v2', 'poketeams-contadores-v1',
+          'poketeams-ruletas-v1', 'poketeams-rutas-propias-v1', 'poketeams-levelcaps-propios-v1',
+          'poketeams-partidas-v1', 'poketeams-registrados-v1', 'poketeams-lockes-quitados-v1',
+          'poketeams-avisos-arbitro-v1', 'poketeams-ajustes-v1', 'poketeams-juegos-propios-v1'
+        ];
+      }
+
+      allow read, delete: if identificado() && request.auth.uid == uid;
+      allow create, update: if identificado() && request.auth.uid == uid
+        && claveValida()
+        && request.resource.data.keys().hasOnly(['valor', 'actualizado'])
+        && request.resource.data.valor is string
+        && request.resource.data.actualizado is number;
     }
 
     // ---------- Perfil público ----------
@@ -148,12 +171,28 @@ service cloud.firestore {
     // "_". Así no pueden existir dos solicitudes de lo mismo. Cualquiera de los dos puede
     // aceptarla o borrarla.
 
+    //
+    // Pedirla: siempre «pendiente», a nombre de quien la pide, con el id correcto y los dos uid
+    // ordenados (como lo hace pedirAmistad). Aceptarla: solo la otra persona, y lo único que
+    // cambia es el estado. Antes cualquiera podía crearla ya aceptada o aceptar la suya.
     match /amistades/{par} {
       allow create: if identificado()
+        && request.resource.data.keys().hasOnly(['miembros', 'estado', 'pidio', 'creado'])
+        && request.resource.data.miembros is list
+        && request.resource.data.miembros.size() == 2
         && request.auth.uid in request.resource.data.miembros
-        && request.resource.data.miembros.size() == 2;
-      allow read, update, delete: if identificado()
+        && request.resource.data.miembros[0] < request.resource.data.miembros[1]
+        && par == request.resource.data.miembros[0] + '_' + request.resource.data.miembros[1]
+        && request.resource.data.estado == 'pendiente'
+        && request.resource.data.pidio == request.auth.uid
+        && request.resource.data.creado is number;
+      allow read, delete: if identificado()
         && request.auth.uid in resource.data.miembros;
+      allow update: if identificado()
+        && request.auth.uid in resource.data.miembros
+        && resource.data.get('pidio', '') != request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+        && request.resource.data.estado == 'ok';
     }
 
     // ---------- Lockes (sección Versus) ----------

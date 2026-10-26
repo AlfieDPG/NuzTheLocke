@@ -11,6 +11,7 @@
 // de la web (js/versus/actividad.js).
 
 import { CONFIG_FIREBASE, hayConfiguracion } from "./comun/firebase-config.js";
+import { activarAppCheck } from "./comun/appcheck.js";
 import { activarRespaldoImagenes } from "./comun/imagenes.js";
 import { icono } from "./comun/iconos.js";
 import { escaparHTML, fechaLarga } from "./comun/utilidades.js";
@@ -176,7 +177,9 @@ async function iniciar() {
   try {
     const [app, firestore] = await Promise.all([import(`${BASE_SDK}firebase-app.js`), import(`${BASE_SDK}firebase-firestore.js`)]);
     // Una app aparte y sin sesión: aquí no se entra, solo se mira
-    const bd = firestore.getFirestore(app.initializeApp(CONFIG_FIREBASE, "seguidor"));
+    const aplicacion = app.initializeApp(CONFIG_FIREBASE, "seguidor");
+    await activarAppCheck(BASE_SDK, aplicacion);
+    const bd = firestore.getFirestore(aplicacion);
     const sinAcceso = () => {
       error = t("Este locke no es público, o el enlace ya no vale.");
       pintar();

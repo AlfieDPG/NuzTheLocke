@@ -15,6 +15,10 @@ export const CONFIG_FIREBASE = {
   appId: "1:426929162559:web:21316b8070832442c26b8a"
 };
 
+// Clave del SITIO de Fraud Defense / reCAPTCHA Enterprise (la pública) para App Check. Vacía =
+// App Check apagado. Se crea en Google Cloud (ver LEEME-nube.md, «App Check»).
+export const RECAPTCHA_SITE_KEY = "6Lf2HAIuAAAAADuqf0ua_GxNVbEwfv0hyfVjzgcd";
+
 export function hayConfiguracion() {
   return Boolean(CONFIG_FIREBASE.apiKey && CONFIG_FIREBASE.projectId);
 }

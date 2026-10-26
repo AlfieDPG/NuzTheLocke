@@ -211,6 +211,31 @@ volver a la sección pasado un minuto.
 comentario es `uid_N` (N = el número de respuestas que dejó), y las reglas lo usan para exigir
 que comentar y subir el contador vayan juntos. Si bajara, un id podría repetirse.
 
+## Protegerla de abusos (App Check y la clave)
+
+La `apiKey` es pública, así que cualquiera podría usarla desde un script y gastar tu cuota diaria
+(en Spark no cobra, pero la web se queda sin respuesta). Dos defensas:
+
+1. **Restringir la clave por dominio.** Google Cloud → *APIs y servicios → Credenciales* → la
+   «Browser key» del proyecto → *Restricciones de aplicaciones: Sitios web* → añadir
+   `https://alfiedpg.github.io/*` y `http://localhost/*`. En *Restricciones de API* deja las que ya
+   estén (Identity Toolkit, Cloud Firestore, Token Service…).
+2. **App Check** (`js/comun/appcheck.js`). Con Fraud Defense (antes reCAPTCHA Enterprise),
+   Firestore y el inicio de sesión solo contestan a esta web. (El reCAPTCHA v3 clásico está
+   obsoleto y Firebase ya no deja registrar su clave secreta.) Gratis hasta 10.000 comprobaciones
+   al mes; si se pasa, App Check falla y, con «Aplicar» activo, la web se queda sin respuesta.
+   1. Google Cloud (proyecto `pokelocke-24512`) → buscar **reCAPTCHA** (o Fraud Defense) →
+      habilitar la API si lo pide → **Crear clave** → tipo **Sitio web**, con puntuación
+      (invisible), dominios `alfiedpg.github.io` y `localhost` → copia el **ID de la clave**.
+   2. Pégalo en `RECAPTCHA_SITE_KEY` de `js/comun/firebase-config.js` y súbelo.
+   3. Firebase → *App Check* → tu app web → **Fraud Defense (reCAPTCHA Enterprise)** → pega el
+      mismo ID de clave → Guardar.
+   4. Espera unos días mirando *App Check → Solicitudes*: tiene que salir casi todo como
+      «verificado». Solo entonces pulsa **Aplicar** en Firestore y en Authentication. Antes de
+      eso no bloquea nada.
+   5. Para probar en tu ordenador: abre la web en `localhost`, copia el token de depuración que
+      sale en la consola y regístralo en *App Check → Apps → ⋮ → Gestionar tokens de depuración*.
+
 ## Límites del plan gratuito
 
 50.000 lecturas y 20.000 escrituras al día, 1 GiB de datos, y sesión gratis hasta 50.000
