@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>NuzTheLocke · Siguiendo un locke</title>
+  <link rel="icon" type="image/svg+xml" href="img/icono.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/icono-32.png">
+  <link rel="apple-touch-icon" href="img/icono-180.png">
+  <link rel="preconnect" href="https://firestore.googleapis.com">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js">
+  <!-- El mismo tema que la web (js/comun/ajustes.js) -->
+  <script>
+    try {
+      const tema = (JSON.parse(localStorage.getItem("poketeams-ajustes-v1")) || {}).tema;
+      if (tema === "claro" || (!tema && matchMedia("(prefers-color-scheme: light)").matches)) {
+        document.documentElement.dataset.tema = "claro";
+      }
+    } catch (error) {}
+  </script>
+  <link rel="preload" href="fuentes/nunito.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fuentes/baloo2.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/versus.css">
+  <link rel="stylesheet" href="css/seguir.css">
+  <script type="module" src="js/seguir.js"></script>
+</head>
+<body class="pagina-seguir">
+  <!-- Solo lectura, sin cuenta: lo pinta js/seguir.js a partir del locke público -->
+  <main id="seguir" class="seguir">
+    <p class="seguir-estado">Cargando el locke…</p>
+  </main>
+</body>
+</html>

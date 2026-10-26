@@ -22,6 +22,7 @@ import { cargarDatos } from "../comun/datos.js";
 import { sumarContador } from "../comun/contadores.js";
 import { lockePorId, muertosDe, apuntarMuerto, estaEliminado, apuntarSuceso, medallasDe, cambiarMedallas } from "../comun/lockes.js";
 import { tieneMedallas } from "../comun/medallas.js";
+import { textoInfraccion } from "../partida/infracciones.js";
 import {
   sePuedeVigilar, cargarVinculos, vincular, reanudar, desvincular, leerUnaVez, estadoVinculo,
   copiasDe, restaurarCopia
@@ -136,6 +137,20 @@ function subirMedallas(locke, partida) {
   cambiarMedallas(locke.id, [...todas], version).catch((error) => console.error(error));
 }
 
+// El árbitro de normas (../partida/arbitro.js): lo que ha visto se apunta en la actividad, donde
+// lo ven los demás, y a ti te lo dice la web con cómo retirarlo si se ha equivocado
+function avisarInfracciones(locke, infracciones) {
+  if (!infracciones || !infracciones.length) return;
+  for (const { detalle } of infracciones) {
+    apuntarSuceso(locke.id, "infraccion", { detalle }).catch((error) => console.error(error));
+  }
+  avisarVentana(
+    `${t("El árbitro ha visto algo que no cuadra con las normas y se lo ha dicho a los demás:")}\n\n` +
+      infracciones.map(({ detalle }) => `· ${textoInfraccion(detalle)}`).join("\n") +
+      `\n\n${t("Si se ha equivocado, retira el aviso desde la actividad del locke.")}`
+  );
+}
+
 async function alLeer(id, bytes, archivo) {
   const locke = lockePorId(id);
   if (!locke) return false; // los lockes todavía no han llegado: en el siguiente vistazo
@@ -159,6 +174,7 @@ async function alLeer(id, bytes, archivo) {
 
   intentos.delete(id);
   subirMedallas(locke, resultado.partida);
+  avisarInfracciones(locke, resultado.infracciones);
   repintar();
   if (dialogo.open && idAbierto === id) pintarPartida();
   // La ventana de los muertos sale sola si estás mirando «Lockes»; si no, queda el aviso

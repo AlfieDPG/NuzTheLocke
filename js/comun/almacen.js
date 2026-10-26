@@ -30,6 +30,7 @@ export const CLAVES_SINCRONIZADAS = [
   "poketeams-partidas-v1",                // partidas vinculadas a los lockes (js/partida)
   "poketeams-registrados-v1",             // Pokémon que has tenido alguna vez (comun/registro.js)
   "poketeams-lockes-quitados-v1",         // lockes terminados que has quitado de tu lista (versus)
+  "poketeams-avisos-arbitro-v1",          // avisos del árbitro que ya has visto en la campana (avisos.js)
   "poketeams-ajustes-v1",                 // tema (comun/ajustes.js)
   "poketeams-juegos-propios-v1"           // los de antes (rutas y level caps juntos): se pasan
                                           // solos a los dos de arriba (personalizados.js)

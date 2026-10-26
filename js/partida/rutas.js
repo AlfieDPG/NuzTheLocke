@@ -7,6 +7,7 @@
 import { lugaresDelJuego } from "../rutas/datos.js";
 import { leer, escribir } from "../comun/almacen.js";
 import { apuntarEnLockesDelJuego } from "../comun/lockes.js";
+import { quitarAcentos } from "../comun/utilidades.js";
 
 // Las mismas claves que js/rutas/index.js y js/rutas/capturas.js
 const CLAVE_MARCADAS = "poketeams-rutas-v2";
@@ -81,7 +82,13 @@ function captura(p) {
 // partida: la convertida (js/partida/convertir.js). mirados: llaves de los Pokémon ya
 // mirados otras veces (se añaden los de ahora). conHierba: el locke tiene la hierba en los
 // pueblos del randomizer (esos pueblos también cuentan). Devuelve cuántos lugares se han marcado.
-export function marcarCapturas(partida, idJuego, mirados, conHierba = false) {
+// hallazgos: si se pasa, se rellena para el árbitro (./arbitro.js) con los Pokémon que se
+// miran por primera vez («nuevos»), los que son un regalo o estático de su sitio según la lista
+// de eventos de «Rutas» («deEvento», sus llaves) y los que son una segunda captura en una zona
+// cuyo primer Pokémon también está en la partida («repetidasEnZona»; no cuentan ni los
+// variocolor, ni la inicial, ni los de evento).
+export function marcarCapturas(partida, idJuego, mirados, conHierba = false, hallazgos = null) {
+  if (hallazgos) Object.assign(hallazgos, { nuevos: [], repetidasEnZona: [], deEvento: new Set() });
   const lugares = lugaresDelJuego(idJuego, conHierba);
   if (!lugares) return 0;
 
@@ -114,11 +121,40 @@ export function marcarCapturas(partida, idJuego, mirados, conHierba = false) {
   const sitiosInicial = eventoInicial ? [...eventoInicial.lugares, LUGAR_INICIAL[idJuego]] : [];
   const inicial = deEsteJuego.find((p) => sitiosInicial.includes(p.lugar) && (!p.nivelCaptura || p.nivelCaptura === NIVEL_INICIAL));
 
+  const lugarDe = (p) => {
+    const alias = POR_NOMBRE[p.lugar];
+    return (POR_NUMERO[idJuego] || {})[p.lugarN] || (alias && (porTexto.has(alias) || eventos.some((e) => e.lugares.includes(alias))) ? alias : p.lugar);
+  };
+
+  // Un regalo o estático: su especie sale en un evento de ese sitio («Ciudad Corazón: Eevee (regalo de Teo)»)
+  const textosDeEvento = eventos.map((e) => ({ lugares: e.lugares, texto: quitarAcentos(e.texto) }));
+  const esDeEvento = (p) => {
+    const nombre = quitarAcentos(p.es || p.nombre || "").replace(/[^a-z0-9. -]/g, "");
+    if (!nombre) return false;
+    const lugar = lugarDe(p);
+    const enTexto = new RegExp(`(^|[^a-z0-9])${nombre.replace(/\./g, "\\.")}($|[^a-z0-9])`);
+    return textosDeEvento.some((e) => e.lugares.includes(lugar) && enTexto.test(e.texto));
+  };
+
+  // Quién se quedó cada zona de captura: el primero que se capturó (sin contar variocolor, la inicial ni los de evento)
+  const primeroDeZona = new Map();
+  if (hallazgos) {
+    hallazgos.nuevos = todos;
+    for (const p of deEsteJuego) {
+      if (esDeEvento(p)) hallazgos.deEvento.add(p.llave);
+    }
+    for (const p of deEsteJuego) {
+      const lugar = lugarDe(p);
+      if (!p.shiny && p !== inicial && !hallazgos.deEvento.has(p.llave) && porTexto.has(lugar) && !primeroDeZona.has(lugar)) {
+        primeroDeZona.set(lugar, p);
+      }
+    }
+  }
+
   const nuevos = [];
   for (const p of todos) {
     mirados.add(p.llave);
-    const alias = POR_NOMBRE[p.lugar];
-    const lugar = (POR_NUMERO[idJuego] || {})[p.lugarN] || (alias && (porTexto.has(alias) || eventos.some((e) => e.lugares.includes(alias))) ? alias : p.lugar);
+    const lugar = lugarDe(p);
 
     let elegido = null;
     if (p === inicial) {
@@ -129,6 +165,12 @@ export function marcarCapturas(partida, idJuego, mirados, conHierba = false) {
       // ese sitio, si hay uno solo libre (un regalo, un estático...)
       const libres = eventos.filter((e) => e !== eventoInicial && !usadosTexto.has(e.texto) && e.lugares.includes(lugar));
       if (libres.length === 1) elegido = { clave: libres[0].clave, texto: libres[0].texto, lugar };
+    }
+    // Una segunda captura en la zona: aunque la web le encuentre un evento libre del sitio donde
+    // apuntarla, si su especie no sale en él no es el regalo ni el estático
+    const primero = primeroDeZona.get(lugar);
+    if (hallazgos && primero && primero !== p && !p.shiny && p !== inicial && !hallazgos.deEvento.has(p.llave)) {
+      hallazgos.repetidasEnZona.push(p);
     }
     if (!elegido) continue;
 

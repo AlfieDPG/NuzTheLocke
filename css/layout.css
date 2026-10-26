@@ -77,6 +77,16 @@ main {
   overflow-y: auto;
 }
 
+/* El título de cada grupo del menú: letra pequeña y apagada, alineada con el texto de los botones */
+.menu-titulo {
+  margin: 0.85rem 0 -0.05rem 0.8rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
 .menu-lateral button {
   display: flex;
   align-items: center;
@@ -270,6 +280,15 @@ main {
 /* «de-locke» y no «locke»: esa clase ya es la de las tarjetas de Versus y le pondría su borde */
 .aviso-icono.de-locke {
   color: var(--color-locke, #3498db);
+}
+
+/* Aviso del árbitro de normas (js/avisos.js): el mismo naranja que en la actividad del locke */
+.aviso-icono.arbitro {
+  color: #f39c12;
+}
+
+.aviso-ir {
+  cursor: pointer;
 }
 
 .aviso-icono .icono {

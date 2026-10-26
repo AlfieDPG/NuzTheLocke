@@ -112,7 +112,7 @@ export function plantillaSalon(locke, uid, mio) {
     <div class="locke-salon">
       <div class="locke-salon-caras">
         ${(salon.pokemon || [])
-          .map((p, i) => `<span class="salon-cara ${i === salon.mvp ? "mvp" : ""}">${cara(p)}${i === salon.mvp ? `<span class="salon-mvp">MVP</span>` : ""}</span>`)
+          .map((p, i) => `<span class="salon-cara ${i === salon.mvp ? "mvp" : ""} ${(salon.pasan || []).includes(i) ? "pasa" : ""}">${cara(p)}${i === salon.mvp ? `<span class="salon-mvp">MVP</span>` : ""}${(salon.pasan || []).includes(i) ? `<span class="salon-pasa" title="${t("Pasa a la siguiente etapa")}">→</span>` : ""}</span>`)
           .join("")}
       </div>
       ${mio ? `<button class="locke-salon-cambiar" title="${t("Cambiar equipo final")}">${icono("lapiz")}</button>` : ""}
@@ -269,7 +269,13 @@ export function abrirTerminar(id) {
 // ---------- Equipo final y MVP ----------
 
 let dialogoSalon = null;
-let enSalon = null; // { id, equipo (copia), mvp }
+let enSalon = null; // { id, equipo (copia), mvp, pasan (posiciones que pasan a la siguiente etapa de una cadena) }
+
+// Cuántos Pokémon pasan a la siguiente etapa si el locke es una cadena (0 si no)
+function cuantosPasan(id) {
+  const locke = lockePorId(id);
+  return (locke && locke.cadena && locke.cadena.pasan) || 0;
+}
 
 function pintarSalon() {
   const guardados = leerGuardados().filter((equipo) => (equipo.pokemon || []).length);
@@ -292,6 +298,15 @@ function pintarSalon() {
         .map((p, i) => `<button type="button" class="salon-cara ${i === enSalon.mvp ? "mvp" : ""}" data-mvp="${i}">${cara(p)}${i === enSalon.mvp ? `<span class="salon-mvp">MVP</span>` : ""}</button>`)
         .join("")
     : "";
+  const limite = cuantosPasan(enSalon.id);
+  const pasan = dialogoSalon.querySelector(".salon-pasan-elegir");
+  pasan.hidden = !enSalon.equipo || !limite;
+  pasan.querySelector(".etiqueta-campo").textContent = t("Pasan a la siguiente etapa (hasta {n})", { n: limite });
+  pasan.querySelector(".salon-pasan-caras").innerHTML = enSalon.equipo
+    ? enSalon.equipo.pokemon
+        .map((p, i) => `<button type="button" class="salon-cara ${enSalon.pasan.includes(i) ? "pasa" : ""}" data-pasa="${i}">${cara(p)}${enSalon.pasan.includes(i) ? `<span class="salon-pasa">→</span>` : ""}</button>`)
+        .join("")
+    : "";
   dialogoSalon.querySelector(".salon-ok").disabled = !enSalon.equipo;
   const locke = lockePorId(enSalon.id);
   dialogoSalon.querySelector(".salon-quitar").hidden = !((locke && locke.salon) || {})[usuarioActual().uid];
@@ -301,7 +316,7 @@ export function abrirSalon(id) {
   const locke = lockePorId(id);
   if (!locke) return;
   const actual = (locke.salon || {})[usuarioActual().uid];
-  enSalon = { id, idEquipo: null, equipo: actual ? { nombre: actual.nombre, pokemon: actual.pokemon } : null, mvp: actual ? actual.mvp : -1 };
+  enSalon = { id, idEquipo: null, equipo: actual ? { nombre: actual.nombre, pokemon: actual.pokemon } : null, mvp: actual ? actual.mvp : -1, pasan: actual ? [...(actual.pasan || [])] : [] };
   pintarSalon();
   dialogoSalon.showModal();
 }
@@ -383,6 +398,7 @@ export function iniciarCombates(fallo) {
     enSalon.idEquipo = equipo.id;
     enSalon.equipo = copiaDeEquipo(equipo);
     enSalon.mvp = -1;
+    enSalon.pasan = [];
     pintarSalon();
   });
   dialogoSalon.querySelector(".salon-mvp-caras").addEventListener("click", (e) => {
@@ -390,6 +406,15 @@ export function iniciarCombates(fallo) {
     if (!boton) return;
     const i = Number(boton.dataset.mvp);
     enSalon.mvp = enSalon.mvp === i ? -1 : i;
+    pintarSalon();
+  });
+  dialogoSalon.querySelector(".salon-pasan-caras").addEventListener("click", (e) => {
+    const boton = e.target.closest("[data-pasa]");
+    if (!boton) return;
+    const i = Number(boton.dataset.pasa);
+    // Se quita si estaba; si no, se pone mientras queden huecos
+    if (enSalon.pasan.includes(i)) enSalon.pasan = enSalon.pasan.filter((otro) => otro !== i);
+    else if (enSalon.pasan.length < cuantosPasan(enSalon.id)) enSalon.pasan.push(i);
     pintarSalon();
   });
   dialogoSalon.querySelector(".salon-cancelar").addEventListener("click", () => dialogoSalon.close());
@@ -400,7 +425,7 @@ export function iniciarCombates(fallo) {
   dialogoSalon.querySelector(".salon-ok").addEventListener("click", () => {
     if (!enSalon.equipo) return;
     dialogoSalon.close();
-    guardarSalon(enSalon.id, enSalon.equipo, enSalon.mvp).catch(alFallar);
+    guardarSalon(enSalon.id, enSalon.equipo, enSalon.mvp, enSalon.pasan.slice(0, cuantosPasan(enSalon.id))).catch(alFallar);
   });
 
   // Si cambia el locke con una ventana abierta (otro apunta algo), al día; si se cierra, fuera

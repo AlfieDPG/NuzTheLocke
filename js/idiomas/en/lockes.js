@@ -339,5 +339,100 @@ export default {
   "Tipo de bloque desconocido.": "Unknown block type.",
   "La partida no está vinculada.": "The save file isn't linked.",
   "Sin permiso para guardar en el archivo de la partida.": "No permission to save to the save file.",
-  "Esa copia ya no está.": "That backup is no longer there."
+  "Esa copia ya no está.": "That backup is no longer there.",
+
+  // ---------- Árbitro de normas ----------
+  "Activar el árbitro": "Turn on the referee",
+  "Level cap": "Level cap",
+  "Un Pokémon del equipo por encima del level cap": "A team Pokémon above the level cap",
+  "Una segunda captura en una zona que ya tenía": "A second catch in an area that already had one",
+  "Motes": "Nicknames",
+  "Un Pokémon sin mote": "A Pokémon without a nickname",
+  "Duplicados": "Duplicates",
+  "Solo se vigila a quien vincule su partida, en los juegos que la web sabe leer. Si ve algo raro, lo apunta en la actividad del locke y los demás lo ven; quien lo recibe puede retirarlo si se ha equivocado.":
+    "Only players who link their save are checked, in the games the site can read. If the referee sees something off, it goes into the locke's activity for the others to see; whoever it's about can withdraw it if it got it wrong.",
+  "El árbitro ha visto algo que no cuadra con las normas y se lo ha dicho a los demás:":
+    "The referee saw something that doesn't fit the rules and has told the others:",
+  "Si se ha equivocado, retira el aviso desde la actividad del locke.":
+    "If it got it wrong, withdraw the notice from the locke's activity.",
+  "El árbitro ve algo raro en {quien}: {caso}": "The referee sees something off with {quien}: {caso}",
+  "Retirar": "Withdraw",
+  "Si el árbitro se ha equivocado, lo borra para todos": "If the referee got it wrong, this removes it for everyone",
+  "{pokemon} (nv. {nivel}) está por encima del level cap ({cap})": "{pokemon} (Lv. {nivel}) is above the level cap ({cap})",
+  "{pokemon} es una segunda captura en {lugar}": "{pokemon} is a second catch in {lugar}",
+  "{pokemon} no tiene mote": "{pokemon} has no nickname",
+  "{pokemon} está en el equipo y es repetido de {primero}, que sigue vivo":
+    "{pokemon} is on the team and is a duplicate of {primero}, which is still alive",
+  "Un repetido en el equipo mientras el primero de su línea sigue vivo": "A duplicate on the team while the first of its line is still alive",
+  "Ir a Lockes": "Go to Lockes",
+
+  // ---------- Cadenas de lockes ----------
+  "Cadena de lockes": "Locke chain",
+  "Etapa {n}": "Stage {n}",
+  "Etapa {n} de {total}": "Stage {n} of {total}",
+  "Siguiente etapa": "Next stage",
+  "Quien creó la cadena crea la siguiente etapa.": "Whoever created the chain creates the next stage.",
+  "¡Cadena completada!": "Chain complete!",
+  "Ya no sigue nadie en la cadena.": "Nobody is left in the chain.",
+  "Vienen de la etapa anterior": "They come from the previous stage",
+  "Nombre": "Name",
+  "Juego de esta etapa": "Game for this stage",
+  "Cómo empieza cada jugador": "How each player starts",
+  "Empiezan los que no están eliminados, sin tener que aceptar otra vez. Las normas se copian de la etapa anterior; las rutas, los level caps y el randomizer se ponen después, según el juego.":
+    "Everyone who isn't eliminated starts, without having to accept again. The rules are copied from the previous stage; routes, level caps and the randomizer are set afterwards, depending on the game.",
+  "crear la etapa": "create the stage",
+  "Crear etapa": "Create stage",
+  "Este locke es una etapa de una cadena": "This locke is a stage of a chain",
+  "Nombre de la cadena": "Chain name",
+  "Vidas extra al pasarse la ROM de una etapa": "Extra lives for clearing a stage's ROM",
+  "Pokémon que pasan a la siguiente etapa": "Pokémon that carry over to the next stage",
+  "Pasan a la siguiente etapa (hasta {n})": "Carry over to the next stage (up to {n})",
+  "Pasa a la siguiente etapa": "Carries over to the next stage",
+  "Etapas previstas": "Planned stages",
+  "(0 = sin decir)": "(0 = not set)",
+  "Las vidas de este locke son las de la primera etapa. Al terminarlo, quien creó la cadena crea la siguiente: cada jugador empieza con las vidas que le sobran más las extra si se pasó la ROM, y se lleva los Pokémon que marque en su equipo final.":
+    "This locke's lives are those of the first stage. When it ends, whoever created the chain creates the next one: each player starts with their leftover lives plus the extra ones if they cleared the ROM, and takes along the Pokémon they mark in their final team.",
+
+  // ---------- Seguidores ----------
+  "Enlace público de solo lectura": "Public read-only link",
+  "Cualquiera con el enlace verá, sin cuenta, el marcador, el cementerio y la actividad, con los nombres y las fotos de todos los jugadores. No puede cambiar nada. Se apaga cuando quieras.":
+    "Anyone with the link will see the scoreboard, graveyard and activity without an account, with every player's name and photo. They can't change anything. You can turn it off any time.",
+  "Copiar": "Copy",
+  "Enlace copiado:\n{enlace}": "Link copied:\n{enlace}",
+  "Copiar el enlace para seguidores": "Copy the link for followers",
+  "Enlace": "Link",
+  "Público": "Public",
+  "Cualquiera con el enlace puede verlo, sin cambiar nada": "Anyone with the link can watch it, without changing anything",
+
+  // ---------- Seguir un locke (seguir.html) ----------
+  "Cargando el locke…": "Loading the locke…",
+  "En directo": "Live",
+  "Solo lectura.": "Read only.",
+  "Hecho con NuzTheLocke": "Made with NuzTheLocke",
+  "Este enlace no vale.": "This link isn't valid.",
+  "Este locke no es público, o el enlace ya no vale.": "This locke isn't public, or the link is no longer valid.",
+
+  // ---------- Crónica del locke ----------
+  "Crónica": "Recap",
+  "Preparando la crónica…": "Putting the recap together…",
+  "Victorias": "Wins",
+  "Muertos": "Deaths",
+  "Vidas": "Lives",
+  "Supervivencia": "Survival",
+  "ROM": "ROM",
+  "Pasada": "Cleared",
+  "Sin pasar": "Not cleared",
+  "Avisos del árbitro": "Referee notices",
+  "Destacados": "Highlights",
+  "Cronología": "Timeline",
+  "{n} día": "{n} day",
+  "{n} días": "{n} days",
+  "{n} Pokémon muerto": "{n} Pokémon dead",
+  "{n} Pokémon muertos": "{n} Pokémon dead",
+  "El primero en morir: {pokemon}, de {quien}, a los {n} días de empezar": "First to die: {pokemon}, from {quien}, {n} days in",
+  "El primero en morir: {pokemon}, de {quien}, el mismo día de empezar": "First to die: {pokemon}, from {quien}, on day one",
+  "La racha más larga sin que muera nadie: {n} días": "Longest streak without a death: {n} days",
+  "El día más negro: {n} muertes el {fecha}": "The darkest day: {n} deaths on {fecha}",
+  "El tipo que más ha muerto: {tipo} ({n})": "The type that died the most: {tipo} ({n})",
+  "Entendido": "Got it"
 };

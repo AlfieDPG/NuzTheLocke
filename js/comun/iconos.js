@@ -75,6 +75,7 @@ const DIBUJOS = {
            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>`,
   ruleta: `<circle cx="12" cy="12" r="10"/><path d="M12 2v20"/><path d="M2 12h20"/>
            <path d="m4.9 4.9 14.2 14.2"/><path d="m19.1 4.9-14.2 14.2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`,
+  estadisticas: `<path d="M5 21V12"/><path d="M12 21V4"/><path d="M19 21v-6"/>`,
   estrella: `<path d="M11.5 2.3a.5.5 0 0 1 .9 0l2.3 4.8a2 2 0 0 0 1.5 1.1l5.2.8a.5.5 0 0 1 .3.9l-3.8 3.7a2 2 0 0 0-.6 1.8l.9 5.2a.5.5 0 0 1-.7.5l-4.7-2.5a2 2 0 0 0-1.9 0l-4.7 2.5a.5.5 0 0 1-.7-.5l.9-5.2a2 2 0 0 0-.6-1.8L2.7 9.9a.5.5 0 0 1 .3-.9l5.2-.8a2 2 0 0 0 1.5-1.1z"/>`,
   candado: `<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>`,
   mezclar: `<path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.97a4 4 0 0 0 3.3-1.7l5.46-8.6a4 4 0 0 1 3.3-1.7H22"/>

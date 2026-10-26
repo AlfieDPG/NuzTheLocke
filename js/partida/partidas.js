@@ -7,7 +7,7 @@
 //   localStorage «poketeams-partidas-v1»:
 //     { idLocke: { juego, version, entrenador, actualizada, archivo, equipo, cajas, medallas: [sí/no],
 //                  cajasMuertos: [posiciones], mirados: [llaves], muertosVistos: [llaves],
-//                  medallasVistas: [índices] } }
+//                  medallasVistas: [índices], arbitroVistas: [ids], arbitroSinMote: [llaves] } }
 
 import { leer, escribir } from "../comun/almacen.js";
 import { pokemonParaCopia } from "../comun/pokemon.js";
@@ -16,7 +16,9 @@ import { leerPartidaDS, esPartidaDS } from "./nds.js";
 import { leerPartidaSwSh, esPartidaSwSh } from "./switch.js";
 import { leerPartidaBDSP, esPartidaBDSP } from "./bdsp.js";
 import { convertirPartida } from "./convertir.js";
+import { cargarPokedex } from "../pokedex/datos.js";
 import { marcarCapturas } from "./rutas.js";
+import { revisar, nivelTope } from "./arbitro.js";
 import { marcarMedallasNuevas } from "../comun/medallas.js";
 import { hierbaEnPueblos } from "../randomizer/reglas.js";
 import { CLAVE_HIERBA_RUTAS } from "../comun/selector-juego.js";
@@ -25,6 +27,7 @@ import { t } from "../comun/idioma.js";
 
 // NO cambiar esta clave: si se cambia, se pierden las partidas vinculadas
 const CLAVE = "poketeams-partidas-v1";
+const MAX_VISTAS = 300; // infracciones ya apuntadas que se recuerdan (arbitroVistas)
 
 // Juegos que se saben leer (ids de js/comun/juegos.js)
 export const JUEGOS_LEIBLES = ["dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", "sm", "usum", "swsh", "bdsp"];
@@ -81,6 +84,32 @@ export function alternarCajaMuertos(idLocke, posicion) {
   guardarPartida(idLocke, partida);
 }
 
+// Para el árbitro: la primera especie de cada línea evolutiva (datos/familias.json) y qué
+// especies son legendarias o singulares (de la Pokédex). Si no se pueden bajar, el árbitro
+// sigue sin ellas (y se vuelve a intentar la próxima vez).
+const URL_FAMILIAS = new URL("../../datos/familias.json", import.meta.url);
+let datosArbitro = null;
+
+async function datosDelArbitro() {
+  if (datosArbitro) return datosArbitro;
+  let familias = null;
+  try {
+    const respuesta = await fetch(URL_FAMILIAS);
+    if (respuesta.ok) familias = await respuesta.json();
+  } catch (error) {
+    // sin red ni archivo: sin líneas evolutivas
+  }
+  const clases = {};
+  try {
+    for (const fila of await cargarPokedex()) if (!fila.forma && fila.clase) clases[fila.numero] = fila.clase;
+  } catch (error) {
+    // sin Pokédex: sin clases
+  }
+  const datos = { familias: familias || {}, clases };
+  if (familias) datosArbitro = datos;
+  return datos;
+}
+
 // Lee el archivo y lo guarda. Devuelve { partida } o { error } (texto para enseñar; con
 // reintentar o dudoso, puede que a la próxima sí se pueda).
 export async function procesarArchivo(locke, bytes, archivo = "") {
@@ -113,10 +142,28 @@ export async function procesarArchivo(locke, bytes, archivo = "") {
     const juegos = leer(CLAVE_HIERBA_RUTAS, {}) || {};
     if (!juegos[leida.juego]) escribir(CLAVE_HIERBA_RUTAS, { ...juegos, [leida.juego]: true });
   }
-  const marcadas = marcarCapturas(nueva, leida.juego, mirados, conHierba);
+  const hallazgos = {};
+  const marcadas = marcarCapturas(nueva, leida.juego, mirados, conHierba, hallazgos);
   // Las medallas nuevas: su gimnasio, superado en «Level caps»
   const medallasVistas = new Set(anterior.medallasVistas || []);
   marcarMedallasNuevas(leida.juego, nueva.medallas, medallasVistas);
+
+  // El árbitro de normas (./arbitro.js). La primera lectura solo toma nota: lo que ya había
+  // antes de vincular no se acusa
+  const primera = !anterior.juego;
+  const revision = locke.arbitro
+    ? revisar({
+        arbitro: locke.arbitro,
+        partida: nueva,
+        cajasMuertos,
+        repetidasEnZona: hallazgos.repetidasEnZona,
+        deEvento: hallazgos.deEvento,
+        tope: locke.arbitro.nivel ? nivelTope(locke) : null,
+        ...(await datosDelArbitro()),
+        antes: { vistas: anterior.arbitroVistas, sinMote: primera ? [] : anterior.arbitroSinMote }
+      })
+    : null;
+  const infracciones = revision && !primera ? revision.infracciones : [];
 
   const partida = {
     ...nueva,
@@ -128,8 +175,14 @@ export async function procesarArchivo(locke, bytes, archivo = "") {
     muertosVistos: anterior.muertosVistos || [],
     creados: anterior.creados || []
   };
+  if (revision) {
+    // Lo de antes de vincular cuenta como visto, y sin mote también
+    const deAntes = primera ? revision.sinMote.map((llave) => `mote|${llave}`) : [];
+    partida.arbitroVistas = [...new Set([...revision.vistas, ...deAntes])].slice(-MAX_VISTAS);
+    partida.arbitroSinMote = primera ? [] : revision.sinMote;
+  }
   guardarPartida(locke.id, partida);
-  return { partida, marcadas, primera: !anterior.juego };
+  return { partida, marcadas, primera, infracciones };
 }
 
 // Los de la caja de los muertos que no se han apuntado ni descartado todavía. Los que ya

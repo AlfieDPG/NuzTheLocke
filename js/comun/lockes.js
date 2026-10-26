@@ -21,6 +21,9 @@
 //     muertos: {uid: [muerto]},    // cementerio de cada uno (ver Cementerio, abajo)
 //     reacciones: {idMuerto: {uid: emoji}},
 //     combates, resultados, rom, salon,  // ver «Combates, ROM y salón de la fama»
+//     arbitro,                     // qué normas vigila la web (js/partida/arbitro.js)
+//     publico,                     // true: cualquiera con el enlace (seguir.html) lo mira, sin sesión
+//     cadena,                      // si es una etapa de una cadena de lockes (ver Cadenas de lockes)
 //     estado: "abierto"|"cerrado", ganador, fechaFin: "2025-06-01",
 //     contado: [uid], creado, actualizado }
 //
@@ -309,7 +312,8 @@ function combatesNuevos(nombres, anteriores = []) {
 
 export async function crearLocke({
   nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
-  combates, invitados, nombres, fotos
+  arbitro, publico, cadena, combates, invitados, nombres, fotos,
+  vidasPorJugador, aceptados = []
 }) {
   const usuario = usuarioActual();
   const { bd, fn } = baseDeDatos();
@@ -318,9 +322,11 @@ export async function crearLocke({
   const estados = { [usuario.uid]: "aceptado" };
   const porJugador = { vidas: {}, marcador: {} };
 
-  for (const uid of invitados) estados[uid] = "pendiente";
+  // aceptados: los que ya están dentro de antes (los de una cadena) y no tienen que volver a aceptar
+  for (const uid of invitados) estados[uid] = aceptados.includes(uid) ? "aceptado" : "pendiente";
   for (const uid of jugadores) {
-    porJugador.vidas[uid] = vidasIlimitadas ? 0 : vidas;
+    // vidasPorJugador: con otras vidas que las de partida (la siguiente etapa de una cadena)
+    porJugador.vidas[uid] = vidasPorJugador && uid in vidasPorJugador ? vidasPorJugador[uid] : vidasIlimitadas ? 0 : vidas;
     porJugador.marcador[uid] = 0;
   }
 
@@ -344,6 +350,9 @@ export async function crearLocke({
     rutasPropias: rutasPropias || null,
     capsPropios: capsPropios || null,
     randomizer: randomizer || null,
+    arbitro: arbitro || null,
+    publico: Boolean(publico),
+    cadena: cadena || null,
     combates: combatesNuevos(combates),
     resultados: {},
     rom: {},
@@ -392,6 +401,103 @@ export async function elegirGanador(id, uid) {
   });
   await apuntarSuceso(id, "ganador", { ganador: uid || "" });
   if (uid) await apuntarLockesGanados();
+}
+
+// ---------- Cadenas de lockes ----------
+//
+// Varios lockes seguidos, uno por etapa (un juego por etapa, por ejemplo), pasando de una a la
+// siguiente las vidas y unos cuantos Pokémon. Cada etapa es un locke de los de siempre; lo que
+// las junta es locke.cadena, una copia en cada etapa (como las normas):
+//
+//   cadena: { id, nombre, etapa (1, 2...), total (las que se piensan hacer; 0 = sin decir),
+//             vidasExtra (las que suma pasarse la ROM de una etapa), pasan (cuántos Pokémon
+//             pasan a la siguiente, de 0 a 6) }
+//
+// Cada grupo se monta la suya: los números los pone quien crea la primera etapa y se pueden
+// cambiar en la última. Al terminar una etapa, quien creó la cadena crea la siguiente con
+// «Siguiente etapa»: empiezan los que no están eliminados (y no tienen que volver a aceptar),
+// cada uno con las vidas que le quedaban más las extra si se pasó la ROM, y los Pokémon que
+// marcó en su equipo final como «pasan» (salon[uid].pasan: posiciones de su equipo).
+
+export function nuevoIdCadena() {
+  return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Las etapas de una cadena, de la primera a la última
+export function etapasDeCadena(idCadena, lockes = todos) {
+  return lockes
+    .filter((locke) => locke.cadena && locke.cadena.id === idCadena)
+    .sort((uno, otro) => uno.cadena.etapa - otro.cadena.etapa);
+}
+
+// Quién sigue en la cadena tras esta etapa: los que han aceptado y no están eliminados
+export function siguenEnLaCadena(locke) {
+  return (locke.jugadores || []).filter((uid) => estadoDe(locke, uid) === "aceptado" && !estaEliminado(locke, uid));
+}
+
+// Con cuántas vidas empieza cada uno la siguiente etapa: { uid: { quedan, suma, total } }
+export function vidasDeLaSiguienteEtapa(locke) {
+  const extra = (locke.cadena && locke.cadena.vidasExtra) || 0;
+  return Object.fromEntries(
+    siguenEnLaCadena(locke).map((uid) => {
+      const quedan = Math.max(0, (locke.vidas || {})[uid] || 0);
+      const suma = seHaPasadoLaRom(locke, uid) ? extra : 0;
+      return [uid, { quedan, suma, total: quedan + suma }];
+    })
+  );
+}
+
+// Los Pokémon que pasan a la siguiente etapa: { uid: [pokemon] }, los que marcó en su equipo
+// final (hasta los que deje pasar la cadena)
+export function pokemonQuePasan(locke) {
+  const limite = (locke.cadena && locke.cadena.pasan) || 0;
+  const salida = {};
+  for (const uid of siguenEnLaCadena(locke)) {
+    const salon = (locke.salon || {})[uid];
+    if (!salon) continue;
+    const pokemon = (salon.pasan || []).filter((i) => (salon.pokemon || [])[i]).slice(0, limite).map((i) => salon.pokemon[i]);
+    if (pokemon.length) salida[uid] = pokemon;
+  }
+  return salida;
+}
+
+// Si esta etapa ya está terminada y hay una siguiente que hacer
+export function hayEtapaSiguiente(locke) {
+  const cadena = locke && locke.cadena;
+  return Boolean(cadena) && locke.estado === "cerrado" && siguenEnLaCadena(locke).length > 0 && (!cadena.total || cadena.etapa < cadena.total);
+}
+
+// Crea la siguiente etapa (solo quien creó la cadena)
+export async function crearSiguienteEtapa(idPrevio, { nombre, juego, juegoOtro }) {
+  const previo = lockePorId(idPrevio);
+  const usuario = usuarioActual();
+  if (!previo || !usuario || previo.creador !== usuario.uid || !hayEtapaSiguiente(previo)) return;
+
+  const siguen = siguenEnLaCadena(previo);
+  if (!siguen.includes(usuario.uid)) return;
+  const vidas = vidasDeLaSiguienteEtapa(previo);
+  const porJugador = Object.fromEntries(siguen.map((uid) => [uid, vidas[uid].total]));
+  const invitados = siguen.filter((uid) => uid !== usuario.uid);
+
+  await crearLocke({
+    nombre,
+    descripcion: previo.descripcion,
+    tipo: previo.tipo,
+    juego,
+    juegoOtro,
+    vidas: Math.max(0, ...Object.values(porJugador)),
+    vidasIlimitadas: previo.vidasIlimitadas,
+    vidasPorJugador: porJugador,
+    normas: previo.normas,
+    arbitro: previo.arbitro,
+    publico: previo.publico,
+    combates: combatesDe(previo).map((combate) => combate.nombre),
+    invitados,
+    aceptados: invitados,
+    nombres: Object.fromEntries(siguen.map((uid) => [uid, (previo.nombres || {})[uid] || ""])),
+    fotos: Object.fromEntries(siguen.map((uid) => [uid, (previo.fotos || {})[uid] || ""])),
+    cadena: { ...previo.cadena, etapa: previo.cadena.etapa + 1 }
+  });
 }
 
 // ---------- Combates, ROM y salón de la fama ----------
@@ -516,12 +622,13 @@ export async function cambiarRom(id, pasada) {
 // amigos). equipo null: se quita.
 const MAX_SALON = 50;
 
-export async function guardarSalon(id, equipo, mvp = -1) {
+// pasan: posiciones del equipo que pasan a la siguiente etapa de una cadena
+export async function guardarSalon(id, equipo, mvp = -1, pasan = []) {
   const locke = lockePorId(id);
   const usuario = usuarioActual();
   if (!locke || !usuario || locke.estado !== "cerrado") return;
 
-  const entrada = equipo ? { nombre: equipo.nombre || "", pokemon: equipo.pokemon, mvp } : null;
+  const entrada = equipo ? { nombre: equipo.nombre || "", pokemon: equipo.pokemon, mvp, ...(pasan.length ? { pasan } : {}) } : null;
   const { fn, ref } = referencia(id);
   await fn.updateDoc(ref, { [`salon.${usuario.uid}`]: entrada || fn.deleteField(), actualizado: Date.now() });
 
@@ -533,7 +640,9 @@ export async function guardarSalon(id, equipo, mvp = -1) {
       tipo: locke.tipo || null,
       fechaFin: locke.fechaFin || "",
       gano: locke.ganador === usuario.uid,
-      ...entrada
+      nombre: entrada.nombre,
+      pokemon: entrada.pokemon,
+      mvp: entrada.mvp
     });
   }
   await guardarMiPerfil({ salon: salon.slice(0, MAX_SALON) });
@@ -696,9 +805,11 @@ export async function reordenarMuertos(id, ids) {
 // Lo que va pasando en un locke, para verlo en orden: lockes/{id}/actividad/{suceso}.
 // Cada uno apunta solo lo suyo. Los nombres no se copian: se leen de locke.nombres al pintar.
 //
-//   { uid, tipo, cuando (hora del servidor), delta?, muerto?, ganador?, detalle? }
+//   { uid, tipo, cuando (hora del servidor), delta?, muerto?, ganador?, detalle?,
+//     reacciones?: { uid: "💀" } }   (las ponen los demás, ver «reaccionarASuceso»)
 //   tipo: "creado" | "entra" | "vida" | "eliminado" (la vida cero) | "victoria" | "muerte" |
-//         "ganador" | "combate" | "rom" | "ruta" | "cap" | "edicion" (editar la partida vinculada)
+//         "ganador" | "combate" | "rom" | "ruta" | "cap" | "edicion" (editar la partida vinculada) |
+//         "infraccion" (la ve el árbitro de normas, ver js/partida/arbitro.js: detalle «regla|datos»)
 //
 // Si apuntar falla (p. ej. faltan reglas por publicar), lo de verdad ya está hecho: solo se
 // avisa en la consola.
@@ -724,6 +835,26 @@ export async function apuntarSuceso(idLocke, tipo, datos = {}) {
   } catch (error) {
     console.error("No se ha podido apuntar en la actividad", error);
   }
+}
+
+// Quitar un suceso tuyo de la actividad (el aviso del árbitro que se ha equivocado)
+export async function retirarSuceso(idLocke, idSuceso) {
+  const acceso = baseDeDatos();
+  if (!acceso) return;
+  const { bd, fn } = acceso;
+  await fn.deleteDoc(fn.doc(bd, "lockes", idLocke, "actividad", idSuceso));
+}
+
+// Reaccionar a un suceso de la actividad: una por persona, y la misma otra vez la quita.
+// «actual» es la reacción que ya tenías puesta (la ventana la tiene a mano).
+export async function reaccionarASuceso(idLocke, idSuceso, reaccion, actual) {
+  const usuario = usuarioActual();
+  const acceso = baseDeDatos();
+  if (!usuario || !acceso || !REACCIONES.includes(reaccion)) return;
+  const { bd, fn } = acceso;
+  await fn.updateDoc(fn.doc(bd, "lockes", idLocke, "actividad", idSuceso), {
+    [`reacciones.${usuario.uid}`]: actual === reaccion ? fn.deleteField() : reaccion
+  });
 }
 
 // Un +1 o −1 de vidas o victorias. Si deshace lo último que hiciste hace nada (le diste sin
@@ -765,6 +896,55 @@ export function escucharActividad(idLocke, alLlegar, cuantos = 60) {
       alLlegar(null);
     }
   );
+}
+
+// Todo lo que ha pasado en un locke, del más viejo al más nuevo (para la crónica, js/versus/cronica.js).
+// null si no se ha podido leer.
+export async function leerActividad(idLocke, maximo = 1000) {
+  const acceso = baseDeDatos();
+  if (!acceso) return null;
+  const { bd, fn } = acceso;
+  try {
+    const instantanea = await fn.getDocs(
+      fn.query(fn.collection(bd, "lockes", idLocke, "actividad"), fn.orderBy("cuando", "asc"), fn.limit(maximo))
+    );
+    return instantanea.docs.map((documento) => {
+      const datos = documento.data();
+      return { id: documento.id, ...datos, cuando: datos.cuando ? datos.cuando.toMillis() : Date.now() };
+    });
+  } catch (error) {
+    console.error("No se ha podido leer la actividad", error);
+    return null;
+  }
+}
+
+// Los avisos del árbitro de un locke, en vivo, para la campana (js/avisos.js). Sin «orderBy» a
+// propósito: un «where» con otro orden pide un índice propio en Firestore. Quien los recibe los
+// ordena. Devuelve la función para dejar de escuchar.
+export function escucharInfracciones(idLocke, alLlegar) {
+  const acceso = baseDeDatos();
+  if (!acceso) return () => {};
+  const { bd, fn } = acceso;
+  return fn.onSnapshot(
+    fn.query(fn.collection(bd, "lockes", idLocke, "actividad"), fn.where("tipo", "==", "infraccion"), fn.limit(100)),
+    (instantanea) => {
+      alLlegar(
+        instantanea.docs.map((documento) => {
+          const datos = documento.data({ serverTimestamps: "estimate" });
+          return { id: documento.id, uid: datos.uid, detalle: datos.detalle || "", cuando: datos.cuando ? datos.cuando.toMillis() : Date.now() };
+        })
+      );
+    },
+    (error) => {
+      console.error("No se han podido leer los avisos del árbitro", error);
+      alLlegar([]);
+    }
+  );
+}
+
+// El enlace para seguir un locke público (seguir.html, junto a la página de la web)
+export function enlaceParaSeguir(id) {
+  return new URL(`seguir.html?c=${encodeURIComponent(id)}`, location.href).href;
 }
 
 export function soyCreador(locke) {
@@ -860,6 +1040,9 @@ export async function editarLocke(id, datos) {
     rutasPropias: datos.rutasPropias || null,
     capsPropios: datos.capsPropios || null,
     randomizer: datos.randomizer || null,
+    arbitro: datos.arbitro || null,
+    publico: Boolean(datos.publico),
+    cadena: datos.cadena || null,
     actualizado: Date.now()
   };
   // Con el locke cerrado los combates ya no se tocan (el resultado ya está)

@@ -19,6 +19,7 @@ import {
 import { hayNube, usuarioActual } from "../comun/nube.js";
 import { estaConectado, alCambiarPresencia } from "../comun/presencia.js";
 import { caraACara } from "../comun/cara-a-cara.js";
+import { iniciarEstadisticas, abrirEstadisticas } from "./estadisticas.js";
 import { soyYo } from "../comun/logros.js";
 import {
   TIPOS_POR_DEFECTO, alCambiarMiPerfil, alCambiarAmistades, miPerfil, fallaElPerfil, tiposDe, tiposParaFicha,
@@ -36,7 +37,6 @@ let aviso = null;
 let campoCorreo = null;
 let dialogoTipos = null;
 let dialogoPalmares = null;
-let dialogoComparar = null;
 
 // ---------- Colores ----------
 
@@ -288,6 +288,7 @@ function plantillaAcciones(ficha) {
   if (ficha.mia) {
     return `
       <div class="ficha-acciones">
+        <button class="accion-estadisticas" title="${t("Estadísticas")}">${icono("estadisticas")}</button>
         <button class="accion-tipos" title="${t("Tipos de locke")}">${icono("etiqueta")}</button>
         <button class="accion-palmares" title="${t("Editar mis lockes ganados")}">${icono("lapiz")}</button>
       </div>`;
@@ -295,7 +296,7 @@ function plantillaAcciones(ficha) {
 
   return `
     <div class="ficha-acciones">
-      <button class="accion-comparar" title="${t("Comparar conmigo")}">${icono("espadas")}</button>
+      <button class="accion-estadisticas" title="${t("Estadísticas y cara a cara")}">${icono("estadisticas")}</button>
       <button class="accion-quitar" title="${t("Quitar de amigos")}">${icono("aspa")}</button>
     </div>`;
 }
@@ -342,10 +343,11 @@ function plantillaLuchador(perfil, victorias, clase) {
     </div>`;
 }
 
-function abrirComparacion(uid) {
+// El cara a cara con un amigo, que sale arriba en su ventana de estadísticas ("" si es la tuya)
+function htmlComparacion(uid) {
   const mio = miPerfil();
   const suyo = perfilesDeAmigos().get(uid);
-  if (!mio || !suyo) return;
+  if (!mio || !suyo) return "";
 
   const { juntos, enMarcha, mias, suyas, lista: jugados } = caraACara(mio, suyo);
   const claseMia = mias > suyas ? "gana" : mias < suyas ? "pierde" : "";
@@ -359,7 +361,7 @@ function abrirComparacion(uid) {
     if (otros > 0) resumen += ` · ${t("{n} los ganó otra persona", { n: otros })}`;
   }
 
-  dialogoComparar.querySelector(".comparar-cuerpo").innerHTML = `
+  return `
     <div class="cara-a-cara">
       ${plantillaLuchador(mio, mias, `mio ${claseMia}`)}
       <span class="comparar-vs">VS</span>
@@ -368,7 +370,6 @@ function abrirComparacion(uid) {
     <p class="comparar-resumen">${escaparHTML(resumen)}</p>
     ${juntos && mias === suyas && mias + suyas > 0 ? `<p class="comparar-empate">${t("Vais empatados")}</p>` : ""}
     ${jugados.length ? plantillaListaCaraACara(jugados, mio, suyo) : ""}`;
-  dialogoComparar.showModal();
 }
 
 function plantillaFicha(ficha) {
@@ -983,7 +984,7 @@ function activarFichas() {
         alternarVerTodos(boton);
       } else if (boton.classList.contains("accion-tipos")) abrirTipos();
       else if (boton.classList.contains("accion-palmares")) abrirPalmares();
-      else if (boton.classList.contains("accion-comparar")) abrirComparacion(ficha.dataset.clave);
+      else if (boton.classList.contains("accion-estadisticas")) abrirEstadisticas(ficha.dataset.clave, htmlComparacion(ficha.dataset.clave));
       else if (boton.classList.contains("accion-quitar")) await quitarAmigo(ficha);
     } catch (error) {
       console.error(error);
@@ -1006,12 +1007,7 @@ export function iniciar() {
   seccion = document.querySelector("#vista-amigos");
   dialogoTipos = document.querySelector("#dialogo-tipos");
   dialogoPalmares = document.querySelector("#dialogo-palmares");
-  dialogoComparar = document.querySelector("#dialogo-comparar");
-  dialogoComparar.querySelector(".comparar-cerrar").addEventListener("click", () => dialogoComparar.close());
-  dialogoComparar.addEventListener("click", (e) => {
-    const boton = e.target.closest(".ver-todos");
-    if (boton) alternarVerTodos(boton);
-  });
+  iniciarEstadisticas(alternarVerTodos);
   lista = seccion.querySelector(".jugadores");
   solicitudes = seccion.querySelector(".amigos-solicitudes");
   aviso = seccion.querySelector(".amigos-aviso");

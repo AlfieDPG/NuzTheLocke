@@ -51,6 +51,14 @@
       <nav class="menu-lateral">
         <!-- data-icono: el icono que se le pone delante (js/navegacion.js) -->
         <button data-vista="lockes" data-icono="espadas" class="boton-destacado">Lockes</button>
+
+        <!-- Los grupos del menú: un título pequeño sobre cada uno, sin cajas ni líneas -->
+        <span class="menu-titulo">Partida</span>
+        <button data-vista="rutas" data-icono="mapa" class="boton-seccion">Rutas</button>
+        <button data-vista="levelcaps" data-icono="escudo" class="boton-seccion">Level caps</button>
+        <button data-vista="normas" data-icono="libro" class="boton-seccion">Normas</button>
+
+        <span class="menu-titulo">Equipo</span>
         <details class="grupo-menu">
           <summary class="boton-seccion" data-icono="pokeball">Equipos</summary>
           <div class="submenu">
@@ -58,13 +66,14 @@
             <button data-vista="equipos" data-icono="lista">Mis equipos</button>
           </div>
         </details>
-        <button data-vista="rutas" data-icono="mapa" class="boton-seccion">Rutas</button>
-        <button data-vista="levelcaps" data-icono="escudo" class="boton-seccion">Level caps</button>
         <button data-vista="pokedex" data-icono="pokedex" class="boton-seccion">Pokédex</button>
         <button data-vista="calculadora" data-icono="calculadora" class="boton-seccion">Calculadora</button>
-        <button data-vista="normas" data-icono="libro" class="boton-seccion">Normas</button>
+
+        <span class="menu-titulo">Herramientas</span>
         <button data-vista="randomizer" data-icono="mezclar" class="boton-seccion">Randomizer</button>
         <button data-vista="ruleta" data-icono="ruleta" class="boton-seccion">Ruleta</button>
+
+        <span class="menu-titulo">Comunidad</span>
         <button data-vista="amigos" data-icono="amigos" class="boton-seccion">Amigos</button>
         <button data-vista="logros" data-icono="trofeo" class="boton-seccion">Logros</button>
       </nav>
@@ -538,6 +547,18 @@
             <span class="etiqueta-campo">Randomizer</span>
             <div class="locke-randomizer"></div>
           </div>
+          <div class="locke-eleccion locke-eleccion-ancha">
+            <span class="etiqueta-campo">Árbitro</span>
+            <div class="locke-arbitro"></div>
+          </div>
+          <div class="locke-eleccion locke-eleccion-ancha">
+            <span class="etiqueta-campo">Seguidores</span>
+            <div class="locke-seguidores"></div>
+          </div>
+          <div class="locke-eleccion locke-eleccion-ancha">
+            <span class="etiqueta-campo">Cadena</span>
+            <div class="locke-cadena"></div>
+          </div>
         </div>
 
         <label class="campo-ancho campo-descripcion">
@@ -613,6 +634,10 @@
     <div class="salon-mvp-elegir" hidden>
       <span class="etiqueta-campo">MVP</span>
       <div class="salon-mvp-caras"></div>
+    </div>
+    <div class="salon-pasan-elegir" hidden>
+      <span class="etiqueta-campo">Pasan a la siguiente etapa</span>
+      <div class="salon-pasan-caras"></div>
     </div>
     <div class="dialogo-botones">
       <button type="button" class="boton-gris boton-izquierda salon-quitar">Quitar</button>
@@ -822,6 +847,17 @@
     </div>
   </dialog>
 
+  <!-- Resumen de un locke terminado, con imagen para compartir (js/versus/cronica.js) -->
+  <dialog id="dialogo-cronica">
+    <h2 class="cronica-titulo"></h2>
+    <div class="cronica-cuerpo"></div>
+    <div class="dialogo-botones">
+      <button class="cronica-imagen">Descargar imagen</button>
+      <button class="cronica-compartir" hidden>Compartir</button>
+      <button class="cronica-cerrar">Cerrar</button>
+    </div>
+  </dialog>
+
   <!-- Crear o renombrar un conjunto de normas (js/normas/index.js) -->
   <dialog id="dialogo-conjunto" class="dialogo-sesion">
     <h2 class="conjunto-titulo">Nuevo conjunto de normas</h2>
@@ -862,11 +898,23 @@
     </form>
   </dialog>
 
-  <!-- Cara a cara con un amigo (botón de espadas de su ficha en «Amigos») -->
-  <dialog id="dialogo-comparar">
-    <div class="comparar-cuerpo"></div>
+  <!-- La siguiente etapa de una cadena de lockes (js/versus/index.js) -->
+  <dialog id="dialogo-etapa" class="dialogo-sesion">
+    <h2 class="etapa-titulo"></h2>
+    <div class="etapa-cuerpo"></div>
+    <p class="locke-error etapa-error"></p>
     <div class="dialogo-botones">
-      <button class="comparar-cerrar">Cerrar</button>
+      <button type="button" class="boton-gris etapa-cancelar">Cancelar</button>
+      <button type="button" class="boton-rojo etapa-ok">Crear etapa</button>
+    </div>
+  </dialog>
+
+  <!-- Números de una persona en sus lockes y, en un amigo, el cara a cara contra él (botón de estadísticas de su ficha en «Amigos») -->
+  <dialog id="dialogo-estadisticas">
+    <h2 class="estadisticas-titulo"></h2>
+    <div class="estadisticas-cuerpo"></div>
+    <div class="dialogo-botones">
+      <button class="estadisticas-cerrar">Cerrar</button>
     </div>
   </dialog>
 

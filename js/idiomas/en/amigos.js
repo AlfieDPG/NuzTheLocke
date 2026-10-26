@@ -77,5 +77,33 @@ export default {
   "¡Los tienes todos!": "You have them all!",
   "¡Logros conseguidos!": "Achievements unlocked!",
   "{n} logros nuevos": "{n} new achievements",
-  "¡Logro conseguido!": "Achievement unlocked!"
+  "¡Logro conseguido!": "Achievement unlocked!",
+
+  // ---------- Estadísticas ----------
+  "Estadísticas": "Statistics",
+  "Estadísticas y cara a cara": "Statistics and head to head",
+  "Contando…": "Counting…",
+  "Todavía no tienes lockes de los que sacar números.": "You don't have any lockes to get numbers from yet.",
+  "Todavía no habéis jugado ningún locke juntos.": "You haven't played any locke together yet.",
+  "En todos tus lockes": "Across all your lockes",
+  "En los lockes que jugáis juntos": "In the lockes you play together",
+  "Ganados": "Won",
+  "ROM pasadas": "ROMs cleared",
+  "Pokémon muertos": "Dead Pokémon",
+  "Muertos por locke": "Deaths per locke",
+  "Vidas perdidas": "Lives lost",
+  "Eliminado en": "Eliminated in",
+  "Los Pokémon que más mueren": "The Pokémon that die the most",
+  "El tipo que más muere": "The type that dies the most",
+  "Los Pokémon más usados": "The most used Pokémon",
+  "Tipos más usados": "Most used types",
+  "Por juego": "By game",
+  "Contra tus amigos": "Against your friends",
+  "Cara a cara": "Head to head",
+  "Lockes apuntados": "Logged lockes",
+  "Ganados en la web": "Won on the site",
+  "En todos tus lockes, también los apuntados (por ti o por tus amigos)": "Across all your lockes, including the ones logged by you or your friends",
+  "En los lockes que jugáis juntos y los que hay apuntados de esa persona": "In the lockes you play together and the ones logged for them",
+  "Los lockes apuntados cuentan con lo que se haya apuntado de ellos (equipos, combates, ROM, juego), ganados o perdidos, pero no dicen cuántos Pokémon murieron.":
+    "Logged lockes count with whatever was logged for them (teams, battles, ROM, game), won or lost, but they don't say how many Pokémon died."
 };

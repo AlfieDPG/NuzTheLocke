@@ -1,0 +1,179 @@
+/* Seguir un locke (seguir.html, js/seguir.js). Usa las letras y colores de css/base.css y las
+   fichas y la actividad de css/versus.css (.cronica-*, .suceso-*). */
+
+:root {
+  --color-vista: 214, 88, 76; /* el de Lockes */
+}
+
+.pagina-seguir {
+  min-height: 100vh;
+}
+
+.seguir {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 16px 3rem;
+  border-top: 4px solid rgb(var(--color-vista));
+}
+
+.seguir .icono {
+  width: 1rem;
+  height: 1rem;
+  vertical-align: -0.15em;
+}
+
+.seguir h1 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: clamp(1.8rem, 6vw, 2.6rem);
+  line-height: 1.05;
+}
+
+.seguir h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.8rem 0 0.7rem;
+  font-size: 1.35rem;
+}
+
+.seguir h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+}
+
+.seguir h3 small {
+  opacity: 0.6;
+}
+
+.seguir-estado {
+  margin: 4rem 0;
+  text-align: center;
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+
+.seguir-cabecera {
+  margin-bottom: 1.2rem;
+}
+
+.seguir-cabecera .locke-tipo {
+  color: var(--color-locke, rgb(var(--color-vista)));
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.seguir-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.1rem;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.seguir-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.seguir-descripcion {
+  margin: 0.7rem 0 0;
+  opacity: 0.85;
+}
+
+/* El puntito de «En directo» */
+.seguir-directo {
+  font-weight: 800;
+}
+
+.seguir-directo i {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #e0574a;
+  animation: seguir-latido 1.6s ease-in-out infinite;
+}
+
+@keyframes seguir-latido {
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seguir-directo i {
+    animation: none;
+  }
+}
+
+.seguir-medallas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin-top: 0.65rem;
+}
+
+.seguir-medallas img {
+  width: 1.7rem;
+  height: 1.7rem;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.3;
+}
+
+.seguir-medallas img.conseguida {
+  filter: none;
+  opacity: 1;
+}
+
+.seguir-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.seguir-tumbas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.seguir-tumba {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 5.2rem;
+  margin: 0;
+  text-align: center;
+}
+
+.seguir-cara {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+}
+
+.seguir-tumba figcaption {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.seguir .actividad-lista {
+  max-height: none;
+}
+
+.seguir-pie {
+  margin-top: 2.2rem;
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.seguir-pie a {
+  color: inherit;
+}

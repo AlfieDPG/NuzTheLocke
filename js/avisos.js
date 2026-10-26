@@ -5,11 +5,14 @@
 // puede llegar mientras estás montando un equipo, y así la ves desde cualquier sección.
 // Como vive dentro de .sesion-usuario, se esconde sola cuando no hay sesión.
 //
-// Dentro caben dos cosas:
+// Dentro caben tres cosas:
 //   · solicitudes de amistad que te han mandado
 //   · invitaciones a un locke de «Lockes»
+//   · avisos del árbitro de normas: lo que ha visto en la partida de otro jugador de un locke
+//     tuyo con árbitro (js/partida/arbitro.js). Se quitan con el visto, y se guardan como
+//     vistos en tu cuenta para no volver a salir en otro dispositivo.
 //
-// Las dos listas están escuchadas en vivo, así que el número sube y baja solo.
+// Las listas están escuchadas en vivo, así que el número sube y baja solo.
 
 import { icono } from "./comun/iconos.js";
 import { escaparHTML } from "./comun/utilidades.js";
@@ -19,8 +22,14 @@ import {
   alCambiarAmistades, solicitudesRecibidas, aceptarAmistad, borrarAmistad, perfilesDe, colorDeTipo
 } from "./comun/perfiles.js";
 import {
-  alCambiarLockes, invitacionesALockes, aceptarLocke, rechazarLocke
+  alCambiarLockes, invitacionesALockes, aceptarLocke, rechazarLocke, miEstado, lockePorId, escucharInfracciones
 } from "./comun/lockes.js";
+import { leer, escribir } from "./comun/almacen.js";
+import { irA } from "./navegacion.js";
+
+const CLAVE_VISTOS = "poketeams-avisos-arbitro-v1"; // ids de los avisos del árbitro que ya has visto
+const DIAS_VIGENTES = 14;                           // los avisos más viejos ya no salen
+const MAX_VISTOS = 200;
 
 let boton = null;
 let cuenta = null;
@@ -59,14 +68,90 @@ function plantillaLocke(locke) {
     </div>`;
 }
 
+// ---------- Avisos del árbitro ----------
+
+const escuchas = new Map(); // id del locke -> { avisos: [...], parar }
+let textoInfraccion = null; // de js/partida/infracciones.js: se baja la primera vez que hace falta
+
+// Escucha los avisos de los lockes con árbitro en los que estás dentro y siguen abiertos
+function vigilar(lockes) {
+  const usuario = usuarioActual();
+  const quiero = new Set(
+    usuario && hayNube()
+      ? lockes.filter((locke) => locke.arbitro && locke.estado !== "cerrado" && miEstado(locke) === "aceptado").map((locke) => locke.id)
+      : []
+  );
+
+  for (const [id, escucha] of escuchas) {
+    if (quiero.has(id)) continue;
+    escucha.parar();
+    escuchas.delete(id);
+  }
+  for (const id of quiero) {
+    if (escuchas.has(id)) continue;
+    const escucha = { avisos: [], parar: () => {} };
+    escuchas.set(id, escucha);
+    escucha.parar = escucharInfracciones(id, (avisos) => {
+      escucha.avisos = avisos;
+      if (avisos.length && !textoInfraccion) {
+        import("./partida/infracciones.js").then((modulo) => {
+          textoInfraccion = modulo.textoInfraccion;
+          pintar();
+        }).catch((error) => console.error(error));
+      }
+      pintar();
+    });
+  }
+}
+
+// Los de otros que aún no has visto, del más nuevo al más viejo
+function avisosDelArbitro() {
+  const usuario = usuarioActual();
+  if (!usuario || !hayNube()) return [];
+  const vistos = new Set(leer(CLAVE_VISTOS, []) || []);
+  const desde = Date.now() - DIAS_VIGENTES * 86400000;
+  const lista = [];
+  for (const [id, escucha] of escuchas) {
+    const locke = lockePorId(id);
+    if (!locke) continue;
+    for (const aviso of escucha.avisos) {
+      if (aviso.uid !== usuario.uid && aviso.cuando > desde && !vistos.has(aviso.id)) lista.push({ ...aviso, locke });
+    }
+  }
+  return lista.sort((uno, otro) => otro.cuando - uno.cuando);
+}
+
+function marcarVisto(id) {
+  const vistos = (leer(CLAVE_VISTOS, []) || []).filter((cada) => cada !== id);
+  vistos.push(id);
+  escribir(CLAVE_VISTOS, vistos.slice(-MAX_VISTOS));
+  pintar();
+}
+
+function plantillaArbitro(aviso) {
+  const negrita = (dato) => `<b>${escaparHTML(dato)}</b>`;
+  const quien = negrita((aviso.locke.nombres || {})[aviso.uid] || t("Alguien"));
+  const caso = textoInfraccion ? textoInfraccion(aviso.detalle, negrita) : "";
+
+  return `
+    <div class="aviso" data-tipo="arbitro" data-id="${escaparHTML(aviso.id)}">
+      <span class="aviso-icono arbitro">${icono("aviso")}</span>
+      <span class="aviso-texto aviso-ir" title="${t("Ir a Lockes")}">
+        ${t("El árbitro ve algo raro en {quien}: {caso}", { quien, caso })}
+        <small>${escaparHTML(aviso.locke.nombre)}</small>
+      </span>
+      <button class="aviso-si" title="${t("Entendido")}">${icono("visto")}</button>
+    </div>`;
+}
+
 function pendientes() {
-  if (!hayNube() || !usuarioActual()) return { amistades: [], lockes: [] };
-  return { amistades: solicitudesRecibidas(), lockes: invitacionesALockes() };
+  if (!hayNube() || !usuarioActual()) return { amistades: [], lockes: [], arbitro: [] };
+  return { amistades: solicitudesRecibidas(), lockes: invitacionesALockes(), arbitro: avisosDelArbitro() };
 }
 
 function pintar() {
-  const { amistades, lockes } = pendientes();
-  const total = amistades.length + lockes.length;
+  const { amistades, lockes, arbitro } = pendientes();
+  const total = amistades.length + lockes.length + arbitro.length;
 
   cuenta.textContent = total;
   cuenta.hidden = total === 0;
@@ -74,7 +159,7 @@ function pintar() {
   boton.title = total === 0 ? t("Notificaciones") : t(total === 1 ? "Tienes {n} notificación" : "Tienes {n} notificaciones", { n: total });
 
   listaDialogo.innerHTML = total
-    ? [...amistades.map(plantillaAmistad), ...lockes.map(plantillaLocke)].join("")
+    ? [...amistades.map(plantillaAmistad), ...lockes.map(plantillaLocke), ...arbitro.map(plantillaArbitro)].join("")
     : `<p class="aviso-vacio">${t("No tienes nada pendiente.")}</p>`;
 }
 
@@ -126,6 +211,14 @@ export function iniciarAvisos() {
     const aviso = e.target.closest(".aviso");
     const si = e.target.closest(".aviso-si");
     const no = e.target.closest(".aviso-no");
+    if (aviso && aviso.dataset.tipo === "arbitro") {
+      if (si) marcarVisto(aviso.dataset.id);
+      else if (e.target.closest(".aviso-ir")) {
+        dialogo.close();
+        irA("lockes");
+      }
+      return;
+    }
     if (!aviso || (!si && !no)) return;
     contestar(aviso, Boolean(si));
   });
@@ -137,5 +230,8 @@ export function iniciarAvisos() {
     );
   });
 
-  alCambiarLockes(pintar);
+  alCambiarLockes((lockes) => {
+    vigilar(lockes);
+    pintar();
+  });
 }

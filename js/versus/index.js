@@ -25,6 +25,7 @@ import {
 } from "../comun/personalizados.js";
 import { iniciarCementerio, abrirCementerio, abrirMuerte, totalMuertos, retratoMuerto, nombreMuerto } from "./cementerio.js";
 import { iniciarActividad, abrirActividad } from "./actividad.js";
+import { iniciarCronica, abrirCronica } from "./cronica.js";
 import {
   ID_GENERALES, NOMBRE_GENERALES, conjuntos, copiaParaLocke, normasDeLocke, normasCompletas
 } from "../comun/normas.js";
@@ -35,7 +36,8 @@ import {
 import {
   alCambiarLockes, misLockes, invitacionesALockes, estadoDe, fallaLosLockes, soyCreador,
   crearLocke, editarLocke, invitarALocke, quitarDeLocke, sePuedenCambiarVidas,
-  cambiarNumero, borrarLocke, lockePorId, estaEliminado, combatesDe, victoriasDe, medallasDe, cambiarMedallas,
+  cambiarNumero, borrarLocke, enlaceParaSeguir, lockePorId, nuevoIdCadena, vidasDeLaSiguienteEtapa, pokemonQuePasan,
+  hayEtapaSiguiente, crearSiguienteEtapa, siguenEnLaCadena, estaEliminado, combatesDe, victoriasDe, medallasDe, cambiarMedallas,
   muertosDe
 } from "../comun/lockes.js";
 import { medallasDelJuego, marcarGimnasios } from "../comun/medallas.js";
@@ -45,8 +47,11 @@ import {
   alternarRom
 } from "./combates.js";
 import { iniciarPartida, plantillaPartida, accionPartida } from "./partida.js";
+import { REGLAS_ARBITRO, arbitroLimpio } from "../partida/arbitro.js";
 import { completarReglas, hayAlgo, misReglas, normasGuardadas, resumenNormas, hierbaEnPueblos } from "../randomizer/reglas.js";
-import { confirmar } from "../comun/ventanas.js";
+import { confirmar, avisar } from "../comun/ventanas.js";
+import { campoNumero } from "../comun/numero.js";
+import { caraDePokemon } from "../comun/elegir-equipo.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
 let seccion = null;
@@ -235,6 +240,8 @@ function plantillaAtajos(locke) {
       ${locke.randomizer && locke.estado !== "cerrado" ? `<button class="locke-ir" data-ir="randomizer">${icono("mezclar")} ${t("Randomizar mi ROM")}</button>` : ""}
       <button class="locke-ir" data-ir="cementerio">${icono("calavera")} ${t("Cementerio")} (${totalMuertos(locke)})</button>
       <button class="locke-ir" data-ir="actividad">${icono("actividad")} ${t("Actividad")}</button>
+      ${locke.publico ? `<button class="locke-ir" data-ir="seguir" title="${t("Copiar el enlace para seguidores")}">${icono("enlace")} ${t("Enlace")}</button>` : ""}
+      ${locke.estado === "cerrado" ? `<button class="locke-ir" data-ir="cronica">${icono("trofeo")} ${t("Crónica")}</button>` : ""}
     </footer>`;
 }
 
@@ -261,9 +268,10 @@ function plantillaLocke(locke) {
         <div class="locke-titular">
           <span class="locke-tipo">${escaparHTML(tipo.nombre)}</span>
           <h2 class="locke-titulo">${escaparHTML(locke.nombre)}</h2>
-          ${juego || cerrado
+          ${juego || cerrado || locke.publico
             ? `<div class="locke-meta">
                 ${juego ? `<span class="locke-juego-nombre">${icono("mando")} ${escaparHTML(juego)}</span>` : ""}
+                ${locke.publico ? `<span class="locke-publico" title="${t("Cualquiera con el enlace puede verlo, sin cambiar nada")}">${icono("enlace")} ${t("Público")}</span>` : ""}
                 ${cerrado ? `<span class="locke-resultado ${locke.ganador ? "" : "sin-ganador"}">${resultado}${fecha}</span>` : ""}
               </div>`
             : ""}
@@ -287,6 +295,171 @@ function plantillaLocke(locke) {
 
       ${plantillaAtajos(locke)}
     </article>`;
+}
+
+// ---------- Cadenas en la lista ----------
+//
+// Las etapas de una cadena salen juntas, en una sola tarjeta: arriba la cadena (etapas, vidas
+// y lo que llevan) y debajo la etapa de ahora y, plegadas, las anteriores. La cadena ocupa el
+// sitio de su etapa más nueva.
+
+function agruparEnCadenas(lockes) {
+  const vistas = new Set();
+  const elementos = [];
+  for (const locke of lockes) {
+    if (!locke.cadena) {
+      elementos.push({ locke });
+      continue;
+    }
+    if (vistas.has(locke.cadena.id)) continue;
+    vistas.add(locke.cadena.id);
+    const etapas = lockes.filter((otro) => otro.cadena && otro.cadena.id === locke.cadena.id).sort((uno, otro) => uno.cadena.etapa - otro.cadena.etapa);
+    elementos.push({ etapas });
+  }
+  return elementos;
+}
+
+const etapasAbiertas = new Set(); // etapas antiguas desplegadas (que no se plieguen al llegar un cambio)
+
+function resultadoDeEtapa(locke) {
+  if (locke.estado !== "cerrado") return t("En marcha");
+  return locke.ganador ? t("Ganó {nombre}", { nombre: (locke.nombres || {})[locke.ganador] || t("alguien") }) : t("Nadie ganó");
+}
+
+function plantillaCadena(etapas) {
+  const ultima = etapas[etapas.length - 1];
+  const cadena = ultima.cadena;
+  const previa = etapas[etapas.length - 2];
+  const llevan = previa ? pokemonQuePasan(previa) : {};
+  const previstas = Math.max(cadena.total || 0, cadena.etapa);
+  const tipo = ultima.tipo || { nombre: "Locke", color: "#3498db" };
+  const usuario = usuarioActual();
+
+  const pasos = Array.from({ length: previstas }, (_, i) => {
+    const etapa = etapas.find((cada) => cada.cadena.etapa === i + 1);
+    const estado = !etapa ? "futura" : etapa.estado === "cerrado" ? "hecha" : "actual";
+    const nombre = (etapa && nombreJuego(etapa)) || t("Etapa {n}", { n: i + 1 });
+    return `<li class="cadena-paso ${estado}" title="${escaparHTML(nombre)}"><i></i><span>${escaparHTML(nombre)}</span></li>`;
+  }).join("");
+
+  const jugadores = (ultima.jugadores || [])
+    .filter((uid) => estadoDe(ultima, uid) === "aceptado")
+    .map((uid) => {
+      const eliminado = estaEliminado(ultima, uid);
+      const vidas = ultima.vidasIlimitadas ? "∞" : Math.max(0, (ultima.vidas || {})[uid] || 0);
+      return `
+        <li class="cadena-jugador ${eliminado ? "eliminado" : ""}">
+          <strong>${escaparHTML((ultima.nombres || {})[uid] || t("Jugador"))}</strong>
+          <span class="cadena-vidas">${eliminado ? t("Eliminado") : `${icono("corazon")} ${vidas}`}</span>
+          ${(llevan[uid] || []).length ? `<span class="cadena-llevan" title="${t("Vienen de la etapa anterior")}">${llevan[uid].map((p) => caraDePokemon(p)).join("")}</span>` : ""}
+        </li>`;
+    })
+    .join("");
+
+  // Qué toca ahora: crear la siguiente, esperar a quien la crea, o ya está
+  let siguiente = "";
+  if (ultima.estado === "cerrado") {
+    if (hayEtapaSiguiente(ultima)) {
+      siguiente = soyCreador(ultima) && siguenEnLaCadena(ultima).includes(usuario.uid)
+        ? `<button class="cadena-siguiente" data-id="${escaparHTML(ultima.id)}">${icono("mas")} ${t("Siguiente etapa")}</button>`
+        : `<span class="cadena-nota">${t("Quien creó la cadena crea la siguiente etapa.")}</span>`;
+    } else {
+      siguiente = `<span class="cadena-nota">${t(cadena.total && cadena.etapa >= cadena.total ? "¡Cadena completada!" : "Ya no sigue nadie en la cadena.")}</span>`;
+    }
+  }
+
+  const detalle = etapas
+    .slice()
+    .reverse()
+    .map((etapa, i) =>
+      i === 0
+        ? plantillaLocke(etapa)
+        : `<details class="cadena-etapa" data-id="${escaparHTML(etapa.id)}" ${etapasAbiertas.has(etapa.id) ? "open" : ""}>
+            <summary>${t("Etapa {n}", { n: etapa.cadena.etapa })} · ${escaparHTML(nombreJuego(etapa) || etapa.nombre)} · ${escaparHTML(resultadoDeEtapa(etapa))}</summary>
+            ${plantillaLocke(etapa)}
+          </details>`
+    )
+    .join("");
+
+  return `
+    <section class="cadena" style="--color-locke: ${colorDeTipo(tipo)}">
+      <header class="cadena-cabecera">
+        <div>
+          <span class="locke-tipo">${t("Cadena de lockes")}</span>
+          <h2 class="cadena-titulo">${escaparHTML(cadena.nombre || ultima.nombre)}</h2>
+        </div>
+        <span class="cadena-etapa-n">${cadena.total ? t("Etapa {n} de {total}", { n: cadena.etapa, total: cadena.total }) : t("Etapa {n}", { n: cadena.etapa })}</span>
+      </header>
+      <ol class="cadena-pasos">${pasos}</ol>
+      <ul class="cadena-jugadores">${jugadores}</ul>
+      ${siguiente ? `<div class="cadena-accion">${siguiente}</div>` : ""}
+      <div class="cadena-etapas">${detalle}</div>
+    </section>`;
+}
+
+// ---------- Siguiente etapa ----------
+
+let dialogoEtapa = null;
+let idEtapaPrevia = null;
+
+function abrirEtapa(id) {
+  const previo = lockePorId(id);
+  if (!previo || !hayEtapaSiguiente(previo)) return;
+  idEtapaPrevia = id;
+
+  const cadena = previo.cadena;
+  const numero = cadena.etapa + 1;
+  const nombreEtapa = `${cadena.nombre || previo.nombre} · ${t("Etapa {n}", { n: numero })}`;
+  const vidas = vidasDeLaSiguienteEtapa(previo);
+  const llevan = pokemonQuePasan(previo);
+
+  dialogoEtapa.querySelector(".etapa-titulo").textContent = t("Siguiente etapa");
+  dialogoEtapa.querySelector(".etapa-cuerpo").innerHTML = `
+    <label class="campo-ancho">
+      <span class="etiqueta-campo">${t("Nombre")}</span>
+      <input class="etapa-nombre" type="text" maxlength="60" autocomplete="off" value="${escaparHTML(nombreEtapa)}">
+    </label>
+    <div class="etapa-juego">
+      <span class="etiqueta-campo">${t("Juego de esta etapa")}</span>
+      <div class="locke-campo-juego">${plantillaCampoJuego({})}</div>
+    </div>
+    <span class="etiqueta-campo">${t("Cómo empieza cada jugador")}</span>
+    <ul class="etapa-jugadores">
+      ${Object.entries(vidas)
+        .map(
+          ([uid, v]) => `
+            <li>
+              <strong>${escaparHTML((previo.nombres || {})[uid] || t("Jugador"))}</strong>
+              <span>${previo.vidasIlimitadas ? "∞" : `${icono("corazon")} ${v.quedan}${v.suma ? ` + ${v.suma}` : ""} = ${v.total}`}</span>
+              <span class="cadena-llevan">${(llevan[uid] || []).map((p) => caraDePokemon(p)).join("")}</span>
+            </li>`
+        )
+        .join("")}
+    </ul>
+    <p class="locke-arbitro-ayuda">${t("Empiezan los que no están eliminados, sin tener que aceptar otra vez. Las normas se copian de la etapa anterior; las rutas, los level caps y el randomizer se ponen después, según el juego.")}</p>`;
+  dialogoEtapa.querySelector(".etapa-error").textContent = "";
+  dialogoEtapa.showModal();
+}
+
+async function crearEtapa() {
+  const error = dialogoEtapa.querySelector(".etapa-error");
+  const nombre = dialogoEtapa.querySelector(".etapa-nombre").value.trim();
+  if (!nombre) {
+    error.textContent = t("Ponle un nombre.");
+    return;
+  }
+  const { juego, juegoOtro } = leerCampoJuego(dialogoEtapa.querySelector(".campo-juego"));
+  const boton = dialogoEtapa.querySelector(".etapa-ok");
+  boton.disabled = true;
+  try {
+    await crearSiguienteEtapa(idEtapaPrevia, { nombre, juego, juegoOtro });
+    dialogoEtapa.close();
+  } catch (fallo) {
+    console.error(fallo);
+    error.textContent = textoDeError(fallo, "crear la etapa");
+  } finally {
+    boton.disabled = false;
+  }
 }
 
 function pintar() {
@@ -318,12 +491,12 @@ function pintar() {
   const deLaLista = mios.filter((locke) => !(locke.estado === "cerrado" && fuera.has(locke.id)));
   const apartados = mios.filter((locke) => !deLaLista.includes(locke));
   if (!apartados.length) verQuitados = false;
-  const ordenados = [...deLaLista].sort((uno, otro) => (otro.creado || 0) - (uno.creado || 0));
+  const ordenados = agruparEnCadenas([...deLaLista].sort((uno, otro) => (otro.creado || 0) - (uno.creado || 0)));
   const quedan = ordenados.length - MOSTRAR_DE_ENTRADA;
   const visibles = verTodos || quedan <= 0 ? ordenados : ordenados.slice(0, MOSTRAR_DE_ENTRADA);
 
   lista.innerHTML =
-    visibles.map(plantillaLocke).join("") +
+    visibles.map((elemento) => (elemento.etapas ? plantillaCadena(elemento.etapas) : plantillaLocke(elemento.locke))).join("") +
     (quedan > 0
       ? `<button class="versus-ver-mas">${icono(verTodos ? "menos" : "mas")} ${
           verTodos ? t("Ver solo los últimos") : t("Ver todos ({n} más)", { n: quedan })
@@ -490,6 +663,123 @@ function normasElegidas(locke) {
   if (valor === SIN_NORMAS) return null;
   if (valor === LAS_DEL_LOCKE) return normasDeLocke(locke);
   return copiaParaLocke(valor);
+}
+
+// ---------- Árbitro ----------
+//
+// Qué normas vigila la web en la partida vinculada de cada uno (js/partida/arbitro.js). Es
+// opcional: viene apagado, y al encenderlo se eligen las normas. Solo quien crea el locke lo
+// cambia.
+
+const TEXTOS_ARBITRO = {
+  nivel: [t("Level cap"), t("Un Pokémon del equipo por encima del level cap")],
+  captura: [t("Una captura por zona"), t("Una segunda captura en una zona que ya tenía")],
+  motes: [t("Motes"), t("Un Pokémon sin mote")],
+  repetidos: [t("Duplicados"), t("Un repetido en el equipo mientras el primero de su línea sigue vivo")]
+};
+
+function pintarArbitro(locke, creador) {
+  const activo = Boolean(locke && locke.arbitro);
+  const activas = (locke && locke.arbitro) || {};
+  campo(".locke-arbitro").innerHTML =
+    `<label>
+      <input id="locke-arbitro-activo" type="checkbox" ${activo ? "checked" : ""} ${creador ? "" : "disabled"}>
+      <span>${t("Activar el árbitro")}</span>
+    </label>
+    <div class="locke-arbitro-reglas" ${activo ? "" : "hidden"}>` +
+    REGLAS_ARBITRO.map((regla) => {
+      const [titulo, detalle] = TEXTOS_ARBITRO[regla];
+      return `
+        <label>
+          <input type="checkbox" data-regla="${regla}" ${activas[regla] ? "checked" : ""} ${creador ? "" : "disabled"}>
+          <span>${escaparHTML(titulo)}<small>${escaparHTML(detalle)}</small></span>
+        </label>`;
+    }).join("") +
+    `</div><p class="locke-arbitro-ayuda">${t("Solo se vigila a quien vincule su partida, en los juegos que la web sabe leer. Si ve algo raro, lo apunta en la actividad del locke y los demás lo ven; quien lo recibe puede retirarlo si se ha equivocado.")}</p>`;
+}
+
+function arbitroElegido() {
+  if (!campo("#locke-arbitro-activo").checked) return null;
+  const reglas = {};
+  for (const casilla of campo(".locke-arbitro").querySelectorAll("input[data-regla]")) {
+    reglas[casilla.dataset.regla] = casilla.checked;
+  }
+  return arbitroLimpio(reglas);
+}
+
+// ---------- Seguidores ----------
+//
+// Un enlace de solo lectura (seguir.html) para que cualquiera, sin cuenta, vea el marcador, el
+// cementerio y la actividad: pensado para quien lo juega en directo. Lo enciende y apaga quien
+// crea el locke; los demás jugadores lo ven marcado en la tarjeta y pueden copiar el enlace.
+
+function pintarSeguidores(locke, creador) {
+  const publico = Boolean(locke && locke.publico);
+  campo(".locke-seguidores").innerHTML = `
+    <label class="campo-casilla">
+      <input id="locke-publico" type="checkbox" ${publico ? "checked" : ""} ${creador ? "" : "disabled"}>
+      <span>${t("Enlace público de solo lectura")}</span>
+    </label>
+    <p class="locke-arbitro-ayuda">${t("Cualquiera con el enlace verá, sin cuenta, el marcador, el cementerio y la actividad, con los nombres y las fotos de todos los jugadores. No puede cambiar nada. Se apaga cuando quieras.")}</p>
+    ${locke && publico ? `<div class="locke-enlace"><input readonly value="${escaparHTML(enlaceParaSeguir(locke.id))}"><button type="button" class="locke-enlace-copiar">${icono("copiar")} ${t("Copiar")}</button></div>` : ""}`;
+}
+
+async function copiarEnlace(id) {
+  const enlace = enlaceParaSeguir(id);
+  try {
+    await navigator.clipboard.writeText(enlace);
+    await avisar(t("Enlace copiado:\n{enlace}", { enlace }));
+  } catch (error) {
+    await avisar(enlace);
+  }
+}
+
+// ---------- Cadena ----------
+//
+// Esta etapa es la primera (o una más) de una cadena de lockes: los números que cada grupo
+// quiera (ver «Cadenas de lockes» en js/comun/lockes.js). Una vez empezada, no se deja de ser
+// parte de ella desde una etapa que no es la primera.
+
+function pintarCadena(locke, creador) {
+  const cadena = locke && locke.cadena;
+  const libre = creador && !(cadena && cadena.etapa > 1);
+  const numero = (id, etiqueta, valor, maximo, ayuda = "") => `
+    <label class="locke-cadena-campo">
+      <span>${etiqueta}${ayuda ? ` <small>${ayuda}</small>` : ""}</span>
+      ${campoNumero(`<input id="${id}" type="number" min="0" max="${maximo}" value="${valor}" ${creador ? "" : "disabled"}>`)}
+    </label>`;
+
+  campo(".locke-cadena").innerHTML = `
+    <label class="campo-casilla">
+      <input id="locke-cadena-activa" type="checkbox" ${cadena ? "checked" : ""} ${libre ? "" : "disabled"}>
+      <span>${t("Este locke es una etapa de una cadena")}</span>
+    </label>
+    <div class="locke-cadena-campos" ${cadena ? "" : "hidden"}>
+      <label class="locke-cadena-campo locke-cadena-nombre">
+        <span>${t("Nombre de la cadena")}</span>
+        <input id="locke-cadena-nombre" type="text" maxlength="40" autocomplete="off" placeholder="Megalocke"
+               value="${escaparHTML((cadena && cadena.nombre) || "")}" ${creador ? "" : "disabled"}>
+      </label>
+      ${numero("locke-cadena-extra", t("Vidas extra al pasarse la ROM de una etapa"), (cadena && cadena.vidasExtra) || 0, 99)}
+      ${numero("locke-cadena-pasan", t("Pokémon que pasan a la siguiente etapa"), (cadena && cadena.pasan) || 0, 6)}
+      ${numero("locke-cadena-total", t("Etapas previstas"), (cadena && cadena.total) || 0, 99, t("(0 = sin decir)"))}
+    </div>
+    <p class="locke-arbitro-ayuda">${t("Las vidas de este locke son las de la primera etapa. Al terminarlo, quien creó la cadena crea la siguiente: cada jugador empieza con las vidas que le sobran más las extra si se pasó la ROM, y se lleva los Pokémon que marque en su equipo final.")}</p>`;
+}
+
+// Lo que se guarda en el locke: los números de la cadena, o null si no es de ninguna
+function cadenaElegida(locke) {
+  if (!campo("#locke-cadena-activa").checked) return null;
+  const numero = (selector, maximo) => Math.max(0, Math.min(maximo, Math.floor(Number(campo(selector).value) || 0)));
+  const antes = locke && locke.cadena;
+  return {
+    id: (antes && antes.id) || nuevoIdCadena(),
+    nombre: campo("#locke-cadena-nombre").value.trim().slice(0, 40) || campo("#locke-nombre").value.trim(),
+    etapa: (antes && antes.etapa) || 1,
+    total: numero("#locke-cadena-total", 99),
+    vidasExtra: numero("#locke-cadena-extra", 99),
+    pasan: numero("#locke-cadena-pasan", 6)
+  };
 }
 
 // ---------- Rutas y level caps ----------
@@ -724,6 +1014,9 @@ async function abrirDialogo(locke = null) {
   pintarPersonalizado("rutas", locke, creador);
   pintarPersonalizado("caps", locke, creador);
   pintarRandomizer(locke, creador);
+  pintarArbitro(locke, creador);
+  pintarSeguidores(locke, creador);
+  pintarCadena(locke, creador);
   if (!locke) campo("#locke-nombre").focus();
   if (!cerrado) await cargarInvitables(locke);
 }
@@ -757,6 +1050,9 @@ async function guardar() {
   const rutasPropias = personalizadoElegido("rutas", locke);
   const capsPropios = personalizadoElegido("caps", locke);
   const randomizer = randomizerElegido(locke);
+  const arbitro = arbitroElegido();
+  const publico = campo("#locke-publico").checked;
+  const cadena = cadenaElegida(locke);
   const combates = nombresCombatesDelDialogo();
 
   // Lo único imprescindible es el nombre: un locke para ti solo también vale
@@ -778,7 +1074,7 @@ async function guardar() {
 
     await crearLocke({
       nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
-      combates, invitados: nuevos.map((perfil) => perfil.uid), nombres, fotos
+      arbitro, publico, cadena, combates, invitados: nuevos.map((perfil) => perfil.uid), nombres, fotos
     });
   } else {
     // Si se acaban de cambiar las vidas de partida, los invitados entran ya con las nuevas
@@ -787,7 +1083,7 @@ async function guardar() {
     if (soyCreador(locke)) {
       await editarLocke(locke.id, {
         nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
-        combates
+        arbitro, publico, cadena, combates
       });
     }
     // Invitar va aparte: lo puede hacer cualquiera de dentro, no solo el creador
@@ -852,6 +1148,7 @@ export function iniciar() {
   };
   iniciarCementerio(alFallar);
   iniciarActividad();
+  iniciarCronica();
   iniciarCombates(alFallar);
   iniciarPartida(pintar, (texto) => (aviso.textContent = texto));
 
@@ -879,6 +1176,20 @@ export function iniciar() {
   // montarlas y guardarlas con nombre (luego salen aquí)
   dialogo.querySelector(".locke-randomizer").addEventListener("change", (e) => {
     if (e.target.matches(".locke-randomizer-elegir")) resumenRandomizer(editando ? lockePorId(editando) : null);
+  });
+  dialogo.querySelector(".locke-arbitro").addEventListener("change", (e) => {
+    if (e.target.id !== "locke-arbitro-activo") return;
+    const reglas = dialogo.querySelector(".locke-arbitro-reglas");
+    reglas.hidden = !e.target.checked;
+    // Al encenderlo por primera vez, con todas las normas puestas (se quitan las que no se quieran)
+    const casillas = [...reglas.querySelectorAll("input[data-regla]")];
+    if (e.target.checked && !casillas.some((casilla) => casilla.checked)) for (const casilla of casillas) casilla.checked = true;
+  });
+  dialogo.querySelector(".locke-cadena").addEventListener("change", (e) => {
+    if (e.target.id === "locke-cadena-activa") dialogo.querySelector(".locke-cadena-campos").hidden = !e.target.checked;
+  });
+  dialogo.querySelector(".locke-seguidores").addEventListener("click", (e) => {
+    if (e.target.closest(".locke-enlace-copiar") && editando) copiarEnlace(editando);
   });
   dialogo.querySelector(".locke-randomizer").addEventListener("click", async (e) => {
     if (!e.target.closest(".locke-randomizer-editar")) return;
@@ -951,7 +1262,28 @@ export function iniciar() {
     });
   });
 
+  dialogoEtapa = document.querySelector("#dialogo-etapa");
+  activarCamposJuego(dialogoEtapa);
+  dialogoEtapa.querySelector(".etapa-cancelar").addEventListener("click", () => dialogoEtapa.close());
+  dialogoEtapa.querySelector(".etapa-ok").addEventListener("click", crearEtapa);
+  // Las etapas antiguas desplegadas se recuerdan: al llegar un cambio se vuelve a pintar todo
+  lista.addEventListener(
+    "toggle",
+    (e) => {
+      const etapa = e.target.closest && e.target.closest(".cadena-etapa");
+      if (!etapa) return;
+      if (etapa.open) etapasAbiertas.add(etapa.dataset.id);
+      else etapasAbiertas.delete(etapa.dataset.id);
+    },
+    true
+  );
+
   lista.addEventListener("click", async (e) => {
+    const siguienteEtapa = e.target.closest(".cadena-siguiente");
+    if (siguienteEtapa) {
+      abrirEtapa(siguienteEtapa.dataset.id);
+      return;
+    }
     if (e.target.closest(".versus-ver-mas")) {
       verTodos = !verTodos;
       pintar();
@@ -991,6 +1323,10 @@ export function iniciar() {
       tarea = irARandomizer(id);
     } else if (boton.classList.contains("locke-ir") && boton.dataset.ir === "actividad") {
       abrirActividad(id);
+    } else if (boton.classList.contains("locke-ir") && boton.dataset.ir === "cronica") {
+      abrirCronica(id);
+    } else if (boton.classList.contains("locke-ir") && boton.dataset.ir === "seguir") {
+      copiarEnlace(id);
     } else if (boton.classList.contains("locke-ir")) {
       // Unos personalizados que no tienes (o borraste): se apuntan antes de abrirlos
       const personalizado = PERSONALIZADOS[boton.dataset.ir === "rutas" ? "rutas" : "caps"];
