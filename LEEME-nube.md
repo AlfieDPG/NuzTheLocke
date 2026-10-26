@@ -226,7 +226,7 @@ que comentar y subir el contador vayan juntos. Si bajara, un id podría repetirs
 
 ## Contador de usuarios registrados
 
-El inicio enseña «N usuarios registrados» (a partir de `MINIMO_REGISTRADOS` en `js/inicio/index.js`).
+El inicio enseña «N usuarios» a la derecha de la cabecera (a partir de `MINIMO_REGISTRADOS` en `js/inicio/index.js`).
 Sale de un único documento `estadisticas/usuarios` con un número y nada más: ni uids ni correos.
 
 - **Hay que crearlo a mano**, una vez, para que empiece a contar: Firestore Database → Datos → **Iniciar colección** → ID de colección `estadisticas`

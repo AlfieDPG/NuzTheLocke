@@ -193,13 +193,15 @@ function plantillaCabecera() {
   const nombre = conSesion() ? (perfil && perfil.nombre) || "" : "";
   const pendientes = conSesion() ? invitacionesALockes().length + solicitudesRecibidas().length : 0;
 
-  // Con sesión, un vistazo: cuántos lockes en marcha y cuántos amigos conectados. Con o sin
-  // ella, cuánta gente se ha registrado (si ya hay un número que enseñar)
+  // A la derecha, con o sin sesión, cuánta gente se ha registrado (si ya hay un número que enseñar)
   const total = totalDeUsuarios();
-  const registrados = total !== null && total >= MINIMO_REGISTRADOS
-    ? `<span><b>${total.toLocaleString(LOCALE)}</b> ${t("usuarios registrados")}</span>`
+  const usuarios = total !== null && total >= MINIMO_REGISTRADOS
+    ? `<div class="inicio-usuarios" title="${t("Usuarios registrados")}">
+         <b>${total.toLocaleString(LOCALE)}</b><span>${t("usuarios")}</span>
+       </div>`
     : "";
 
+  // Con sesión, un vistazo: cuántos lockes en marcha y cuántos amigos conectados
   let vistazo = "";
   if (conSesion()) {
     const lockes = lockesEnMarcha().length;
@@ -208,10 +210,7 @@ function plantillaCabecera() {
       <p class="inicio-resumen">
         <span><b>${lockes}</b> ${t(lockes === 1 ? "locke en marcha" : "lockes en marcha")}</span>
         <span class="${amigos ? "en-linea" : ""}"><b>${amigos}</b> ${t(amigos === 1 ? "amigo conectado" : "amigos conectados")}</span>
-        ${registrados}
       </p>`;
-  } else if (registrados) {
-    vistazo = `<p class="inicio-resumen">${registrados}</p>`;
   }
 
   return `
@@ -221,6 +220,7 @@ function plantillaCabecera() {
         <h1>${nombre ? t("Hola, {nombre}", { nombre: escaparHTML(nombre) }) : `NuzThe<span class="logo-locke">Locke</span>`}</h1>
         ${vistazo}
       </div>
+      ${usuarios}
       ${pendientes
         ? `<button class="inicio-avisos">${icono("campana")} ${t("{n} sin contestar", { n: pendientes })}</button>`
         : ""}

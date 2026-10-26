@@ -94,6 +94,25 @@
   color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
 }
 
+/* Cuántos usuarios hay, a la derecha de la cabecera */
+.inicio-usuarios {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1;
+  color: var(--t-gris-2);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.inicio-usuarios b {
+  font-family: var(--letra-titulos);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--t-texto);
+}
+
 .inicio-avisos,
 .inicio-entrar {
   display: inline-flex;
