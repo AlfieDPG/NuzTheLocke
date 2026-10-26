@@ -19,12 +19,36 @@ rules_version = '2';
 //                            sus victorias y su respuesta a la invitación. Nombre, juego,
 //                            ganador y cerrarlo: solo quien lo creó. Si lo marca como «publico», cualquiera con
 //                            su enlace lo lee (y su actividad), sin sesión.
+//   foro/{id}             -> hilos del foro y, dentro, sus comentarios. Los lee cualquiera con sesión.
+//                            Cada uno escribe lo suyo; los moderadores (moderadores/{uid}, a mano en la
+//                            consola) pueden borrar y fijar. Ver «Foro» más abajo.
+//   denuncias/{id}        -> solo la leen los moderadores. Cualquiera con sesión puede crearlas.
+//   silenciados, ritmo    -> quién no puede escribir en el foro, y el freno de 20 s entre mensajes.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function identificado() {
       return request.auth != null;
+    }
+
+    // Quien tiene un documento en moderadores/ (se apunta a mano en la consola)
+    function esMod() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/moderadores/$(request.auth.uid));
+    }
+
+    // El administrador: un moderador cuyo documento dice rol: "admin" (se pone a mano en la
+    // consola). Es el único que nombra y quita moderadores.
+    function esAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/moderadores/$(request.auth.uid))
+        && get(/databases/$(database)/documents/moderadores/$(request.auth.uid)).data.get('rol', '') == 'admin';
+    }
+
+    // Quien tiene un documento en silenciados/: no puede escribir en el foro
+    function silenciado() {
+      return exists(/databases/$(database)/documents/silenciados/$(request.auth.uid));
     }
 
     // ---------- Datos privados ----------
@@ -298,6 +322,187 @@ service cloud.firestore {
         && (!(request.auth.uid in request.resource.data.reacciones)
           || (request.resource.data.reacciones[request.auth.uid] is string
             && request.resource.data.reacciones[request.auth.uid].size() <= 8));
+    }
+
+    // ---------- Moderación ----------
+    //
+    // Los moderadores y los silenciados se apuntan A MANO en la consola de Firebase (Firestore
+    // Database -> Datos). Desde la web no se puede ser moderador ni darse a uno mismo permisos:
+    // sin servidor propio, esa es la única forma de que nadie se los dé.
+    //
+    //   moderadores/{uid}  -> un documento por moderador (el id es su uid): { rol, por, desde }.
+    //                         El tuyo lleva rol: "admin" (a mano). Cada uno puede mirar el suyo, para
+    //                         que la web sepa si enseñarle el panel; los moderadores miran los de los
+    //                         demás. Solo el admin nombra moderadores (rol «moderador», nunca otro
+    //                         admin) y los quita, y no puede tocar el documento de un admin.
+    //   silenciados/{uid}  -> { desde, motivo, por }. Quien está aquí no puede escribir en el
+    //                         foro. Lo crean y lo quitan los moderadores; el silenciado puede ver
+    //                         el suyo (para que la web le explique por qué no le deja).
+
+    match /moderadores/{uid} {
+      allow get: if identificado() && (request.auth.uid == uid || esMod());
+      allow list: if esMod();
+      // Nombrar: crear el documento de otra persona (si ya existe sería una modificación, y esa
+      // no se deja: así tampoco se le puede quitar el rol «admin» a nadie desde la web)
+      allow create: if esAdmin()
+        && uid != request.auth.uid
+        && request.resource.data.keys().hasOnly(['rol', 'por', 'desde'])
+        && request.resource.data.rol == 'moderador'
+        && request.resource.data.por == request.auth.uid
+        && request.resource.data.desde == request.time;
+      allow delete: if esAdmin() && resource.data.get('rol', '') != 'admin';
+    }
+
+    match /silenciados/{uid} {
+      allow get: if identificado() && (request.auth.uid == uid || esMod());
+      allow list: if esMod();
+      allow create, update: if esMod()
+        && request.resource.data.keys().hasOnly(['desde', 'motivo', 'por'])
+        && request.resource.data.por == request.auth.uid;
+      allow delete: if esMod();
+    }
+
+    // ---------- Ritmo ----------
+    //
+    // Freno contra el spam: cada hilo o comentario nuevo va en el mismo lote que la marca
+    // «cuando» de esta persona, y no se deja una marca nueva hasta 20 segundos después de la
+    // anterior. El foro (abajo) exige esa marca en cada escritura nueva.
+
+    match /ritmo/{uid} {
+      allow create: if identificado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['cuando'])
+        && request.resource.data.cuando == request.time;
+      allow update: if identificado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['cuando'])
+        && request.resource.data.cuando == request.time
+        && request.time >= resource.data.cuando + duration.value(20, 's');
+      allow delete: if identificado() && request.auth.uid == uid;
+    }
+
+    // ---------- Foro ----------
+    //
+    // Solo con sesión: cualquiera identificado lee los hilos y sus comentarios.
+    //
+    //   foro/{id}                    { uid, titulo, texto, categoria, juego, juegoOtro, tipo,
+    //                                  huecos, creado, ultimo, respuestas, cerrado, fijado }
+    //   foro/{id}/comentarios/{cid}  { uid, texto, creado }
+    //
+    //   · Crear un hilo: cualquiera que no esté silenciado, con la hora del servidor, sin respuestas
+    //     y con la marca de ritmo en el mismo lote. Solo un moderador puede crearlo ya fijado (un
+    //     hilo «principal»: sale destacado arriba del todo).
+    //   · Editar un hilo: su autor (título, texto, tipo de hilo, juego, tipo de locke, huecos y «cerrado»). Quien comenta
+    //     solo puede subir «respuestas» en 1 y poner «ultimo», y solo si en ese mismo lote crea
+    //     su comentario. Fijar un hilo: solo moderadores.
+    //   · El id de un comentario es «uid_N», con N el número de respuestas que deja el hilo:
+    //     así comentar y subir el contador van siempre juntos y no se puede inflar uno sin el otro.
+    //     (Al borrar un comentario el contador no baja: si bajase, el id volvería a repetirse.)
+    //   · Borrar: su autor, el autor del hilo (comentarios) y los moderadores.
+
+    match /foro/{id} {
+      function nuevo() {
+        return request.resource.data;
+      }
+
+      function textosBien() {
+        return nuevo().titulo is string && nuevo().titulo.size() >= 3 && nuevo().titulo.size() <= 100
+          && nuevo().texto is string && nuevo().texto.size() <= 2000
+          && nuevo().categoria in ['busco', 'general', 'ayuda']
+          && nuevo().get('juego', '') is string && nuevo().get('juego', '').size() <= 30
+          && nuevo().get('juegoOtro', '') is string && nuevo().get('juegoOtro', '').size() <= 60
+          && nuevo().get('tipo', '') is string && nuevo().get('tipo', '').size() <= 30
+          && nuevo().get('huecos', 0) is int && nuevo().get('huecos', 0) >= 0 && nuevo().get('huecos', 0) <= 20
+          && nuevo().cerrado is bool;
+      }
+
+      function marcaDeRitmo() {
+        return getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data.cuando == request.time;
+      }
+
+      allow read: if identificado();
+
+      // Cualquiera crea hilos, pero solo un moderador puede crearlos fijados («principales»)
+      allow create: if identificado() && !silenciado()
+        && nuevo().keys().hasOnly(['uid', 'titulo', 'texto', 'categoria', 'juego', 'juegoOtro', 'tipo', 'huecos',
+          'creado', 'ultimo', 'respuestas', 'cerrado', 'fijado'])
+        && nuevo().get('fijado', false) is bool
+        && (nuevo().get('fijado', false) == false || esMod())
+        && nuevo().uid == request.auth.uid
+        && nuevo().creado == request.time
+        && nuevo().ultimo == request.time
+        && nuevo().respuestas == 0
+        && textosBien()
+        && marcaDeRitmo();
+
+      allow update: if identificado() && (
+        // Un moderador: cualquier cosa menos de quién es
+        (esMod() && nuevo().uid == resource.data.uid)
+        // Su autor
+        || (resource.data.uid == request.auth.uid && !silenciado()
+          && nuevo().diff(resource.data).affectedKeys().hasOnly(['titulo', 'texto', 'categoria', 'juego', 'juegoOtro', 'tipo', 'huecos', 'cerrado'])
+          && textosBien())
+        // Quien comenta
+        || (!silenciado()
+          && nuevo().diff(resource.data).affectedKeys().hasOnly(['respuestas', 'ultimo'])
+          && nuevo().respuestas == resource.data.respuestas + 1
+          && nuevo().ultimo == request.time
+          && existsAfter(/databases/$(database)/documents/foro/$(id)/comentarios/$(request.auth.uid + '_' + string(nuevo().respuestas)))
+          && marcaDeRitmo())
+      );
+
+      allow delete: if identificado() && (resource.data.uid == request.auth.uid || esMod());
+    }
+
+    match /foro/{id}/comentarios/{cid} {
+      function hilo() {
+        return get(/databases/$(database)/documents/foro/$(id)).data;
+      }
+
+      function hiloDespues() {
+        return getAfter(/databases/$(database)/documents/foro/$(id)).data;
+      }
+
+      allow read: if identificado();
+
+      allow create: if identificado() && !silenciado()
+        && request.resource.data.keys().hasOnly(['uid', 'texto', 'creado'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.creado == request.time
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 1000
+        && hiloDespues().respuestas == hilo().respuestas + 1
+        && cid == request.auth.uid + '_' + string(hiloDespues().respuestas)
+        && getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data.cuando == request.time;
+
+      allow delete: if identificado()
+        && (resource.data.uid == request.auth.uid || hilo().uid == request.auth.uid || esMod());
+    }
+
+    // Todos los comentarios de una persona (para borrarlos al borrar su cuenta). Pide un
+    // índice compuesto de «grupo de colección» (uid + creado) de «comentarios» (ver LEEME-nube.md).
+    match /{ruta=**}/comentarios/{cid} {
+      allow read: if identificado();
+    }
+
+    // ---------- Denuncias ----------
+    //
+    // Cualquiera con sesión denuncia un hilo, un comentario o a una persona. El id es
+    // «quien denuncia_lo denunciado», así que no se puede denunciar dos veces lo mismo ni
+    // escribir en el id de otro. Solo los moderadores las leen, las resuelven y las borran.
+    //
+    //   denuncias/{id}  { de, tipo, hilo, comentario, autor, motivo, nota, copia, creado }
+    //   (copia: el texto tal como estaba al denunciarlo, por si luego lo cambian o lo borran)
+
+    match /denuncias/{id} {
+      allow create: if identificado()
+        && id.matches(request.auth.uid + '_.+')
+        && request.resource.data.keys().hasOnly(['de', 'tipo', 'hilo', 'comentario', 'autor', 'motivo', 'nota', 'copia', 'creado'])
+        && request.resource.data.de == request.auth.uid
+        && request.resource.data.tipo in ['hilo', 'comentario', 'usuario']
+        && request.resource.data.motivo in ['spam', 'acoso', 'ofensivo', 'engano', 'otro']
+        && request.resource.data.creado == request.time
+        && request.resource.data.nota is string && request.resource.data.nota.size() <= 300
+        && request.resource.data.copia is string && request.resource.data.copia.size() <= 700;
+      allow read, update, delete: if esMod();
     }
 
     // Todo lo demás, cerrado

@@ -25,6 +25,7 @@ import {
   FORMATO_MOTE, EXPLICACION_MOTE, borrarMiPerfil, borrarMisAmistades
 } from "./comun/perfiles.js";
 import { iniciarLockes, salirDeTodosMisLockes } from "./comun/lockes.js";
+import { borrarMiForo } from "./comun/foro.js";
 import { iniciarAvisos } from "./avisos.js";
 import { iniciarPresencia, borrarMiPresencia } from "./comun/presencia.js";
 import { iniciarLogros } from "./comun/logros.js";
@@ -308,6 +309,8 @@ function borrarCuenta() {
     error.textContent = t("Borrando...");
     await borrarMiPresencia();
     await salirDeTodosMisLockes();
+    // Mis hilos y comentarios del foro: si falla, que no impida borrar la cuenta
+    await borrarMiForo().catch((fallo) => console.error(fallo));
     await borrarMisAmistades();
     await borrarMisDatosGuardados();
     await borrarMiPerfil();

@@ -153,6 +153,64 @@ recolorear, quitar o añadir otros desde el botón de la etiqueta en tu propia f
 Cada locke ganado se queda con una **copia** del tipo, no con una referencia. Así renombrar
 un tipo no reescribe la historia.
 
+### 3. El foro
+
+`foro/{id}` (hilos), `foro/{id}/comentarios/{uid_N}`, `denuncias/{id}`, `moderadores/{uid}`,
+`silenciados/{uid}` y `ritmo/{uid}` (`js/comun/foro.js` y `js/foro/index.js`). Solo con sesión:
+cualquiera identificado lee los hilos; cada uno escribe lo suyo.
+
+**Cómo funciona.** Cualquiera con sesión crea hilos y comenta. Al crear un hilo se elige su tipo
+(Busco compañeros, Charla, Dudas y ayuda); no hay pestañas, solo un filtro por tipo, juego y texto.
+Los moderadores pueden además crear hilos **principales**: salen destacados arriba del todo y sus
+comentarios se leen del más nuevo al más viejo, de 40 en 40.
+
+| Colección | Quién la ve | Quién la escribe |
+| --- | --- | --- |
+| `foro/{id}` | cualquiera con sesión | cualquiera lo crea (fijado, solo un moderador); su autor edita título y texto; quien comenta, solo el contador; los moderadores, borrar y fijar |
+| `foro/{id}/comentarios` | cualquiera con sesión | su autor; los puede borrar él, el autor del hilo y los moderadores |
+| `denuncias/{id}` | solo los moderadores | cualquiera con sesión las crea (una por persona y cosa) |
+| `moderadores/{uid}` | cada uno ve el suyo; los moderadores, todos | el **administrador** (desde la web); el suyo, a mano en la consola |
+| `silenciados/{uid}` | el silenciado y los moderadores | los moderadores |
+| `ritmo/{uid}` | — | cada uno la suya |
+
+**Ser administrador (una vez, a mano).** No hay forma de serlo desde la web: así nadie se da permisos.
+1. Mira tu uid en Firebase → **Authentication → Usuarios**, columna «UID de usuario» (el de tu cuenta).
+2. Firebase → **Firestore Database → Datos → `moderadores` →** el documento con tu uid (créalo si no
+   existe: ID de la colección `moderadores`, ID del documento = tu uid) → campo `rol` (string) =
+   **`admin`**. Sin ese `admin` eres moderador pero no puedes nombrar a otros.
+3. Recarga la web: en el Foro te salen las pestañas **Foro**, **Denuncias** (con el número de
+   pendientes) y **Moderadores**, y en cada hilo la chincheta (hacer principal), la papelera
+   (borrar el hilo de otro) y, en la ficha de cada persona, silenciar y nombrar moderador.
+
+**Nombrar y quitar moderadores (desde la web).** Pestaña **Moderadores**: escribe el mote o el correo de
+Google de la persona → **Nombrar moderador**. También desde su ficha (pulsa su foto en el foro). Para
+quitarlo, **Quitar** en la misma pestaña. Los administradores no se pueden quitar desde la web.
+Qué puede hacer un moderador: borrar hilos y comentarios de otros, crear y quitar hilos principales,
+silenciar y ver las denuncias.
+
+**Silenciar.** Desde la ficha de la persona (pulsa su foto en el foro) → **Silenciar en el foro**.
+No puede escribir hilos ni comentarios, pero sí leer. Lo mismo para quitarlo. Por dentro es un
+documento en `silenciados/{uid}`: también se puede crear o borrar desde la consola.
+
+**El freno de 20 segundos.** Cada hilo o comentario va en un lote con `ritmo/{uid}`, y las reglas no
+dejan escribir otra marca hasta 20 s después. Es lo único que frena el spam sin servidor propio:
+no sustituye a moderar.
+
+**Un índice que hay que crear (solo para borrar cuentas).** Al borrar una cuenta se buscan sus
+comentarios en todos los hilos a la vez, y Firestore pide un índice para eso. Sin él, la cuenta se
+borra igual y esos comentarios se quedan (sale un aviso en la consola del navegador con un enlace
+para crearlo). Para crearlo a mano: Firestore → **Índices → Compuestos → Crear índice** →
+ID de colección `comentarios`, ámbito de consulta **Grupo de colección**, campos `uid` (Ascendente)
+y `creado` (Ascendente) → Crear. Tarda un par de minutos en estar listo.
+
+**Cuota.** Abrir el foro lee 25 hilos (más los fijados); cada hilo abierto escucha sus comentarios
+en vivo hasta que se cierra. Los hilos no se escuchan en vivo: se recargan con el botón ↻ o al
+volver a la sección pasado un minuto.
+
+**Al borrar un comentario el contador de respuestas no baja.** Es a propósito: el id de cada
+comentario es `uid_N` (N = el número de respuestas que dejó), y las reglas lo usan para exigir
+que comentar y subir el contador vayan juntos. Si bajara, un id podría repetirse.
+
 ## Límites del plan gratuito
 
 50.000 lecturas y 20.000 escrituras al día, 1 GiB de datos, y sesión gratis hasta 50.000
@@ -166,7 +224,7 @@ de gente conectada al día.
 
 Desde la web: tu nombre → **Borrar mi cuenta**. Pide otra vez la contraseña (o Google),
 porque Firebase solo deja borrar una cuenta recién entrada, y borra perfil, mote, correo,
-presencia, datos, amistades y la cuenta; de los lockes compartidos se sale (los que creó y
+presencia, datos, amistades, tus hilos y comentarios del foro y la cuenta; de los lockes compartidos se sale (los que creó y
 nadie más había aceptado se borran).
 
 El plan gratis de Firebase (Spark) **no pausa el proyecto** por no usarlo, que es justo por

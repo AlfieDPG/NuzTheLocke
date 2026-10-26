@@ -120,6 +120,7 @@ main {
 .menu-lateral [data-vista="normas"]      { --color-boton: 205, 165, 100; }
 .menu-lateral [data-vista="ruleta"]      { --color-boton: 240, 150, 60; }
 .menu-lateral [data-vista="randomizer"]  { --color-boton: 160, 205, 80; }
+.menu-lateral [data-vista="foro"]        { --color-boton: 196, 128, 214; }
 .menu-lateral [data-vista="amigos"]      { --color-boton: 80, 190, 215; }
 .menu-lateral [data-vista="logros"]      { --color-boton: 241, 196, 15; }
 
@@ -1631,6 +1632,7 @@ button.perfil-fondo:hover:not(:disabled) {
 :root:has(#vista-ruleta:not([hidden])) { --color-vista: 240, 150, 60; }
 :root:has(#vista-randomizer:not([hidden])) { --color-vista: 160, 205, 80; }
 :root:has(#vista-amigos:not([hidden])) { --color-vista: 80, 190, 215; }
+:root:has(#vista-foro:not([hidden])) { --color-vista: 196, 128, 214; }
 :root:has(#vista-logros:not([hidden])) { --color-vista: 241, 196, 15; }
 
 /* Grupos desplegables del menú */

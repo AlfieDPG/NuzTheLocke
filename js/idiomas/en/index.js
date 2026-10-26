@@ -14,5 +14,6 @@ import logros from "./logros.js";
 import amigos from "./amigos.js";
 import perfil from "./perfil.js";
 import randomizer from "./randomizer.js";
+import foro from "./foro.js";
 
-export default { ...comun, ...pagina, ...inicio, ...equipos, ...lockes, ...rutas, ...pokedex, ...calculadora, ...normas, ...logros, ...amigos, ...perfil, ...randomizer };
+export default { ...comun, ...pagina, ...inicio, ...equipos, ...lockes, ...rutas, ...pokedex, ...calculadora, ...normas, ...logros, ...amigos, ...perfil, ...randomizer, ...foro };

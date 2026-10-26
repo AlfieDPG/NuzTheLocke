@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="css/equipos.css">
   <link rel="stylesheet" href="css/nuzlocke.css">
   <link rel="stylesheet" href="css/amigos.css">
+  <link rel="stylesheet" href="css/foro.css">
   <link rel="stylesheet" href="css/versus.css">
   <link rel="stylesheet" href="css/pokedex.css">
   <link rel="stylesheet" href="css/logros.css">
@@ -74,6 +75,7 @@
         <button data-vista="ruleta" data-icono="ruleta" class="boton-seccion">Ruleta</button>
 
         <span class="menu-titulo">Comunidad</span>
+        <button data-vista="foro" data-icono="mensaje" class="boton-seccion">Foro</button>
         <button data-vista="amigos" data-icono="amigos" class="boton-seccion">Amigos</button>
         <button data-vista="logros" data-icono="trofeo" class="boton-seccion">Logros</button>
       </nav>
@@ -254,6 +256,44 @@
           <div class="logros-lista"></div>
         </section>
 
+        <section id="vista-foro" hidden>
+          <div class="selector-regiones foro-categorias"></div>
+          <div class="barra-foro">
+            <button class="foro-nuevo"></button>
+            <span class="foro-filtros">
+              <select class="foro-tipo" aria-label="Tipo de hilo"></select>
+              <select class="foro-juego" aria-label="Juego"></select>
+              <label class="foro-abiertos"><input type="checkbox"> Solo abiertos</label>
+            </span>
+            <span class="foro-buscar-caja"><input class="foro-buscar" type="search" placeholder="Buscar en los hilos..."></span>
+            <button class="foro-actualizar" title="Actualizar" aria-label="Actualizar"></button>
+            <span class="foro-aviso"></span>
+          </div>
+          <p class="foro-silencio" hidden></p>
+          <!-- A la izquierda la lista de hilos (una línea cada uno); a la derecha, el hilo que se abre -->
+          <div class="foro-cuerpo">
+            <div class="foro-columna-lista">
+              <div class="foro-lista"></div>
+              <button class="foro-mas" hidden>Ver más hilos</button>
+            </div>
+            <aside class="foro-panel">
+              <p class="foro-panel-vacio">Elige un hilo de la lista para leerlo aquí.</p>
+              <div class="foro-panel-hilo" hidden>
+                <button class="foro-panel-cerrar" title="Cerrar el hilo" aria-label="Cerrar el hilo"></button>
+                <div class="foro-hilo-cabecera"></div>
+                <div class="foro-hilo-comentarios"></div>
+                <button class="foro-hilo-mas foro-mas" hidden>Ver comentarios anteriores</button>
+                <p class="foro-hilo-nota foro-vacio" hidden></p>
+                <form class="foro-hilo-responder" onsubmit="return false" hidden>
+                  <textarea rows="3" maxlength="1000" placeholder="Escribe una respuesta... (Ctrl + Intro para enviar)"></textarea>
+                  <button class="foro-hilo-enviar" type="button">Responder</button>
+                </form>
+                <p class="foro-hilo-error foro-error"></p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
         <section id="vista-amigos" hidden>
           <div class="barra-amigos">
             <input class="amigos-correo" type="text" placeholder="Mote o correo de Google de tu amigo...">
@@ -293,6 +333,46 @@
     <div class="dialogo-botones">
       <button id="tipos-cancelar">Cancelar</button>
       <button id="tipos-guardar">Guardar</button>
+    </div>
+  </dialog>
+
+  <!-- Foro (js/foro/index.js) -->
+  <dialog id="dialogo-foro-nuevo" class="dialogo-foro">
+    <h2 class="foro-nuevo-encabezado">Nuevo hilo</h2>
+    <label class="foro-campo"><span>Categoría</span><select class="foro-nuevo-categoria"></select></label>
+    <label class="foro-campo"><span>Título</span><input class="foro-nuevo-titulo" type="text" maxlength="100" placeholder="Ej.: Busco gente para un randomlocke de Platino"></label>
+    <div class="foro-nuevo-busco">
+      <div class="foro-campo"><span>Juego</span><div class="foro-nuevo-juego"></div></div>
+      <div class="foro-campos-fila">
+        <label class="foro-campo"><span>Tipo de locke</span><input class="foro-nuevo-tipo" type="text" maxlength="30" placeholder="Ej.: Randomlocke, Locke normal..."></label>
+        <label class="foro-campo foro-campo-corto"><span>Gente que falta</span><input class="foro-nuevo-huecos" type="number" min="0" max="20" placeholder="0"></label>
+      </div>
+    </div>
+    <label class="foro-campo"><span>Mensaje</span><textarea class="foro-nuevo-texto" rows="7" maxlength="2000" placeholder="Cuenta cómo juegas, las normas, el idioma, cuándo os conectáis, si es en emulador o en consola..."></textarea></label>
+    <label class="foro-casilla foro-nuevo-principal" hidden><input type="checkbox"> Hilo principal: se queda fijado y destacado arriba del todo</label>
+    <p class="foro-nuevo-error foro-error"></p>
+    <div class="dialogo-botones">
+      <button class="foro-nuevo-cancelar">Cancelar</button>
+      <button class="foro-nuevo-enviar">Publicar</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogo-foro-denuncia" class="dialogo-foro">
+    <h2>Denunciar</h2>
+    <p class="foro-denuncia-que"></p>
+    <label class="foro-campo"><span>Motivo</span><select class="foro-denuncia-motivo"></select></label>
+    <label class="foro-campo"><span>Quieres contar algo más (opcional)</span><textarea class="foro-denuncia-nota" rows="3" maxlength="300"></textarea></label>
+    <p class="foro-denuncia-error foro-error"></p>
+    <div class="dialogo-botones">
+      <button class="foro-denuncia-cancelar">Cancelar</button>
+      <button class="foro-denuncia-enviar">Enviar denuncia</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogo-foro-usuario" class="dialogo-foro dialogo-foro-usuario">
+    <div class="foro-usuario-cuerpo"></div>
+    <div class="dialogo-botones">
+      <button class="foro-usuario-cerrar">Cerrar</button>
     </div>
   </dialog>
 
