@@ -138,7 +138,8 @@ export function aspectoDe(coleccion, id) {
 async function guardarAspectos(cambios) {
   const usuario = usuarioActual();
   const acceso = baseDeDatos();
-  if (!usuario || !acceso) return;
+  // Vacío no: con merge, borraría los aspectos elegidos (ver abrirHuevos)
+  if (!usuario || !acceso || !Object.keys(cambios).length) return;
   const { bd, fn } = acceso;
   await fn.setDoc(fn.doc(bd, "colecciones", usuario.uid), { aspecto: cambios }, { merge: true });
 }
@@ -208,7 +209,14 @@ export async function abrirHuevos(cuantos, especies) {
   // Los nuevos, delante en «recientes» (sin repetir)
   const nuevos = resultados.filter((r) => r.nuevo).reverse().map((r) => ({ id: r.especie.id, shiny: r.shiny }));
   const recientes = [...nuevos, ...mia.recientes.filter((cada) => !nuevos.some((n) => n.id === cada.id && n.shiny === cada.shiny))].slice(0, MAX_RECIENTES);
-  lote.set(fn.doc(bd, "colecciones", usuario.uid), { especies: suma("especies"), shiny: suma("shiny"), recientes }, { merge: true });
+  // Solo los grupos en los que ha salido algo: con merge, un mapa vacío no suma nada, sustituye al
+  // que hay (sin un shiny, se borrarían todos los shiny de antes)
+  const datos = { recientes };
+  for (const grupo of ["especies", "shiny"]) {
+    const veces = suma(grupo);
+    if (Object.keys(veces).length) datos[grupo] = veces;
+  }
+  lote.set(fn.doc(bd, "colecciones", usuario.uid), datos, { merge: true });
   lote.update(fn.doc(bd, "perfiles", usuario.uid), {
     "huevos.gastados": fn.increment(coste),
     "huevos.devueltos": fn.increment(devueltos)
