@@ -652,7 +652,8 @@ async function contexto() {
     rutasPropias: rutasTodas.filter((lista) => !lista.recibido),
     capsPropios: capsTodos.filter((lista) => !lista.recibido),
     multiplicadores: leer("poketeams-levelcaps-multiplicador-v1", {}) || {},
-    capturasApuntadas: Object.values(capturas).reduce((suma, delJuego) => suma + Object.keys(delJuego || {}).length, 0),
+    // Las «sin captura» (rutas/capturas.js) no cuentan
+    capturasApuntadas: Object.values(capturas).reduce((suma, delJuego) => suma + Object.values(delJuego || {}).filter((captura) => captura && !captura.fallada).length, 0),
     ruletas,
     // Partidas vinculadas ahora mismo a tus lockes (js/partida/partidas.js)
     partidas: Object.keys(leer("poketeams-partidas-v1", {}) || {}).length,

@@ -12,6 +12,7 @@
 
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
+import { marcoDe, claseMarco } from "../comun/fichas.js";
 import { t, segunIdioma, LOCALE } from "../comun/idioma.js";
 import { hayNube, usuarioActual, alCambiarSesion, seSabeLaSesion } from "../comun/nube.js";
 import { nombreJuego } from "../comun/campo-juego.js";
@@ -283,7 +284,7 @@ function plantillaAmigos() {
             .map(
               (perfil) => `
                 <button class="inicio-amigo" data-perfil="${escaparHTML(perfil.uid)}" title="${t("Ver perfil")}">
-                  ${cara(perfil.nombre, perfil.foto, "inicio-cara grande")}
+                  ${cara(perfil.nombre, perfil.foto, `inicio-cara grande ${claseMarco(marcoDe(perfil))}`)}
                   <span>${escaparHTML(perfil.nombre || t("Amigo"))}</span>
                 </button>`
             )

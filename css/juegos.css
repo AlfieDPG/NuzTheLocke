@@ -1,0 +1,1932 @@
+/* Juegos: los retos del día, la Tienda, los Pokédólares (también en «Logros») y lo que se compra
+   (marcos de la foto y fondos de la tarjeta). Ver js/juegos/ y js/comun/fichas.js. */
+
+/* ---------- La ficha (la moneda) ---------- */
+
+.ficha-moneda {
+  display: inline-block;
+  flex: none;
+  width: 0.95em;
+  height: 0.95em;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 38%, rgba(20, 70, 30, 0.55) 40% 46%, transparent 48%),
+    radial-gradient(circle at 35% 30%, #a6e3a1, #4fb35c 55%, #2a7a3a);
+  box-shadow: 0 0 0 1px rgba(15, 55, 25, 0.6);
+  vertical-align: -0.12em;
+}
+
+.ficha-moneda.grande {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+/* Los iconos de dentro de los botones y textos de «Juegos», del tamaño de la letra (si no,
+   el SVG sale a su tamaño y se come el botón) */
+#vista-juegos .icono {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+#vista-juegos input {
+  box-sizing: border-box;
+}
+
+.ficha-cifra {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: bold;
+}
+
+/* En cada logro de «Logros», los Pokédólares que da */
+.logro-fichas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--t-gris-2);
+}
+
+/* ---------- Cabecera: saldo y racha ---------- */
+
+.juegos-cabecera {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.8rem 1.5rem;
+  align-items: center;
+  margin: 0.9rem 0 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: 0.7rem;
+  background: var(--t-panel);
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.juegos-saldo,
+.juegos-racha {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.juegos-saldo p {
+  margin: 0;
+  color: var(--t-gris-2);
+}
+
+.juegos-saldo strong {
+  font-family: var(--letra-titulos);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.juegos-saldo small,
+.juegos-racha small {
+  display: block;
+  color: var(--t-gris);
+  font-size: 0.82rem;
+}
+
+#vista-juegos .juegos-racha > .icono {
+  width: 1.8rem;
+  height: 1.8rem;
+  color: var(--t-gris-4);
+}
+
+.juegos-racha.activa > .icono {
+  color: #f0a53c;
+}
+
+/* ---------- Retos ---------- */
+
+/* Las tarjetas de los cinco retos: el icono suelto, del color de la sección; la elegida con la
+   capa de color a la izquierda; las ya jugadas, apagadas y con lo que dieron */
+.retos-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.reto-tarjeta {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.65rem 0.85rem;
+  border: none;
+  border-radius: 14px;
+  background: var(--t-panel);
+  color: var(--t-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reto-tarjeta:hover {
+  background: var(--t-panel-3);
+}
+
+.reto-tarjeta.activa {
+  background: rgba(var(--color-vista), 0.14);
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+#vista-juegos .reto-tarjeta > .icono {
+  width: 1.4rem;
+  height: 1.4rem;
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+.reto-tarjeta span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.reto-tarjeta strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.15;
+  font-size: 0.9rem;
+}
+
+.reto-tarjeta small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--t-gris);
+  font-size: 0.8rem;
+}
+
+.reto-tarjeta small.hecho {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+  font-weight: bold;
+}
+
+.reto-tarjeta.terminado:not(.activa) > .icono {
+  opacity: 0.45;
+}
+
+.juego {
+  padding: 1rem 1.1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.juego-cargando,
+.juegos-nota {
+  margin: 0.4rem 0;
+  color: var(--t-gris);
+  font-size: 0.88rem;
+}
+
+.juego-cabeza {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.juego-cabeza h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.juego-intentos {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.juego-intento {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--t-control);
+}
+
+.juego-intento.fallo { background: #e0574a; }
+.juego-intento.acierto { background: #2ecc71; }
+
+.juego-explicacion {
+  margin: -0.2rem 0 0.8rem;
+  color: var(--t-gris-2);
+  font-size: 0.9rem;
+}
+
+/* La casilla de escribir, con sus sugerencias debajo */
+.juego-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.juego-campo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.juego-campo input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--t-control-2);
+  border-radius: 0.5rem;
+  background: var(--t-fondo);
+  color: var(--t-texto);
+  font-size: 1rem;
+}
+
+.juego-campo input:focus {
+  outline: none;
+  border-color: rgb(var(--color-vista));
+}
+
+.juego-form button,
+.tienda-articulo button {
+  flex: none;
+  padding: 0.5rem 0.9rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: rgb(var(--color-vista));
+  color: #1e1f2b;
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.juego-form button small {
+  font-weight: normal;
+  opacity: 0.75;
+}
+
+.juego-pista {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+  color: var(--t-gris-3);
+  font-size: 0.92rem;
+}
+
+.juego-pista .icono {
+  color: rgb(var(--color-vista));
+}
+
+/* El final del reto */
+.juego-fin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.8rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel-3);
+  box-shadow: inset 3px 0 0 #e0574a;
+}
+
+.juego-fin.acierto {
+  box-shadow: inset 3px 0 0 #2ecc71;
+}
+
+.juego-fin strong {
+  font-size: 1.05rem;
+}
+
+.juego-fin-fichas {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: bold;
+}
+
+.juego-fin small {
+  color: var(--t-gris);
+}
+
+/* ---------- ¿Quién es ese Pokémon? ---------- */
+
+/* Un foco de luz detrás: la silueta (negra) se lee en los dos temas */
+.silueta-pantalla {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: 23rem;
+  border-radius: 0.6rem;
+  background:
+    radial-gradient(circle at 50% 50%, #fff6d8 0 30%, #f2cf6b 55%, #d98f3c 100%);
+  overflow: hidden;
+}
+
+.silueta-imagen {
+  max-width: 85%;
+  max-height: 90%;
+  filter: brightness(0);
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: filter 0.6s ease;
+}
+
+.silueta-imagen.revelada {
+  filter: none;
+}
+
+.silueta-fallos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--t-gris);
+  font-size: 0.88rem;
+  text-decoration: line-through;
+}
+
+.silueta-fallos li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.silueta-fallos .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+  color: #e0574a;
+}
+
+/* ---------- Adivínalo ---------- */
+
+.pistas-tabla {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.9rem;
+  overflow-x: auto;
+}
+
+.pistas-fila {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 1.6fr) repeat(6, minmax(3.9rem, 1fr));
+  gap: 0.3rem;
+  min-width: 34rem;
+}
+
+.pistas-titulos span {
+  color: var(--t-gris);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.pistas-titulos span:first-child {
+  text-align: left;
+}
+
+.pistas-quien {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  font-weight: bold;
+  font-size: 0.88rem;
+}
+
+.pistas-quien img {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.4rem;
+}
+
+.pistas-quien span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pistas-casilla {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: 3rem;
+  padding: 0.25rem;
+  border-radius: 0.4rem;
+  background: var(--t-panel-3);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* Verde: acierto. Amarillo: cerca. Rojo: fallo. Los números van por una escala del amarillo
+   verdoso (muy cerca) al rojo (lejos): --tono lo pone js/juegos/pistas.js */
+.pistas-casilla.si,
+.pistas-muestra.si {
+  background: #2e9e5b;
+}
+
+.pistas-casilla.casi,
+.pistas-muestra.casi {
+  background: #d9a52b;
+  color: #1e1f2b;
+}
+
+.pistas-casilla.no,
+.pistas-muestra.no {
+  background: #c8473b;
+}
+
+.pistas-casilla.escala {
+  background: hsl(var(--tono) 68% 40%);
+}
+
+/* Hacia dónde está el bueno: una flecha a la derecha del valor */
+.pistas-flecha {
+  display: inline-flex;
+}
+
+#vista-juegos .pistas-flecha .icono {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+#vista-juegos .pistas-casilla .icono-tipo {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.pistas-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.5rem;
+  margin: -0.3rem 0 0.8rem;
+  color: var(--t-gris);
+  font-size: 0.8rem;
+}
+
+.pistas-muestra {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 0.2rem;
+}
+
+.pistas-leyenda-flecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.4rem;
+}
+
+.pistas-casilla .icono-tipo {
+  background: currentColor;
+}
+
+/* ---------- Tienda ---------- */
+
+.tienda-como {
+  margin-bottom: 1.2rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0.7rem;
+  background: var(--t-panel);
+  color: var(--t-gris-3);
+  font-size: 0.92rem;
+}
+
+.tienda-como h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  color: var(--t-texto);
+}
+
+.tienda-como ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.tienda-como p {
+  margin: 0.5rem 0 0;
+}
+
+.tienda-apartado {
+  margin-bottom: 1.5rem;
+}
+
+.tienda-apartado h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.tienda-explicacion {
+  margin: 0.1rem 0 0.7rem;
+  color: var(--t-gris);
+  font-size: 0.88rem;
+}
+
+.tienda-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.8rem;
+}
+
+.tienda-articulo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+  text-align: center;
+}
+
+.tienda-articulo.puesto {
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.tienda-articulo button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.tienda-articulo .tienda-poner,
+.tienda-articulo .tienda-quitar {
+  background: var(--t-control);
+  color: var(--t-texto);
+}
+
+.tienda-articulo .tienda-quitar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tienda-quitar .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: #2ecc71;
+}
+
+.tienda-muestra {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 5rem;
+  border-radius: 0.6rem;
+  background-color: var(--t-panel-3);
+}
+
+.tienda-muestra-titulo .perfil-titulo {
+  margin: 0;
+}
+
+.tienda-foto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border: 3px solid var(--t-azulado);
+  border-radius: 50%;
+  background: var(--t-fondo);
+  overflow: hidden;
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.tienda-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------- Marcos de la foto ----------
+   Van en el círculo de la foto, en toda la web (perfil, «Amigos», foro, lockes, cementerio,
+   chat, Inicio, la barra lateral, la Tienda): el borde cambia de color y,
+   por fuera, uno o varios aros con box-shadow (el overflow: hidden de la foto no los corta). */
+
+/* --g: el grosor de los aros. Normal en las fotos grandes; más fino en las pequeñas */
+.con-marco {
+  --g: 1px;
+}
+
+:is(.foro-foto, .cementerio-cara, .locke-cara, .chat-foto, .inicio-cara, .sesion-foto, .clasificacion-foto, .perfil-marco-foto).con-marco {
+  --g: 0.6px;
+}
+
+/* Los 18 de tipo (js/comun/fichas.js, MARCOS): el mismo diseño para todos, del color de su
+   tipo (los de js/comun/tipos.js): el borde, un aro más oscuro y un brillo suave */
+.con-marco.marco-de-tipo {
+  border-color: var(--marco) !important;
+  box-shadow:
+    0 0 0 calc(var(--g) * 2.5) color-mix(in srgb, var(--marco) 50%, #000),
+    0 0 calc(var(--g) * 12) color-mix(in srgb, var(--marco) 55%, transparent);
+}
+
+.marco-normal { --marco: #a8a77a; }
+.marco-brasa { --marco: #ee8130; }
+.marco-burbuja { --marco: #6390f0; }
+.marco-rayo { --marco: #f7d02c; }
+.marco-hoja { --marco: #7ac74c; }
+.marco-hielo { --marco: #96d9d6; }
+.marco-lucha { --marco: #c22e28; }
+.marco-veneno { --marco: #a33ea1; }
+.marco-tierra { --marco: #e2bf65; }
+.marco-volador { --marco: #a98ff3; }
+.marco-psiquico { --marco: #f95587; }
+.marco-bicho { --marco: #a6b91a; }
+.marco-roca { --marco: #b6a136; }
+.marco-sombra { --marco: #735797; }
+.marco-dragon { --marco: #6f35fc; }
+.marco-noche { --marco: #705746; }
+.marco-acero { --marco: #b7b7ce; }
+.marco-hada { --marco: #d685ad; }
+
+/* Estelar: dos aros claros y unos destellos que giran alrededor */
+.con-marco.marco-estelar {
+  border-color: #fff6d5 !important;
+  box-shadow:
+    0 0 0 calc(var(--g) * 2) #3b3f7a,
+    0 0 0 calc(var(--g) * 4) #fff6d5,
+    calc(var(--g) * 9) calc(var(--g) * -5) 0 calc(var(--g) * -1) #fff,
+    calc(var(--g) * -8) calc(var(--g) * 7) 0 calc(var(--g) * -1.5) #ffe58a,
+    0 0 calc(var(--g) * 16) rgba(255, 240, 180, 0.6);
+  animation: estelar 4s linear infinite;
+}
+
+@keyframes estelar {
+  0%   { box-shadow: 0 0 0 calc(var(--g) * 2) #3b3f7a, 0 0 0 calc(var(--g) * 4) #fff6d5, calc(var(--g) * 9) calc(var(--g) * -5) 0 calc(var(--g) * -1) #fff, calc(var(--g) * -8) calc(var(--g) * 7) 0 calc(var(--g) * -1.5) #ffe58a, 0 0 calc(var(--g) * 16) rgba(255, 240, 180, 0.6); }
+  50%  { box-shadow: 0 0 0 calc(var(--g) * 2) #3b3f7a, 0 0 0 calc(var(--g) * 4) #fff6d5, calc(var(--g) * -9) calc(var(--g) * 5) 0 calc(var(--g) * -1) #fff, calc(var(--g) * 8) calc(var(--g) * -7) 0 calc(var(--g) * -1.5) #ffe58a, 0 0 calc(var(--g) * 22) rgba(255, 240, 180, 0.8); }
+  100% { box-shadow: 0 0 0 calc(var(--g) * 2) #3b3f7a, 0 0 0 calc(var(--g) * 4) #fff6d5, calc(var(--g) * 9) calc(var(--g) * -5) 0 calc(var(--g) * -1) #fff, calc(var(--g) * -8) calc(var(--g) * 7) 0 calc(var(--g) * -1.5) #ffe58a, 0 0 calc(var(--g) * 16) rgba(255, 240, 180, 0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .con-marco.marco-estelar {
+    animation: none;
+  }
+}
+
+.con-marco.marco-arcoiris {
+  border-color: #e0574a !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #f0a53c, 0 0 0 calc(var(--g) * 4) #f1d54a, 0 0 0 calc(var(--g) * 6) #6fbf4a, 0 0 0 calc(var(--g) * 8) #5aa8e0, 0 0 0 calc(var(--g) * 10) #9a6fd8;
+}
+
+.con-marco.marco-dorado {
+  border-color: #f1c40f !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #8a6a08, 0 0 0 calc(var(--g) * 4) #f6e08a, 0 0 calc(var(--g) * 16) rgba(241, 196, 15, 0.55);
+}
+
+/* ---------- Fondos de la Tienda (js/comun/fondos.js, FONDOS_TIENDA) ----------
+   Igual que los demás fondos: encima del color de la tarjeta, sin cambiarlo. */
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-hierba {
+  background-image:
+    repeating-linear-gradient(100deg, rgba(111, 191, 74, 0.16) 0 3px, transparent 3px 9px),
+    linear-gradient(to top, rgba(111, 191, 74, 0.32), transparent 65%);
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-olas {
+  background-image:
+    radial-gradient(circle at 50% 100%, transparent 9px, rgba(90, 168, 224, 0.22) 10px 12px, transparent 13px),
+    linear-gradient(to top, rgba(90, 168, 224, 0.3), transparent 70%);
+  background-size: 28px 14px, auto;
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-atardecer {
+  background-image:
+    radial-gradient(circle at 80% 105%, rgba(255, 196, 92, 0.55), transparent 35%),
+    repeating-linear-gradient(0deg, rgba(240, 120, 70, 0.12) 0 2px, transparent 2px 10px),
+    linear-gradient(to top, rgba(240, 120, 70, 0.35), rgba(160, 80, 160, 0.18) 60%, transparent);
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-noche {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.75) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.45) 0.8px, transparent 1.4px),
+    linear-gradient(160deg, rgba(60, 70, 160, 0.4), rgba(20, 22, 60, 0.25) 70%);
+  background-size: 47px 41px, 23px 29px, auto;
+  background-position: 3px 7px, 11px 2px, 0 0;
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-casino {
+  background-image:
+    radial-gradient(circle, rgba(225, 95, 170, 0.4) 3px, transparent 3.6px),
+    repeating-linear-gradient(45deg, rgba(241, 196, 15, 0.1) 0 8px, transparent 8px 16px),
+    linear-gradient(160deg, rgba(225, 95, 170, 0.25), transparent 60%);
+  background-size: 24px 24px, auto, auto;
+  background-position: 12px 12px, 0 0, 0 0;
+}
+
+/* ---------- Supereficaz ---------- */
+
+.juego-empezar,
+.masomenos-botones button,
+.juegos-compartir {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: rgb(var(--color-vista));
+  color: #1e1f2b;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.eficaz-reloj {
+  height: 0.4rem;
+  margin-bottom: 0.8rem;
+  border-radius: 1rem;
+  background: var(--t-control);
+  overflow: hidden;
+}
+
+.eficaz-reloj span {
+  display: block;
+  height: 100%;
+  background: rgb(var(--color-vista));
+  transition: width 0.2s linear;
+}
+
+.eficaz-rival {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel-3);
+}
+
+.eficaz-rival img {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.5rem;
+}
+
+.eficaz-rival strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.eficaz-tipos {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.eficaz-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  background: var(--color-tipo);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: bold;
+}
+
+.eficaz-ronda {
+  margin-left: auto;
+  color: var(--t-gris);
+  font-weight: bold;
+}
+
+.eficaz-opciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+/* Cada opción, con la capa de color de su tipo a la izquierda */
+.eficaz-opciones button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.8rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--t-control);
+  box-shadow: inset 4px 0 0 var(--color-tipo);
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.eficaz-opciones button:hover {
+  background: var(--t-control-2);
+}
+
+.eficaz-opciones .icono-tipo,
+.eficaz-tipo .icono-tipo {
+  background: currentColor;
+}
+
+.eficaz-opciones .icono-tipo {
+  width: 1rem;
+  height: 1rem;
+  background: var(--color-tipo);
+}
+
+/* ---------- ¿Más o menos? ----------
+   La pregunta arriba, sobre el de la derecha; a la izquierda el que ya se sabe y a la derecha
+   el que hay que adivinar (con la capa de color y los botones dentro) */
+
+.masomenos-pregunta {
+  margin: 0 0 0.8rem;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.masomenos-duelo {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+
+.masomenos-lado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.8rem 0.6rem;
+  border-radius: 0.8rem;
+  background: var(--t-panel-3);
+  text-align: center;
+}
+
+.masomenos-lado.adivinar {
+  background: rgba(var(--color-vista), 0.1);
+  box-shadow: inset 0 0 0 2px rgba(var(--color-vista), 0.55);
+}
+
+.masomenos-etiqueta {
+  color: var(--t-gris);
+  font-size: 0.72rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.masomenos-lado img {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 0.6rem;
+}
+
+.masomenos-lado strong {
+  font-size: 1.05rem;
+}
+
+.masomenos-lado small {
+  color: var(--t-gris-2);
+  font-weight: bold;
+}
+
+.masomenos-valor {
+  font-family: var(--letra-titulos);
+  font-size: 2.2rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.masomenos-valor.oculto {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+.masomenos-vs {
+  align-self: center;
+  color: var(--t-gris);
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.masomenos-botones {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.masomenos-botones button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem 0.4rem;
+  font-size: 1rem;
+}
+
+/* ---------- Compartir ---------- */
+
+/* El reto a la izquierda y, a su lado, la columna de compartir (debajo, si no cabe) */
+.retos-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+.retos-cuerpo:has(.juego-locke) {
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+}
+
+@media (max-width: 1100px) {
+  .retos-cuerpo,
+  .retos-cuerpo:has(.juego-locke) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.juegos-pie {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+}
+
+.juegos-pie h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.juegos-pie .juegos-nota {
+  margin: 0;
+}
+
+.juegos-compartir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.juegos-copiado {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* ---------- Clasificación ---------- */
+
+.clasificacion h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.clasificacion-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clasificacion-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+}
+
+.clasificacion-fila.mia {
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.clasificacion-puesto {
+  width: 1.6rem;
+  font-family: var(--letra-titulos);
+  font-size: 1.3rem;
+  font-weight: bold;
+  text-align: center;
+  color: var(--t-gris);
+}
+
+.podio-1 .clasificacion-puesto { color: #f1c40f; }
+.podio-2 .clasificacion-puesto { color: #c3cad6; }
+.podio-3 .clasificacion-puesto { color: #cd7f32; }
+
+.clasificacion-foto {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 2px solid var(--t-azulado);
+  border-radius: 50%;
+  background: var(--t-fondo);
+  overflow: hidden;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.clasificacion-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clasificacion-quien {
+  flex: 1;
+  min-width: 0;
+}
+
+.clasificacion-quien strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clasificacion-quien small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--t-gris);
+}
+
+.clasificacion-quien .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.clasificacion-hoy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #2ecc71;
+}
+
+.clasificacion-fila .ficha-cifra {
+  font-size: 1.15rem;
+}
+
+/* ---------- Locke del día ----------
+   Ocupa todo el ancho: el líder arriba, tus seis debajo y el combate línea a línea */
+
+.juego-locke {
+}
+
+.lockedia-lider {
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--color-tipo) 14%, var(--t-panel-3));
+  box-shadow: inset 3px 0 0 var(--color-tipo);
+}
+
+.lockedia-lider-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.lockedia-lider-titulo .icono-tipo {
+  width: 1rem;
+  height: 1rem;
+  background: var(--color-tipo);
+}
+
+/* Seis columnas iguales: los tres del líder, los tuyos y los seis para elegir, alineados */
+.lockedia-equipo,
+.lockedia-tu-equipo,
+.lockedia-opciones {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 700px) {
+  .lockedia-equipo,
+  .lockedia-tu-equipo,
+  .lockedia-opciones {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.juego-locke .juego-explicacion {
+  margin: 0.8rem 0;
+}
+
+.lockedia-tu-equipo {
+  margin-top: 0.8rem;
+}
+
+.lockedia-opciones {
+  margin-bottom: 0.8rem;
+}
+
+.lockedia-poke {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.5rem;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  background: var(--t-panel-2);
+  color: var(--t-texto);
+  font: inherit;
+  text-align: center;
+}
+
+button.lockedia-poke {
+  cursor: pointer;
+}
+
+button.lockedia-poke:hover {
+  background: var(--t-panel-4);
+}
+
+.lockedia-poke.elegido {
+  border-color: rgb(var(--color-vista));
+}
+
+.lockedia-poke img {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
+}
+
+.lockedia-poke strong {
+  font-size: 0.9rem;
+}
+
+.lockedia-poke small {
+  color: var(--t-gris);
+  font-size: 0.75rem;
+}
+
+.lockedia-tipos {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.lockedia-tipos .icono-tipo {
+  width: 0.95rem;
+  height: 0.95rem;
+  background: var(--color-tipo);
+}
+
+.lockedia-orden {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: rgb(var(--color-vista));
+  color: #1e1f2b;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.lockedia-combatir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lockedia-combatir:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Los tuyos que cayeron en el combate: en gris, como en el cementerio */
+.lockedia-poke.caido {
+  border-color: transparent;
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+/* ---------- La arena del Locke del día ----------
+   Tu Pokémon a la izquierda y el del líder a la derecha, con los tres de cada lado encima */
+
+.lockedia-arena {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  background:
+    radial-gradient(ellipse at 25% 85%, rgba(var(--color-vista), 0.16), transparent 45%),
+    radial-gradient(ellipse at 75% 85%, rgba(var(--t-tinte), 0.06), transparent 45%),
+    var(--t-panel-3);
+}
+
+.lockedia-lado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.lockedia-lado strong {
+  font-size: 1.05rem;
+}
+
+.lockedia-lado small {
+  color: var(--t-gris);
+  font-size: 0.78rem;
+}
+
+.lockedia-banca {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+
+.lockedia-banca-poke {
+  display: flex;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--t-panel-2);
+  box-shadow: 0 0 0 2px var(--t-control);
+  overflow: hidden;
+}
+
+.lockedia-banca-poke.activo {
+  box-shadow: 0 0 0 2px rgb(var(--color-vista));
+}
+
+.lockedia-banca-poke.caido {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.lockedia-banca-poke img {
+  width: 100%;
+  height: 100%;
+}
+
+.lockedia-luchador img {
+  display: block;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 0.8rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* El que pega va hacia el rival; el que recibe se agita; el que cae se encoge y se apaga (sin
+   moverse de su sitio: así no tapa su nombre) */
+.lockedia-lado.yo .lockedia-luchador.embiste { animation: embiste-derecha 0.45s ease-out; }
+.lockedia-lado.el .lockedia-luchador.embiste { animation: embiste-izquierda 0.45s ease-out; }
+.lockedia-luchador.sacude { animation: sacude 0.5s ease-in-out 0.2s; }
+.lockedia-luchador.debilitado {
+  animation: cae 0.6s ease-in forwards;
+}
+
+@keyframes embiste-derecha {
+  40% { transform: translateX(1.6rem) scale(1.05); }
+}
+
+@keyframes embiste-izquierda {
+  40% { transform: translateX(-1.6rem) scale(1.05); }
+}
+
+@keyframes sacude {
+  0%, 100% { transform: none; filter: none; }
+  20% { transform: translateX(-0.4rem) rotate(-4deg); filter: brightness(1.8); }
+  40% { transform: translateX(0.4rem) rotate(4deg); }
+  60% { transform: translateX(-0.3rem) rotate(-2deg); filter: brightness(1.5); }
+  80% { transform: translateX(0.2rem); }
+}
+
+@keyframes cae {
+  to { transform: scale(0.88); opacity: 0.4; filter: grayscale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lockedia-luchador.embiste,
+  .lockedia-luchador.sacude {
+    animation: none;
+  }
+}
+
+.lockedia-ps {
+  width: min(100%, 11rem);
+  height: 0.55rem;
+  border-radius: 1rem;
+  background: var(--t-control);
+  overflow: hidden;
+}
+
+.lockedia-ps span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2ecc71;
+  transition: width 0.6s ease 0.2s;
+}
+
+.lockedia-ps span.amarillo { background: #e6b422; }
+.lockedia-ps span.rojo { background: #e0574a; }
+
+#vista-juegos .lockedia-contra .icono {
+  width: 1.8rem;
+  height: 1.8rem;
+  color: var(--t-gris-4);
+}
+
+.lockedia-mensaje {
+  min-height: 1.4rem;
+  margin: 0.7rem 0 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel-2);
+  box-shadow: inset 3px 0 0 var(--t-gris-4);
+  font-weight: bold;
+}
+
+.lockedia-mensaje.mio { box-shadow: inset 3px 0 0 rgb(var(--color-vista)); }
+.lockedia-mensaje.cae-suyo { box-shadow: inset 3px 0 0 #2ecc71; color: color-mix(in srgb, #2ecc71 var(--t-vivo), black); }
+.lockedia-mensaje.cae-mio { box-shadow: inset 3px 0 0 #e0574a; color: #e0574a; }
+
+/* El combate entero, plegado */
+.lockedia-registro {
+  margin-top: 0.8rem;
+  color: var(--t-gris-3);
+  font-size: 0.88rem;
+}
+
+.lockedia-registro summary {
+  cursor: pointer;
+  color: var(--t-gris-2);
+  font-weight: bold;
+}
+
+.lockedia-registro ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.5rem 0 0;
+  padding-left: 1.4rem;
+}
+
+.lockedia-registro .cae-suyo { color: color-mix(in srgb, #2ecc71 var(--t-vivo), black); font-weight: bold; }
+.lockedia-registro .cae-mio { color: #e0574a; font-weight: bold; }
+
+/* ---------- En ancho (ordenador): cada reto aprovecha el espacio a lo horizontal ---------- */
+
+.silueta-cuerpo,
+.eficaz-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.silueta-lado .juego-explicacion {
+  margin-top: 0;
+}
+
+.silueta-lado .juego-form {
+  margin-top: 0;
+}
+
+.eficaz-cuerpo .eficaz-rival {
+  flex-direction: column;
+  justify-content: center;
+  min-height: 11rem;
+  text-align: center;
+}
+
+.eficaz-cuerpo .eficaz-rival img {
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+.eficaz-cuerpo .eficaz-tipos {
+  justify-content: center;
+}
+
+.eficaz-cuerpo .eficaz-ronda {
+  margin-left: 0;
+}
+
+.eficaz-cuerpo .eficaz-opciones {
+  margin-top: 0;
+  grid-template-columns: 1fr;
+}
+
+.eficaz-cuerpo .eficaz-opciones button {
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 760px) {
+  .silueta-cuerpo,
+  .eficaz-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Clasificación: la lista y, al lado, tu semana */
+.clasificacion-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .clasificacion-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.clasificacion-dato {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.clasificacion-dato > span:first-child {
+  flex: 1;
+  color: var(--t-gris-2);
+}
+
+.clasificacion-dato strong {
+  font-family: var(--letra-titulos);
+  font-size: 1.2rem;
+}
+
+.clasificacion-dato small {
+  color: var(--t-gris);
+}
+
+/* La versión corta, en la columna de los retos */
+.clasificacion-lista.corta {
+  width: 100%;
+  gap: 0.3rem;
+}
+
+.clasificacion-lista.corta .clasificacion-fila {
+  gap: 0.55rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--t-panel-3);
+}
+
+.clasificacion-lista.corta .clasificacion-foto {
+  width: 2rem;
+  height: 2rem;
+}
+
+.clasificacion-lista.corta .clasificacion-puesto {
+  width: 1.1rem;
+  font-size: 1rem;
+}
+
+.juegos-ver-clasificacion {
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.juegos-ver-clasificacion:hover {
+  background: var(--t-control-2);
+}
+
+/* Copiar los resultados: discreto, como un enlace */
+.juegos-compartir-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--t-gris-2);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.juegos-compartir-enlace:hover {
+  color: var(--t-texto);
+  text-decoration: underline;
+}
+
+/* ---------- Más marcos y fondos de la Tienda ---------- */
+
+.con-marco.marco-plata {
+  border-color: #dfe4ec !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #7d8597, 0 0 0 calc(var(--g) * 4) #c3cad6;
+}
+
+.con-marco.marco-platino {
+  border-color: #7fe0f0 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #2d8a99, 0 0 0 calc(var(--g) * 4) #c8f5fc, 0 0 0 calc(var(--g) * 6) #7fe0f0, 0 0 calc(var(--g) * 18) rgba(127, 224, 240, 0.6);
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-cueva {
+  background-image:
+    radial-gradient(ellipse at 20% 30%, rgba(150, 120, 90, 0.22) 0 12%, transparent 13%),
+    radial-gradient(ellipse at 70% 60%, rgba(150, 120, 90, 0.18) 0 10%, transparent 11%),
+    radial-gradient(ellipse at 45% 85%, rgba(150, 120, 90, 0.16) 0 8%, transparent 9%),
+    linear-gradient(to bottom, rgba(70, 55, 40, 0.35), transparent 70%);
+  background-size: 90px 70px, 110px 80px, 70px 60px, auto;
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-nieve {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.7) 1.5px, transparent 2.2px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.4) 1px, transparent 1.8px),
+    linear-gradient(to bottom, rgba(170, 210, 240, 0.25), transparent 75%);
+  background-size: 34px 38px, 19px 23px, auto;
+  background-position: 5px 4px, 12px 15px, 0 0;
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-bosque {
+  background-image:
+    linear-gradient(135deg, transparent 50%, rgba(46, 120, 60, 0.28) 50%),
+    linear-gradient(225deg, transparent 50%, rgba(46, 120, 60, 0.28) 50%),
+    linear-gradient(to top, rgba(30, 90, 45, 0.35), transparent 70%);
+  background-size: 22px 22px, 22px 22px, auto;
+  background-position: 0 100%, 11px 100%, 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-magma {
+  background-image:
+    repeating-radial-gradient(circle at 30% 120%, rgba(240, 90, 40, 0.22) 0 6px, transparent 6px 16px),
+    linear-gradient(to top, rgba(220, 70, 30, 0.4), rgba(120, 30, 20, 0.15) 60%, transparent);
+}
+
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-aurora {
+  background-image:
+    linear-gradient(170deg, transparent 20%, rgba(90, 220, 160, 0.28) 35%, transparent 50%),
+    linear-gradient(160deg, transparent 35%, rgba(130, 120, 240, 0.25) 50%, transparent 65%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.5) 0.8px, transparent 1.4px),
+    linear-gradient(to bottom, rgba(20, 30, 70, 0.35), transparent);
+  background-size: 300% 100%, 300% 100%, 29px 31px, auto;
+  animation: aurora 12s ease-in-out infinite alternate;
+}
+
+@keyframes aurora {
+  from { background-position: 0 0, 100% 0, 0 0, 0 0; }
+  to { background-position: 100% 0, 0 0, 0 0, 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra).fondo-tienda-aurora {
+    animation: none;
+  }
+}
+
+/* ---------- ¿Quién es ese Pokémon?: tres rondas ---------- */
+
+.silueta-numero,
+.silueta-nombre {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.15rem 0.7rem;
+  border-radius: 1rem;
+  background: rgba(30, 31, 43, 0.75);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.silueta-numero {
+  top: 0.6rem;
+}
+
+.silueta-nombre {
+  bottom: 0.6rem;
+  font-size: 1rem;
+}
+
+.silueta-rondas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  list-style: none;
+}
+
+.silueta-ronda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 2.6rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel-3);
+}
+
+.silueta-ronda.actual {
+  background: rgba(var(--color-vista), 0.12);
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.silueta-ronda strong {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.silueta-ronda strong small {
+  color: var(--t-gris);
+  font-size: 0.72rem;
+  font-weight: normal;
+}
+
+.silueta-ronda-detalle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.silueta-ronda-detalle img {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.4rem;
+}
+
+.silueta-ronda-detalle small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--t-gris);
+}
+
+.silueta-ronda-detalle small.bien { color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black); }
+.silueta-ronda-detalle small.mal { color: #e0574a; }
+.silueta-ronda-detalle .apagado { color: var(--t-gris); font-weight: normal; }
+
+.silueta-pistas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.silueta-pistas li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.5rem;
+  background: var(--t-panel-3);
+  color: var(--t-gris-3);
+  font-size: 0.9rem;
+}
+
+.silueta-pistas li .icono {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+.silueta-pistas li.cerrada {
+  color: var(--t-gris);
+  font-style: italic;
+}
+
+.silueta-pistas li.cerrada .icono {
+  color: var(--t-gris-4);
+}
+
+/* ---------- Retos tipo test (grito, evolución) ----------
+   La pregunta a la izquierda y las cuatro opciones a la derecha (en ordenador) */
+
+.test-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 1.2rem;
+  align-items: stretch;
+}
+
+@media (max-width: 760px) {
+  .test-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.test-pregunta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  min-height: 14rem;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  background: var(--t-panel-3);
+}
+
+.test-ronda {
+  color: var(--t-gris);
+  font-size: 0.78rem;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.test-opciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.test-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.8rem 0.5rem;
+  border: 2px solid transparent;
+  border-radius: 0.8rem;
+  background: var(--t-panel-2);
+  color: var(--t-texto);
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.test-opcion:hover:not(:disabled) {
+  background: var(--t-panel-4);
+  border-color: rgba(var(--color-vista), 0.5);
+}
+
+.test-opcion:disabled {
+  cursor: default;
+}
+
+.test-opcion img {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.6rem;
+}
+
+.test-opcion.buena {
+  border-color: #2ecc71;
+  background: rgba(46, 204, 113, 0.18);
+}
+
+.test-opcion.mala {
+  border-color: #e0574a;
+  background: rgba(224, 87, 74, 0.18);
+}
+
+.test-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.test-resumen li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel-3);
+  box-shadow: inset 3px 0 0 #2ecc71;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.test-resumen li.mal {
+  box-shadow: inset 3px 0 0 #e0574a;
+}
+
+.test-resumen img {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.4rem;
+}
+
+.test-resumen li span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.test-resumen li.bien .icono { color: #2ecc71; }
+.test-resumen li.mal .icono { color: #e0574a; }
+
+/* El botón de escuchar el grito: grande y redondo; mientras suena, late */
+.grito-escuchar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  width: 7.5rem;
+  height: 7.5rem;
+  border: none;
+  border-radius: 50%;
+  background: rgb(var(--color-vista));
+  color: #1e1f2b;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+#vista-juegos .grito-escuchar .icono {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+.grito-escuchar.sonando {
+  animation: late 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes late {
+  to { transform: scale(1.07); box-shadow: 0 0 0 10px rgba(var(--color-vista), 0.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grito-escuchar.sonando {
+    animation: none;
+  }
+}
+
+.evolucion-padre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.evolucion-padre img {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 0.8rem;
+}
+
+.evolucion-padre strong {
+  font-size: 1.2rem;
+}
+
+.evolucion-padre span {
+  color: var(--t-gris-2);
+}
+
+/* «Volver a intentarlo», en el aviso de que no se han podido apuntar los Pokédólares */
+.juego-reintentar {
+  margin-left: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: rgb(var(--color-vista));
+  color: #1e1f2b;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.juego-reintentar:disabled {
+  opacity: 0.5;
+}

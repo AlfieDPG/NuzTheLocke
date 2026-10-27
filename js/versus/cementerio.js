@@ -11,6 +11,7 @@
 
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
+import { claseMarcoDe } from "../comun/fichas.js";
 import { usuarioActual } from "../comun/nube.js";
 import { cargarDatos, datos } from "../comun/datos.js";
 import { activarAutocompletado, iconoPokemon } from "../comun/autocompletado.js";
@@ -118,7 +119,7 @@ function plantillaColumna(locke, uid) {
   return `
     <section class="cementerio-jugador ${mia ? "mio" : ""}">
       <header>
-        <span class="cementerio-cara" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer">` : escaparHTML(nombre[0] || "?")}</span>
+        <span class="cementerio-cara ${claseMarcoDe(uid)}" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer">` : escaparHTML(nombre[0] || "?")}</span>
         <span class="cementerio-nombre">${escaparHTML(nombre)}</span>
         <span class="cementerio-cuenta">${icono("calavera")} ${muertos.length}</span>
       </header>

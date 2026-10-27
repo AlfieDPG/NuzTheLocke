@@ -10,6 +10,7 @@ import { imagenConRespaldo } from "../comun/imagenes.js";
 import { activarArrastre } from "../comun/arrastrar.js";
 import { elegirEquipo, caraDePokemon, carasDeEquipo } from "../comun/elegir-equipo.js";
 import { fondoDe, claseFondo, estiloFondo } from "../comun/fondos.js";
+import { marcoDe, claseMarco } from "../comun/fichas.js";
 import { icono } from "../comun/iconos.js";
 import { campoNumero } from "../comun/numero.js";
 import { escaparHTML, fechaLarga } from "../comun/utilidades.js";
@@ -29,6 +30,7 @@ import {
 } from "../comun/perfiles.js";
 import { haySinLeer, alCambiarChats } from "../comun/chat.js";
 import { confirmar } from "../comun/ventanas.js";
+import { leer, escribir } from "../comun/almacen.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
 let seccion = null;
@@ -345,7 +347,7 @@ function plantillaLuchador(perfil, victorias, clase) {
   return `
     <div class="luchador ${clase}">
       ${clase.includes("gana") ? `<span class="luchador-corona">${icono("corona")}</span>` : ""}
-      <div class="jugador-foto" data-inicial="${escaparHTML((perfil.nombre || "?")[0])}" data-perfil="${escaparHTML(perfil.uid || "")}" title="${t("Ver perfil")}">${imagen}</div>
+      <div class="jugador-foto ${claseMarco(marcoDe(perfil))}" data-inicial="${escaparHTML((perfil.nombre || "?")[0])}" data-perfil="${escaparHTML(perfil.uid || "")}" title="${t("Ver perfil")}">${imagen}</div>
       <span class="luchador-nombre">${nombre}</span>
       <span class="luchador-victorias">${victorias}</span>
       <span class="luchador-etiqueta">${victorias === 1 ? t("victoria") : t("victorias")}</span>
@@ -407,7 +409,7 @@ function plantillaFicha(ficha) {
              title="${t("Pulsa para ver los lockes")}">
       ${plantillaAcciones(ficha)}
       <header class="ficha-cabeza">
-        <div class="jugador-foto" data-inicial="${escaparHTML(ficha.nombre[0] || "?")}" data-perfil="${escaparHTML(ficha.clave)}" title="${t("Ver perfil")}">${imagen}</div>
+        <div class="jugador-foto ${claseMarco(ficha.marco)}" data-inicial="${escaparHTML(ficha.nombre[0] || "?")}" data-perfil="${escaparHTML(ficha.clave)}" title="${t("Ver perfil")}">${imagen}</div>
         <div class="ficha-quien">
           <h2 class="jugador-nombre">${alt}</h2>
           ${ficha.mia
@@ -435,6 +437,7 @@ function fichaDePerfil(perfil, mia) {
     // Todos los terminados que ha jugado: los ganados (gano: true) y los que no
     jugados: lockesJugados(perfil),
     fondo: fondoDe(perfil),
+    marco: marcoDe(perfil),
     mia
   };
 }
@@ -1044,6 +1047,17 @@ async function quitarAmigo(ficha) {
   if (amistad) await borrarAmistad(amistad.id);
 }
 
+// ---------- Tarjetas o lista ----------
+//
+// Como en «Mis equipos». Se queda en este navegador (no va a la nube).
+
+const CLAVE_VISTA = "poketeams-amigos-vista-v1";
+
+function aplicarVista(enLista) {
+  lista.classList.toggle("modo-lista", enLista);
+  seccion.querySelector(".amigos-vista").textContent = enLista ? t("Ver en tarjetas") : t("Ver en lista");
+}
+
 // ---------- Arranque ----------
 
 export function iniciar() {
@@ -1061,6 +1075,13 @@ export function iniciar() {
   campoCorreo.addEventListener("keydown", (e) => {
     if (e.key === "Enter") agregar();
   });
+
+  seccion.querySelector(".amigos-vista").addEventListener("click", () => {
+    const enLista = !lista.classList.contains("modo-lista");
+    escribir(CLAVE_VISTA, enLista);
+    aplicarVista(enLista);
+  });
+  aplicarVista(leer(CLAVE_VISTA, false));
 
   activarArrastreFichas();
   activarFichas();

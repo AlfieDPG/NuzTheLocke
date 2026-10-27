@@ -34,6 +34,22 @@
   background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
 }
 
+/* «Ver en lista / en tarjetas», como en «Mis equipos», junto a «Agregar» */
+.amigos-vista {
+  padding: 0.45rem 0.85rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-panel);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.amigos-vista:hover {
+  background: var(--t-control);
+}
+
 .amigos-aviso {
   font-size: 0.85rem;
   font-weight: bold;
@@ -576,6 +592,94 @@
 .locke-ganado.perdido .locke-nombre {
   font-weight: 600;
   opacity: 0.8;
+}
+
+/* ---------- Modo lista: una fila por amigo, de lado a lado ----------
+   Foto pequeña y nombre, los contadores en una tira baja y los botones siempre a la vista.
+   Al pulsar la fila, sus lockes se despliegan debajo, a todo lo ancho. */
+
+.jugadores.modo-lista {
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+.jugadores.modo-lista .ficha-jugador {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.55rem 0.85rem 0.55rem 0.75rem;
+  border-radius: 0.7rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.jugadores.modo-lista .ficha-jugador:hover {
+  transform: none;
+}
+
+/* Ancho fijo para que los contadores de todas las filas empiecen a la misma altura */
+.jugadores.modo-lista .ficha-cabeza {
+  flex: 0 0 15rem;
+  min-width: 0;
+  gap: 0.7rem;
+}
+
+.jugadores.modo-lista .ficha-jugador .jugador-foto {
+  width: 2.9rem;
+  height: 2.9rem;
+  border-width: 0.15rem;
+}
+
+.jugadores.modo-lista .ficha-jugador .jugador-foto::before {
+  font-size: 1.3rem;
+}
+
+.jugadores.modo-lista .ficha-jugador .jugador-nombre {
+  font-size: 1.1rem;
+}
+
+/* Ajustados a lo que tienen y pegados a la izquierda (estirados quedaban larguísimos) */
+.jugadores.modo-lista .contadores-locke {
+  flex: 0 1 auto;
+  min-width: 0;
+  box-shadow: none;
+}
+
+.jugadores.modo-lista .contador-locke {
+  flex: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.1rem 0.4rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.jugadores.modo-lista .contador-numero {
+  font-size: 1.25rem;
+}
+
+.jugadores.modo-lista .ficha-acciones {
+  position: static;
+  order: 1;
+  margin-left: auto;
+  opacity: 1;
+}
+
+.jugadores.modo-lista .lockes-ganados {
+  order: 2;
+  flex-basis: 100%;
+}
+
+@media (max-width: 34rem) {
+  /* En el móvil, foto y nombre con los botones arriba, y los contadores debajo (sin estirar) */
+  .jugadores.modo-lista .ficha-cabeza {
+    flex: 1 1 60%;
+  }
+
+  .jugadores.modo-lista .contadores-locke {
+    order: 1;
+  }
 }
 
 /* ---------- Listas que enseñan los 5 últimos (fichas y cara a cara) ---------- */

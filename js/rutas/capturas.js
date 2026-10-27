@@ -5,6 +5,8 @@
 //
 //   localStorage «poketeams-capturas-v1»:
 //     { idJuego: { lugar: { especie, nombre, mote, idForma?, formaPMD?, imagenForma? } } }
+//   o, si pasaste por ahí y no conseguiste capturar nada («No la conseguí»): { fallada: true }
+//   (sin especie: no cuenta como captura en los logros ni registra nada en la Pokédex)
 
 import { leer, escribir } from "../comun/almacen.js";
 import { escaparHTML } from "../comun/utilidades.js";
@@ -58,6 +60,9 @@ function especieDe(captura) {
 
 export function plantillaCaptura(idJuego, clave) {
   const captura = capturaDe(idJuego, clave);
+  if (captura && captura.fallada) {
+    return `<span class="ruta-captura fallada" title="${t("Sin captura")}">${icono("aspa")}</span>`;
+  }
   const titulo = captura ? (captura.mote ? `${captura.mote} (${especieDe(captura)})` : especieDe(captura)) : t("Apuntar captura");
   return `<span class="ruta-captura ${captura ? "con" : ""}" title="${escaparHTML(titulo)}">${
     captura ? retrato(captura, "ruta-captura-cara") : icono("mas")
@@ -66,7 +71,8 @@ export function plantillaCaptura(idJuego, clave) {
 
 export function abrirCaptura(idJuego, clave, lugar) {
   enLugar = { idJuego, clave };
-  const captura = capturaDe(idJuego, clave);
+  const guardada = capturaDe(idJuego, clave);
+  const captura = guardada && !guardada.fallada ? guardada : null;
   elegido = captura
     ? {
         id: captura.especie,
@@ -81,7 +87,8 @@ export function abrirCaptura(idJuego, clave, lugar) {
   dialogo.querySelector(".captura-pokemon").value = captura ? especieDe(captura) : "";
   dialogo.querySelector(".captura-mote").value = captura ? captura.mote || "" : "";
   dialogo.querySelector(".captura-error").textContent = "";
-  dialogo.querySelector(".captura-quitar").hidden = !captura;
+  dialogo.querySelector(".captura-quitar").hidden = !guardada;
+  dialogo.querySelector(".captura-fallada").hidden = Boolean(guardada && guardada.fallada);
   dialogo.showModal();
   dialogo.querySelector(".captura-pokemon").focus();
   cargarDatos()
@@ -191,5 +198,10 @@ export function iniciarCapturas(alCambiar) {
   dialogo.querySelector(".captura-quitar").addEventListener("click", () => {
     dialogo.close();
     guardarEn(enLugar.idJuego, enLugar.clave, null);
+  });
+  // Pasaste por ahí y no conseguiste capturar nada: el lugar sigue gastado, sin Pokémon
+  dialogo.querySelector(".captura-fallada").addEventListener("click", () => {
+    dialogo.close();
+    guardarEn(enLugar.idJuego, enLugar.clave, { fallada: true });
   });
 }

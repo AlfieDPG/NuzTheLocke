@@ -50,5 +50,10 @@ export default {
   "¿Desmarcar todos los combates de {juego}?": "Uncheck every battle in {juego}?",
   "Ninguno.": "None.",
   "No cabe: hay demasiadas imágenes subidas en estos level caps.": "It doesn't fit: there are too many uploaded images in these level caps.",
-  "No se ha podido leer esa imagen.": "That image couldn't be read."
+  "No se ha podido leer esa imagen.": "That image couldn't be read.",
+
+  // Sin captura en un lugar (js/rutas/capturas.js)
+  "Sin captura": "No catch",
+  "No la conseguí": "I didn't get it",
+  "Pasaste por aquí pero no conseguiste capturar nada": "You went through here but didn't catch anything"
 };

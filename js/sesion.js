@@ -27,6 +27,7 @@ import {
 import { iniciarLockes, salirDeTodosMisLockes } from "./comun/lockes.js";
 import { borrarMiForo } from "./comun/foro.js";
 import { iniciarChats, borrarMisBloqueos } from "./comun/chat.js";
+import { borrarMisJugadas, marcoDe, claseMarco } from "./comun/fichas.js";
 import { iniciarAvisosForo } from "./comun/avisos-foro.js";
 import { iniciarAvisos } from "./avisos.js";
 import { iniciarPresencia, borrarMiPresencia } from "./comun/presencia.js";
@@ -65,6 +66,7 @@ function pintarNombre() {
   const url = (perfil && perfil.foto) || "";
   foto.hidden = !url;
   if (url && foto.getAttribute("src") !== url) foto.src = url;
+  foto.className = `sesion-foto ${claseMarco(marcoDe(perfil))}`; // con su marco (js/comun/fichas.js)
 }
 
 function pintar(usuario) {
@@ -329,6 +331,8 @@ function borrarCuenta() {
     await borrarMisBloqueos().catch((fallo) => console.error(fallo));
     await borrarMisDatosGuardados();
     await borrarMiPerfil();
+    // Las jugadas de «Juegos»: las reglas solo dejan borrarlas ya sin perfil
+    await borrarMisJugadas().catch((fallo) => console.error(fallo));
     await borrarCuentaDeFirebase(); // recarga la página
   });
 }

@@ -45,9 +45,10 @@ import { obtenerVariedades } from "./comun/formas.js";
 import { elegirForma, datosDeForma } from "./comun/elegir-forma.js";
 import { LOGROS, insignia } from "./comun/logros.js";
 import {
-  FONDOS, FONDOS_METAL, FONDOS_TIPO, FONDOS_EEVEE, fondoDe, logrosDe, desbloqueado, requisito, requisitoCorto,
+  FONDOS, FONDOS_METAL, FONDOS_TIPO, FONDOS_EEVEE, FONDOS_TIENDA, fondoDe, logrosDe, desbloqueado, requisito, requisitoCorto,
   claseFondo, estiloFondo
 } from "./comun/fondos.js";
+import { TITULOS, MARCOS, loTiene, tieneMarco, marcoDe, claseMarco } from "./comun/fichas.js";
 import { t, LOCALE, nombre as nombreDe } from "./comun/idioma.js";
 
 const MAX_DESTACADOS = 3;    // los equipos que se pueden destacar (cada uno es una copia dentro del perfil)
@@ -124,11 +125,16 @@ function plantillaNombre(perfil, mio) {
     </div>`;
 }
 
-// El título: el nombre de uno de sus logros, el que haya elegido (perfil.titulo), debajo del
-// nombre. Solo si ese logro lo tiene. En el tuyo, pulsándolo se cambia.
+// El título: el nombre de uno de sus logros o uno comprado en la Tienda de «Juegos»
+// (js/comun/fichas.js), el que haya elegido (perfil.titulo), debajo del nombre. Solo si lo
+// tiene. En el tuyo, pulsándolo se cambia.
+const TITULOS_TIENDA = TITULOS.map((titulo) => ({ ...titulo, icono: "estrella", descripcion: t("Comprado en la Tienda.") }));
+
 function tituloDe(perfil) {
   const logro = LOGROS.find((cada) => cada.id === perfil.titulo);
-  return logro && (perfil.logros || {})[logro.id] ? logro : null;
+  if (logro) return (perfil.logros || {})[logro.id] ? logro : null;
+  const comprado = TITULOS_TIENDA.find((cada) => cada.id === perfil.titulo);
+  return comprado && loTiene(perfil, comprado.id) ? comprado : null;
 }
 
 function plantillaTitulo(perfil, mio) {
@@ -144,7 +150,7 @@ function plantillaTitulo(perfil, mio) {
 function pintarTitulos() {
   const perfil = miPerfil() || {};
   const tengo = perfil.logros || {};
-  const conseguidos = LOGROS.filter((logro) => tengo[logro.id]);
+  const conseguidos = [...TITULOS_TIENDA.filter((titulo) => loTiene(perfil, titulo.id)), ...LOGROS.filter((logro) => tengo[logro.id])];
   dialogoTitulo.querySelector(".titulo-lista").innerHTML = conseguidos.length
     ? conseguidos
         .map(
@@ -191,7 +197,7 @@ function plantillaFondos(perfil) {
   const puesto = fondoDe(perfil);
   const todos = [SIN_FONDO, ...FONDOS];
   // El puesto primero; luego «Sin fondo» y los que ya tienes (los más nuevos de metal antes)
-  const libres = [...FONDOS_METAL].reverse().concat(FONDOS_TIPO, FONDOS_EEVEE).filter((fondo) => desbloqueado(fondo, perfil));
+  const libres = [...FONDOS_METAL].reverse().concat(FONDOS_TIENDA, FONDOS_TIPO, FONDOS_EEVEE).filter((fondo) => desbloqueado(fondo, perfil));
   const pocos = [todos.find((fondo) => fondo.id === puesto) || SIN_FONDO, SIN_FONDO, ...libres]
     .filter((fondo, i, lista) => lista.indexOf(fondo) === i)
     .slice(0, VER_FONDOS);
@@ -219,8 +225,33 @@ function pintarFondos() {
   };
   dialogoFondos.querySelector(".fondos-lista").innerHTML =
     apartado(t("Básicos"), [SIN_FONDO, ...FONDOS_METAL]) +
+    apartado(t("De la Tienda"), FONDOS_TIENDA) +
     apartado("Eevee", FONDOS_EEVEE, "perfil-fondos-eevee") +
     apartado(t("Tipos"), FONDOS_TIPO, "perfil-fondos-tipo");
+}
+
+// El marco de tu foto (js/comun/fichas.js): «Sin marco» y los que tienes (comprados en la
+// Tienda de «Juegos» o, los de metal, por logros). Los demás se ven en la Tienda.
+function plantillaMarcos(perfil) {
+  const puesto = marcoDe(perfil);
+  const tuyos = MARCOS.filter((marco) => tieneMarco(perfil, marco));
+  const muestra = (id, nombre) => `
+    <button class="perfil-marco ${id === puesto ? "elegido" : ""}" data-marco="${id}" title="${escaparHTML(nombre)}">
+      <span class="perfil-marco-foto ${claseMarco(id)}">${plantillaFoto(perfil, "perfil-foto")}</span>
+      <small>${escaparHTML(nombre)}</small>
+    </button>`;
+  return `
+    <section class="perfil-apartado">
+      <h3>
+        ${t("Marco de tu foto")}
+        <button class="perfil-ir-tienda">${icono("mas")} ${t("Tienda")}</button>
+      </h3>
+      <div class="perfil-marcos">
+        ${muestra("", t("Sin marco"))}
+        ${tuyos.map((marco) => muestra(marco.id, marco.nombre)).join("")}
+      </div>
+      ${tuyos.length ? "" : `<p class="perfil-vacio">${t("Consigue marcos en la Tienda de «Juegos» con tus Pokédólares.")}</p>`}
+    </section>`;
 }
 
 // Lockes jugados juntos en total (los de Versus, en marcha o terminados, y los apuntados a
@@ -608,11 +639,13 @@ function pintar() {
     : conectado
       ? `<span class="jugador-estado"><span class="punto-conectado"></span>${t("Conectado")}</span>`
       : "";
+  // «Sobre mí» va en la propia tarjeta, a la derecha (en ancho): así no queda ese hueco vacío
+  const sobreMi = plantillaSobreMi(perfil, mio);
   const cabeza = `
-    <header class="perfil-cabeza ${mio ? "mia" : conectado ? "conectado" : ""} ${fondo ? `con-fondo ${claseFondo(fondo)}` : ""}" style="${estiloFondo(fondo)}">
+    <header class="perfil-cabeza ${sobreMi ? "con-lado" : ""} ${mio ? "mia" : conectado ? "conectado" : ""} ${fondo ? `con-fondo ${claseFondo(fondo)}` : ""}" style="${estiloFondo(fondo)}">
       ${mio
-        ? `<button class="perfil-avatar" title="${t("Cambiar foto")}">${plantillaFoto(perfil, "perfil-foto")}<span class="perfil-avatar-lapiz">${icono("lapiz")}</span></button>`
-        : `<div class="perfil-avatar">${plantillaFoto(perfil, "perfil-foto")}</div>`}
+        ? `<button class="perfil-avatar ${claseMarco(marcoDe(perfil))}" title="${t("Cambiar foto")}">${plantillaFoto(perfil, "perfil-foto")}<span class="perfil-avatar-lapiz">${icono("lapiz")}</span></button>`
+        : `<div class="perfil-avatar ${claseMarco(marcoDe(perfil))}">${plantillaFoto(perfil, "perfil-foto")}</div>`}
       <div class="perfil-datos">
         ${estado}
         ${plantillaNombre(perfil, mio)}
@@ -620,6 +653,7 @@ function pintar() {
         <div class="perfil-cifras">${cifras}</div>
         ${mio ? "" : plantillaAccion(perfil)}
       </div>
+      ${sobreMi ? `<div class="perfil-cabeza-lado">${sobreMi}</div>` : ""}
     </header>
 
     ${sabeTodo
@@ -646,23 +680,22 @@ function pintar() {
       ${mio && escaparate.length > 1 ? `<button class="perfil-ver-equipos">${t("Ordenar")}</button>` : ""}
     </section>`;
 
-  // En ancho, en dos columnas: los equipos a un lado y lo demás al otro
-  const sobreMi = plantillaSobreMi(perfil, mio);
-  const izquierda = sabeTodo
-    ? sobreMi + destacados
-    : sobreMi || `<p class="perfil-vacio">${t("Hazte su amigo para ver más de su perfil.")}</p>`;
-  const derecha = !sabeTodo
-    ? ""
+  // En ancho, en tres columnas (así cabe todo sin bajar): los equipos; los lockes; y lo tuyo
+  // (fondo, marco y amigos)
+  const columnas = !sabeTodo
+    ? [sobreMi ? "" : `<p class="perfil-vacio">${t("Hazte su amigo para ver más de su perfil.")}</p>`]
     : mio
-      ? plantillaPalmares(perfil) + plantillaSalon(perfil) + plantillaFondos(perfil) + plantillaAmigos()
-      : plantillaPalmares(perfil, false) + plantillaSalon(perfil) + plantillaFondosDe(perfil) + plantillaAmigosDe(perfil);
+      ? [destacados, plantillaPalmares(perfil) + plantillaSalon(perfil), plantillaFondos(perfil) + plantillaMarcos(perfil) + plantillaAmigos()]
+      : [destacados, plantillaPalmares(perfil, false) + plantillaSalon(perfil), plantillaFondosDe(perfil) + plantillaAmigosDe(perfil)];
+  const llenas = columnas.filter((columna) => columna.trim());
 
   cuerpo.innerHTML = sabeTodo && pestana === "logros" ? cabeza + plantillaLogrosDe(perfil) : `
     ${cabeza}
-    <div class="perfil-columnas ${derecha.trim() ? "" : "una"}">
-      <div class="perfil-columna">${izquierda}</div>
-      ${derecha.trim() ? `<div class="perfil-columna">${derecha}</div>` : ""}
-    </div>`;
+    ${llenas.length
+      ? `<div class="perfil-columnas columnas-${llenas.length}">
+          ${llenas.map((columna) => `<div class="perfil-columna">${columna}</div>`).join("")}
+        </div>`
+      : ""}`;
 
   dialogo.querySelector(".perfil-borrar").hidden = !mio;
   dialogo.querySelector(".perfil-volver").hidden = mio || !desdeMiPerfil;
@@ -1027,6 +1060,12 @@ cuerpo.addEventListener("click", (e) => {
     // Se ve ya, mientras se guarda (cuando llega el perfil se vuelve a pintar igual)
     cuerpo.querySelectorAll(".perfil-fondo").forEach((cada) => cada.classList.toggle("elegido", cada === boton));
     guardarMiPerfil({ fondo: boton.dataset.fondo || null }).catch(siFalla);
+  } else if (boton.classList.contains("perfil-marco")) {
+    cuerpo.querySelectorAll(".perfil-marco").forEach((cada) => cada.classList.toggle("elegido", cada === boton));
+    guardarMiPerfil({ marco: boton.dataset.marco || "" }).catch(siFalla);
+  } else if (boton.classList.contains("perfil-ir-tienda")) {
+    dialogo.close();
+    irA("juegos");
   } else if (boton.classList.contains("perfil-ver-salon")) {
     salonEntero = !salonEntero;
     pintar();

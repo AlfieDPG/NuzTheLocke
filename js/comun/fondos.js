@@ -13,6 +13,7 @@
 //   · De Eevee (uno por Eeveelution y el de Eevee): con los logros de registrarlas (logros.js,
 //     «x-vaporeon»... y «x-eeveelutions»). Cada uno con su dibujo en CSS
 //     (css/amigos.css, .fondo-eevee-vaporeon...).
+//   · De la Tienda: se compran con Pokédólares (FONDOS_TIENDA, js/comun/fichas.js).
 
 import { LOGROS, EEVEELUTIONS } from "./logros.js";
 import { coloresTipo, tiposEs } from "./tipos.js";
@@ -37,7 +38,25 @@ export const FONDOS_EEVEE = [
   ...EEVEELUTIONS.map((eevee) => ({ id: `eevee-${eevee.especie}`, nombre: eevee.nombre, eevee: eevee.numero, logro: `x-${eevee.especie}` }))
 ];
 
-export const FONDOS = [...FONDOS_METAL, ...FONDOS_TIPO, ...FONDOS_EEVEE];
+// Los de la Tienda de «Juegos» (js/comun/fichas.js): se compran con Pokédólares en vez de con un
+// logro. El dibujo, en CSS (css/juegos.css, .fondo-tienda-hierba...). El precio va por lo
+// elaborado que es: sencillos (un dibujo que se repite), detallados (varias capas) y animados.
+const PRECIO_FONDO = { sencillo: 300, detallado: 450, animado: 700 };
+
+export const FONDOS_TIENDA = [
+  { id: "tienda-hierba", nombre: t("Hierba alta"), nivel: "sencillo" },
+  { id: "tienda-olas", nombre: t("Surf"), nivel: "sencillo" },
+  { id: "tienda-cueva", nombre: t("Cueva"), nivel: "sencillo" },
+  { id: "tienda-nieve", nombre: t("Nevada"), nivel: "sencillo" },
+  { id: "tienda-bosque", nombre: t("Bosque"), nivel: "sencillo" },
+  { id: "tienda-atardecer", nombre: t("Atardecer"), nivel: "detallado" },
+  { id: "tienda-noche", nombre: t("Noche estrellada"), nivel: "detallado" },
+  { id: "tienda-casino", nombre: t("Casino"), nivel: "detallado" },
+  { id: "tienda-magma", nombre: t("Magma"), nivel: "detallado" },
+  { id: "tienda-aurora", nombre: t("Aurora"), nivel: "animado" }
+].map((fondo) => ({ ...fondo, precio: PRECIO_FONDO[fondo.nivel] }));
+
+export const FONDOS = [...FONDOS_METAL, ...FONDOS_TIPO, ...FONDOS_EEVEE, ...FONDOS_TIENDA];
 
 // Los logros que tiene (solo los que existen)
 export function logrosDe(perfil) {
@@ -46,17 +65,20 @@ export function logrosDe(perfil) {
 }
 
 export function desbloqueado(fondo, perfil) {
+  if (fondo.precio) return Boolean(((perfil && perfil.compras) || {})[fondo.id]);
   return Boolean(((perfil && perfil.logros) || {})[fondo.logro]);
 }
 
 // Lo que pide, para cuando aún no lo tienes: «Logro «Toque de oro»: Consigue 50 logros.»
 export function requisito(fondo) {
+  if (fondo.precio) return t("En la Tienda de «Juegos», por {n} Pokédólares.", { n: fondo.precio });
   const logro = LOGROS.find((cada) => cada.id === fondo.logro);
   return logro ? t("Logro «{nombre}»: {descripcion}", { nombre: logro.nombre, descripcion: logro.descripcion }) : "";
 }
 
 // Lo que pide, en corto, para debajo de la muestra («50 logros»), o "" si no hace falta
 export function requisitoCorto(fondo) {
+  if (fondo.precio) return t("{n} Pokédólares", { n: fondo.precio });
   const logro = LOGROS.find((cada) => cada.id === fondo.logro);
   if (!logro || logro.tipo) return "";
   if (logro.categoria === "pokedex") return logro.id === "x-eeveelutions" ? t("Las 8 Eeveelutions") : t("Regístralo");

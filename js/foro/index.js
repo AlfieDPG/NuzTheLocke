@@ -17,6 +17,7 @@
 import { icono } from "../comun/iconos.js";
 import { imagenConRespaldo } from "../comun/imagenes.js";
 import { escaparHTML, quitarAcentos } from "../comun/utilidades.js";
+import { marcoDe, claseMarco, apuntarMarco } from "../comun/fichas.js";
 import { hayNube, usuarioActual, alCambiarSesion } from "../comun/nube.js";
 import { JUEGOS } from "../comun/juegos.js";
 import { plantillaCampoJuego, activarCamposJuego, leerCampoJuego, nombreJuego } from "../comun/campo-juego.js";
@@ -119,7 +120,10 @@ async function traerPerfiles(uids) {
   const faltan = [...new Set(uids)].filter((uid) => uid && !perfiles.has(uid));
   if (!faltan.length) return;
   try {
-    for (const [uid, perfil] of await perfilesDe(faltan)) perfiles.set(uid, perfil);
+    for (const [uid, perfil] of await perfilesDe(faltan)) {
+      perfiles.set(uid, perfil);
+      apuntarMarco(perfil); // su marco, también para el chat y demás
+    }
   } catch (error) {
     console.error(error);
   }
@@ -135,7 +139,7 @@ function foto(uid) {
   const imagen = perfil.foto
     ? imagenConRespaldo([escaparHTML(perfil.foto)], `alt="" draggable="false" referrerpolicy="no-referrer" data-quitar-si-falla`)
     : "";
-  return `<span class="foro-foto" data-inicial="${escaparHTML(nombre[0] || "?")}" data-autor="${escaparHTML(uid)}" title="${escaparHTML(nombre)}">${imagen}</span>`;
+  return `<span class="foro-foto ${claseMarco(marcoDe(perfil))}" data-inicial="${escaparHTML(nombre[0] || "?")}" data-autor="${escaparHTML(uid)}" title="${escaparHTML(nombre)}">${imagen}</span>`;
 }
 
 function nombreDe(uid) {

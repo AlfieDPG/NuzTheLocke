@@ -14,6 +14,7 @@
 
 import { icono } from "./comun/iconos.js";
 import { escaparHTML } from "./comun/utilidades.js";
+import { claseMarcoDe } from "./comun/fichas.js";
 import { t, LOCALE } from "./comun/idioma.js";
 import { usuarioActual } from "./comun/nube.js";
 import { amigosAceptados, perfilesDeAmigos, perfilesDe } from "./comun/perfiles.js";
@@ -53,6 +54,7 @@ function perfilDe(uid) {
 }
 
 function foto(perfil, clase) {
+  clase = `${clase} ${claseMarcoDe(perfil.uid)}`; // su marco (js/comun/fichas.js)
   const nombre = perfil.nombre || "?";
   return perfil.foto
     ? `<img class="${clase}" src="${escaparHTML(perfil.foto)}" alt="" referrerpolicy="no-referrer">`

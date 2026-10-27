@@ -79,7 +79,7 @@ main {
 
 /* El título de cada grupo del menú: letra pequeña y apagada, alineada con el texto de los botones */
 .menu-titulo {
-  margin: 0.85rem 0 -0.05rem 0.8rem;
+  margin: 0.35rem 0 -0.05rem 0.8rem;
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -123,6 +123,7 @@ main {
 .menu-lateral [data-vista="foro"]        { --color-boton: 196, 128, 214; }
 .menu-lateral [data-vista="amigos"]      { --color-boton: 80, 190, 215; }
 .menu-lateral [data-vista="logros"]      { --color-boton: 241, 196, 15; }
+.menu-lateral [data-vista="juegos"]      { --color-boton: 76, 182, 92; }
 
 .menu-lateral :is(button, summary) .icono {
   color: color-mix(in srgb, rgb(var(--color-boton, var(--t-texto-rgb))) var(--t-vivo), black);
@@ -636,7 +637,7 @@ button.cuenta:hover {
 
 /* En vertical: foto, nombre y cifras centrados arriba; debajo, equipos y amigos */
 #dialogo-perfil {
-  width: min(62rem, 95vw);
+  width: min(80rem, 96vw);
   max-height: 92vh;
 }
 
@@ -868,7 +869,8 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 .perfil-destacar,
 .perfil-ver-amigos,
 .perfil-palmares,
-.perfil-editar-sobre-mi {
+.perfil-editar-sobre-mi,
+.perfil-ir-tienda {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -892,13 +894,15 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 
 .perfil-ver-amigos:hover,
 .perfil-palmares:hover,
-.perfil-editar-sobre-mi:hover {
+.perfil-editar-sobre-mi:hover,
+.perfil-ir-tienda:hover {
   background: var(--t-control-2);
 }
 
 .perfil-destacar .icono,
 .perfil-palmares .icono,
-.perfil-editar-sobre-mi .icono {
+.perfil-editar-sobre-mi .icono,
+.perfil-ir-tienda .icono {
   width: 0.85rem;
   height: 0.85rem;
 }
@@ -1646,6 +1650,7 @@ button.perfil-fondo:hover:not(:disabled) {
 :root:has(#vista-amigos:not([hidden])) { --color-vista: 80, 190, 215; }
 :root:has(#vista-foro:not([hidden])) { --color-vista: 196, 128, 214; }
 :root:has(#vista-logros:not([hidden])) { --color-vista: 241, 196, 15; }
+:root:has(#vista-juegos:not([hidden])) { --color-vista: 76, 182, 92; }
 
 /* Grupos desplegables del menú */
 
@@ -2213,3 +2218,108 @@ dialog textarea {
 .sesion-boton:hover {
   background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
 }
+
+/* ---------- Perfil: más ancho y sin tener que bajar ----------
+   La tarjeta de arriba con «Sobre mí» a la derecha (aprovecha el hueco) y debajo tres columnas:
+   equipos, lockes y lo tuyo (fondo, marco, amigos). En el móvil, todo en una columna. */
+
+@media (min-width: 761px) {
+  .perfil-cabeza.con-lado {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(16rem, 26rem);
+    align-items: center;
+  }
+
+  .perfil-cabeza-lado {
+    align-self: stretch;
+  }
+
+  .perfil-cabeza-lado .perfil-apartado {
+    height: 100%;
+    margin: 0;
+    padding: 0.8rem 1rem;
+    border-radius: 0.8rem;
+    background: rgba(var(--t-oscurecer), 0.22);
+    box-sizing: border-box;
+  }
+
+  .perfil-cabeza-lado .perfil-apartado h3 {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 1100px) {
+  .perfil-columnas.columnas-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .perfil-columnas.columnas-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1099px) {
+  .perfil-columnas.columnas-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.perfil-columnas.columnas-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Los marcos de tu foto, para elegir */
+.perfil-marcos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr));
+  gap: 0.5rem;
+}
+
+.perfil-marco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.2rem 0.35rem;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  background: var(--t-panel);
+  color: var(--t-texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+.perfil-marco:hover {
+  background: var(--t-panel-3);
+}
+
+.perfil-marco.elegido {
+  border-color: rgb(var(--color-vista));
+}
+
+.perfil-marco small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: bold;
+}
+
+.perfil-marco-foto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 2px solid var(--t-azulado);
+  border-radius: 50%;
+  background: var(--t-fondo-2);
+  overflow: hidden;
+  font-size: 1.1rem;
+}
+
+.perfil-marco-foto .perfil-foto {
+  font-size: 1.1rem;
+}
+

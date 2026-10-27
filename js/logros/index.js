@@ -9,6 +9,7 @@ import { usuarioActual, alCambiarSesion, hayNube } from "../comun/nube.js";
 import { alCambiarMiPerfil } from "../comun/perfiles.js";
 import { LOGROS, CATEGORIAS, NIVELES, progreso, insignia, LOGROS_PARA_PLATA, LOGROS_PARA_ORO } from "../comun/logros.js";
 import { FONDOS, claseFondo, estiloFondo } from "../comun/fondos.js";
+import { FICHAS_POR_NIVEL } from "../comun/fichas.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
 const vista = document.getElementById("vista-logros");
@@ -56,6 +57,7 @@ function plantillaLogro({ logro, valor, meta, conseguido }) {
       </div>
       <div class="logro-lado">
         <span class="logro-nivel">${NIVELES[logro.nivel]}</span>
+        <span class="logro-fichas" title="${t("Pokédólares para la Tienda de «Juegos»")}"><span class="ficha-moneda"></span>${FICHAS_POR_NIVEL[logro.nivel] || 0}</span>
         ${premio}
       </div>
     </article>`;

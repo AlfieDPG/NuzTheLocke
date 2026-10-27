@@ -13,6 +13,7 @@
 
 import { icono } from "../comun/iconos.js";
 import { escaparHTML, fechaLarga } from "../comun/utilidades.js";
+import { claseMarcoDe } from "../comun/fichas.js";
 import { hayNube, usuarioActual } from "../comun/nube.js";
 import { leer, escribir } from "../comun/almacen.js";
 import { CLAVES_JUEGO, CLAVE_MULTIPLICADOR_CAPS, CLAVE_HIERBA_RUTAS } from "../comun/selector-juego.js";
@@ -203,7 +204,7 @@ function plantillaJugador(locke, uid) {
     <div class="locke-jugador ${gano ? "ganador" : ""} ${pendiente ? "pendiente" : ""} ${esMio ? "mio" : ""} ${eliminado ? "eliminado" : ""}"
          data-uid="${escaparHTML(uid)}">
       <div class="locke-persona">
-        <div class="locke-cara" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">
+        <div class="locke-cara ${claseMarcoDe(uid)}" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">
           ${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-respaldo="" data-quitar-si-falla>` : ""}
           ${eliminado ? `<span class="locke-cara-fuera">${icono("calavera")}</span>` : ""}
         </div>

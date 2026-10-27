@@ -40,6 +40,7 @@
   <link rel="stylesheet" href="css/versus.css">
   <link rel="stylesheet" href="css/pokedex.css">
   <link rel="stylesheet" href="css/logros.css">
+  <link rel="stylesheet" href="css/juegos.css">
   <link rel="stylesheet" href="css/ruleta.css">
   <link rel="stylesheet" href="css/calculadora.css">
   <link rel="stylesheet" href="css/randomizer.css">
@@ -78,6 +79,7 @@
         <span class="menu-titulo">Comunidad</span>
         <button data-vista="foro" data-icono="mensaje" class="boton-seccion">Foro</button>
         <button data-vista="amigos" data-icono="amigos" class="boton-seccion">Amigos</button>
+        <button data-vista="juegos" data-icono="mando" class="boton-seccion">Juegos</button>
         <button data-vista="logros" data-icono="trofeo" class="boton-seccion">Logros</button>
       </nav>
 
@@ -258,6 +260,12 @@
           <div class="logros-lista"></div>
         </section>
 
+        <section id="vista-juegos" hidden>
+          <div class="selector-regiones juegos-pestanas"></div>
+          <div class="juegos-cabecera"></div>
+          <div class="juegos-cuerpo"></div>
+        </section>
+
         <section id="vista-foro" hidden>
           <div class="selector-regiones foro-categorias"></div>
           <div class="barra-foro">
@@ -300,6 +308,7 @@
           <div class="barra-amigos">
             <input class="amigos-correo" type="text" placeholder="Mote de tu amigo...">
             <button class="amigos-agregar">Agregar</button>
+            <button class="amigos-vista">Ver en lista</button>
             <span class="amigos-aviso"></span>
           </div>
           <div class="amigos-solicitudes" hidden></div>
@@ -726,6 +735,7 @@
       <span class="sesion-error captura-error"></span>
       <div class="dialogo-botones">
         <button type="button" class="boton-gris boton-izquierda captura-quitar">Quitar</button>
+        <button type="button" class="boton-gris captura-fallada" title="Pasaste por aquí pero no conseguiste capturar nada">No la conseguí</button>
         <button type="button" class="boton-gris captura-cancelar">Cancelar</button>
         <button type="submit" class="boton-rojo captura-ok">Guardar</button>
       </div>

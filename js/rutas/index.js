@@ -92,8 +92,12 @@ function botonLugar(apartado, texto) {
   // izquierda y el mote debajo del lugar. Sin marcar, el hueco del retrato vacío: así la
   // tarjeta mide lo mismo y al marcarla no se mueve nada.
   const captura = usada ? capturaDe(juego.id, clave) : null;
-  const mote = captura && captura.mote ? `<span class="ruta-mote">${escaparHTML(captura.mote)}</span>` : "";
-  return `<button class="ruta ${evento ? "evento" : ""} ${usada ? "usada" : ""}" aria-pressed="${usada}"
+  // Sin captura («No la conseguí», ver ./capturas.js): una ✗ y «Sin captura» en vez del mote
+  const fallada = Boolean(captura && captura.fallada);
+  const mote = fallada
+    ? `<span class="ruta-mote">${t("Sin captura")}</span>`
+    : captura && captura.mote ? `<span class="ruta-mote">${escaparHTML(captura.mote)}</span>` : "";
+  return `<button class="ruta ${evento ? "evento" : ""} ${usada ? "usada" : ""} ${fallada ? "fallada" : ""}" aria-pressed="${usada}"
     data-clave="${escaparHTML(clave)}" data-buscar="${escaparHTML(quitarAcentos(visible === texto ? texto : `${texto} ${visible}`))}">${
       usada ? plantillaCaptura(juego.id, clave) : `<span class="ruta-hueco"></span>`
     }<span class="ruta-textos">${contenido}${mote}</span></button>`;

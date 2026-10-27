@@ -25,6 +25,7 @@ const SECCIONES = {
   calculadora: () => import("./calculadora/index.js"),
   ruleta: () => import("./ruleta/index.js"),
   logros: () => import("./logros/index.js"),
+  juegos: () => import("./juegos/index.js"),
   randomizer: () => import("./randomizer/index.js")
 };
 
@@ -43,6 +44,7 @@ const VISTAS = {
   calculadora: "calculadora",
   ruleta: "ruleta",
   logros: "logros",
+  juegos: "juegos",
   randomizer: "randomizer"
 };
 
