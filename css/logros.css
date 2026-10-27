@@ -288,13 +288,24 @@
   opacity: 0.45;
 }
 
-/* El nivel arriba y, si da un fondo para la tarjeta, una muestra pequeña de ese fondo abajo */
+/* A la derecha, en columna: el nivel arriba, justo debajo la muestra del fondo que da (si da
+   alguno) y los Pokédólares abajo del todo, en la esquina */
 .logro-lado {
   align-self: stretch;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 0.3rem;
   flex: none;
+}
+
+.logro-lado .logro-nivel {
+  position: static;
+  margin: -0.3rem -0.25rem 0 0;
+}
+
+.logro-lado .logro-fichas {
+  margin-top: auto;
 }
 
 .logro-premio {
@@ -418,14 +429,18 @@
 
 /* ---------- Título (un logro, debajo del nombre) ---------- */
 
+/* Una plaquita: del tamaño del texto, con un fondo y un borde del color de su nivel (los de
+   la Tienda llevan además su propio diseño: css/juegos.css, .placa-tienda) */
 .perfil-titulo {
   display: block;
+  width: fit-content;
   max-width: 100%;
   margin: -0.15rem auto 0.1rem;
-  padding: 0.1rem 0.6rem;
+  padding: 0.18rem 0.7rem;
   border: none;
   border-radius: 0.4rem;
-  background: transparent;
+  background: color-mix(in srgb, var(--color-nivel, #f1c40f) 14%, var(--t-panel-3));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-nivel, #f1c40f) 55%, transparent);
   color: var(--color-nivel, #f1c40f);
   font-family: inherit;
   font-size: 0.95rem;
@@ -445,6 +460,8 @@ button.perfil-titulo:hover:not(:disabled) {
 }
 
 .perfil-titulo.sin-titulo {
+  background: transparent;
+  box-shadow: none;
   color: rgba(var(--t-texto-rgb), 0.45);
   font-weight: normal;
   font-size: 0.85rem;

@@ -10,7 +10,7 @@ import { imagenConRespaldo } from "../comun/imagenes.js";
 import { activarArrastre } from "../comun/arrastrar.js";
 import { elegirEquipo, caraDePokemon, carasDeEquipo } from "../comun/elegir-equipo.js";
 import { fondoDe, claseFondo, estiloFondo } from "../comun/fondos.js";
-import { marcoDe, claseMarco } from "../comun/fichas.js";
+import { marcoDe, claseMarco, fondoVisual, plantillaTituloDe } from "../comun/fichas.js";
 import { icono } from "../comun/iconos.js";
 import { campoNumero } from "../comun/numero.js";
 import { escaparHTML, fechaLarga } from "../comun/utilidades.js";
@@ -345,10 +345,11 @@ function plantillaLuchador(perfil, victorias, clase) {
     ? imagenConRespaldo(urls, `alt="${nombre}" draggable="false" referrerpolicy="no-referrer" data-quitar-si-falla`)
     : "";
   return `
-    <div class="luchador ${clase}">
+    <div class="luchador ${clase} ${fondoVisual(perfil).clase}" style="${fondoVisual(perfil).estilo}">
       ${clase.includes("gana") ? `<span class="luchador-corona">${icono("corona")}</span>` : ""}
       <div class="jugador-foto ${claseMarco(marcoDe(perfil))}" data-inicial="${escaparHTML((perfil.nombre || "?")[0])}" data-perfil="${escaparHTML(perfil.uid || "")}" title="${t("Ver perfil")}">${imagen}</div>
       <span class="luchador-nombre">${nombre}</span>
+      ${plantillaTituloDe(perfil, "pequeno")}
       <span class="luchador-victorias">${victorias}</span>
       <span class="luchador-etiqueta">${victorias === 1 ? t("victoria") : t("victorias")}</span>
     </div>`;
@@ -412,6 +413,7 @@ function plantillaFicha(ficha) {
         <div class="jugador-foto ${claseMarco(ficha.marco)}" data-inicial="${escaparHTML(ficha.nombre[0] || "?")}" data-perfil="${escaparHTML(ficha.clave)}" title="${t("Ver perfil")}">${imagen}</div>
         <div class="ficha-quien">
           <h2 class="jugador-nombre">${alt}</h2>
+          ${ficha.titulo || ""}
           ${ficha.mia
             ? `<span class="jugador-estado">${t("Tú")}</span>`
             : conectado
@@ -438,6 +440,7 @@ function fichaDePerfil(perfil, mia) {
     jugados: lockesJugados(perfil),
     fondo: fondoDe(perfil),
     marco: marcoDe(perfil),
+    titulo: plantillaTituloDe(perfil, "pequeno"),
     mia
   };
 }

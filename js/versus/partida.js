@@ -2,8 +2,8 @@
 //
 //   · En tu bloque (solo en tu pantalla): tu equipo de la partida y el botón para vincularla.
 //     Mientras se vigila el archivo, cada vez que guardas en el emulador se vuelve a leer.
-//   · La ventana «Partida»: equipo y cajas, qué caja es la de los muertos y «Copiar a Mis
-//     equipos».
+//   · La ventana «Partida»: equipo y cajas, qué caja es la de los muertos, «Copiar a Mis
+//     equipos» y exportar una caja entera como paste de Showdown.
 //   · Los que entran nuevos en la caja de los muertos se proponen para el cementerio.
 //   · Las capturas se marcan solas en «Rutas» (js/partida/rutas.js).
 //   · Pulsando un Pokémon de la ventana se edita (./editor.js), con la partida vigilada y en
@@ -27,15 +27,17 @@ import {
   sePuedeVigilar, cargarVinculos, vincular, reanudar, desvincular, leerUnaVez, estadoVinculo,
   copiasDe, restaurarCopia
 } from "../partida/vinculo.js";
-import { EDITABLES } from "../partida/formato.js";
+import { EDITABLES, formatoDeSeguro } from "../partida/formato.js";
 import { POR_CAJA } from "../partida/tresds.js";
 import { pintarBolsa, activarBolsa } from "./bolsa.js";
 import { mover } from "../partida/huecos.js";
-import { prepararConversion } from "../partida/convertir.js";
+import { prepararConversion, cajaConDetalle, pasteDeEquipo } from "../partida/convertir.js";
+import { copiarAlPortapapeles } from "../equipos/exportar.js";
 import { iniciarEditor, abrirEditor, cerrarEditor, editorEnLado, sitioEditando, reservarEditor } from "./editor.js";
 import { iniciarMeter, abrirMeter } from "./meter-equipo.js";
 import {
-  prepararDatos, cambiarHuecos, comprobarSitio, hayCambios, cuantosCambios, vistaConCambios, guardarCambios, descartarCambios, alCambiarBorrador
+  prepararDatos, cambiarHuecos, comprobarSitio, hayCambios, cuantosCambios, vistaConCambios, guardarCambios, descartarCambios, alCambiarBorrador,
+  bytesComoSeVen
 } from "./editor-comun.js";
 import {
   sePuedeLeer, partidaDe, procesarArchivo, olvidarPartida, cajasMuertosDe, alternarCajaMuertos, muertosSinApuntar,
@@ -280,9 +282,10 @@ function pintarPartida() {
     });
   }
 
-  // Cada caja con su interruptor de «Muertos» (puede haber varias). Editando, también la
-  // primera vacía (para meter ahí) y en cada una un hueco libre. Las bloqueadas (Sol / Luna:
-  // se abren según se llenan) no se ven en el juego: marcadas y sin hueco para meter.
+  // Cada caja con «Exportar» (si tiene algo) y su interruptor de «Muertos» (puede haber varias).
+  // Editando, también la primera vacía (para meter ahí) y en cada una un hueco libre. Las
+  // bloqueadas (Sol / Luna: se abren según se llenan) no se ven en el juego: marcadas y sin hueco
+  // para meter.
   const deMuertos = cajasMuertosDe(partida);
   const abiertas = partida.abiertas || partida.cajas.length;
   let vaciaPuesta = false;
@@ -298,6 +301,7 @@ function pintarPartida() {
           <h3>
             ${bloqueada ? `<span class="partida-candado" title="${t("Bloqueada en el juego")}">${icono("candado")}</span>` : ""}
             ${escaparHTML(caja.nombre)} <small>${caja.pokemon.length}</small>
+            ${caja.pokemon.length ? `<button class="partida-exportar" data-caja="${i}" title="${t("Copiar la caja como paste de Showdown")}">${icono("copiar")} ${t("Exportar")}</button>` : ""}
             <button class="partida-marcar-muertos ${muertos ? "activa" : ""}" data-caja="${i}" aria-pressed="${muertos}"
                     title="${muertos ? t("Ya no es caja de muertos") : t("Marcar como caja de muertos")}">${icono("calavera")} ${t("Muertos")}</button>
           </h3>
@@ -453,6 +457,62 @@ async function copiarEquipo() {
     avisarVentana(t("No se ha podido copiar el equipo."));
   } finally {
     boton.disabled = false;
+  }
+}
+
+// ---------- Exportar una caja ----------
+//
+// Toda la caja como paste de Showdown (para la calculadora de daño, el teambuilder...). Lo guardado
+// de las cajas no lleva ataques, habilidad ni naturaleza: con la partida vigilada se lee del
+// archivo (con los cambios sin guardar, si hay); si no, sale con lo que hay y se dice por qué.
+
+function porQueSinDetalle(id) {
+  const estado = estadoVinculo(id);
+  if (estado === "pausado") return t("Pulsa «Reanudar» en tu bloque y vuelve a exportarla.");
+  if (estado) return t("No se ha podido leer el archivo ahora mismo: prueba otra vez en un momento.");
+  return sePuedeVigilar
+    ? t("Vincula la partida en este navegador (el botón del enlace, arriba) y vuelve a exportarla.")
+    : t("Para eso hay que vincular la partida, y eso solo se puede en Chrome o Edge.");
+}
+
+async function exportarCaja(boton) {
+  const id = idAbierto;
+  const posicion = Number(boton.dataset.caja);
+  const antes = boton.innerHTML;
+  boton.disabled = true;
+  try {
+    await prepararConversion();
+    const vista = vistaConCambios(id) || partidaDe(id);
+    let pokemon = ((vista && vista.cajas[posicion]) || {}).pokemon || [];
+    let completa = false;
+    if (estadoVinculo(id) === "vigilando") {
+      try {
+        const bytes = await bytesComoSeVen(id);
+        pokemon = await cajaConDetalle(formatoDeSeguro(bytes).leer(bytes), posicion);
+        completa = true;
+      } catch (error) {
+        console.error(error); // el emulador a mitad de guardar, por ejemplo: con lo que hay
+      }
+    }
+    const paste = pasteDeEquipo(pokemon);
+    if (!paste) {
+      avisarVentana(t("No hay nada que exportar.")); // solo huevos
+      boton.disabled = false;
+      return;
+    }
+    const copiado = await copiarAlPortapapeles(paste);
+    boton.innerHTML = `${icono(copiado ? "visto" : "aspa")} ${copiado ? t("Copiada") : t("No se pudo copiar")}`;
+    setTimeout(() => {
+      boton.innerHTML = antes;
+      boton.disabled = false;
+    }, 1500);
+    if (copiado && !completa) {
+      avisarVentana(`${t("Copiada, pero sin ataques, habilidades ni naturalezas: de las cajas solo se leen del archivo de la partida.")}\n\n${porQueSinDetalle(id)}`);
+    }
+  } catch (error) {
+    console.error(error);
+    boton.disabled = false;
+    avisarVentana(t("No se ha podido exportar la caja."));
   }
 }
 
@@ -628,6 +688,8 @@ export function iniciarPartida(alRepintar, alAvisar) {
     else if (pokemon) abrirEditor(idAbierto, sitioDe(pokemon.dataset.sitio));
     if (e.target.closest(".partida-meter")) abrirMeter(idAbierto);
     if (e.target.closest(".partida-copiar")) copiarEquipo();
+    const exportar = e.target.closest(".partida-exportar");
+    if (exportar) exportarCaja(exportar);
     const marcar = e.target.closest(".partida-marcar-muertos");
     if (marcar) {
       alternarCajaMuertos(idAbierto, Number(marcar.dataset.caja));

@@ -11,6 +11,7 @@
 //   resultado para compartir (con cuadraditos de colores), que se arma al terminar.
 
 import { leer, escribir } from "../comun/almacen.js";
+import { sumarContador } from "../comun/contadores.js";
 import { usuarioActual } from "../comun/nube.js";
 import { cargarDatos, datos } from "../comun/datos.js";
 import { cargarPokedex } from "../pokedex/datos.js";
@@ -65,6 +66,7 @@ export function cargarEspecies() {
         gen: fila.gen,
         total: fila.total,
         bases: fila.bases,
+        retrato: fila.retrato, // su casilla en la hoja de retratos (js/pokedex/datos.js)
         clase: fila.clase || "",
         etapa: etapa(fila.numero)
       }));
@@ -107,10 +109,23 @@ export async function mirarSiYaJugado(juego, estado) {
   return true;
 }
 
+// Para los logros (js/comun/logros.js, los de «Retos»): retos terminados, los acertados del todo
+// (acierto) y los perfectos de cada juego (perfecto; si el juego no dice otra cosa, el acierto), y
+// los días con todos los retos hechos
+const TODOS_LOS_RETOS = ["silueta", "pistas", "eficaz", "masomenos", "locke", "grito", "evolucion"];
+
+function contarParaLogros(juego, estado) {
+  sumarContador("retos");
+  if (estado.acierto) sumarContador(`acierto-${juego}`);
+  if (estado.perfecto ?? estado.acierto) sumarContador(`perfecto-${juego}`);
+  if (TODOS_LOS_RETOS.every((cada) => estadoDe(cada).fin)) sumarContador("dias-completos");
+}
+
 // Reto terminado: se apunta y, con sesión, se suman sus Pokédólares
 export async function terminar(juego, estado, puntos) {
   Object.assign(estado, { fin: true, juego, puntos }); // juego y puntos: por si hay que reintentarlo
   guardarEstado(juego, estado);
+  contarParaLogros(juego, estado);
   if (!usuarioActual()) return;
   await apuntar(juego, estado);
 }

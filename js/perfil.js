@@ -45,10 +45,11 @@ import { obtenerVariedades } from "./comun/formas.js";
 import { elegirForma, datosDeForma } from "./comun/elegir-forma.js";
 import { LOGROS, insignia } from "./comun/logros.js";
 import {
-  FONDOS, FONDOS_METAL, FONDOS_TIPO, FONDOS_EEVEE, FONDOS_TIENDA, fondoDe, logrosDe, desbloqueado, requisito, requisitoCorto,
+  FONDOS, FONDOS_METAL, FONDOS_TIPO, FONDOS_EEVEE, FONDOS_TIENDA, FONDOS_REGION, fondoDe, logrosDe, desbloqueado, requisito, requisitoCorto,
   claseFondo, estiloFondo
 } from "./comun/fondos.js";
-import { TITULOS, MARCOS, loTiene, tieneMarco, marcoDe, claseMarco } from "./comun/fichas.js";
+import { TITULOS, MARCOS, loTiene, tieneMarco, marcoDe, claseMarco, claseTitulo } from "./comun/fichas.js";
+import { miColeccion, escucharColeccion, alCambiarColeccion, coleccionDe, escaparate, aspectoDe } from "./comun/coleccion.js";
 import { t, LOCALE, nombre as nombreDe } from "./comun/idioma.js";
 
 const MAX_DESTACADOS = 3;    // los equipos que se pueden destacar (cada uno es una copia dentro del perfil)
@@ -140,11 +141,11 @@ function tituloDe(perfil) {
 function plantillaTitulo(perfil, mio) {
   const logro = tituloDe(perfil);
   if (mio) {
-    return `<button class="perfil-titulo ${logro ? `nivel-${logro.nivel}` : "sin-titulo"}" title="${t("Cambiar título")}" ${editandoNombre ? "disabled" : ""}>
+    return `<button class="perfil-titulo ${logro ? claseTitulo(logro) : "sin-titulo"}" title="${t("Cambiar título")}" ${editandoNombre ? "disabled" : ""}>
               ${escaparHTML(logro ? logro.nombre : t("Elegir título"))}
             </button>`;
   }
-  return logro ? `<span class="perfil-titulo nivel-${logro.nivel}">${escaparHTML(logro.nombre)}</span>` : "";
+  return logro ? `<span class="perfil-titulo ${claseTitulo(logro)}">${escaparHTML(logro.nombre)}</span>` : "";
 }
 
 function pintarTitulos() {
@@ -158,7 +159,7 @@ function pintarTitulos() {
             <button class="titulo-opcion ${logro.id === perfil.titulo ? "elegido" : ""}" data-logro="${escaparHTML(logro.id)}"
                     title="${escaparHTML(logro.descripcion)}">
               ${insignia(logro, true)}
-              <span>${escaparHTML(logro.nombre)}</span>
+              <span class="perfil-titulo ${claseTitulo(logro)}">${escaparHTML(logro.nombre)}</span>
             </button>`
         )
         .join("")
@@ -197,7 +198,7 @@ function plantillaFondos(perfil) {
   const puesto = fondoDe(perfil);
   const todos = [SIN_FONDO, ...FONDOS];
   // El puesto primero; luego «Sin fondo» y los que ya tienes (los más nuevos de metal antes)
-  const libres = [...FONDOS_METAL].reverse().concat(FONDOS_TIENDA, FONDOS_TIPO, FONDOS_EEVEE).filter((fondo) => desbloqueado(fondo, perfil));
+  const libres = [...FONDOS_METAL].reverse().concat(FONDOS_REGION, FONDOS_TIENDA, FONDOS_TIPO, FONDOS_EEVEE).filter((fondo) => desbloqueado(fondo, perfil));
   const pocos = [todos.find((fondo) => fondo.id === puesto) || SIN_FONDO, SIN_FONDO, ...libres]
     .filter((fondo, i, lista) => lista.indexOf(fondo) === i)
     .slice(0, VER_FONDOS);
@@ -226,12 +227,67 @@ function pintarFondos() {
   dialogoFondos.querySelector(".fondos-lista").innerHTML =
     apartado(t("Básicos"), [SIN_FONDO, ...FONDOS_METAL]) +
     apartado(t("De la Tienda"), FONDOS_TIENDA) +
+    apartado(t("De región"), FONDOS_REGION) +
     apartado("Eevee", FONDOS_EEVEE, "perfil-fondos-eevee") +
     apartado(t("Tipos"), FONDOS_TIPO, "perfil-fondos-tipo");
 }
 
 // El marco de tu foto (js/comun/fichas.js): «Sin marco» y los que tienes (comprados en la
 // Tienda de «Juegos» o, los de metal, por logros). Los demás se ven en la Tienda.
+// ---------- Su colección (los huevos de «Juegos») ----------
+//
+// Una muestra: los que haya elegido destacar o, si no, los últimos que le han salido (ver
+// escaparate en js/comun/coleccion.js), con la cara y el shiny que haya elegido para cada uno.
+// La tuya está siempre al día; la de los demás se pide la primera vez que se abre su perfil.
+
+const coleccionesVistas = new Map(); // uid -> su colección (o null si no tiene)
+
+function coleccionPara(perfil, mio) {
+  if (mio) {
+    escucharColeccion();
+    return miColeccion();
+  }
+  if (coleccionesVistas.has(perfil.uid)) return coleccionesVistas.get(perfil.uid);
+  coleccionDe(perfil.uid)
+    .then((coleccion) => {
+      coleccionesVistas.set(perfil.uid, coleccion);
+      if (dialogo.open && viendo === perfil.uid) pintar();
+    })
+    .catch((error) => console.error("No se ha podido leer su colección", error));
+  return undefined; // aún no ha llegado
+}
+
+function plantillaColeccion(perfil, mio) {
+  const coleccion = coleccionPara(perfil, mio);
+  if (coleccion === undefined) return "";
+  const especies = coleccion ? new Set([...Object.keys(coleccion.especies), ...Object.keys(coleccion.shiny)]).size : 0;
+  const shiny = coleccion ? Object.keys(coleccion.shiny).length : 0;
+  const muestra = escaparate(coleccion);
+  const nombreDeEspecie = (id) => {
+    const especie = datos && datos.pokemon.find((cada) => cada.id === id);
+    return especie ? nombreDe(especie) : `#${id}`;
+  };
+  return `
+    <section class="perfil-apartado perfil-coleccion">
+      <h3>
+        ${t("Colección")}
+        <small class="perfil-cuenta">${t("{n} especies", { n: especies })}${shiny ? ` · ${icono("estrella")} ${shiny}` : ""}</small>
+        ${mio ? `<button class="perfil-ir-tienda" data-ir-coleccion>${icono("huevo")} ${t("Ir")}</button>` : ""}
+      </h3>
+      ${muestra.length
+        ? `<div class="perfil-coleccion-muestra">${muestra
+            .map(({ id }) => {
+              const { cara, shiny: enShiny } = aspectoDe(coleccion, id);
+              return `<span class="perfil-coleccion-poke ${enShiny ? "shiny" : ""}" title="${escaparHTML(nombreDeEspecie(id))}">
+                        ${imagenConRespaldo(urlsPMDEmocion({ id, shiny: enShiny }, cara), `alt="" loading="lazy" data-quitar-si-falla`)}
+                      </span>`;
+            })
+            .join("")}</div>
+           <small class="perfil-coleccion-nota">${coleccion.destacados.length ? (mio ? t("Tus destacados (se eligen en la colección)") : t("Sus destacados")) : (mio ? t("Los últimos que te han salido") : t("Los últimos que le han salido"))}</small>`
+        : `<p class="perfil-vacio">${mio ? t("Abre huevos en «Juegos» → «Colección» para empezarla.") : t("Todavía no ha abierto ningún huevo.")}</p>`}
+    </section>`;
+}
+
 function plantillaMarcos(perfil) {
   const puesto = marcoDe(perfil);
   const tuyos = MARCOS.filter((marco) => tieneMarco(perfil, marco));
@@ -685,8 +741,8 @@ function pintar() {
   const columnas = !sabeTodo
     ? [sobreMi ? "" : `<p class="perfil-vacio">${t("Hazte su amigo para ver más de su perfil.")}</p>`]
     : mio
-      ? [destacados, plantillaPalmares(perfil) + plantillaSalon(perfil), plantillaFondos(perfil) + plantillaMarcos(perfil) + plantillaAmigos()]
-      : [destacados, plantillaPalmares(perfil, false) + plantillaSalon(perfil), plantillaFondosDe(perfil) + plantillaAmigosDe(perfil)];
+      ? [destacados, plantillaPalmares(perfil) + plantillaSalon(perfil) + plantillaColeccion(perfil, true), plantillaFondos(perfil) + plantillaMarcos(perfil) + plantillaAmigos()]
+      : [destacados, plantillaPalmares(perfil, false) + plantillaSalon(perfil) + plantillaColeccion(perfil, false), plantillaFondosDe(perfil) + plantillaAmigosDe(perfil)];
   const llenas = columnas.filter((columna) => columna.trim());
 
   cuerpo.innerHTML = sabeTodo && pestana === "logros" ? cabeza + plantillaLogrosDe(perfil) : `
@@ -1063,6 +1119,9 @@ cuerpo.addEventListener("click", (e) => {
   } else if (boton.classList.contains("perfil-marco")) {
     cuerpo.querySelectorAll(".perfil-marco").forEach((cada) => cada.classList.toggle("elegido", cada === boton));
     guardarMiPerfil({ marco: boton.dataset.marco || "" }).catch(siFalla);
+  } else if (boton.hasAttribute("data-ir-coleccion")) {
+    dialogo.close();
+    irA("juegos");
   } else if (boton.classList.contains("perfil-ir-tienda")) {
     dialogo.close();
     irA("juegos");
@@ -1185,6 +1244,7 @@ const repintar = () => {
   if (dialogoFondos.open) pintarFondos();
 };
 alCambiarMiPerfil(repintar);
+alCambiarColeccion(repintar); // tu colección, en tu perfil
 alCambiarPerfilesAmigos(repintar);
 alCambiarAmistades(repintar);
 alCambiarChats(repintar);

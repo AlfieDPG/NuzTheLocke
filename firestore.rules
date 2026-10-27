@@ -29,6 +29,7 @@ rules_version = '2';
 //   lockes/{id}/mensajes  -> chat común de los que juegan un locke (misma caducidad). Ver «Chat de un locke».
 //   jugadas/{uid}_{juego}_{dia} -> los retos del día de «Juegos» ya jugados y sus Fichas. Una por
 //                            juego y día, sin cambiarla. Ver «Juegos».
+//   colecciones/{uid}     -> los Pokémon que han salido de los huevos de «Juegos». Lo escribe su dueño.
 //   estadisticas/usuarios -> cuántos perfiles hay (solo un número). Lo lee cualquiera, incluso sin
 //                            sesión. Solo cambia de 1 en 1, junto con la creación o el borrado del
 //                            perfil propio. El documento se crea a mano (ver LEEME-nube.md).
@@ -158,11 +159,17 @@ service cloud.firestore {
           && despues.semanales == (antes.get('semana', '') == despues.semana ? antes.get('semanales', 0) : 0) + puntos;
       }
 
-      // Lo comprado en la Tienda: lo comprueba la web; aquí, solo un tope de tamaño
+      // Lo comprado en la Tienda y lo gastado en huevos (huevos: { gastados, devueltos }, ver
+      // js/comun/coleccion.js): lo comprueba la web; aquí, solo topes y que nunca baje
       function comprasBien() {
         let compras = request.resource.data.get('compras', {});
+        let huevos = request.resource.data.get('huevos', {});
+        let antes = resource == null ? {} : resource.data.get('huevos', {});
         return compras is map && compras.size() <= 100
-          && request.resource.data.get('marco', '') is string && request.resource.data.get('marco', '').size() <= 40;
+          && request.resource.data.get('marco', '') is string && request.resource.data.get('marco', '').size() <= 40
+          && huevos is map && huevos.keys().hasOnly(['gastados', 'devueltos'])
+          && huevos.get('gastados', 0) is int && huevos.get('gastados', 0) >= antes.get('gastados', 0)
+          && huevos.get('devueltos', 0) is int && huevos.get('devueltos', 0) >= antes.get('devueltos', 0);
       }
 
       allow get: if identificado();
@@ -212,6 +219,25 @@ service cloud.firestore {
         && request.resource.data.cuando == request.time
         && getAfter(perfilMio()).data.get('juegos', {}).get('ultima', '') == id;
       allow delete: if identificado() && resource.data.uid == request.auth.uid && !exists(perfilMio());
+    }
+
+    // ---------- Colección ----------
+    //
+    // Los Pokémon que han salido de los huevos de «Juegos» (js/comun/coleccion.js):
+    // { especies: { numero: veces }, shiny: { numero: veces }, aspecto: { numero: { cara, shiny } } }
+    // (aspecto: cómo quiere ver cada uno). Solo lo escribe su dueño; lo
+    // lee cualquiera con sesión, de uno en uno (para ver la colección de un amigo).
+
+    match /colecciones/{uid} {
+      allow get: if identificado();
+      allow create, update: if identificado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['especies', 'shiny', 'aspecto', 'recientes', 'destacados'])
+        && request.resource.data.get('recientes', []) is list && request.resource.data.get('recientes', []).size() <= 12
+        && request.resource.data.get('destacados', []) is list && request.resource.data.get('destacados', []).size() <= 6
+        && request.resource.data.get('aspecto', {}) is map && request.resource.data.get('aspecto', {}).size() <= 1100
+        && request.resource.data.get('especies', {}) is map && request.resource.data.get('especies', {}).size() <= 1100
+        && request.resource.data.get('shiny', {}) is map && request.resource.data.get('shiny', {}).size() <= 1100;
+      allow delete: if identificado() && request.auth.uid == uid;
     }
 
     // ---------- Cuántos usuarios hay ----------

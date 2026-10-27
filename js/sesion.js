@@ -28,6 +28,7 @@ import { iniciarLockes, salirDeTodosMisLockes } from "./comun/lockes.js";
 import { borrarMiForo } from "./comun/foro.js";
 import { iniciarChats, borrarMisBloqueos } from "./comun/chat.js";
 import { borrarMisJugadas, marcoDe, claseMarco } from "./comun/fichas.js";
+import { borrarMiColeccion } from "./comun/coleccion.js";
 import { iniciarAvisosForo } from "./comun/avisos-foro.js";
 import { iniciarAvisos } from "./avisos.js";
 import { iniciarPresencia, borrarMiPresencia } from "./comun/presencia.js";
@@ -333,6 +334,7 @@ function borrarCuenta() {
     await borrarMiPerfil();
     // Las jugadas de «Juegos»: las reglas solo dejan borrarlas ya sin perfil
     await borrarMisJugadas().catch((fallo) => console.error(fallo));
+    await borrarMiColeccion().catch((fallo) => console.error(fallo));
     await borrarCuentaDeFirebase(); // recarga la página
   });
 }

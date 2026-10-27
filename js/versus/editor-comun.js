@@ -525,6 +525,12 @@ export function vistaConCambios(idLocke) {
   return hayCambios(idLocke) ? borrador.vista : null;
 }
 
+// Los bytes de la partida tal y como se ve en la ventana (para exportar una caja): con los cambios
+// sin guardar, si hay. A diferencia de partidaDeTrabajo, no empieza un borrador.
+export async function bytesComoSeVen(idLocke) {
+  return hayCambios(idLocke) ? borrador.bytes : leerArchivo(idLocke);
+}
+
 // La partida sobre la que se trabaja: la del borrador o, sin cambios, la del disco
 export async function partidaDeTrabajo(idLocke) {
   if (hayCambios(idLocke)) return borrador.bytes;

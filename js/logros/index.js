@@ -55,10 +55,12 @@ function plantillaLogro({ logro, valor, meta, conseguido }) {
         <span class="logro-descripcion">${escaparHTML(logro.descripcion)}</span>
         ${pie}
       </div>
+      <!-- A la derecha: el nivel arriba, debajo el fondo que da (si da alguno) y los Pokédólares
+           que da en la esquina de abajo -->
       <div class="logro-lado">
         <span class="logro-nivel">${NIVELES[logro.nivel]}</span>
-        <span class="logro-fichas" title="${t("Pokédólares para la Tienda de «Juegos»")}"><span class="ficha-moneda"></span>${FICHAS_POR_NIVEL[logro.nivel] || 0}</span>
         ${premio}
+        <span class="logro-fichas" title="${t("Pokédólares para la Tienda de «Juegos»")}"><span class="ficha-moneda"></span>${FICHAS_POR_NIVEL[logro.nivel] || 0}</span>
       </div>
     </article>`;
 }

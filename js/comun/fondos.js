@@ -14,6 +14,7 @@
 //     «x-vaporeon»... y «x-eeveelutions»). Cada uno con su dibujo en CSS
 //     (css/amigos.css, .fondo-eevee-vaporeon...).
 //   · De la Tienda: se compran con Pokédólares (FONDOS_TIENDA, js/comun/fichas.js).
+//   · De región: con el logro de completar esa generación en la colección (FONDOS_REGION).
 
 import { LOGROS, EEVEELUTIONS } from "./logros.js";
 import { coloresTipo, tiposEs } from "./tipos.js";
@@ -45,18 +46,26 @@ const PRECIO_FONDO = { sencillo: 300, detallado: 450, animado: 700 };
 
 export const FONDOS_TIENDA = [
   { id: "tienda-hierba", nombre: t("Hierba alta"), nivel: "sencillo" },
-  { id: "tienda-olas", nombre: t("Surf"), nivel: "sencillo" },
+  { id: "tienda-olas", nombre: t("Surf"), nivel: "animado" },
   { id: "tienda-cueva", nombre: t("Cueva"), nivel: "sencillo" },
-  { id: "tienda-nieve", nombre: t("Nevada"), nivel: "sencillo" },
+  { id: "tienda-nieve", nombre: t("Nevada"), nivel: "animado" },
   { id: "tienda-bosque", nombre: t("Bosque"), nivel: "sencillo" },
   { id: "tienda-atardecer", nombre: t("Atardecer"), nivel: "detallado" },
-  { id: "tienda-noche", nombre: t("Noche estrellada"), nivel: "detallado" },
-  { id: "tienda-casino", nombre: t("Casino"), nivel: "detallado" },
+  { id: "tienda-noche", nombre: t("Noche estrellada"), nivel: "animado" },
+  { id: "tienda-casino", nombre: t("Casino"), nivel: "animado" },
   { id: "tienda-magma", nombre: t("Magma"), nivel: "detallado" },
   { id: "tienda-aurora", nombre: t("Aurora"), nivel: "animado" }
 ].map((fondo) => ({ ...fondo, precio: PRECIO_FONDO[fondo.nivel] }));
 
-export const FONDOS = [...FONDOS_METAL, ...FONDOS_TIPO, ...FONDOS_EEVEE, ...FONDOS_TIENDA];
+// Los de región: uno por generación, con el logro de completarla en la colección de huevos de
+// «Juegos» (logros.js, «c-gen-1»...). No se compran. El dibujo, en CSS (css/juegos.css,
+// .fondo-region-kanto...), con algo de cada región.
+export const FONDOS_REGION = [
+  ["kanto", "Kanto"], ["johto", "Johto"], ["hoenn", "Hoenn"], ["sinnoh", "Sinnoh"], ["teselia", "Teselia"],
+  ["kalos", "Kalos"], ["alola", "Alola"], ["galar", "Galar"], ["paldea", "Paldea"]
+].map(([id, nombre], i) => ({ id: `region-${id}`, nombre, region: true, logro: `c-gen-${i + 1}` }));
+
+export const FONDOS = [...FONDOS_METAL, ...FONDOS_TIPO, ...FONDOS_EEVEE, ...FONDOS_TIENDA, ...FONDOS_REGION];
 
 // Los logros que tiene (solo los que existen)
 export function logrosDe(perfil) {
@@ -82,6 +91,7 @@ export function requisitoCorto(fondo) {
   const logro = LOGROS.find((cada) => cada.id === fondo.logro);
   if (!logro || logro.tipo) return "";
   if (logro.categoria === "pokedex") return logro.id === "x-eeveelutions" ? t("Las 8 Eeveelutions") : t("Regístralo");
+  if (fondo.region) return t("Completa la colección");
   return logro.id === "m-todos" ? t("Todos los logros") : t("{n} logros", { n: logro.meta });
 }
 

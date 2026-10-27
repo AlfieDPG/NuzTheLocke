@@ -149,6 +149,7 @@ async function probar(especie) {
     estado.intentos.push(especie.id);
     estado.acierto = especie.id === objetivo.id;
     if (estado.acierto || estado.intentos.length >= INTENTOS) {
+      estado.perfecto = estado.acierto && estado.intentos.length <= 3; // para el logro: en 3 o menos
       const cuadro = { si: "🟩", casi: "🟨", no: "🟥" };
       const filas = estado.intentos.map((numero) =>
         casillas(especies.find((cada) => cada.id === numero)).map((casilla) => cuadro[casilla.estado]).join(""));

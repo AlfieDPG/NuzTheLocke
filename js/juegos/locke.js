@@ -370,6 +370,7 @@ async function combatirYa() {
 }
 
 async function cerrar(resultado) {
+  estado.perfecto = resultado.gana && resultado.vivos === EQUIPO; // para el logro: sin bajas
   const cuadros = resultado.ps.map((vivo) => (vivo ? "🟩" : "🟥")).join("");
   estado.resumen = `${t("Locke del día")} (${tiposEs[lider.tipo]}) ${cuadros} ${resultado.gana ? "🏆" : "💀"}`;
   const puntos = resultado.gana ? 30 + 10 * resultado.vivos : 5 * resultado.derrotados;

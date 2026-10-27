@@ -132,8 +132,8 @@ export default {
   "<b>Citra, Lime3DS o Azahar:</b> Configurar → Almacenamiento → cambia la carpeta de la tarjeta SD.<br><b>Eden, yuzu o Sudachi:</b> Emulación → Configurar → Sistema de archivos → cambia la carpeta de la NAND.<br>Antes de cambiarla, copia lo que había en la carpeta de antes a la nueva, o el emulador no verá tus partidas.":
     "<b>Citra, Lime3DS or Azahar:</b> Configure → Storage → change the SD card folder.<br><b>Eden, yuzu or Sudachi:</b> Emulation → Configure → Filesystem → change the NAND folder.<br>Before changing it, copy what was in the old folder to the new one, or the emulator won't see your saves.",
   "Cajas": "Boxes",
-  "Pulsa tu equipo en tu bloque para ver el equipo y las cajas. Las capturas se marcan solas en «Rutas».":
-    "Click your team in your block to see the party and the boxes. Catches are marked automatically in “Routes”.",
+  "Pulsa tu equipo en tu bloque para ver el equipo y las cajas. Las capturas se marcan solas en «Rutas». Con «Exportar» copias una caja entera como paste de Showdown, para la calculadora de daño o el teambuilder.":
+    "Click your team in your block to see the party and the boxes. Catches are marked automatically in “Routes”. With “Export” you copy a whole box as a Showdown paste, for the damage calculator or the teambuilder.",
   "Cajas de muertos": "Boxes for the dead",
   "Pulsa «Muertos» en las cajas donde guardas a los que mueren. Los que entren nuevos en ellas te los propone para el cementerio (y quitar la vida, si quieres).":
     "Click “Dead” on the boxes where you keep the ones that die. New ones that go in are suggested for the graveyard (and removing the life, if you want).",

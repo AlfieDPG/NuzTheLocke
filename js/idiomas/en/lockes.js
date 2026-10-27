@@ -182,6 +182,16 @@ export default {
   "Copiado a «Mis equipos», pero algunas cosas no se han podido reconocer:": "Copied to “My teams”, but some things couldn't be recognised:",
   "Copiado a «Mis equipos» ✔": "Copied to “My teams” ✔",
   "No se ha podido copiar el equipo.": "The team couldn't be copied.",
+  "Copiar la caja como paste de Showdown": "Copy the box as a Showdown paste",
+  "Copiada": "Copied",
+  "No se ha podido exportar la caja.": "The box couldn't be exported.",
+  "Copiada, pero sin ataques, habilidades ni naturalezas: de las cajas solo se leen del archivo de la partida.":
+    "Copied, but without moves, abilities or natures: for boxes, those are only read from the save file.",
+  "Pulsa «Reanudar» en tu bloque y vuelve a exportarla.": "Click “Resume” in your block and export it again.",
+  "No se ha podido leer el archivo ahora mismo: prueba otra vez en un momento.": "The file couldn't be read right now: try again in a moment.",
+  "Vincula la partida en este navegador (el botón del enlace, arriba) y vuelve a exportarla.":
+    "Link the save file in this browser (the link button, at the top) and export it again.",
+  "Para eso hay que vincular la partida, y eso solo se puede en Chrome o Edge.": "That needs the save file to be linked, which only works in Chrome or Edge.",
   "Volver a esta": "Go back to this one",
   "Todavía no has editado esta partida.": "You haven't edited this save file yet.",
   "¿Volver a como estaba el {fecha}?": "Go back to how it was on {fecha}?",

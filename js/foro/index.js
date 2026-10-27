@@ -17,7 +17,7 @@
 import { icono } from "../comun/iconos.js";
 import { imagenConRespaldo } from "../comun/imagenes.js";
 import { escaparHTML, quitarAcentos } from "../comun/utilidades.js";
-import { marcoDe, claseMarco, apuntarMarco } from "../comun/fichas.js";
+import { marcoDe, claseMarco, apuntarMarco, fondoVisual, plantillaTituloDe } from "../comun/fichas.js";
 import { hayNube, usuarioActual, alCambiarSesion } from "../comun/nube.js";
 import { JUEGOS } from "../comun/juegos.js";
 import { plantillaCampoJuego, activarCamposJuego, leerCampoJuego, nombreJuego } from "../comun/campo-juego.js";
@@ -847,7 +847,7 @@ async function abrirUsuario(uid) {
 
   dialogoUsuario.dataset.uid = uid;
   dialogoUsuario.querySelector(".foro-usuario-cuerpo").innerHTML = `
-    <header class="foro-usuario-cabecera ${conectado ? "conectado" : yo ? "mia" : ""}">
+    <header class="foro-usuario-cabecera ${conectado ? "conectado" : yo ? "mia" : ""} ${fondoVisual(perfil).clase}" style="${fondoVisual(perfil).estilo}">
       ${foto(uid)}
       <div class="foro-usuario-datos">
         ${yo
@@ -855,7 +855,7 @@ async function abrirUsuario(uid) {
           : conectado
             ? `<span class="jugador-estado"><span class="punto-conectado"></span>${t("Conectado")}</span>`
             : ""}
-        <h2>${nombreDe(uid)}</h2>
+        <div class="foro-usuario-nombre"><h2>${nombreDe(uid)}</h2>${plantillaTituloDe(perfil, "pequeno")}</div>
         <span class="foro-usuario-ganados">
           ${t(jugados === 1 ? "{n} locke jugado" : "{n} lockes jugados", { n: jugados })}
           <span class="foro-usuario-de-ellos">${icono("corona")}${t(ganados === 1 ? "{n} ganado" : "{n} ganados", { n: ganados })}</span>

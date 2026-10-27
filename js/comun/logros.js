@@ -51,6 +51,9 @@ export const CATEGORIAS = [
   { id: "otros", nombre: "Otros" },
   { id: "pokedex", nombre: "Pokédex" },
   { id: "tipos", nombre: "Tipos" },
+  { id: "retos", nombre: "Retos del día" },
+  { id: "tienda", nombre: "Tienda" },
+  { id: "coleccion", nombre: "Colección" },
   { id: "logros", nombre: "Logros" }
 ].map((categoria) => ({ ...categoria, nombre: t(categoria.nombre) }));
 
@@ -154,6 +157,210 @@ function apuntadoIlimitado(ganado) {
   if (typeof ganado.vidasIlimitadas === "boolean") return ganado.vidasIlimitadas;
   const participantes = ganado.participantes || [];
   return participantes.length > 0 && participantes.every((p) => p.vidas === null);
+}
+
+// ---------- Logros de «Juegos»: retos, Tienda y colección ----------
+//
+// Los retos se cuentan al terminar cada uno (contadores «retos», «acierto-<juego>»,
+// «perfecto-<juego>» y «dias-completos»: js/juegos/comun.js); la racha y los Pokédólares de
+// retos, del perfil; la Tienda, de perfil.compras; la colección, de colecciones/{uid} (ver
+// contextoJuegos, más abajo).
+
+const REGIONES = ["Kanto", "Johto", "Hoenn", "Sinnoh", "Teselia", "Kalos", "Alola", "Galar", "Paldea"];
+
+const LOGROS_DE_COLECCION_POR_GEN = REGIONES.map((region, i) => ({
+  id: `c-gen-${i + 1}`, categoria: "coleccion", nivel: "plata", icono: "pokedex", fondo: `region-${region.toLowerCase()}`,
+  nombre: t("Colección de {region}", { region }), traducido: true,
+  descripcion: t("Ten en tu colección todos los Pokémon de la generación {n}.", { n: i + 1 }),
+  valor: (c) => c.coleccion.genesCompletas.includes(i + 1)
+}));
+
+const LOGROS_DE_JUEGOS = [
+  // ---------- Retos ----------
+  { id: "j-primer-reto", categoria: "retos", nivel: "bronce", icono: "mando",
+    nombre: "Calentando motores", descripcion: "Termina tu primer reto del día.",
+    valor: (c) => c.contadores.retos || 0 },
+  { id: "j-retos-25", categoria: "retos", nivel: "plata", icono: "mando",
+    nombre: "Habitual", descripcion: "Termina 25 retos del día.",
+    valor: (c) => c.contadores.retos || 0, meta: 25 },
+  { id: "j-retos-100", categoria: "retos", nivel: "oro", icono: "mando",
+    nombre: "Sin faltar a la cita", descripcion: "Termina 100 retos del día.",
+    valor: (c) => c.contadores.retos || 0, meta: 100 },
+  { id: "j-retos-500", categoria: "retos", nivel: "platino", icono: "mando",
+    nombre: "Leyenda de los retos", descripcion: "Termina 500 retos del día.",
+    valor: (c) => c.contadores.retos || 0, meta: 500 },
+  { id: "j-pleno", categoria: "retos", nivel: "plata", icono: "calendario",
+    nombre: "Pleno", descripcion: "Termina todos los retos de un mismo día.",
+    valor: (c) => c.contadores["dias-completos"] || 0 },
+  { id: "j-plenos-10", categoria: "retos", nivel: "oro", icono: "calendario",
+    nombre: "Pleno de plenos", descripcion: "Termina todos los retos del día en 10 días distintos.",
+    valor: (c) => c.contadores["dias-completos"] || 0, meta: 10 },
+  { id: "j-racha-3", categoria: "retos", nivel: "bronce", icono: "rayo",
+    nombre: "Constante", descripcion: "Juega los retos 3 días seguidos.",
+    valor: (c) => c.juegos.racha, meta: 3 },
+  { id: "j-racha-7", categoria: "retos", nivel: "plata", icono: "rayo",
+    nombre: "Semana perfecta", descripcion: "Juega los retos 7 días seguidos.",
+    valor: (c) => c.juegos.racha, meta: 7 },
+  { id: "j-racha-30", categoria: "retos", nivel: "oro", icono: "rayo",
+    nombre: "Racha de hierro", descripcion: "Juega los retos 30 días seguidos.",
+    valor: (c) => c.juegos.racha, meta: 30 },
+  { id: "j-silueta", categoria: "retos", nivel: "plata", icono: "lupa",
+    nombre: "Vista de lince", descripcion: "Acierta las tres siluetas del día a la primera.",
+    valor: (c) => c.contadores["perfecto-silueta"] || 0 },
+  { id: "j-pistas", categoria: "retos", nivel: "plata", icono: "pokedex",
+    nombre: "Mente deductiva", descripcion: "Acierta «Adivínalo» en tres intentos o menos.",
+    valor: (c) => c.contadores["perfecto-pistas"] || 0 },
+  { id: "j-eficaz", categoria: "retos", nivel: "oro", icono: "rayo",
+    nombre: "Sin un fallo", descripcion: "Acierta los 10 rivales de «Supereficaz».",
+    valor: (c) => c.contadores["perfecto-eficaz"] || 0 },
+  { id: "j-masomenos", categoria: "retos", nivel: "oro", icono: "estadisticas",
+    nombre: "Calculadora andante", descripcion: "Llega a 10 aciertos seguidos en «¿Más o menos?».",
+    valor: (c) => c.contadores["perfecto-masomenos"] || 0 },
+  { id: "j-grito", categoria: "retos", nivel: "plata", icono: "campana",
+    nombre: "Oído fino", descripcion: "Acierta los 5 gritos de «¿De quién es este grito?».",
+    valor: (c) => c.contadores["perfecto-grito"] || 0 },
+  { id: "j-evolucion", categoria: "retos", nivel: "plata", icono: "intercambiar",
+    nombre: "Experto en evoluciones", descripcion: "Acierta las 6 de «¿En qué evoluciona?».",
+    valor: (c) => c.contadores["perfecto-evolucion"] || 0 },
+  { id: "j-locke-1", categoria: "retos", nivel: "bronce", icono: "espadas",
+    nombre: "Líder derrotado", descripcion: "Gana un «Locke del día».",
+    valor: (c) => c.contadores["acierto-locke"] || 0 },
+  { id: "j-locke-10", categoria: "retos", nivel: "oro", icono: "espadas",
+    nombre: "Azote de líderes", descripcion: "Gana 10 veces el «Locke del día».",
+    valor: (c) => c.contadores["acierto-locke"] || 0, meta: 10 },
+  { id: "j-locke-perfecto", categoria: "retos", nivel: "plata", icono: "escudo",
+    nombre: "Equipo intacto", descripcion: "Gana un «Locke del día» sin que caiga ninguno de los tuyos.",
+    valor: (c) => c.contadores["perfecto-locke"] || 0 },
+  { id: "j-ganadas-500", categoria: "retos", nivel: "bronce", icono: "corona",
+    nombre: "Primeros ahorros", descripcion: "Gana 500 Pokédólares con los retos.",
+    valor: (c) => c.juegos.ganadas, meta: 500 },
+  { id: "j-ganadas-2500", categoria: "retos", nivel: "plata", icono: "corona",
+    nombre: "Hucha llena", descripcion: "Gana 2.500 Pokédólares con los retos.",
+    valor: (c) => c.juegos.ganadas, meta: 2500 },
+  { id: "j-ganadas-10000", categoria: "retos", nivel: "oro", icono: "corona",
+    nombre: "Magnate", descripcion: "Gana 10.000 Pokédólares con los retos.",
+    valor: (c) => c.juegos.ganadas, meta: 10000 },
+  { id: "j-primero", categoria: "retos", nivel: "plata", icono: "trofeo",
+    nombre: "En lo más alto", descripcion: "Ve el primero de la clasificación semanal (con al menos un amigo).",
+    valor: (c) => c.juegos.primeroDeLaSemana },
+
+  // ---------- Tienda ----------
+  { id: "t-primera", categoria: "tienda", nivel: "bronce", icono: "caja",
+    nombre: "De compras", descripcion: "Compra algo en la Tienda de «Juegos».",
+    valor: (c) => c.tienda.compras },
+  { id: "t-compras-10", categoria: "tienda", nivel: "plata", icono: "caja",
+    nombre: "Cliente fiel", descripcion: "Compra 10 cosas en la Tienda.",
+    valor: (c) => c.tienda.compras, meta: 10 },
+  { id: "t-compras-25", categoria: "tienda", nivel: "oro", icono: "caja",
+    nombre: "Cliente VIP", descripcion: "Compra 25 cosas en la Tienda.",
+    valor: (c) => c.tienda.compras, meta: 25 },
+  { id: "t-marcos-tipo", categoria: "tienda", nivel: "oro", icono: "persona",
+    nombre: "Todos los colores", descripcion: "Consigue los 18 marcos de tipo.",
+    valor: (c) => c.tienda.marcosDeTipo, meta: 18 },
+  { id: "t-fondos", categoria: "tienda", nivel: "oro", icono: "imagen",
+    nombre: "Decorador", descripcion: "Consigue todos los fondos de la Tienda.",
+    valor: (c) => c.tienda.fondosTodos },
+  { id: "t-titulos", categoria: "tienda", nivel: "oro", icono: "etiqueta",
+    nombre: "Coleccionista de títulos", descripcion: "Consigue todos los títulos de la Tienda.",
+    valor: (c) => c.tienda.titulosTodos },
+  { id: "t-estelar", categoria: "tienda", nivel: "plata", icono: "estrella",
+    nombre: "Brillo estelar", descripcion: "Consigue el marco Estelar.",
+    valor: (c) => c.tienda.estelar },
+  { id: "t-todo", categoria: "tienda", nivel: "platino", icono: "trofeo",
+    nombre: "Lo tengo todo", descripcion: "Consigue todo lo que se vende en la Tienda.",
+    valor: (c) => c.tienda.todo },
+
+  // ---------- Colección ----------
+  { id: "c-huevo", categoria: "coleccion", nivel: "bronce", icono: "huevo",
+    nombre: "Primera eclosión", descripcion: "Abre tu primer huevo.",
+    valor: (c) => c.contadores.huevos || 0 },
+  { id: "c-diez", categoria: "coleccion", nivel: "bronce", icono: "huevo",
+    nombre: "A lo grande", descripcion: "Abre 10 huevos de golpe.",
+    valor: (c) => c.contadores["huevos-diez"] || 0 },
+  { id: "c-huevos-100", categoria: "coleccion", nivel: "oro", icono: "huevo",
+    nombre: "Incubadora", descripcion: "Abre 100 huevos.",
+    valor: (c) => c.contadores.huevos || 0, meta: 100 },
+  { id: "c-50", categoria: "coleccion", nivel: "bronce", icono: "pokedex",
+    nombre: "Criador", descripcion: "Ten 50 especies en tu colección.",
+    valor: (c) => c.coleccion.especies, meta: 50 },
+  { id: "c-250", categoria: "coleccion", nivel: "plata", icono: "pokedex",
+    nombre: "Guardería llena", descripcion: "Ten 250 especies en tu colección.",
+    valor: (c) => c.coleccion.especies, meta: 250 },
+  { id: "c-500", categoria: "coleccion", nivel: "oro", icono: "pokedex",
+    nombre: "Media colección", descripcion: "Ten 500 especies en tu colección.",
+    valor: (c) => c.coleccion.especies, meta: 500 },
+  { id: "c-todas", categoria: "coleccion", nivel: "platino", icono: "trofeo",
+    nombre: "Colección completa", descripcion: "Ten en tu colección todas las especies.",
+    valor: (c) => c.coleccion.completa },
+  ...LOGROS_DE_COLECCION_POR_GEN,
+  { id: "c-shiny-1", categoria: "coleccion", nivel: "plata", icono: "estrella",
+    nombre: "¡Brillante!", descripcion: "Consigue tu primer Pokémon shiny.",
+    valor: (c) => c.coleccion.shiny },
+  { id: "c-shiny-10", categoria: "coleccion", nivel: "oro", icono: "estrella",
+    nombre: "Cazador de shinies", descripcion: "Ten 10 Pokémon shiny distintos en tu colección.",
+    valor: (c) => c.coleccion.shiny, meta: 10 },
+  { id: "c-shiny-50", categoria: "coleccion", nivel: "platino", icono: "estrella",
+    nombre: "Lluvia de estrellas", descripcion: "Ten 50 Pokémon shiny distintos en tu colección.",
+    valor: (c) => c.coleccion.shiny, meta: 50 },
+  { id: "c-legendario", categoria: "coleccion", nivel: "plata", icono: "corona",
+    nombre: "Leyenda viva", descripcion: "Consigue un Pokémon legendario en tu colección.",
+    valor: (c) => c.coleccion.legendarios },
+  { id: "c-singular", categoria: "coleccion", nivel: "plata", icono: "corona",
+    nombre: "Encuentro singular", descripcion: "Consigue un Pokémon singular en tu colección.",
+    valor: (c) => c.coleccion.singulares }
+];
+
+// Lo que miran los de arriba. La Tienda, la colección y la Pokédex se cargan aquí, al momento
+// (import dinámico): así logros.js no las arrastra al cargar la web, y no se forma un ciclo
+// (fichas.js y fondos.js ya importan este archivo).
+async function contextoJuegos(perfil) {
+  const juegos = perfil.juegos || {};
+  const [{ MARCOS, TITULOS, ARTICULOS, loTiene, tieneMarco, fichasDeLaSemana }, { FONDOS_TIENDA }, { miColeccion, escucharColeccion }] =
+    await Promise.all([import("./fichas.js"), import("./fondos.js"), import("./coleccion.js")]);
+
+  // La clasificación de esta semana: ¿vas el primero, con algún amigo y con algo ganado?
+  const mias = fichasDeLaSemana(perfil);
+  const amigos = [...((perfilesDeAmigos() || new Map()).values())];
+  const primeroDeLaSemana = mias > 0 && amigos.length > 0 && amigos.every((amigo) => fichasDeLaSemana(amigo) < mias);
+
+  const tienda = {
+    compras: Object.keys(perfil.compras || {}).filter((id) => ARTICULOS.some((articulo) => articulo.id === id)).length,
+    marcosDeTipo: MARCOS.filter((marco) => marco.tipo && tieneMarco(perfil, marco)).length,
+    fondosTodos: FONDOS_TIENDA.every((fondo) => loTiene(perfil, fondo.id)),
+    titulosTodos: TITULOS.every((titulo) => loTiene(perfil, titulo.id)),
+    estelar: loTiene(perfil, "marco-estelar"),
+    todo: ARTICULOS.every((articulo) => loTiene(perfil, articulo.id))
+  };
+
+  // La colección: se escucha desde aquí también (si no, solo se cargaría al abrir «Colección»)
+  escucharColeccion();
+  const mia = miColeccion();
+  const coleccion = { especies: 0, shiny: 0, completa: false, genesCompletas: [], legendarios: 0, singulares: 0 };
+  if (mia && (Object.keys(mia.especies).length || Object.keys(mia.shiny).length)) {
+    const { cargarPokedex } = await import("../pokedex/datos.js");
+    const todas = (await cargarPokedex()).filter((fila) => fila.forma === 0 && fila.numero <= TOTAL_ESPECIES);
+    const tengo = (fila) => Boolean(mia.especies[fila.numero] || mia.shiny[fila.numero]);
+    const mias = todas.filter(tengo);
+    coleccion.especies = mias.length;
+    coleccion.shiny = Object.keys(mia.shiny).length;
+    coleccion.completa = mias.length >= todas.length;
+    coleccion.genesCompletas = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((gen) => todas.filter((fila) => fila.gen === gen).every(tengo));
+    coleccion.legendarios = mias.filter((fila) => fila.clase === "legendario").length;
+    coleccion.singulares = mias.filter((fila) => fila.clase === "singular").length;
+  }
+
+  return {
+    juegos: { racha: Number(juegos.racha) || 0, ganadas: Number(juegos.ganadas) || 0, primeroDeLaSemana },
+    tienda,
+    coleccion
+  };
+}
+
+// Que se vuelvan a mirar cuando cambie la colección (se carga tarde: ver contextoJuegos)
+function escucharColeccionParaLogros() {
+  import("./coleccion.js")
+    .then(({ alCambiarColeccion }) => alCambiarColeccion(programar))
+    .catch((error) => console.error(error));
 }
 
 export const LOGROS = [
@@ -535,6 +742,8 @@ export const LOGROS = [
   // ---------- Tipos ----------
   ...LOGROS_DE_TIPO,
 
+  ...LOGROS_DE_JUEGOS,
+
   // ---------- Logros de logros (se miran los últimos, con los demás ya contados) ----------
   // Cada uno da un fondo de metal para la tarjeta (fondos.js). Los id son los de antes (pedían
   // 30 y 60): así quien ya los tenía los conserva.
@@ -569,6 +778,9 @@ export function metaDe(logro) {
 async function contexto() {
   const usuario = usuarioActual();
   const perfil = miPerfil() || {};
+  const deJuegos = usuario ? await contextoJuegos(perfil) : {
+    juegos: { racha: 0, ganadas: 0, primeroDeLaSemana: false }, tienda: {}, coleccion: { genesCompletas: [] }
+  };
   const yo = usuario ? usuario.uid : null;
   const [{ LUGARES }, { COMBATES }] = await Promise.all([import("../rutas/datos.js"), import("../levelcaps/datos.js")]);
 
@@ -618,6 +830,7 @@ async function contexto() {
   const enGrupos = equipos.filter((equipo) => grupos.has(equipo.grupo));
 
   return {
+    ...deJuegos,
     yo,
     perfil,
     lockes,
@@ -797,6 +1010,7 @@ async function revisar() {
 
 export function iniciarLogros() {
   alCambiarSesion(programar);
+  escucharColeccionParaLogros();
   alCambiarMiPerfil(programar);
   alCambiarLockes(programar);
   alCambiarAmistades(programar);

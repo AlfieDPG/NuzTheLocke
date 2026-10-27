@@ -122,7 +122,7 @@ export default {
   "Títulos": "Titles",
   "Para tu tarjeta de «Amigos» y la cabecera de tu perfil.": "For your “Friends” card and your profile header.",
   "Alrededor de tu foto, en tu perfil y en «Amigos».": "Around your picture, on your profile and in “Friends”.",
-  "Debajo de tu nombre, en tu perfil.": "Under your name, on your profile.",
+
   "Comprar": "Buy",
   "Te faltan {n} Pokédólares": "You need {n} more Pokédollars",
   "Puesto": "Equipped",
@@ -236,5 +236,70 @@ export default {
     "Around your picture, on your profile and in “Friends”. Silver, gold and platinum can't be bought: they come with the achievements for 25, 50 and all achievements.",
   "Marco de tu foto": "Picture frame",
   "Sin marco": "No frame",
-  "Consigue marcos en la Tienda de «Juegos» con tus Pokédólares.": "Get frames in the “Games” Shop with your Pokédollars."
+  "Consigue marcos en la Tienda de «Juegos» con tus Pokédólares.": "Get frames in the “Games” Shop with your Pokédollars.",
+
+  // Colección (huevos)
+  "Colección": "Collection",
+  "especies": "species",
+  "{n} shiny": "{n} shiny",
+  "Abrir 1 huevo": "Open 1 egg",
+  "Abrir 10 huevos": "Open 10 eggs",
+  "De cada huevo sale una especie al azar (1 de cada {n}, shiny; los legendarios y singulares, más difíciles). Los repetidos se cambian solos por {normal} Pokédólares ({shiny} si es shiny).":
+    "Each egg hatches a random species (1 in {n} is shiny; legendaries and mythicals are harder). Duplicates are automatically traded for {normal} Pokédollars ({shiny} if shiny).",
+  "¡Shiny!": "Shiny!",
+  "¡Nuevo!": "New!",
+  "Repetido: +{n}": "Duplicate: +{n}",
+  "Gen. {n}": "Gen. {n}",
+  "Ver las shiny": "Show shinies",
+  "Generación {gen}: tienes {n} de {total}.": "Generation {gen}: you have {n} of {total}.",
+  "Inicia sesión para abrir huevos y empezar tu colección.": "Sign in to open eggs and start your collection.",
+  "No se ha podido abrir. Prueba otra vez.": "Couldn't open it. Please try again.",
+  "Huevos Pokémon": "Pokémon eggs",
+  "Completa la Pokédex en «Colección»: cada huevo trae un Pokémon al azar.": "Complete the Pokédex in “Collection”: each egg brings a random Pokémon.",
+
+  // Colección: el aspecto de cada uno
+  "Ver todas en normal": "Show all as normal",
+  "Poner en shiny las que tengo shiny": "Show my shinies as shiny",
+  "Generación {gen}: tienes {n} de {total}. Pulsa uno de los tuyos para elegir su cara (y, si lo tienes shiny, verlo en shiny).":
+    "Generation {gen}: you have {n} of {total}. Click one of yours to pick its face (and, if you have it shiny, show it as shiny).",
+  "La tienes shiny": "You have it shiny",
+  "Todavía no lo tienes normal": "You don't have the normal one yet",
+  "Todavía no lo tienes shiny": "You don't have it shiny yet",
+  "Shiny": "Shiny",
+  "Elige la cara con la que quieres verlo en tu colección.": "Pick the face you want to see in your collection.",
+  "Cerrar": "Close",
+
+  // Clasificación: semanal y general
+  "General": "All time",
+  "Desde siempre": "All time",
+  "Los Pokédólares ganados en los retos desde que empezaste (los de los logros no cuentan).":
+    "Pokédollars earned in challenges since you started (achievements don't count).",
+  "Tu clasificación": "Your ranking",
+  "Pokédólares en total": "Total Pokédollars",
+
+  // Títulos-plaquita, marcos animados, fondos de región y la colección en el perfil
+  "Una plaquita debajo de tu nombre, en tu perfil.": "A little plaque under your name, on your profile.",
+  "Alma de entrenador": "Trainer at heart",
+  "Trotamundos": "Globetrotter",
+  "Maestro Nuzlocke": "Nuzlocke master",
+  "Cazador de leyendas": "Legend hunter",
+  "Campeón de la Liga": "League champion",
+  "Guardián de la Pokédex": "Pokédex guardian",
+  "Aura": "Aura",
+  "Llamarada": "Blaze",
+  "Latido": "Heartbeat",
+  "Chispazo": "Spark",
+  "De región": "Regional",
+  "Completa la colección": "Complete the collection",
+  "Quitar de mi perfil": "Remove from my profile",
+  "Destacar en mi perfil": "Feature on my profile",
+  "Ya tienes {n} destacados: al poner este se quita el primero.": "You already have {n} featured: adding this one removes the first.",
+  "{n} especies": "{n} species",
+  "Ir": "Go",
+  "Tus destacados (se eligen en la colección)": "Your featured ones (picked in the collection)",
+  "Sus destacados": "Their featured ones",
+  "Los últimos que te han salido": "The latest ones you got",
+  "Los últimos que le han salido": "The latest ones they got",
+  "Abre huevos en «Juegos» → «Colección» para empezarla.": "Open eggs in “Games” → “Collection” to start it.",
+  "Todavía no ha abierto ningún huevo.": "They haven't opened any eggs yet."
 };

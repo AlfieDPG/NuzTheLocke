@@ -196,7 +196,18 @@ export async function convertirPartida(leida) {
   };
 }
 
-// ---------- Paste de Showdown (para «Copiar a Mis equipos») ----------
+// Una caja con todo, como el equipo (lo guardado de las cajas va con lo justo): para exportarla.
+// leida: la partida recién leída del archivo (formatoDe(bytes).leer(bytes))
+export async function cajaConDetalle(leida, posicion) {
+  await prepararConversion();
+  const caja = leida.cajas[posicion];
+  return caja ? caja.pokemon.map((p) => convertir(p, leida.gen, true, leida.juego)) : [];
+}
+
+// ---------- Paste de Showdown (para «Copiar a Mis equipos» y exportar una caja) ----------
+//
+// Los de las cajas guardadas no llevan ataques, habilidad, naturaleza, EVs ni IVs: salen sin
+// esas líneas (Showdown pone las de siempre).
 
 const STATS = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
 
@@ -218,7 +229,7 @@ export function pasteDeEquipo(equipo) {
         p.shiny && "Shiny: Yes",
         (p.evs || []).some(Boolean) && `EVs: ${p.evs.map((v, i) => v && `${v} ${STATS[i]}`).filter(Boolean).join(" / ")}`,
         NATURALEZAS[p.naturaleza] && `${NATURALEZAS[p.naturaleza]} Nature`,
-        `IVs: ${(p.ivs || []).map((v, i) => `${v} ${STATS[i]}`).join(" / ")}`,
+        p.ivs && `IVs: ${p.ivs.map((v, i) => `${v} ${STATS[i]}`).join(" / ")}`,
         ...(p.ataques || []).map((id) => ataque(id) && `- ${ataque(id)}`)
       ];
       return lineas.filter(Boolean).join("\n");

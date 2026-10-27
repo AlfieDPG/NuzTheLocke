@@ -2675,9 +2675,11 @@ button.salon-cara:hover {
   gap: 0.4rem;
 }
 
-/* Meter equipo, copiar a Mis equipos e interruptor de caja de muertos, en la cabecera de cada bloque */
+/* Meter equipo, copiar a Mis equipos, exportar la caja e interruptor de caja de muertos, en la
+   cabecera de cada bloque */
 .partida-meter,
 .partida-copiar,
+.partida-exportar,
 .partida-marcar-muertos {
   display: inline-flex;
   align-items: center;
@@ -2694,23 +2696,27 @@ button.salon-cara:hover {
   cursor: pointer;
 }
 
-.partida-meter + .partida-copiar {
+.partida-meter + .partida-copiar,
+.partida-exportar + .partida-marcar-muertos {
   margin-left: 0;
 }
 
 .partida-meter:hover,
 .partida-copiar:hover,
+.partida-exportar:hover,
 .partida-marcar-muertos:hover {
   background: var(--t-control-2);
 }
 
-.partida-copiar:disabled {
+.partida-copiar:disabled,
+.partida-exportar:disabled {
   opacity: 0.6;
   cursor: progress;
 }
 
 .partida-meter .icono,
 .partida-copiar .icono,
+.partida-exportar .icono,
 .partida-marcar-muertos .icono {
   width: 0.85rem;
   height: 0.85rem;

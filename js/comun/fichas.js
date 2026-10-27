@@ -6,6 +6,7 @@
 //
 // El saldo no se guarda: se calcula.
 //   saldo = Pokédólares de tus logros + perfil.juegos.ganadas − lo pagado (perfil.compras)
+//           − lo gastado en huevos + lo devuelto por repetidos (perfil.huevos, ver coleccion.js)
 // Así cada logro da sus Pokédólares (también los conseguidos antes de que hubiera Pokédólares) sin
 // apuntar nada más.
 //
@@ -28,7 +29,7 @@
 import { usuarioActual, baseDeDatos } from "./nube.js";
 import { miPerfil, guardarMiPerfil, perfilesDeAmigos } from "./perfiles.js";
 import { LOGROS } from "./logros.js";
-import { FONDOS_TIENDA } from "./fondos.js";
+import { FONDOS_TIENDA, fondoDe, claseFondo, estiloFondo } from "./fondos.js";
 import { tiposEs } from "./tipos.js";
 import { t } from "./idioma.js";
 
@@ -123,8 +124,15 @@ export function gastadas(perfil) {
     .reduce((suma, [, precio]) => suma + (Number(precio) || 0), 0);
 }
 
+// Los huevos de «Colección» (js/comun/coleccion.js): lo que se ha ido en ellos y lo que ha
+// vuelto por repetidos
+export function balanceHuevos(perfil) {
+  const huevos = (perfil && perfil.huevos) || {};
+  return (Number(huevos.devueltos) || 0) - (Number(huevos.gastados) || 0);
+}
+
 export function saldo(perfil) {
-  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) - gastadas(perfil));
+  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) - gastadas(perfil) + balanceHuevos(perfil));
 }
 
 // ---------- Jugadas ----------
@@ -191,9 +199,10 @@ export async function borrarMisJugadas() {
 // lo mismo. La Tienda los enseña siempre del más barato al más caro.
 
 // Marcos: uno por tipo, todos con el mismo diseño (borde y aro del color del tipo, con un
-// brillo suave: css/juegos.css, .marco-de-tipo) y el mismo precio; dos especiales más
-// trabajados (varios aros, o con movimiento) y los de metal, que no se compran.
+// brillo suave: css/juegos.css, .marco-de-tipo) y el mismo precio; los animados (con
+// movimiento), todos al mismo precio, más caro; y los de metal, que no se compran.
 const PRECIO_MARCO_TIPO = 200;
+const PRECIO_MARCO_ANIMADO = 800;
 
 const MARCO_DE_TIPO = {
   normal: "marco-normal", fire: "marco-brasa", water: "marco-burbuja", electric: "marco-rayo",
@@ -205,8 +214,12 @@ const MARCO_DE_TIPO = {
 
 export const MARCOS = [
   ...Object.entries(MARCO_DE_TIPO).map(([tipo, id]) => ({ id, nombre: tiposEs[tipo], tipo, precio: PRECIO_MARCO_TIPO })),
-  { id: "marco-arcoiris", nombre: t("Arcoíris"), precio: 500 },
-  { id: "marco-estelar", nombre: t("Estelar"), precio: 800 },
+  { id: "marco-arcoiris", nombre: t("Arcoíris"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-estelar", nombre: t("Estelar"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-aura", nombre: t("Aura"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-llamarada", nombre: t("Llamarada"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-latido", nombre: t("Latido"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-chispazo", nombre: t("Chispazo"), precio: PRECIO_MARCO_ANIMADO },
   // Los de metal no se compran: vienen con los mismos logros que los fondos de metal
   // (25 logros, 50 y todos: ver LOGROS_PARA_PLATA y LOGROS_PARA_ORO en logros.js)
   { id: "marco-plata", nombre: t("Plata"), logro: "m-30" },
@@ -214,24 +227,57 @@ export const MARCOS = [
   { id: "marco-platino", nombre: t("Platino"), logro: "m-todos" }
 ];
 
-// Títulos: el precio, por su nivel (que solo da el color con el que se ve, el mismo que los
-// títulos de logros)
-const PRECIO_TITULO = { bronce: 100, plata: 250, oro: 500, platino: 1000 };
+// Títulos: cada uno es una plaquita con su propio diseño (css/juegos.css, .titulo-<id>). El
+// precio, por lo trabajado que está: sencillos (un color), detallados (degradados o dibujo) y
+// animados (con movimiento). «nivel» solo da el color de respaldo (el de los títulos de logros).
+const PRECIO_TITULO = { sencillo: 150, detallado: 350, animado: 800 };
 
 export const TITULOS = [
-  { id: "titulo-ojo", nombre: t("Ojo de halcón"), nivel: "bronce" },
-  { id: "titulo-detective", nombre: t("Detective Pokémon"), nivel: "bronce" },
-  { id: "titulo-madrugador", nombre: t("Madrugador"), nivel: "bronce" },
-  { id: "titulo-casino", nombre: t("Habitual del Casino"), nivel: "plata" },
-  { id: "titulo-profesor", nombre: t("Profesor en prácticas"), nivel: "plata" },
-  { id: "titulo-racha", nombre: t("Racha imparable"), nivel: "plata" },
-  { id: "titulo-estratega", nombre: t("Estratega"), nivel: "plata" },
-  { id: "titulo-siluetas", nombre: t("Maestro de las siluetas"), nivel: "oro" },
-  { id: "titulo-tipos", nombre: t("Domador de tipos"), nivel: "oro" },
-  { id: "titulo-calle", nombre: t("Veterano de Calle Victoria"), nivel: "oro" },
-  { id: "titulo-coleccionista", nombre: t("Gran coleccionista"), nivel: "platino" },
-  { id: "titulo-leyenda", nombre: t("Leyenda del Casino"), nivel: "platino" }
-].map((titulo) => ({ ...titulo, precio: PRECIO_TITULO[titulo.nivel] }));
+  { id: "titulo-ojo", nombre: t("Ojo de halcón"), nivel: "bronce", acabado: "sencillo" },
+  { id: "titulo-detective", nombre: t("Detective Pokémon"), nivel: "bronce", acabado: "sencillo" },
+  { id: "titulo-madrugador", nombre: t("Madrugador"), nivel: "bronce", acabado: "sencillo" },
+  { id: "titulo-estratega", nombre: t("Estratega"), nivel: "plata", acabado: "sencillo" },
+  { id: "titulo-alma", nombre: t("Alma de entrenador"), nivel: "plata", acabado: "sencillo" },
+  { id: "titulo-trotamundos", nombre: t("Trotamundos"), nivel: "plata", acabado: "sencillo" },
+  { id: "titulo-casino", nombre: t("Habitual del Casino"), nivel: "plata", acabado: "detallado" },
+  { id: "titulo-profesor", nombre: t("Profesor en prácticas"), nivel: "plata", acabado: "detallado" },
+  { id: "titulo-racha", nombre: t("Racha imparable"), nivel: "oro", acabado: "detallado" },
+  { id: "titulo-siluetas", nombre: t("Maestro de las siluetas"), nivel: "oro", acabado: "detallado" },
+  { id: "titulo-tipos", nombre: t("Domador de tipos"), nivel: "oro", acabado: "detallado" },
+  { id: "titulo-calle", nombre: t("Veterano de Calle Victoria"), nivel: "oro", acabado: "detallado" },
+  { id: "titulo-coleccionista", nombre: t("Gran coleccionista"), nivel: "platino", acabado: "animado" },
+  { id: "titulo-leyenda", nombre: t("Leyenda del Casino"), nivel: "platino", acabado: "animado" },
+  { id: "titulo-nuzlocke", nombre: t("Maestro Nuzlocke"), nivel: "platino", acabado: "animado" },
+  { id: "titulo-leyendas", nombre: t("Cazador de leyendas"), nivel: "platino", acabado: "animado" },
+  { id: "titulo-campeon", nombre: t("Campeón de la Liga"), nivel: "oro", acabado: "animado" },
+  { id: "titulo-guardian", nombre: t("Guardián de la Pokédex"), nivel: "platino", acabado: "animado" }
+].map((titulo) => ({ ...titulo, precio: PRECIO_TITULO[titulo.acabado] }));
+
+// Las clases con las que se pinta un título (el de un logro o uno de la Tienda), donde salga
+export function claseTitulo(titulo) {
+  if (!titulo) return "";
+  return `nivel-${titulo.nivel} ${titulo.id && titulo.id.startsWith("titulo-") ? `placa-tienda ${titulo.id}` : ""}`;
+}
+
+// El título que lleva alguien (perfil.titulo): uno de sus logros o uno comprado en la Tienda,
+// solo si de verdad lo tiene. null si ninguno.
+export function tituloDe(perfil) {
+  const id = perfil && perfil.titulo;
+  if (!id) return null;
+  const logro = LOGROS.find((cada) => cada.id === id);
+  if (logro) return (perfil.logros || {})[id] ? logro : null;
+  const comprado = TITULOS.find((cada) => cada.id === id);
+  return comprado && loTiene(perfil, id) ? comprado : null;
+}
+
+// Su plaquita, para ponerla junto a su nombre (Amigos, el foro, la clasificación...). «clase»:
+// p. ej. «pequeno», para los sitios con poco hueco. "" si no lleva título.
+export function plantillaTituloDe(perfil, clase = "") {
+  const titulo = tituloDe(perfil);
+  if (!titulo) return "";
+  const nombre = String(titulo.nombre).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  return `<span class="perfil-titulo ${claseTitulo(titulo)} ${clase}" title="${nombre}">${nombre}</span>`;
+}
 
 // Del más barato al más caro (los que no se compran, al final)
 export function porPrecio(lista) {
@@ -262,20 +308,37 @@ export function claseMarco(id) {
   return marco && marco.tipo ? `con-marco marco-de-tipo ${id}` : `con-marco ${id}`;
 }
 
-// El marco de alguien sabiendo solo su uid (foros, lockes, cementerio, chat...): sale de los
-// perfiles que la web ya tiene (el tuyo y los de tus amigos, al día) o de los que se han
-// leído en otro sitio y se han apuntado con apuntarMarco (los autores del foro). Si no se
-// sabe, sin marco.
-const marcosDeOtros = new Map(); // uid -> id del marco
+// El marco y el fondo de alguien sabiendo solo su uid (foros, lockes, cementerio, chat...):
+// salen de los perfiles que la web ya tiene (el tuyo y los de tus amigos, al día) o de los que
+// se han leído en otro sitio y se han apuntado con apuntarMarco (los autores del foro). Si no
+// se sabe, sin marco ni fondo.
+const perfilesDeOtros = new Map(); // uid -> perfil
 
 export function apuntarMarco(perfil) {
-  if (perfil && perfil.uid) marcosDeOtros.set(perfil.uid, marcoDe(perfil));
+  if (perfil && perfil.uid) perfilesDeOtros.set(perfil.uid, perfil);
+}
+
+function perfilConocido(uid) {
+  const usuario = usuarioActual();
+  if (usuario && uid === usuario.uid) return miPerfil();
+  return perfilesDeAmigos().get(uid) || perfilesDeOtros.get(uid) || null;
 }
 
 export function claseMarcoDe(uid) {
-  const usuario = usuarioActual();
-  const perfil = usuario && uid === usuario.uid ? miPerfil() : perfilesDeAmigos().get(uid);
-  return claseMarco(perfil ? marcoDe(perfil) : marcosDeOtros.get(uid) || "");
+  const perfil = perfilConocido(uid);
+  return claseMarco(perfil ? marcoDe(perfil) : "");
+}
+
+// Su fondo (el de su tarjeta de «Amigos»), para ponerlo en un trozo de otra cosa: la cabecera
+// de su ficha en un locke, la ficha del foro, el cara a cara de «Amigos»... Devuelve la clase
+// (con «lleva-fondo», que es la que dibuja: css/amigos.css y css/juegos.css) y el estilo.
+export function fondoVisual(perfil) {
+  const id = perfil ? fondoDe(perfil) : "";
+  return id ? { clase: `lleva-fondo ${claseFondo(id)}`, estilo: estiloFondo(id) } : { clase: "", estilo: "" };
+}
+
+export function fondoVisualDe(uid) {
+  return fondoVisual(perfilConocido(uid));
 }
 
 // Compra un artículo si llegan los Pokédólares. Devuelve "" si ha ido bien, o por qué no.

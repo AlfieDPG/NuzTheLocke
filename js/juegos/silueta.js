@@ -178,6 +178,7 @@ async function probar(especie) {
       // Las tres hechas: se apunta todo junto
       estado.intentos = estado.rondas.flatMap((cada) => cada.intentos);
       estado.acierto = estado.rondas.every((cada) => cada.acierto);
+      estado.perfecto = estado.rondas.every((cada) => cada.acierto && cada.intentos.length === 1); // las 3 a la primera
       const puntos = estado.rondas.reduce((suma, cada) => suma + (cada.acierto ? PUNTOS[cada.intentos.length - 1] : 0), 0);
       const cuadros = estado.rondas
         .map((cada) => cada.intentos.map((numero, k) => (cada.acierto && k === cada.intentos.length - 1 ? "🟩" : "🟥")).join(""))
