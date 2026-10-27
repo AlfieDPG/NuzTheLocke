@@ -111,8 +111,7 @@ main {
 }
 
 .menu-lateral [data-vista="lockes"]      { --color-boton: 214, 88, 76; }
-.menu-lateral .grupo-menu,
-.menu-lateral .submenu button            { --color-boton: 91, 141, 239; }
+.menu-lateral [data-vista="equipos"]     { --color-boton: 91, 141, 239; }
 .menu-lateral [data-vista="rutas"]       { --color-boton: 82, 183, 136; }
 .menu-lateral [data-vista="levelcaps"]   { --color-boton: 0, 184, 169; }
 .menu-lateral [data-vista="pokedex"]     { --color-boton: 240, 100, 130; }
@@ -2109,13 +2108,13 @@ dialog textarea {
    línea de puntos. Vale para todas las «dialogo-sesion» (entrar, mote, perfil, fondos, ajustes,
    borrar cuenta...) y para algunas más. */
 
-:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-debilidades) {
+:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) {
   padding: 1.5rem 1.6rem 1.3rem;
   border-top: 4px solid rgb(var(--color-vista));
   border-radius: 1rem;
 }
 
-:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-debilidades) h2 {
+:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) h2 {
   margin: 0 0 0.9rem;
   font-size: 1.7rem;
   line-height: 1.05;
@@ -2138,13 +2137,13 @@ dialog textarea {
   font-size: 1rem;
 }
 
-:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-debilidades) .dialogo-botones {
+:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) .dialogo-botones {
   margin-top: 1.1rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(var(--t-tinte), 0.12);
 }
 
-:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-debilidades) .dialogo-botones button {
+:is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) .dialogo-botones button {
   padding: 0.6rem 1.3rem;
   font-family: inherit;
   font-size: 1rem;

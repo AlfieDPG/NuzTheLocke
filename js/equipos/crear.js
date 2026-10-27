@@ -4,7 +4,7 @@ import {
 import { datos } from "../comun/datos.js";
 import { pedirJSON, URL_API } from "../comun/api.js";
 import { coloresTipo, tiposEs, iconoTipo } from "../comun/tipos.js";
-import { resumenEquipo, puntosDe, multiplicadoresDe, textoMultiplicador } from "../comun/efectividad.js";
+import { puntosDe, multiplicadoresDe, textoMultiplicador } from "../comun/efectividad.js";
 import { nombreOpcionForma, obtenerVariedades } from "../comun/formas.js";
 import { elegirForma } from "../comun/elegir-forma.js";
 import { sumarContador } from "../comun/contadores.js";
@@ -17,6 +17,8 @@ import { activarTooltips, actualizarTooltip, ocultarTooltip, escaparHTML } from 
 import { activarAutocompletado, iconoPokemon, iconoObjeto } from "../comun/autocompletado.js";
 import { pasteDelEquipo, copiarAlPortapapeles } from "./exportar.js";
 import { iniciarEntreno, abrirEntreno, textoEntreno, STATS } from "./entreno.js";
+import { iniciarAnalisis } from "./analizar.js";
+import { iniciarBuscar } from "./buscar.js";
 import { icono } from "../comun/iconos.js";
 import { activarArrastre } from "../comun/arrastrar.js";
 import {
@@ -26,8 +28,6 @@ import { confirmar } from "../comun/ventanas.js";
 import { t, nombre, enIngles } from "../comun/idioma.js";
 
 const resultado = document.getElementById("resultado");
-const dialogoDebilidades = document.getElementById("dialogo-debilidades");
-const debilidadesEl = dialogoDebilidades.querySelector(".debilidades-cuerpo");
 const campoBuscar = document.getElementById("nombre");
 const campoNombre = document.getElementById("nombre-equipo");
 const contadorEl = document.getElementById("contador");
@@ -130,51 +130,6 @@ function refrescarTarjeta(poke) {
 // El botón de estadísticas de la tarjeta dice el nivel y la naturaleza («Nv. 50 · Firme»)
 function textoBotonEntreno(poke) {
   return `${icono("actividad")} ${escaparHTML(textoEntreno(poke) || t("Estadísticas"))}`;
-}
-
-// ---------- Puntos débiles del equipo ----------
-
-// Un tipo es un problema si le hace daño de más a dos o más miembros del equipo.
-const MINIMO_PROBLEMA = 2;
-
-function filaDebilidad({ tipo, debiles, aguantan }, miembros) {
-  // Rojo cuando además casi nadie lo aguanta; si no, naranja
-  const gravedad = debiles >= 3 || aguantan === 0 ? "critico" : "aviso";
-
-  return `
-    <li class="debilidad ${gravedad}" style="--color-tipo:${coloresTipo[tipo]}">
-      ${iconoTipo(tipo)}
-      <span class="debilidad-tipo">${tiposEs[tipo]}</span>
-      <span class="debilidad-cuenta">${t("{debiles} de {miembros} débiles · {aguantan} lo aguantan", { debiles, miembros, aguantan })}</span>
-      <span class="debilidad-barra"><i style="width:${(debiles / miembros) * 100}%"></i></span>
-    </li>`;
-}
-
-function pintarDebilidades() {
-  const equipo = estado.equipo.filter((p) => p.tipos && p.tipos.length);
-
-  if (equipo.length === 0) {
-    debilidadesEl.innerHTML = `<p class="debilidades-vacio">${t("Añade Pokémon al equipo para ver sus puntos débiles.")}</p>`;
-    return;
-  }
-
-  const resumen = resumenEquipo(equipo.map((p) => p.tipos));
-
-  // De más grave a menos: primero los que más miembros tumban y, a igualdad, los que menos se aguantan
-  const problemas = resumen
-    .filter((r) => r.debiles >= MINIMO_PROBLEMA)
-    .sort((a, b) => b.debiles - a.debiles || a.aguantan - b.aguantan);
-
-  const sinAguante = resumen.filter((r) => r.aguantan === 0).map((r) => tiposEs[r.tipo]);
-
-  debilidadesEl.innerHTML = `
-    ${
-      problemas.length
-        ? `<ul class="lista-debilidades">${problemas.map((r) => filaDebilidad(r, equipo.length)).join("")}</ul>`
-        : `<p class="debilidades-bien">${t("Ningún tipo le hace daño de más a dos o más miembros del equipo.")}</p>`
-    }
-    ${sinAguante.length ? `<p class="debilidades-sin-aguante"><strong>${t("Nadie aguanta:")}</strong> ${sinAguante.join(" · ")}</p>` : ""}
-  `;
 }
 
 // Línea de debajo del título: la especie (si hay mote) y la forma. Va todo en una sola
@@ -781,13 +736,13 @@ export function iniciarCrear() {
     guardarActual();
   });
 
-  document.getElementById("ver-debilidades").addEventListener("click", () => {
-    pintarDebilidades(); // siempre al día con el equipo que haya ahora mismo
-    dialogoDebilidades.showModal();
-  });
+  // Ventana de análisis (./analizar.js), siempre con el equipo que haya en ese momento
+  iniciarAnalisis();
 
-  document.getElementById("debilidades-cerrar").addEventListener("click", () => {
-    dialogoDebilidades.close();
+  // Buscar equipo en la caja de un locke (./buscar.js): el elegido llega aquí
+  iniciarBuscar((problemas) => {
+    renderCrear();
+    mostrarAviso(problemas.length ? t("Equipo listo, pero algunas cosas no se han podido reconocer.") : t("Equipo listo ✔"));
   });
 
   document.getElementById("exportar-equipo").addEventListener("click", async () => {

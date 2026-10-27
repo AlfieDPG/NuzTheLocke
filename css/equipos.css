@@ -9,9 +9,11 @@
   gap: 0.85rem;
 }
 
+/* Si no cabe todo (nombre, Analizar, Buscar equipo y el contador), en dos líneas */
 .lado-izq {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   justify-self: start;
@@ -173,7 +175,7 @@
   height: 1.1rem;
 }
 
-#ver-debilidades {
+:is(#analizar-equipo, #buscar-equipo) {
   padding: 0.45rem 0.85rem;
   border: none;
   border-radius: 0.45rem;
@@ -184,7 +186,7 @@
   white-space: nowrap;
 }
 
-#ver-debilidades:hover {
+:is(#analizar-equipo, #buscar-equipo):hover {
   background: color-mix(in srgb, rgb(var(--color-vista)) 80%, white);
 }
 
@@ -961,6 +963,29 @@
   cursor: pointer;
 }
 
+/* Crear equipo: el primero y el que más resalta, con el color de la sección (como «Analizar») */
+#crear-equipo-nuevo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.95rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-vista));
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#crear-equipo-nuevo:hover {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 80%, white);
+}
+
+#crear-equipo-nuevo .icono {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
 #cambiar-vista:hover,
 #nuevo-grupo:hover,
 #importar-varios:hover,
@@ -1594,86 +1619,1065 @@
   object-fit: contain;
 }
 
-/* ---------- Puntos débiles del equipo (diálogo del botón «Debilidades») ---------- */
+/* ---------- Análisis del equipo (diálogo del botón «Analizar», js/equipos/analizar.js) ---------- */
 
-#dialogo-debilidades {
-  width: min(34rem, 92vw);
+/* Ancho, para verlo todo de golpe, y con aire arriba y abajo para que se vea que es una
+   ventana. El título y «Cerrar» se quedan quietos: si algo no cabe, se desplaza el cuerpo. */
+#dialogo-analisis {
+  width: min(100rem, 96vw);
 }
 
-#dialogo-debilidades h2 {
+/* Lo mismo en «Buscar equipo» (js/equipos/buscar.js) */
+#dialogo-buscar-equipo {
+  width: min(80rem, 96vw);
+}
+
+:is(#dialogo-analisis, #dialogo-buscar-equipo) {
+  max-height: calc(100vh - 4rem);
+  max-height: calc(100dvh - 4rem);
+}
+
+:is(#dialogo-analisis, #dialogo-buscar-equipo)[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:is(.analisis-cuerpo, .buscar-cuerpo) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+:is(#dialogo-analisis, #dialogo-buscar-equipo) h2 {
   color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
 }
 
-.debilidades-vacio {
+/* El botón de una acción de la sección (como «Analizar»), junto a los grises de las ventanas
+   (.boton-gris, en layout.css) */
+.dialogo-sesion .boton-seccion {
+  border: none;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-vista));
+  color: #fff;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.dialogo-sesion .boton-seccion:hover:not(:disabled) {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 80%, white);
+}
+
+.dialogo-sesion :is(.boton-seccion, .boton-gris):disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Los iconos de los botones de estas ventanas, del tamaño de la letra */
+:is(#dialogo-analisis, #dialogo-buscar-equipo) button .icono {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.15em;
+}
+
+.analisis-mensaje {
   margin: 0;
   font-size: 0.9rem;
   opacity: 0.8;
 }
 
-.lista-debilidades {
+#dialogo-analisis .analisis-explica {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: var(--t-gris);
+  opacity: 1;
+}
+
+.analisis-bien {
+  margin: 0;
+  font-size: 0.9rem;
+  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+}
+
+/* La nota grande del equipo y, al lado, lo que la forma */
+.analisis-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.analisis-nota {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 6rem;
+}
+
+.analisis-nota-numero {
+  font-family: var(--letra-titulos);
+  font-size: 3.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.analisis-nota-palabra {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.analisis-cabecera .analisis-barras {
+  flex: 1;
+}
+
+/* A la izquierda la nota, los avisos y los Pokémon; a la derecha, las tablas de cobertura y
+   puntos débiles */
+.analisis-rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.6rem;
+}
+
+.analisis-principal {
+  container-type: inline-size;
+}
+
+.analisis-arriba {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.8rem;
+  align-items: start;
+}
+
+/* Sin sitio para la nota y los avisos uno al lado del otro: uno debajo del otro */
+@container (max-width: 42rem) {
+  .analisis-arriba {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.2rem;
+  }
+}
+
+.analisis-seccion {
+  margin-top: 1.2rem;
+}
+
+/* Lo que más conviene mirar, a la derecha de la nota, empieza a su altura */
+.analisis-arriba > .analisis-seccion {
+  margin-top: 0;
+}
+
+/* Para mejorarlo (a todo el ancho, entre la nota y los Pokémon): una tarjetita por cambio, en
+   varias columnas como las de los Pokémon, con el retrato de quién, qué cambiar y lo que sube */
+.analisis-mejoras-lista {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+  gap: 0.4rem 0.6rem;
+}
+
+.mejora {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--t-fondo-2);
+  font-size: 0.82rem;
+}
+
+.mejora-retrato {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.4rem;
+  image-rendering: pixelated;
+}
+
+.mejora-texto {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  min-width: 0;
+  line-height: 1.3;
 }
 
-.debilidad {
+.mejora-quien {
+  font-family: var(--letra-titulos);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.mejora-texto b {
+  white-space: nowrap;
+}
+
+.mejora-icono {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-right: 0.2rem;
+  vertical-align: -0.25rem;
+  object-fit: contain;
+}
+
+.mejora-tipo .icono-tipo {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.2rem;
+  vertical-align: -0.1rem;
+  background: var(--color-tipo);
+}
+
+.mejora-sube {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.mejora-sube b {
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+}
+
+.mejora-sube small {
+  font-size: 0.72rem;
+  color: var(--t-gris);
+}
+
+.analisis-seccion h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--letra-titulos);
+  font-size: 1.15rem;
+}
+
+/* Barras de 0 a 100: nombre, barra y número */
+.analisis-barras {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.analisis-barra {
   display: grid;
-  grid-template-columns: auto 5.5rem 1fr auto;
+  grid-template-columns: 6.2rem 1fr 1.8rem;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.35rem 0.6rem;
-  border-left: 0.3rem solid var(--color-tipo);
-  border-radius: 0.45rem;
-  background: var(--t-fondo-2);
-}
-
-.debilidad-tipo {
-  font-weight: bold;
-  font-size: 0.88rem;
-}
-
-.debilidad-cuenta {
   font-size: 0.8rem;
-  opacity: 0.75;
 }
 
-/* Barra proporcional a cuántos del equipo son débiles */
-.debilidad-barra {
-  width: 4rem;
+.analisis-barra-nombre {
+  color: var(--t-gris);
+}
+
+.analisis-barra-fondo {
   height: 0.45rem;
   border-radius: 0.25rem;
   background: rgba(var(--t-tinte), 0.1);
   overflow: hidden;
 }
 
-.debilidad-barra i {
+.analisis-barra-fondo i {
   display: block;
   height: 100%;
+}
+
+.analisis-barra-valor {
+  font-family: var(--letra-titulos);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Lo que más conviene mirar: un punto naranja (rojo si es grave) delante */
+.analisis-avisos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.analisis-avisos li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.analisis-avisos li::before {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 0.5em;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
   background: #e67e22;
 }
 
-.debilidad.critico .debilidad-barra i {
+.analisis-avisos li.grave::before {
   background: #e74c3c;
 }
 
-.debilidad.critico .debilidad-cuenta {
-  color: #e74c3c;
-  opacity: 1;
+/* Cada Pokémon: retrato, nota, barras y el porqué */
+.analisis-miembros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+  gap: 0.6rem;
 }
 
-.debilidades-bien {
-  margin: 0;
-  font-size: 0.9rem;
+.analisis-miembro {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+}
+
+/* En la tarjeta, la barra se lleva más sitio que el nombre */
+.analisis-miembro .analisis-barra {
+  grid-template-columns: 4.6rem 1fr 1.6rem;
+  gap: 0.4rem;
+}
+
+.analisis-retrato {
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.5rem;
+  image-rendering: pixelated;
+}
+
+.analisis-miembro-datos {
+  flex: 1;
+  min-width: 0;
+}
+
+.analisis-miembro-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 0.6rem;
+  margin-bottom: 0.3rem;
+}
+
+.analisis-miembro-cabeza strong {
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+}
+
+.analisis-miembro-nota {
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.analisis-notas {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  font-size: 0.82rem;
+}
+
+.analisis-notas li {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.analisis-notas li::before {
+  content: "·";
+  position: absolute;
+  left: 0.15rem;
+  font-weight: bold;
+  color: var(--t-gris);
+}
+
+.analisis-notas li.bien::before {
+  content: "+";
   color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
 }
 
-.debilidades-sin-aguante {
-  margin: 0.6rem 0 0;
+.analisis-notas li.mal::before {
+  content: "−";
+  color: #e74c3c;
+}
+
+/* Cobertura y puntos débiles: dos tablas con una fila por cada uno de los 18 tipos, en el
+   mismo orden (cada tipo queda a la misma altura en las dos). A la derecha de los Pokémon,
+   van desde arriba hasta donde acaban ellos: las filas «flotan» dentro de su caja (position:
+   absolute) para no estirar la rejilla y se reparten el alto (con un mínimo, por si el equipo
+   es corto). El título, la explicación y las filas de las dos comparten las filas de
+   .analisis-tablas (subgrid): empiezan a la misma altura aunque una explicación sea más larga. */
+.analisis-tablas {
+  display: grid;
+  grid-template-columns: repeat(2, 20.5rem);
+  grid-template-rows: auto auto 1fr;
+  column-gap: 1.2rem;
+}
+
+.analisis-tabla {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+}
+
+.analisis-tabla h3 {
+  margin: 0 0 0.3rem;
+  font-family: var(--letra-titulos);
+  font-size: 1.15rem;
+}
+
+#dialogo-analisis .analisis-tabla .analisis-explica {
+  margin: 0;
+}
+
+.analisis-tabla-caja {
+  position: relative;
+  min-height: 30rem;
+  margin-top: 0.6rem;
+}
+
+.analisis-filas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(18, minmax(0, 1fr));
+  gap: 0.2rem;
+}
+
+/* Cada fila: la capa de color del tipo, su icono, su nombre, el detalle (quién le hace más
+   daño, o cuántos son débiles y cuántos lo aguantan) y el valor (el % o la barra) */
+.analisis-fila {
+  display: grid;
+  grid-template-columns: auto 4.6rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.45rem;
+  padding: 0 0.55rem;
+  border-left: 0.3rem solid var(--color-tipo);
+  border-radius: 0.45rem;
+  background: var(--t-fondo-2);
+}
+
+.analisis-fila .icono-tipo {
+  width: 1.05rem;
+  height: 1.05rem;
+  background: var(--color-tipo);
+}
+
+.fila-tipo {
+  font-weight: bold;
+  font-size: 0.82rem;
+}
+
+.fila-detalle {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--t-gris);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fila-valor {
+  font-family: var(--letra-titulos);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cobertura.fuerte .fila-valor {
+  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+}
+
+.cobertura.flojo .fila-valor {
+  color: #e74c3c;
+}
+
+/* Puntos débiles: cuántos son débiles, en negrita (naranja si son 2, rojo si son 3 o más, y
+   apagado si no hay ninguno); cuántos lo aguantan, en rojo si nadie y hay débiles; y la barra
+   de cuántos son débiles */
+.defensa-debiles {
+  color: var(--t-texto);
+}
+
+.defensa.sin-debiles .defensa-debiles {
+  color: inherit;
+  font-weight: normal;
+}
+
+.defensa.aviso .defensa-debiles {
+  color: #e67e22;
+}
+
+.defensa.critico .defensa-debiles,
+.defensa.sin-aguante .defensa-aguantan {
+  color: #e74c3c;
+}
+
+.defensa-barra {
+  width: 2.5rem;
+  height: 0.45rem;
+  border-radius: 0.25rem;
+  background: rgba(var(--t-tinte), 0.1);
+  overflow: hidden;
+}
+
+.defensa-barra i {
+  display: block;
+  height: 100%;
+  background: var(--t-gris);
+}
+
+.defensa.aviso .defensa-barra i {
+  background: #e67e22;
+}
+
+.defensa.critico .defensa-barra i {
+  background: #e74c3c;
+}
+
+/* Sin sitio para las dos tablas al lado de los Pokémon: debajo, una junto a la otra */
+@media (max-width: 1340px) {
+  .analisis-rejilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .analisis-tablas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analisis-tabla-caja {
+    min-height: 0;
+  }
+
+  .analisis-filas {
+    position: static;
+    grid-template-rows: none;
+    grid-auto-rows: 1.7rem;
+  }
+}
+
+/* En el móvil, una tabla debajo de la otra */
+@media (max-width: 640px) {
+  .analisis-tablas {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    row-gap: 1.2rem;
+  }
+
+  .analisis-tabla {
+    grid-row: auto;
+    grid-template-rows: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .analisis-cabecera {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .analisis-barra {
+    grid-template-columns: 5.2rem 1fr 1.8rem;
+  }
+}
+
+/* ---------- Buscar equipo (js/equipos/buscar.js) ---------- */
+
+/* Con la caja, la ventana tiene un alto fijo (como la de la partida de un locke): a la
+   izquierda la caja, que se desplaza sola, y a la derecha la ficha del Pokémon elegido */
+#dialogo-buscar-equipo.con-caja {
+  width: min(96rem, 96vw);
+  height: calc(100vh - 4rem);
+  height: calc(100dvh - 4rem);
+}
+
+#dialogo-buscar-equipo .buscar-cuerpo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.buscar-rejilla {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 25rem;
+  gap: 1rem;
+}
+
+.buscar-principal {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.4rem;
+}
+
+/* El panel de la derecha, como el del editor de la partida */
+.buscar-lado {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.9rem;
+  border-radius: 0.6rem;
+  background: rgba(var(--t-oscurecer), 0.18);
+}
+
+.buscar-lado-reposo {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--t-gris);
+}
+
+/* La ✕ del panel: solo cuando va por encima de la caja (pantallas estrechas) */
+.buscar-lado-cerrar {
+  display: none;
+}
+
+/* Arriba: el locke (con su etiqueta encima, como en las demás ventanas) y de dónde sale la caja */
+.buscar-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 1.4rem;
+}
+
+#dialogo-buscar-equipo .buscar-elegir {
+  margin-top: 0;
+}
+
+.buscar-elegir select {
+  min-width: 12rem;
+  max-width: 20rem;
+  padding: 0.55rem 0.7rem;
+  border: none;
+  border-radius: 0.45rem;
+  color: var(--t-texto);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+#dialogo-buscar-equipo .buscar-fuente {
+  flex: 1 1 20rem;
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  color: var(--t-gris);
+  opacity: 1;
+}
+
+.buscar-fuente .boton-gris {
+  margin-left: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+/* La caja: cada Pokémon, con lo que se pulsa para ver su ficha y, en las esquinas de arriba,
+   los botoncitos de dejarlo fuera (izquierda) y fijarlo (derecha) */
+.buscar-caja {
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: 0.4rem;
+}
+
+.buscar-ficha {
+  position: relative;
+  display: flex;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+}
+
+.buscar-ficha:hover {
+  border-color: rgba(var(--t-tinte), 0.18);
+}
+
+.buscar-ficha.elegida {
+  border-color: rgba(var(--t-tinte), 0.55);
+}
+
+.buscar-ficha.fijo {
+  border-color: rgb(var(--color-vista));
+}
+
+.buscar-ficha.fuera .buscar-ficha-ver {
+  opacity: 0.4;
+}
+
+:is(.buscar-ficha-ver, .buscar-mini) {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.45rem 0.35rem 0.35rem;
+  border: none;
+  background: none;
+  color: var(--t-texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+:is(.buscar-dejar, .buscar-fijar) {
+  position: absolute;
+  top: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.35rem;
+  background: var(--t-control);
+  color: var(--t-gris);
+  cursor: pointer;
+}
+
+.buscar-dejar {
+  left: 0.25rem;
+}
+
+.buscar-fijar {
+  right: 0.25rem;
+}
+
+:is(.buscar-dejar, .buscar-fijar) .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+:is(.buscar-dejar, .buscar-fijar):hover {
+  background: var(--t-control-2);
+  color: var(--t-texto);
+}
+
+.buscar-fijar.activo {
+  background: rgb(var(--color-vista));
+  color: #fff;
+}
+
+.buscar-dejar.activo {
+  background: #c0392b;
+  color: #fff;
+}
+
+.buscar-retrato {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.45rem;
+  image-rendering: pixelated;
+}
+
+.buscar-ficha-nombre {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--letra-titulos);
+  font-weight: 600;
   font-size: 0.85rem;
-  opacity: 0.8;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.buscar-ficha-datos {
+  font-size: 0.72rem;
+  color: var(--t-gris);
+}
+
+.buscar-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+/* Del tamaño de «Analizar» y «Buscar equipo» de la barra de arriba */
+#dialogo-buscar-equipo :is(.buscar-acciones, .buscar-propuesta-botones) button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.buscar-cuenta {
+  font-size: 0.85rem;
+  color: var(--t-gris);
+}
+
+/* Los equipos propuestos: la nota, los seis (que también abren su ficha) y los botones */
+.buscar-propuestas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.buscar-propuesta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+}
+
+.buscar-propuesta .analisis-nota {
+  min-width: 4.5rem;
+}
+
+.buscar-propuesta .analisis-nota-numero {
+  font-size: 2.3rem;
+}
+
+.buscar-propuesta .analisis-nota-palabra {
+  font-size: 0.8rem;
+}
+
+.buscar-propuesta-pokemon {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.buscar-mini {
+  position: relative;
+  width: 100%;
+  padding: 0.3rem 0.2rem;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+}
+
+.buscar-mini:hover {
+  border-color: rgba(var(--t-tinte), 0.18);
+}
+
+.buscar-mini.elegida {
+  border-color: rgba(var(--t-tinte), 0.55);
+}
+
+.buscar-marca {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.3rem;
+  display: flex;
+  color: rgb(var(--color-vista));
+}
+
+.buscar-marca .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.buscar-propuesta-botones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* ---------- La ficha del Pokémon elegido (en el panel de la derecha) ---------- */
+
+.buscar-lado-cabeza {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.7rem;
+}
+
+.buscar-lado-retrato {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.6rem;
+  image-rendering: pixelated;
+}
+
+.buscar-lado-nombre {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.buscar-lado-nombre h3 {
+  margin: 0;
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 1.3rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.buscar-lado-nombre > span {
+  font-size: 0.8rem;
+  color: var(--t-gris);
+}
+
+.buscar-lado-nombre .chips {
+  justify-content: flex-start;
+}
+
+.buscar-lado .analisis-nota {
+  min-width: 0;
+}
+
+.buscar-lado .analisis-nota-numero {
+  font-size: 2.2rem;
+}
+
+.buscar-lado .analisis-nota-palabra {
+  font-size: 0.78rem;
+}
+
+.buscar-lado h4 {
+  margin: 1rem 0 0.4rem;
+  font-family: var(--letra-titulos);
+  font-size: 1rem;
+}
+
+/* Habilidad y objeto, uno al lado del otro, y debajo los cuatro ataques (como en las tarjetas
+   de «Crear equipo») */
+.buscar-lado-cosas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+}
+
+.buscar-lado-ataques {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.buscar-lado-ataques .ataque {
+  font-size: 0.85rem;
+}
+
+.buscar-lado-ataques .ataque-tipo {
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.buscar-ataque-sin-tipo,
+.buscar-ataque-vacio {
+  background: var(--t-control);
+}
+
+.buscar-ataque-vacio {
+  justify-content: center;
+  color: var(--t-gris);
+  text-shadow: none;
+}
+
+/* Las estadísticas: la barra es la base (como en las fichas), el número la de verdad (con su
+   nivel, naturaleza, IVs y EVs) */
+.buscar-lado-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.buscar-stat {
+  display: grid;
+  grid-template-columns: 5.6rem 1fr 2.2rem auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.buscar-stat-nombre {
+  color: var(--t-gris);
+  white-space: nowrap;
+}
+
+.buscar-stat-valor {
+  font-family: var(--letra-titulos);
+  font-weight: 600;
+  text-align: right;
+}
+
+.buscar-stat-extra {
+  min-width: 6.5rem;
+  font-size: 0.72rem;
+  color: var(--t-gris);
+  white-space: nowrap;
+}
+
+/* En pantallas estrechas: la caja ocupa todo y la ficha sale por encima, con su ✕ */
+@media (max-width: 900px) {
+  .buscar-rejilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .buscar-lado {
+    display: none;
+  }
+
+  .buscar-rejilla.con-ficha .buscar-lado {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: block;
+    background: var(--t-panel);
+    box-shadow: 0 0 0 1px rgba(var(--t-tinte), 0.08);
+  }
+
+  .buscar-lado-cerrar {
+    float: right;
+    display: flex;
+    padding: 0.35rem;
+    border: none;
+    border-radius: 0.4rem;
+    background: var(--t-control);
+    color: var(--t-texto);
+    cursor: pointer;
+  }
+
+  .buscar-lado-cerrar .icono {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .buscar-propuesta {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .buscar-propuesta-pokemon {
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .buscar-propuesta-botones {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 /* ---------- Debilidades en la ficha de cada Pokémon ---------- */

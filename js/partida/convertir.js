@@ -204,6 +204,15 @@ export async function cajaConDetalle(leida, posicion) {
   return caja ? caja.pokemon.map((p) => convertir(p, leida.gen, true, leida.juego)) : [];
 }
 
+// Todos los Pokémon de la partida con todo, el equipo y cada caja (para «Buscar equipo»)
+export async function todoConDetalle(leida) {
+  await prepararConversion();
+  return {
+    equipo: leida.equipo.map((p) => convertir(p, leida.gen, true, leida.juego)),
+    cajas: leida.cajas.map((caja) => caja.pokemon.map((p) => convertir(p, leida.gen, true, leida.juego)))
+  };
+}
+
 // ---------- Paste de Showdown (para «Copiar a Mis equipos» y exportar una caja) ----------
 //
 // Los de las cajas guardadas no llevan ataques, habilidad, naturaleza, EVs ni IVs: salen sin

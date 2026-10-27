@@ -101,6 +101,31 @@ export async function desvincular(idLocke) {
   alCambiarEstado();
 }
 
+// Los bytes del archivo vinculado a un locke, desde cualquier sección (aunque la de Lockes no se
+// haya abierto y no esté vigilándolo). Sin permiso: con pedir, se pide (tiene que ser con un
+// clic); si no, null. Sin archivo vinculado en este navegador, también null.
+export async function leerVinculado(idLocke, pedir = false) {
+  if (!sePuedeVigilar) return null;
+  const vinculo = vinculos.get(idLocke);
+  const archivo = vinculo ? vinculo.archivo : await operar("readonly", (almacen) => almacen.get(idLocke)).catch(() => null);
+  if (!archivo) return null;
+  let permiso = await archivo.queryPermission({ mode: "read" });
+  if (permiso !== "granted" && pedir) permiso = await archivo.requestPermission({ mode: "read" });
+  if (permiso !== "granted") return null;
+  if (vinculo && vinculo.permiso !== "granted") {
+    vinculo.permiso = "granted";
+    alCambiarEstado();
+  }
+  return new Uint8Array(await (await archivo.getFile()).arrayBuffer());
+}
+
+// Si hay un archivo vinculado a ese locke en este navegador (con permiso o sin él)
+export async function hayVinculo(idLocke) {
+  if (!sePuedeVigilar) return false;
+  if (vinculos.has(idLocke)) return true;
+  return Boolean(await operar("readonly", (almacen) => almacen.get(idLocke)).catch(() => null));
+}
+
 // Sin la API: leer un archivo una vez (<input type="file">)
 export function leerUnaVez(idLocke) {
   const campo = document.createElement("input");

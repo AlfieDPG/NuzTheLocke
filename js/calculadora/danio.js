@@ -21,7 +21,7 @@ const TIPOS = Object.keys(tiposEs);
 // ---------- Objetos ----------
 
 // El nombre en inglés, sin espacios ni signos: «Never-Melt Ice» -> «nevermeltice»
-function clave(nombre) {
+export function clave(nombre) {
   return String(nombre || "").toLowerCase().replace(/[^a-z]/g, "");
 }
 

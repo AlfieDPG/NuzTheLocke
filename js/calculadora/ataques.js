@@ -12,7 +12,7 @@ import { descargarCSV } from "../comun/datos.js";
 import { leer, escribir } from "../comun/almacen.js";
 
 // NO cambiar sin motivo; sí subirla al rehacer datos/ataques.json
-const CLAVE = "poketeams-ataques-calc-v3";
+const CLAVE = "poketeams-ataques-calc-v4";
 
 export const TIPOS_POR_ID = {
   1: "normal", 2: "fighting", 3: "flying", 4: "poison", 5: "ground", 6: "rock",
@@ -26,8 +26,9 @@ const CLASES = { 2: "fisico", 3: "especial" };
 // números de move_flags.csv
 const BANDERAS = { 1: "contacto", 8: "punetazo", 9: "sonido", 16: "mordisco", 17: "pulso" };
 
-// [{ id, tipo, potencia, clase: "fisico" | "especial", prioridad?, contacto?, punetazo?,
-//    sonido?, mordisco?, pulso?, secundario? (con efecto extra, para Potencia Bruta) }]
+// [{ id, tipo, potencia, clase: "fisico" | "especial", prioridad?, precision? (solo si es
+//    menos de 100; la usa el análisis de equipos), contacto?, punetazo?, sonido?, mordisco?,
+//    pulso?, secundario? (con efecto extra, para Potencia Bruta) }]
 // (los opcionales solo si no son 0 / false)
 export async function montarAtaquesDePokeAPI() {
   const [csv, csvBanderas] = await Promise.all([descargarCSV("moves.csv"), descargarCSV("move_flag_map.csv")]);
@@ -45,6 +46,7 @@ export async function montarAtaquesDePokeAPI() {
     const id = Number(partes[0]);
     const tipo = TIPOS_POR_ID[Number(partes[3])];
     const potencia = Number(partes[4]);
+    const precision = Number(partes[6]) || 0; // vacía: no falla nunca
     const prioridad = Number(partes[7]) || 0;
     const clase = CLASES[Number(partes[9])];
     const secundario = Boolean(partes[11]);
@@ -53,6 +55,7 @@ export async function montarAtaquesDePokeAPI() {
     ataques.push({
       id, tipo, potencia, clase,
       ...(prioridad ? { prioridad } : {}),
+      ...(precision && precision < 100 ? { precision } : {}),
       ...(banderas.get(id) || {}),
       ...(secundario ? { secundario } : {})
     });

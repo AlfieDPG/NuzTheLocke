@@ -62,13 +62,8 @@
         <button data-vista="normas" data-icono="libro" class="boton-seccion">Normas</button>
 
         <span class="menu-titulo">Equipo</span>
-        <details class="grupo-menu">
-          <summary class="boton-seccion" data-icono="pokeball">Equipos</summary>
-          <div class="submenu">
-            <button data-vista="crear" data-icono="mas">Crear equipo</button>
-            <button data-vista="equipos" data-icono="lista">Mis equipos</button>
-          </div>
-        </details>
+        <!-- Lleva a «Mis equipos»; «Crear equipo» es el primer botón de su barra -->
+        <button data-vista="equipos" data-icono="pokeball" class="boton-seccion">Equipos</button>
         <button data-vista="pokedex" data-icono="pokedex" class="boton-seccion">Pokédex</button>
         <button data-vista="calculadora" data-icono="calculadora" class="boton-seccion">Calculadora</button>
 
@@ -121,7 +116,8 @@
           <div class="barra-superior">
             <div class="lado-izq">
               <input id="nombre-equipo" type="text" placeholder="Nombre del equipo">
-              <button id="ver-debilidades">Debilidades</button>
+              <button id="analizar-equipo" title="Nota del equipo, cobertura, puntos débiles y el porqué de cada cosa">Analizar</button>
+              <button id="buscar-equipo" title="El mejor equipo con los Pokémon de la caja de uno de tus lockes">Buscar equipo</button>
               <span id="contador"></span>
             </div>
 
@@ -144,6 +140,7 @@
 
         <section id="vista-equipos" hidden>
           <div class="barra-equipos">
+            <button id="crear-equipo-nuevo">Crear equipo</button>
             <button id="cambiar-vista">Ver en lista</button>
             <button id="nuevo-grupo" title="Un grupo para juntar varios equipos (como las carpetas de Showdown)">Nuevo grupo</button>
             <button id="importar-varios" title="Pega uno o varios equipos (copia de seguridad de Showdown)">Importar</button>
@@ -328,13 +325,24 @@
     </div>
   </dialog>
 
-  <dialog id="dialogo-debilidades">
-    <h2>Puntos débiles del equipo</h2>
-    <div class="debilidades-cuerpo"></div>
+  <!-- Análisis y Buscar equipo (js/equipos/analizar.js y buscar.js): con las casillas,
+       etiquetas y botones de las demás ventanas (dialogo-sesion) -->
+  <dialog id="dialogo-analisis" class="dialogo-sesion">
+    <h2>Análisis del equipo</h2>
+    <div class="analisis-cuerpo"></div>
     <div class="dialogo-botones">
-      <button id="debilidades-cerrar">Cerrar</button>
+      <button id="analisis-cerrar" class="boton-gris">Cerrar</button>
     </div>
   </dialog>
+
+  <dialog id="dialogo-buscar-equipo" class="dialogo-sesion">
+    <h2>Buscar equipo</h2>
+    <div class="buscar-cuerpo"></div>
+    <div class="dialogo-botones">
+      <button id="buscar-equipo-cerrar" class="boton-gris">Cerrar</button>
+    </div>
+  </dialog>
+
 
   <dialog id="dialogo-tipos">
     <h2>Tipos de locke</h2>

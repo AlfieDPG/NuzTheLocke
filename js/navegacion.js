@@ -48,6 +48,9 @@ const VISTAS = {
   randomizer: "randomizer"
 };
 
+// Vistas sin botón propio en el menú -> el botón que se marca
+const VISTA_EN_MENU = { crear: "equipos" };
+
 const iniciadas = new Map(); // sección -> promesa con su módulo ya iniciado
 
 function cargarSeccion(nombre) {
@@ -89,12 +92,10 @@ export async function irA(vista) {
   for (const seccion of document.querySelectorAll("main > section")) {
     seccion.hidden = seccion.id !== `vista-${vista}`;
   }
+  // «Crear equipo» no tiene botón en el menú: se marca el de Equipos
+  const enMenu = VISTA_EN_MENU[vista] || vista;
   for (const boton of document.querySelectorAll(".menu-lateral [data-vista]")) {
-    const activa = boton.dataset.vista === vista;
-    boton.classList.toggle("activa", activa);
-    // Si se recarga en «Crear equipo», que se vea marcado aunque Equipos empiece plegado
-    const grupo = boton.closest("details");
-    if (activa && grupo) grupo.open = true;
+    boton.classList.toggle("activa", boton.dataset.vista === enMenu);
   }
 
   try {
