@@ -20,7 +20,10 @@ import { escaparHTML, quitarAcentos } from "../comun/utilidades.js";
 import { hayNube, usuarioActual, alCambiarSesion } from "../comun/nube.js";
 import { JUEGOS } from "../comun/juegos.js";
 import { plantillaCampoJuego, activarCamposJuego, leerCampoJuego, nombreJuego } from "../comun/campo-juego.js";
-import { amistades, perfilesDe, pedirAmistad, buscarAmigo } from "../comun/perfiles.js";
+import { amistades, perfilesDe, pedirAmistad, buscarAmigo, lockesJugados } from "../comun/perfiles.js";
+import { estaBloqueado, bloquear, desbloquear } from "../comun/chat.js";
+import { marcarHiloVisto } from "../comun/avisos-foro.js";
+import { estaConectado } from "../comun/presencia.js";
 import { confirmar, avisar, preguntar } from "../comun/ventanas.js";
 import { t, LOCALE } from "../comun/idioma.js";
 import * as foro from "../comun/foro.js";
@@ -591,6 +594,8 @@ async function abrirHilo(id) {
       await traerPerfiles([hilo.uid]);
       if (apertura !== aperturas) return;
       hiloAbierto = hilo;
+      // Mirando tu hilo, sus respuestas dejan de ser nuevas para la campana (también tus propias respuestas)
+      if (hilo.uid === miUid()) marcarHiloVisto(hilo.id, hilo.respuestas);
       pintarCabeceraHilo();
 
       // La primera vez (o si lo hacen principal o dejan de serlo con el hilo abierto) se elige cómo
@@ -610,6 +615,11 @@ async function abrirHilo(id) {
       if (apertura === aperturas) panelHilo.querySelector(".foro-hilo-cabecera").innerHTML = `<p class="foro-vacio">${t("No se ha podido cargar el hilo.")}</p>`;
     }
   );
+}
+
+// Para abrir un hilo desde fuera del foro (los avisos de la campana)
+export function abrirHiloDe(id) {
+  return abrirHilo(id);
 }
 
 // Escucha los comentarios del hilo: los primeros 300 si es normal, los últimos
@@ -763,6 +773,12 @@ function abrirDenuncia(objetivo) {
   dialogoDenuncia.showModal();
 }
 
+// Para denunciar a una persona desde fuera del foro (el chat): «copia» es lo que se enseña al
+// moderador
+export function denunciarPersona(uid, copia) {
+  abrirDenuncia({ tipo: "usuario", autor: uid, copia });
+}
+
 async function enviarDenuncia() {
   const boton = dialogoDenuncia.querySelector(".foro-denuncia-enviar");
   const error = dialogoDenuncia.querySelector(".foro-denuncia-error");
@@ -794,26 +810,64 @@ async function abrirUsuario(uid) {
   const yo = uid === miUid();
   const relacion = relacionCon(uid);
   const ganados = (perfil.ganados || []).length;
+  const jugados = lockesJugados(perfil).length;
 
-  const botones = [];
-  if (yo || relacion === "ok") botones.push(`<button data-accion="perfil">${icono("persona")}${t("Ver perfil")}</button>`);
-  if (!yo && !relacion) botones.push(`<button data-accion="amigo">${icono("personaMas")}${t("Añadir a amigos")}</button>`);
-  if (!yo) botones.push(`<button data-accion="denunciar" class="peligro">${icono("bandera")}${t("Denunciar")}</button>`);
-  if (esModerador && !yo) botones.push(`<button data-accion="silenciar" class="peligro">${icono("aviso")}<span>${t("Silenciar en el foro")}</span></button>`);
-  if (esAdmin && !yo) botones.push(`<button data-accion="moderador" hidden>${icono("escudo")}<span></span></button>`);
+  const bloqueada = estaBloqueado(uid);
+  const conectado = !yo && estaConectado(uid);
+
+  // Arriba, lo que se hace con más probabilidad: ver su perfil y, según la relación, charlar o
+  // pedirle amistad. Debajo, en discreto, denunciar y bloquear. Y aparte, lo de moderar.
+  const principales = [`<button class="principal" data-accion="perfil">${icono("persona")}${t("Ver perfil")}</button>`];
+  if (!yo && !relacion && !bloqueada) principales.push(`<button data-accion="amigo">${icono("personaMas")}${t("Añadir a amigos")}</button>`);
+  if (!yo && relacion === "ok") principales.push(`<button data-accion="chat">${icono("mensaje")}${t("Chat")}</button>`);
+
+  const discretas = [];
+  if (!yo) {
+    discretas.push(`<button data-accion="denunciar">${icono("bandera")}${t("Denunciar")}</button>`);
+    discretas.push(bloqueada
+      ? `<button data-accion="desbloquear">${icono("candado")}${t("Desbloquear")}</button>`
+      : `<button data-accion="bloquear">${icono("candado")}${t("Bloquear")}</button>`);
+  }
+
+  const moderacion = [];
+  if (esModerador && !yo) moderacion.push(`<button data-accion="silenciar">${icono("aviso")}<span>${t("Silenciar en el foro")}</span></button>`);
+  if (esAdmin && !yo) moderacion.push(`<button data-accion="moderador" hidden>${icono("escudo")}<span></span></button>`);
+
+  const chips = [];
+  if (relacion === "ok") chips.push(`<span class="foro-usuario-chip">${icono("amigos")}${t("Amigo")}</span>`);
+  else if (relacion === "pendiente") chips.push(`<span class="foro-usuario-chip">${t("Solicitud de amistad pendiente")}</span>`);
+  if (perfil.busca) chips.push(`<span class="foro-usuario-chip busca">${icono("persona")}${t("Busca compañeros")}</span>`);
+
+  const sobreMi = (perfil.sobreMi || "").trim();
+  const horario = (perfil.horario || "").trim();
 
   dialogoUsuario.dataset.uid = uid;
   dialogoUsuario.querySelector(".foro-usuario-cuerpo").innerHTML = `
-    <div class="foro-usuario-cabecera">
+    <header class="foro-usuario-cabecera ${conectado ? "conectado" : yo ? "mia" : ""}">
       ${foto(uid)}
-      <div>
-        <h2>${nombreDe(uid)}${yo ? ` <small>(${t("tú")})</small>` : ""}</h2>
-        <p>${ganados === 1 ? t("1 locke ganado") : t("{n} lockes ganados", { n: ganados })}${
-          relacion === "ok" ? ` · ${t("Amigo")}` : relacion === "pendiente" ? ` · ${t("Solicitud de amistad pendiente")}` : ""
-        }</p>
+      <div class="foro-usuario-datos">
+        ${yo
+          ? `<span class="jugador-estado">${t("Tú")}</span>`
+          : conectado
+            ? `<span class="jugador-estado"><span class="punto-conectado"></span>${t("Conectado")}</span>`
+            : ""}
+        <h2>${nombreDe(uid)}</h2>
+        <span class="foro-usuario-ganados">
+          ${t(jugados === 1 ? "{n} locke jugado" : "{n} lockes jugados", { n: jugados })}
+          <span class="foro-usuario-de-ellos">${icono("corona")}${t(ganados === 1 ? "{n} ganado" : "{n} ganados", { n: ganados })}</span>
+        </span>
+        ${chips.length ? `<div class="foro-usuario-chips">${chips.join("")}</div>` : ""}
       </div>
-    </div>
-    <div class="foro-usuario-botones">${botones.join("")}</div>
+    </header>
+    ${sobreMi || horario
+      ? `<div class="foro-usuario-sobre">
+          ${sobreMi ? `<p>${escaparHTML(sobreMi)}</p>` : ""}
+          ${horario ? `<small><strong>${t("Horario")}:</strong> ${escaparHTML(horario)}</small>` : ""}
+        </div>`
+      : ""}
+    <div class="foro-usuario-principales">${principales.join("")}</div>
+    ${discretas.length ? `<div class="foro-usuario-discretas">${discretas.join("")}</div>` : ""}
+    ${moderacion.length ? `<div class="foro-usuario-moderacion"><span>${t("Moderación")}</span>${moderacion.join("")}</div>` : ""}
     <p class="foro-usuario-error"></p>`;
   if (!dialogoUsuario.open) dialogoUsuario.showModal();
 
@@ -872,6 +926,29 @@ async function accionDeUsuario(e) {
       case "denunciar":
         dialogoUsuario.close();
         abrirDenuncia({ tipo: "usuario", autor: uid, copia: perfilDe(uid).nombre || "" });
+        break;
+      case "chat": {
+        dialogoUsuario.close();
+        const { abrirChat } = await import("../chat.js");
+        abrirChat(uid);
+        break;
+      }
+      case "bloquear": {
+        const nombre = perfilDe(uid).nombre || t("Jugador");
+        const quiere = await confirmar(
+          t("¿Bloquear a {nombre}? Dejaréis de ser amigos, se borrará el chat y no podrá volver a pedirte amistad.", { nombre }),
+          { aceptar: t("Bloquear") }
+        );
+        if (!quiere) return;
+        await bloquear(uid);
+        dialogoUsuario.close();
+        avisar(t("{nombre} bloqueado.", { nombre }));
+        break;
+      }
+      case "desbloquear":
+        await desbloquear(uid);
+        dialogoUsuario.close();
+        avisar(t("Desbloqueado."));
         break;
       case "silenciar": {
         const yaSilenciado = Boolean(boton.dataset.silenciado);
@@ -1246,7 +1323,14 @@ export function iniciar() {
   // Denuncias y fichas
   dialogoDenuncia.querySelector(".foro-denuncia-cancelar").addEventListener("click", () => dialogoDenuncia.close());
   dialogoDenuncia.querySelector(".foro-denuncia-enviar").addEventListener("click", enviarDenuncia);
+  dialogoUsuario.querySelector(".foro-usuario-cerrar").innerHTML = icono("aspa");
   dialogoUsuario.querySelector(".foro-usuario-cerrar").addEventListener("click", () => dialogoUsuario.close());
+  // Pulsando fuera de la ficha (en lo oscuro de alrededor) también se cierra
+  dialogoUsuario.addEventListener("click", (e) => {
+    if (e.target !== dialogoUsuario) return;
+    const caja = dialogoUsuario.getBoundingClientRect();
+    if (e.clientX < caja.left || e.clientX > caja.right || e.clientY < caja.top || e.clientY > caja.bottom) dialogoUsuario.close();
+  });
   dialogoUsuario.addEventListener("click", accionDeUsuario);
 
   // Si se cambia de cuenta o se sale, lo cargado ya no vale

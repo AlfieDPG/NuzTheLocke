@@ -7,6 +7,7 @@
 //     es un amigo): traen vidas, muertos, victorias, ROM, equipos finales y los de cada combate;
 //   · los lockes ganados que tiene apuntados en su propio palmarés (perfil.ganados), a mano o
 //     puestos solos al ganar un locke: son siempre victorias suyas;
+//   · los que jugó y no ganó (perfil.perdidos): de la web, a mano o copiados de un amigo;
 //   · los apuntados en el palmarés de otra persona en los que sale como participante (por su uid
 //     o, si no, por su nombre): ahí lo normal es que haya perdido, pero cuenta igual.
 //
@@ -67,6 +68,14 @@ function apuntadosDe(uid, perfil, otrosPerfiles, conocidos) {
     if (vistos.has(ganado.id)) continue;
     vistos.add(ganado.id);
     lista.push({ ganado, participante: participanteDe(ganado, uid, perfil, true), gana: true });
+  }
+
+  // Los que jugó y no ganó, apuntados en su propio perfil (de la web, a mano o copiados del
+  // palmarés de un amigo)
+  for (const perdido of (perfil && perfil.perdidos) || []) {
+    if (vistos.has(perdido.id)) continue;
+    vistos.add(perdido.id);
+    lista.push({ ganado: perdido, participante: participanteDe(perdido, uid, perfil, false), gana: false });
   }
 
   for (const otro of otrosPerfiles) {

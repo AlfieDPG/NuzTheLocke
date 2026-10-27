@@ -5,12 +5,13 @@
 // puede llegar mientras estás montando un equipo, y así la ves desde cualquier sección.
 // Como vive dentro de .sesion-usuario, se esconde sola cuando no hay sesión.
 //
-// Dentro caben tres cosas:
+// Dentro caben cuatro cosas (y, aparte, el botón de chats junto a la campana):
 //   · solicitudes de amistad que te han mandado
 //   · invitaciones a un locke de «Lockes»
 //   · avisos del árbitro de normas: lo que ha visto en la partida de otro jugador de un locke
 //     tuyo con árbitro (js/partida/arbitro.js). Se quitan con el visto, y se guardan como
 //     vistos en tu cuenta para no volver a salir en otro dispositivo.
+//   · respuestas nuevas a tus hilos del foro (js/comun/avisos-foro.js)
 //
 // Las listas están escuchadas en vivo, así que el número sube y baja solo.
 
@@ -24,8 +25,10 @@ import {
 import {
   alCambiarLockes, invitacionesALockes, aceptarLocke, rechazarLocke, miEstado, lockePorId, escucharInfracciones
 } from "./comun/lockes.js";
+import { chatsSinLeer, alCambiarChats } from "./comun/chat.js";
+import { respuestasNuevas, marcarHiloVisto, alCambiarAvisosForo } from "./comun/avisos-foro.js";
 import { leer, escribir } from "./comun/almacen.js";
-import { irA } from "./navegacion.js";
+import { irA, prepararSeccion } from "./navegacion.js";
 
 const CLAVE_VISTOS = "poketeams-avisos-arbitro-v1"; // ids de los avisos del árbitro que ya has visto
 const DIAS_VIGENTES = 14;                           // los avisos más viejos ya no salen
@@ -144,14 +147,37 @@ function plantillaArbitro(aviso) {
     </div>`;
 }
 
+// ---------- Respuestas a tus hilos del foro ----------
+
+function plantillaForo(hilo) {
+  return `
+    <div class="aviso" data-tipo="foro" data-id="${escaparHTML(hilo.id)}">
+      <span class="aviso-icono foro">${icono("mensaje")}</span>
+      <span class="aviso-texto aviso-ir" title="${t("Abrir el hilo")}">
+        ${t(hilo.nuevas === 1 ? "{n} respuesta nueva en tu hilo" : "{n} respuestas nuevas en tu hilo", { n: hilo.nuevas })}
+        <small>${escaparHTML(hilo.titulo)}</small>
+      </span>
+      <button class="aviso-si" title="${t("Entendido")}">${icono("visto")}</button>
+    </div>`;
+}
+
+// El foro se descarga la primera vez; el hilo se abre una vez que la sección está lista
+async function abrirHiloDelForo(id) {
+  dialogo.close();
+  await irA("foro");
+  const foro = await prepararSeccion("foro");
+  foro.abrirHiloDe(id);
+  marcarHiloVisto(id);
+}
+
 function pendientes() {
-  if (!hayNube() || !usuarioActual()) return { amistades: [], lockes: [], arbitro: [] };
-  return { amistades: solicitudesRecibidas(), lockes: invitacionesALockes(), arbitro: avisosDelArbitro() };
+  if (!hayNube() || !usuarioActual()) return { amistades: [], lockes: [], arbitro: [], foro: [] };
+  return { amistades: solicitudesRecibidas(), lockes: invitacionesALockes(), arbitro: avisosDelArbitro(), foro: respuestasNuevas() };
 }
 
 function pintar() {
-  const { amistades, lockes, arbitro } = pendientes();
-  const total = amistades.length + lockes.length + arbitro.length;
+  const { amistades, lockes, arbitro, foro } = pendientes();
+  const total = amistades.length + lockes.length + arbitro.length + foro.length;
 
   cuenta.textContent = total;
   cuenta.hidden = total === 0;
@@ -159,7 +185,7 @@ function pintar() {
   boton.title = total === 0 ? t("Notificaciones") : t(total === 1 ? "Tienes {n} notificación" : "Tienes {n} notificaciones", { n: total });
 
   listaDialogo.innerHTML = total
-    ? [...amistades.map(plantillaAmistad), ...lockes.map(plantillaLocke), ...arbitro.map(plantillaArbitro)].join("")
+    ? [...amistades.map(plantillaAmistad), ...lockes.map(plantillaLocke), ...arbitro.map(plantillaArbitro), ...foro.map(plantillaForo)].join("")
     : `<p class="aviso-vacio">${t("No tienes nada pendiente.")}</p>`;
 }
 
@@ -197,7 +223,7 @@ async function contestar(aviso, acepta) {
 // ---------- Arranque ----------
 
 export function iniciarAvisos() {
-  boton = document.querySelector(".avisos-boton");
+  boton = document.querySelector(".avisos-boton:not(.chat-boton)");
   dialogo = document.querySelector("#dialogo-avisos");
   listaDialogo = dialogo.querySelector(".avisos-lista");
 
@@ -207,10 +233,33 @@ export function iniciarAvisos() {
   boton.addEventListener("click", () => dialogo.showModal());
   dialogo.querySelector("#avisos-cerrar").addEventListener("click", () => dialogo.close());
 
+  // Los chats, al lado de la campana: el número es de los chats con algo sin leer. La ventana
+  // se descarga la primera vez que se abre.
+  const botonChat = document.querySelector(".chat-boton");
+  botonChat.innerHTML = `${icono("mensaje")}<span class="avisos-cuenta" hidden></span>`;
+  const cuentaChat = botonChat.querySelector(".avisos-cuenta");
+  botonChat.addEventListener("click", () => {
+    import("./chat.js").then((modulo) => modulo.abrirChat()).catch((error) => console.error(error));
+  });
+  alCambiarChats(() => {
+    const sinLeer = chatsSinLeer().length;
+    cuentaChat.textContent = sinLeer;
+    cuentaChat.hidden = sinLeer === 0;
+    botonChat.classList.toggle("con-avisos", sinLeer > 0);
+    botonChat.title = sinLeer === 0
+      ? t("Chats")
+      : t(sinLeer === 1 ? "Tienes {n} chat con mensajes sin leer" : "Tienes {n} chats con mensajes sin leer", { n: sinLeer });
+  });
+
   listaDialogo.addEventListener("click", (e) => {
     const aviso = e.target.closest(".aviso");
     const si = e.target.closest(".aviso-si");
     const no = e.target.closest(".aviso-no");
+    if (aviso && aviso.dataset.tipo === "foro") {
+      if (si) marcarHiloVisto(aviso.dataset.id);
+      else if (e.target.closest(".aviso-ir")) abrirHiloDelForo(aviso.dataset.id).catch((error) => console.error(error));
+      return;
+    }
     if (aviso && aviso.dataset.tipo === "arbitro") {
       if (si) marcarVisto(aviso.dataset.id);
       else if (e.target.closest(".aviso-ir")) {
@@ -234,4 +283,6 @@ export function iniciarAvisos() {
     vigilar(lockes);
     pintar();
   });
+
+  alCambiarAvisosForo(pintar);
 }

@@ -23,6 +23,10 @@ rules_version = '2';
 //                            consola) pueden borrar y fijar. Ver «Foro» más abajo.
 //   denuncias/{id}        -> solo la leen los moderadores. Cualquiera con sesión puede crearlas.
 //   silenciados, ritmo    -> quién no puede escribir en el foro, y el freno de 20 s entre mensajes.
+//   chats/{par}           -> chat entre dos amigos y, dentro, sus mensajes (caducan a los 90 días: la web
+//                            los borra, ver «expira»). Solo los dos. Ver «Chat».
+//   bloqueos/{por}_{a}    -> quién ha bloqueado a quién (no puede pedirle amistad). Solo lo lee quien bloquea.
+//   lockes/{id}/mensajes  -> chat común de los que juegan un locke (misma caducidad). Ver «Chat de un locke».
 //   estadisticas/usuarios -> cuántos perfiles hay (solo un número). Lo lee cualquiera, incluso sin
 //                            sesión. Solo cambia de 1 en 1, junto con la creación o el borrado del
 //                            perfil propio. El documento se crea a mano (ver LEEME-nube.md).
@@ -107,9 +111,19 @@ service cloud.firestore {
           || getAfter(/databases/$(database)/documents/motes/$(mote.lower())).data.uid == uid;
       }
 
+      // Lo que cada uno cuenta de sí mismo (js/perfil.js): una frase, un horario y si busca
+      // compañeros. Con tope de tamaño, que lo lee cualquiera con sesión.
+      function sobreMiBien() {
+        let datos = request.resource.data;
+        return datos.get('sobreMi', '') is string && datos.get('sobreMi', '').size() <= 200
+          && datos.get('horario', '') is string && datos.get('horario', '').size() <= 40
+          && datos.get('busca', false) is bool;
+      }
+
       allow get: if identificado();
       allow create, update: if identificado() && request.auth.uid == uid && moteBien()
-        && !request.resource.data.keys().hasAny(['correo']);
+        && !request.resource.data.keys().hasAny(['correo'])
+        && sobreMiBien();
       allow delete: if identificado() && request.auth.uid == uid;
     }
 
@@ -207,7 +221,16 @@ service cloud.firestore {
     // Pedirla: siempre «pendiente», a nombre de quien la pide, con el id correcto y los dos uid
     // ordenados (como lo hace pedirAmistad). Aceptarla: solo la otra persona, y lo único que
     // cambia es el estado. Antes cualquiera podía crearla ya aceptada o aceptar la suya.
+    //
+    // Y no se puede pedir amistad a quien te ha bloqueado (bloqueos/{quien bloquea}_{tú}).
     match /amistades/{par} {
+      // Quien recibe la solicitud: el otro de los dos
+      function destinatario() {
+        return request.resource.data.miembros[0] == request.auth.uid
+          ? request.resource.data.miembros[1]
+          : request.resource.data.miembros[0];
+      }
+
       allow create: if identificado()
         && request.resource.data.keys().hasOnly(['miembros', 'estado', 'pidio', 'creado'])
         && request.resource.data.miembros is list
@@ -217,7 +240,8 @@ service cloud.firestore {
         && par == request.resource.data.miembros[0] + '_' + request.resource.data.miembros[1]
         && request.resource.data.estado == 'pendiente'
         && request.resource.data.pidio == request.auth.uid
-        && request.resource.data.creado is number;
+        && request.resource.data.creado is number
+        && !exists(/databases/$(database)/documents/bloqueos/$(destinatario() + '_' + request.auth.uid));
       allow read, delete: if identificado()
         && request.auth.uid in resource.data.miembros;
       allow update: if identificado()
@@ -225,6 +249,103 @@ service cloud.firestore {
         && resource.data.get('pidio', '') != request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
         && request.resource.data.estado == 'ok';
+    }
+
+    // ---------- Chat entre amigos ----------
+    //
+    // Solo entre dos amigos (la amistad tiene que estar aceptada). El id del chat es el de la
+    // amistad: los dos uid ordenados y unidos con «_» (de ahí sale quién es miembro, sin leer nada).
+    //
+    //   chats/{par}                 { miembros, enviado: {uid: hora}, leido: {uid: hora} }
+    //   chats/{par}/mensajes/{id}   { uid, texto, creado, expira }
+    //   bloqueos/{por}_{a}          { por, a, desde }
+    //
+    //   · «enviado» guarda la hora de lo último que envió cada uno; «leido», hasta cuándo ha leído
+    //     cada uno. Cada uno solo toca lo suyo. Enviar = mensaje + «enviado» propio, en el mismo
+    //     lote, y no se deja otro hasta 1 s después (freno contra el spam).
+    //   · «expira»: entre 60 y 120 días desde el envío. La web quita del servidor los caducados
+    //     (borrarCaducados en js/comun/chat.js): no hay política TTL, que pediría el plan de pago.
+    //   · Borrar mensajes o el chat: cualquiera de los dos, aunque ya no sean amigos (así se vacía
+    //     al quitar la amistad). Los moderadores NO pueden leer los chats.
+    //   · Bloquear: cada uno crea y borra sus bloqueos; solo él los lee. El bloqueo impide que esa
+    //     persona te pida amistad (ver «Amistades»).
+
+    match /chats/{par} {
+      function esDelPar() {
+        return request.auth.uid in par.split('_');
+      }
+
+      function sonAmigos() {
+        return get(/databases/$(database)/documents/amistades/$(par)).data.estado == 'ok';
+      }
+
+      // El mapa con esa hora de ahora y solo en la entrada propia
+      function soloMiHora(campo) {
+        return request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data[campo][request.auth.uid] == request.time;
+      }
+
+      allow read: if identificado() && request.auth.uid in resource.data.miembros;
+
+      allow create: if identificado() && esDelPar() && sonAmigos()
+        && request.resource.data.keys().hasOnly(['miembros', 'enviado', 'leido'])
+        && request.resource.data.miembros is list
+        && request.resource.data.miembros.size() == 2
+        && par == request.resource.data.miembros[0] + '_' + request.resource.data.miembros[1]
+        && request.resource.data.enviado.keys().hasOnly([request.auth.uid])
+        && request.resource.data.enviado[request.auth.uid] == request.time
+        && request.resource.data.leido.keys().hasOnly([request.auth.uid])
+        && request.resource.data.leido[request.auth.uid] == request.time;
+
+      allow update: if identificado() && esDelPar() && sonAmigos()
+        && request.resource.data.miembros == resource.data.miembros
+        && (
+          // Marcar como leído
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['leido'])
+            && soloMiHora('leido'))
+          // Enviar un mensaje (y leer lo mío): se lee y se escribe a la vez, 1 s después del último
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enviado', 'leido'])
+            && soloMiHora('enviado')
+            && soloMiHora('leido')
+            && (!(request.auth.uid in resource.data.enviado)
+              || request.time >= resource.data.enviado[request.auth.uid] + duration.value(1, 's')))
+        );
+
+      allow delete: if identificado() && esDelPar();
+    }
+
+    match /chats/{par}/mensajes/{id} {
+      function sonAmigos() {
+        return request.auth.uid in par.split('_')
+          && get(/databases/$(database)/documents/amistades/$(par)).data.estado == 'ok';
+      }
+
+      allow read: if identificado() && sonAmigos();
+
+      allow create: if identificado() && sonAmigos()
+        && request.resource.data.keys().hasOnly(['uid', 'texto', 'creado', 'expira'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.creado == request.time
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 1000
+        && request.resource.data.expira is timestamp
+        && request.resource.data.expira >= request.time + duration.value(60, 'd')
+        && request.resource.data.expira <= request.time + duration.value(120, 'd')
+        && getAfter(/databases/$(database)/documents/chats/$(par)).data.enviado[request.auth.uid] == request.time;
+
+      allow delete: if identificado() && request.auth.uid in par.split('_');
+    }
+
+    match /bloqueos/{id} {
+      allow read: if identificado() && resource.data.por == request.auth.uid;
+      allow create: if identificado()
+        && request.resource.data.keys().hasOnly(['por', 'a', 'desde'])
+        && request.resource.data.por == request.auth.uid
+        && request.resource.data.a is string
+        && request.resource.data.a != request.auth.uid
+        && id == request.auth.uid + '_' + request.resource.data.a
+        && request.resource.data.desde == request.time;
+      allow delete: if identificado() && resource.data.por == request.auth.uid;
     }
 
     // ---------- Lockes (sección Versus) ----------
@@ -393,6 +514,61 @@ service cloud.firestore {
         && (!(request.auth.uid in request.resource.data.reacciones)
           || (request.resource.data.reacciones[request.auth.uid] is string
             && request.resource.data.reacciones[request.auth.uid].size() <= 8));
+    }
+
+    // ---------- Chat de un locke ----------
+    //
+    // Los que juegan un locke (y ya lo han aceptado) charlan en lockes/{id}/mensajes. Mismo formato que
+    // el chat entre amigos ({ uid, texto, creado, expira }) y misma caducidad (la web borra los
+    // caducados). Cada uno borra los suyos y quien creó el locke, cualquiera; los caducados, cualquiera
+    // de los que juegan. El freno de 1 s es lockes/{id}/ritmoChat/{uid}, que va en el mismo lote
+    // que cada mensaje.
+
+    match /lockes/{id}/mensajes/{mid} {
+      function elLocke() {
+        return get(/databases/$(database)/documents/lockes/$(id)).data;
+      }
+
+      function juega() {
+        return request.auth.uid in elLocke().jugadores
+          && elLocke().get('estados', {}).get(request.auth.uid, 'aceptado') == 'aceptado';
+      }
+
+      allow read: if identificado() && juega();
+
+      allow create: if identificado() && juega()
+        && request.resource.data.keys().hasOnly(['uid', 'texto', 'creado', 'expira'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.creado == request.time
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 1000
+        && request.resource.data.expira is timestamp
+        && request.resource.data.expira >= request.time + duration.value(60, 'd')
+        && request.resource.data.expira <= request.time + duration.value(120, 'd')
+        && getAfter(/databases/$(database)/documents/lockes/$(id)/ritmoChat/$(request.auth.uid)).data.cuando == request.time;
+
+      allow delete: if identificado() && juega()
+        && (resource.data.uid == request.auth.uid
+          || elLocke().creador == request.auth.uid
+          || resource.data.expira <= request.time);
+    }
+
+    match /lockes/{id}/ritmoChat/{uid} {
+      function jugadores() {
+        return get(/databases/$(database)/documents/lockes/$(id)).data.jugadores;
+      }
+
+      allow create: if identificado() && request.auth.uid == uid && request.auth.uid in jugadores()
+        && request.resource.data.keys().hasOnly(['cuando'])
+        && request.resource.data.cuando == request.time;
+      allow update: if identificado() && request.auth.uid == uid && request.auth.uid in jugadores()
+        && request.resource.data.keys().hasOnly(['cuando'])
+        && request.resource.data.cuando == request.time
+        && request.time >= resource.data.cuando + duration.value(1, 's');
+      // Quien creó el locke las borra al borrarlo
+      allow delete: if identificado()
+        && (request.auth.uid == uid
+          || get(/databases/$(database)/documents/lockes/$(id)).data.creador == request.auth.uid);
     }
 
     // ---------- Moderación ----------

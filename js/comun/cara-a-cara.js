@@ -7,7 +7,9 @@
 //   · los lockes de «Lockes» en los que estáis los dos (aceptados): todos cuentan como
 //     jugados, y los cerrados tienen ganador;
 //   · los lockes ganados apuntados a mano (los de antes de Versus): si en uno tuyo sale él
-//     como participante, es una victoria tuya contra él, y al revés.
+//     como participante, es una victoria tuya contra él, y al revés;
+//   · los perdidos apuntados (perfil.perdidos) en los que sale el otro: jugados juntos, que
+//     normalmente ganó un tercero.
 
 import { misLockes, estadoDe } from "./lockes.js";
 
@@ -62,6 +64,25 @@ export function caraACara(mio, suyo) {
   };
   sumar(mio.ganados, suyo, "mias", "mia");
   sumar(suyo.ganados, mio, "suyas", "suya");
+
+  // Los que uno de los dos perdió con el otro dentro: si lo ganó el otro ya salió arriba (es el
+  // mismo id), así que aquí suelen ser de un tercero. Por si acaso, se mira el nombre de quien ganó.
+  const sumarPerdidos = (perdidos, rival) => {
+    for (const perdido of perdidos || []) {
+      if (vistos.has(perdido.id)) continue;
+      if (!(perdido.participantes || []).some((p) => p.uid === rival.uid || p.id === rival.uid || mismoNombre(p.nombre, rival.nombre))) continue;
+      vistos.add(perdido.id);
+      cuenta.juntos++;
+      let resultado = "otro";
+      if (mismoNombre(perdido.ganador, mio.nombre)) resultado = "mia";
+      else if (mismoNombre(perdido.ganador, suyo.nombre)) resultado = "suya";
+      if (resultado === "mia") cuenta.mias++;
+      if (resultado === "suya") cuenta.suyas++;
+      cuenta.lista.push({ nombre: perdido.nombre, tipo: perdido.tipo, fecha: perdido.fechaFin || "", resultado, ganador: perdido.ganador || "" });
+    }
+  };
+  sumarPerdidos(mio.perdidos, suyo);
+  sumarPerdidos(suyo.perdidos, mio);
 
   return cuenta;
 }

@@ -240,6 +240,7 @@ function plantillaAtajos(locke) {
       ${locke.randomizer && locke.estado !== "cerrado" ? `<button class="locke-ir" data-ir="randomizer">${icono("mezclar")} ${t("Randomizar mi ROM")}</button>` : ""}
       <button class="locke-ir" data-ir="cementerio">${icono("calavera")} ${t("Cementerio")} (${totalMuertos(locke)})</button>
       <button class="locke-ir" data-ir="actividad">${icono("actividad")} ${t("Actividad")}</button>
+      ${(locke.jugadores || []).length > 1 ? `<button class="locke-ir" data-ir="chat">${icono("mensaje")} ${t("Chat")}</button>` : ""}
       ${locke.publico ? `<button class="locke-ir" data-ir="seguir" title="${t("Copiar el enlace para seguidores")}">${icono("enlace")} ${t("Enlace")}</button>` : ""}
       ${locke.estado === "cerrado" ? `<button class="locke-ir" data-ir="cronica">${icono("trofeo")} ${t("Crónica")}</button>` : ""}
     </footer>`;
@@ -1323,6 +1324,9 @@ export function iniciar() {
       tarea = irARandomizer(id);
     } else if (boton.classList.contains("locke-ir") && boton.dataset.ir === "actividad") {
       abrirActividad(id);
+    } else if (boton.classList.contains("locke-ir") && boton.dataset.ir === "chat") {
+      // El chat se descarga la primera vez que se abre
+      tarea = import("../chat.js").then((modulo) => modulo.abrirChatLocke(id));
     } else if (boton.classList.contains("locke-ir") && boton.dataset.ir === "cronica") {
       abrirCronica(id);
     } else if (boton.classList.contains("locke-ir") && boton.dataset.ir === "seguir") {

@@ -1,0 +1,464 @@
+/* Chat con los amigos (js/chat.js) */
+
+/* ---------- Ventana ---------- */
+
+.dialogo-chat {
+  width: min(34rem, 94vw);
+  height: min(38rem, 88vh);
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Un dialog abierto es un bloque: aquí una columna con la cabecera, el cuerpo y el pie */
+.dialogo-chat[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  padding: 0.7rem 0.8rem 0.7rem 1rem;
+  border-bottom: 1px solid rgba(var(--t-tinte), 0.12);
+}
+
+.chat-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.1;
+  overflow: hidden;
+}
+
+.chat-titulo > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-conectado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: normal;
+  opacity: 0.75;
+}
+
+.chat-acciones {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.chat-acciones[hidden],
+.chat-volver[hidden],
+.chat-lista[hidden],
+.chat-conversacion[hidden] {
+  display: none;
+}
+
+.chat-cabeza button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: rgba(var(--t-tinte), 0.65);
+  cursor: pointer;
+}
+
+.chat-cabeza button:hover {
+  background: rgba(var(--t-tinte), 0.1);
+  color: var(--t-texto);
+}
+
+.chat-cabeza .chat-bloquear:hover,
+.chat-cabeza .chat-vaciar:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.chat-cabeza .icono {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* No hay flecha hacia la izquierda: la de arriba, girada */
+.chat-volver .icono {
+  transform: rotate(-90deg);
+}
+
+.chat-pie {
+  flex: none;
+  margin: 0;
+  padding: 0.4rem 1rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.12);
+  font-size: 0.75rem;
+  opacity: 0.6;
+  text-align: center;
+}
+
+/* ---------- Fotos ---------- */
+
+.chat-foto {
+  flex: none;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.chat-foto.sin-foto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+}
+
+/* ---------- Lista ---------- */
+
+.chat-lista {
+  flex: 1;
+  min-height: 0;
+  padding: 0.6rem;
+  overflow-y: auto;
+}
+
+.chat-filas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.chat-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: var(--t-fondo-2);
+  color: inherit;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-fila:hover {
+  background: var(--t-control);
+}
+
+.chat-fila.sin-leer {
+  box-shadow: inset 0.3rem 0 0 #f1c40f;
+}
+
+.chat-fila-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-fila-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.chat-fila-nuevo {
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  background: #f1c40f;
+  color: #2b2d3a;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.chat-vacio {
+  margin: 1.5rem 1rem;
+  text-align: center;
+  opacity: 0.7;
+  line-height: 1.4;
+}
+
+/* ---------- Bloqueados ---------- */
+
+.chat-bloqueados {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 1rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.12);
+}
+
+.chat-ver-bloqueados {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.chat-ver-bloqueados:hover {
+  opacity: 1;
+}
+
+.chat-ver-bloqueados .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.chat-bloqueado {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.3rem 0.7rem;
+}
+
+.chat-desbloquear {
+  padding: 0.3rem 0.8rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chat-desbloquear:hover {
+  background: var(--t-control-2);
+}
+
+/* ---------- Conversación ---------- */
+
+.chat-conversacion {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-mensajes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 0;
+  padding: 0.8rem 1rem;
+  overflow-y: auto;
+}
+
+.chat-dia {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.2rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.chat-dia::before,
+.chat-dia::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(var(--t-tinte), 0.2);
+}
+
+.chat-aviso-viejos {
+  margin: 0 0 0.4rem;
+  font-size: 0.75rem;
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* Cada mensaje: una burbuja; los tuyos a la derecha y los suyos a la izquierda */
+.chat-mensaje {
+  position: relative;
+  align-self: flex-start;
+  max-width: 82%;
+  padding: 0.4rem 0.7rem 0.3rem;
+  border-radius: 0.8rem 0.8rem 0.8rem 0.2rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+}
+
+.chat-mensaje.mio {
+  align-self: flex-end;
+  border-radius: 0.8rem 0.8rem 0.2rem 0.8rem;
+  background: var(--t-azulado);
+  color: #fff;
+}
+
+/* En el chat de un locke, el nombre de quien escribe encima de su mensaje */
+.chat-autor {
+  display: block;
+  margin-bottom: 0.1rem;
+  color: var(--t-azulado-2);
+  font-size: 0.72rem;
+  font-weight: bold;
+}
+
+.chat-mensaje.enviando {
+  opacity: 0.6;
+}
+
+.chat-texto {
+  margin: 0;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-hora {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.65rem;
+  text-align: right;
+  opacity: 0.7;
+}
+
+/* Borrar un mensaje tuyo: aparece al pasar por encima */
+.chat-borrar {
+  position: absolute;
+  top: 50%;
+  left: -1.6rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--t-control);
+  color: var(--t-texto);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.chat-mensaje:hover .chat-borrar {
+  display: inline-flex;
+}
+
+/* El creador de un locke puede borrar los de los demás: el botón, al otro lado */
+.chat-mensaje:not(.mio) .chat-borrar {
+  left: auto;
+  right: -1.6rem;
+}
+
+.chat-borrar:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.chat-borrar .icono {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+/* ---------- Escribir ---------- */
+
+.chat-formulario {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex: none;
+  padding: 0.6rem 0.8rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.12);
+}
+
+.chat-campo {
+  flex: 1;
+  min-width: 0;
+  max-height: 130px;
+  box-sizing: border-box;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  border-radius: 0.6rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  resize: none;
+}
+
+.chat-enviar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.6rem;
+  background: rgb(var(--color-vista));
+  color: #1e1f2b;
+  cursor: pointer;
+}
+
+.chat-enviar:hover {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
+}
+
+.chat-enviar .icono {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.chat-error {
+  flex: none;
+  margin: 0;
+  padding: 0 1rem 0.4rem;
+  color: #e74c3c;
+  font-size: 0.8rem;
+}
+
+.chat-error:empty {
+  display: none;
+}
+
+/* ---------- En el perfil: Chat y Retar, uno al lado del otro ---------- */
+
+.perfil-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* ---------- Botón de chats, a la izquierda de la campana ---------- */
+
+/* La campana ya se empuja al borde derecho: la del chat va justo antes, y la campana pegada */
+.chat-boton + .avisos-boton {
+  margin-left: 0.15rem;
+}

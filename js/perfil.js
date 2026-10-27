@@ -1,11 +1,14 @@
-// Ventana del perfil: el tuyo (desde el desplegable de tu nombre) o el de un amigo (desde tu
-// lista de amigos o desde «Amigos»). En vertical, una cosa debajo de otra:
+// Ventana del perfil: el tuyo (desde el desplegable de tu nombre), el de un amigo (desde tu
+// lista de amigos o desde «Amigos») o el de cualquiera desde el foro. Quien no es amigo ve solo
+// lo básico (foto, nombre, título, lockes jugados y ganados y su «sobre mí») y un botón para pedirle
+// amistad. En vertical, una cosa debajo de otra:
 //
+//   · «Sobre mí»: una frase, un horario y si busca compañeros (lo escribe cada uno; lo ve cualquiera).
 //   · Foto: la de Google o un Pokémon (su retrato de Mundo Misterioso). En el tuyo, pulsándola
 //     se cambia.
 //   · Nombre, con un lápiz para cambiarlo (es el nombre de usuario, ver perfiles.js).
 //   · Título: el nombre de uno de sus logros, el que elija.
-//   · Lockes ganados y, en el tuyo, amigos; en el de un amigo, los lockes jugados juntos en
+//   · Lockes jugados (los terminados, ganados o no) y ganados y, en el tuyo, amigos; en el de un amigo, los lockes jugados juntos en
 //     total (los mismos que cuenta la rivalidad de «Amigos»: js/comun/cara-a-cara.js).
 //   · Equipos destacados: los que cada uno elige enseñar (hasta MAX_DESTACADOS). En otra
 //     ventana el dueño los ordena. Se guarda
@@ -22,8 +25,10 @@ import { escaparHTML, fechaLarga } from "./comun/utilidades.js";
 import { usuarioActual } from "./comun/nube.js";
 import {
   miPerfil, alCambiarMiPerfil, cambiarMote, guardarMiPerfil, amigosAceptados, perfilesDeAmigos,
-  alCambiarPerfilesAmigos, perfilesDe, colorDeTipo
+  alCambiarPerfilesAmigos, perfilesDe, colorDeTipo, relacionCon, pedirAmistad, aceptarAmistad,
+  amistades, alCambiarAmistades, lockesJugados
 } from "./comun/perfiles.js";
+import { estaBloqueado, alCambiarChats } from "./comun/chat.js";
 import { alCambiarLockes } from "./comun/lockes.js";
 import { caraACara } from "./comun/cara-a-cara.js";
 import { estaConectado, alCambiarPresencia } from "./comun/presencia.js";
@@ -56,7 +61,9 @@ const dialogoEscaparate = document.querySelector("#dialogo-escaparate");
 const dialogoDestacados = document.querySelector("#dialogo-destacados");
 const dialogoTitulo = document.querySelector("#dialogo-titulo");
 
-let viendo = null;           // uid del amigo cuyo perfil se ve, o null si es el tuyo
+const ajenos = new Map();    // uid -> perfil de alguien que no es amigo (se pide al abrirlo)
+
+let viendo = null;           // uid de la persona cuyo perfil se ve, o null si es el tuyo
 let desdeMiPerfil = false;   // se llegó al del amigo desde tu lista (sale «Volver»)
 let pestana = "perfil";      // "perfil" o "logros"
 let editandoNombre = false;
@@ -341,15 +348,16 @@ function plantillaAmigosDe(perfil) {
     </section>`;
 }
 
-// ---------- Lockes ganados ----------
+// ---------- Lockes jugados ----------
 //
 // Los de tu palmarés (los de «Lockes» que ganas se apuntan solos; los de antes, a mano). Con
 // «Gestionar» se abre la misma ventana que en «Amigos» para añadirlos o corregirlos. En el de
 // un amigo, solo para ver.
 
+// Todos los lockes terminados que ha jugado: los ganados con su corona y los demás sin ella
 function plantillaPalmares(perfil, mio = true) {
   // El más reciente primero (los que no tienen fecha, al final), como en «Amigos»
-  const ganados = (perfil.ganados || [])
+  const jugados = lockesJugados(perfil)
     .map((ganado, i) => ({ ganado, i }))
     .sort((uno, otro) => String(otro.ganado.fechaFin || "").localeCompare(String(uno.ganado.fechaFin || "")) || otro.i - uno.i)
     .map(({ ganado }) => ganado);
@@ -357,24 +365,65 @@ function plantillaPalmares(perfil, mio = true) {
   return `
     <section class="perfil-apartado">
       <h3>
-        ${t("Lockes ganados")}
+        ${t("Lockes jugados")}
         ${mio ? `<button class="perfil-palmares">${icono("lapiz")} ${t("Gestionar")}</button>` : ""}
       </h3>
-      ${ganados.length
+      ${jugados.length
         ? `<div class="perfil-ganados">
-            ${ganados
+            ${jugados
               .slice(0, VER_GANADOS)
               .map(
                 (ganado) => `
-                  <span class="perfil-ganado" style="--color-locke: ${color(ganado)}" title="${escaparHTML((ganado.tipo || {}).nombre || "")}">
-                    ${icono("corona")} ${escaparHTML(ganado.nombre || t("Locke"))}
+                  <span class="perfil-ganado ${ganado.gano ? "" : "perdido"}" style="--color-locke: ${color(ganado)}"
+                        title="${escaparHTML([(ganado.tipo || {}).nombre, ganado.gano ? t("Ganado") : ""].filter(Boolean).join(" · "))}">
+                    ${ganado.gano ? icono("corona") : ""} ${escaparHTML(ganado.nombre || t("Locke"))}
                   </span>`
               )
               .join("")}
-            ${ganados.length > VER_GANADOS ? `<span class="perfil-ganado mas">+${ganados.length - VER_GANADOS}</span>` : ""}
+            ${jugados.length > VER_GANADOS ? `<span class="perfil-ganado mas">+${jugados.length - VER_GANADOS}</span>` : ""}
           </div>`
         : `<p class="perfil-vacio">${t("Ninguno todavía.")}</p>`}
     </section>`;
+}
+
+// «Añadir a amigos» o «Aceptar solicitud» en el perfil de alguien que aún no es amigo. Al
+// cambiar la lista de amistades el perfil se vuelve a pintar solo.
+async function responderAmistad(boton) {
+  const uid = viendo;
+  boton.disabled = true;
+  if (boton.dataset.accion === "aceptar") {
+    const amistad = amistades().find((cada) => cada.otro === uid);
+    if (amistad) await aceptarAmistad(amistad.id);
+  } else {
+    await pedirAmistad(uid);
+  }
+}
+
+// ---------- Sobre mí (en tu perfil) ----------
+
+const dialogoSobreMi = document.querySelector("#dialogo-sobre-mi");
+const campoSobreMi = dialogoSobreMi.querySelector(".sobre-mi-texto");
+const campoHorario = dialogoSobreMi.querySelector(".sobre-mi-horario");
+const campoBusca = dialogoSobreMi.querySelector(".sobre-mi-busca input");
+const errorSobreMi = dialogoSobreMi.querySelector(".sobre-mi-error");
+
+function abrirSobreMi() {
+  const perfil = miPerfil() || {};
+  campoSobreMi.value = perfil.sobreMi || "";
+  campoHorario.value = perfil.horario || "";
+  campoBusca.checked = Boolean(perfil.busca);
+  errorSobreMi.textContent = "";
+  dialogoSobreMi.showModal();
+  campoSobreMi.focus();
+}
+
+async function guardarSobreMi() {
+  await guardarMiPerfil({
+    sobreMi: campoSobreMi.value.trim().slice(0, 200),
+    horario: campoHorario.value.trim().slice(0, 40),
+    busca: campoBusca.checked
+  });
+  dialogoSobreMi.close();
 }
 
 // «Retar a un locke» (en el perfil de un amigo): a «Lockes», con la ventana de crear uno y
@@ -469,29 +518,83 @@ function plantillaLogrosDe(perfil) {
 // ---------- Pintar ----------
 
 function perfilQueSeVe() {
-  return viendo ? perfilesDeAmigos().get(viendo) : miPerfil();
+  return viendo ? perfilesDeAmigos().get(viendo) || ajenos.get(viendo) : miPerfil();
+}
+
+// Quien no es amigo (ni tú) ve solo lo básico: foto, nombre, título, lockes jugados y ganados y lo que
+// haya escrito de sí mismo. El resto es de los amigos.
+function conocido() {
+  return !viendo || relacionCon(viendo) === "ok";
+}
+
+// Su «sobre mí»: lo que la persona escribe de sí misma, si busca compañeros y su horario. Lo
+// ve cualquiera; en el tuyo, con un lápiz para cambiarlo.
+function plantillaSobreMi(perfil, mio) {
+  const texto = (perfil.sobreMi || "").trim();
+  const horario = (perfil.horario || "").trim();
+  if (!mio && !texto && !horario && !perfil.busca) return "";
+
+  return `
+    <section class="perfil-apartado perfil-sobre-mi">
+      <h3>
+        ${t("Sobre mí")}
+        ${mio ? `<button class="perfil-editar-sobre-mi">${icono("lapiz")} ${t("Editar")}</button>` : ""}
+      </h3>
+      ${perfil.busca ? `<p class="perfil-busca">${icono("persona")} ${t("Busca compañeros para un locke")}</p>` : ""}
+      ${texto ? `<p class="perfil-sobre-mi-texto">${escaparHTML(texto)}</p>` : ""}
+      ${horario ? `<p class="perfil-horario"><strong>${t("Horario")}:</strong> ${escaparHTML(horario)}</p>` : ""}
+      ${mio && !texto && !horario && !perfil.busca ? `<p class="perfil-vacio">${t("Cuenta algo de ti o di si buscas compañeros.")}</p>` : ""}
+    </section>`;
+}
+
+// El botón de la cabecera de otra persona: retar a un locke si es amiga y, si no, lo que toque
+// con la solicitud de amistad
+function plantillaAccion(perfil) {
+  switch (relacionCon(perfil.uid)) {
+    case "ok":
+      return `<div class="perfil-botones">
+        <button class="perfil-retar perfil-chat">${icono("mensaje")} ${t("Chat")}</button>
+        <button class="perfil-retar">${icono("espadas")} ${t("Retar a un locke")}</button>
+      </div>`;
+    case "enviada":
+      return `<span class="perfil-solicitud">${t("Solicitud de amistad enviada")}</span>`;
+    case "recibida":
+      return `<button class="perfil-retar perfil-amistad" data-accion="aceptar">${icono("personaMas")} ${t("Aceptar solicitud de amistad")}</button>`;
+    default:
+      // A quien has bloqueado no se le pide amistad sin desbloquearlo antes
+      return estaBloqueado(perfil.uid)
+        ? `<span class="perfil-solicitud">${t("Lo has bloqueado")}</span>`
+        : `<button class="perfil-retar perfil-amistad" data-accion="pedir">${icono("personaMas")} ${t("Añadir a amigos")}</button>`;
+  }
 }
 
 function pintar() {
   const perfil = perfilQueSeVe();
   const mio = !viendo;
   if (!perfil) {
-    cuerpo.innerHTML = "";
+    cuerpo.innerHTML = viendo ? `<p class="perfil-vacio">${t("Cargando...")}</p>` : "";
     return;
   }
 
+  const sabeTodo = conocido();
+  if (!sabeTodo && pestana !== "perfil") pestana = "perfil";
+
   const escaparate = perfil.escaparate || [];
+  const jugados = lockesJugados(perfil).length;
   const ganados = (perfil.ganados || []).length;
   const amigos = amigosAceptados().length;
-  const juntos = mio ? 0 : lockesJuntos(perfil);
+  const juntos = mio || !sabeTodo ? 0 : lockesJuntos(perfil);
 
   // Con un error al cambiar el nombre, sale en el hueco de las cifras (así no se mueve nada)
   const cifras = mio && editandoNombre && errorNombre
     ? `<span class="perfil-error">${escaparHTML(errorNombre)}</span>`
-    : `<span><strong>${ganados}</strong> ${ganados === 1 ? t("locke ganado") : t("lockes ganados")}</span>
+    : `<span><strong>${jugados}</strong> ${jugados === 1 ? t("locke jugado") : t("lockes jugados")}</span>
+       <span><strong>${ganados}</strong> ${ganados === 1 ? t("ganado") : t("ganados")}</span>
        ${mio
          ? `<span><strong>${amigos}</strong> ${amigos === 1 ? t("amigo") : t("amigos")}</span>`
-         : `<span><strong>${juntos}</strong> ${juntos === 1 ? t("locke juntos") : t("lockes juntos")}</span>`}`;
+         : sabeTodo
+           ? `<span><strong>${juntos}</strong> ${juntos === 1 ? t("locke juntos") : t("lockes juntos")}</span>`
+           : ""}`;
 
   const logros = Object.keys(perfil.logros || {}).filter((id) => LOGROS.some((logro) => logro.id === id)).length;
 
@@ -515,14 +618,16 @@ function pintar() {
         ${plantillaNombre(perfil, mio)}
         ${plantillaTitulo(perfil, mio)}
         <div class="perfil-cifras">${cifras}</div>
-        ${mio ? "" : `<button class="perfil-retar">${icono("espadas")} ${t("Retar a un locke")}</button>`}
+        ${mio ? "" : plantillaAccion(perfil)}
       </div>
     </header>
 
-    <div class="perfil-pestanas">
-      <button data-pestana="perfil" class="${pestana === "perfil" ? "activa" : ""}">${icono("persona")} ${t("Perfil")}</button>
-      <button data-pestana="logros" class="${pestana === "logros" ? "activa" : ""}">${icono("trofeo")} ${t("Logros")} <small>${logros}/${LOGROS.length}</small></button>
-    </div>`;
+    ${sabeTodo
+      ? `<div class="perfil-pestanas">
+          <button data-pestana="perfil" class="${pestana === "perfil" ? "activa" : ""}">${icono("persona")} ${t("Perfil")}</button>
+          <button data-pestana="logros" class="${pestana === "logros" ? "activa" : ""}">${icono("trofeo")} ${t("Logros")} <small>${logros}/${LOGROS.length}</small></button>
+        </div>`
+      : ""}`;
 
   // Hasta MAX_DESTACADOS. Si alguien tiene más de antes, se ven los primeros; en «Ordenar»
   // están todos para quitar los que sobren.
@@ -542,12 +647,17 @@ function pintar() {
     </section>`;
 
   // En ancho, en dos columnas: los equipos a un lado y lo demás al otro
-  const izquierda = destacados;
-  const derecha = mio
-    ? plantillaPalmares(perfil) + plantillaSalon(perfil) + plantillaFondos(perfil) + plantillaAmigos()
-    : plantillaPalmares(perfil, false) + plantillaSalon(perfil) + plantillaFondosDe(perfil) + plantillaAmigosDe(perfil);
+  const sobreMi = plantillaSobreMi(perfil, mio);
+  const izquierda = sabeTodo
+    ? sobreMi + destacados
+    : sobreMi || `<p class="perfil-vacio">${t("Hazte su amigo para ver más de su perfil.")}</p>`;
+  const derecha = !sabeTodo
+    ? ""
+    : mio
+      ? plantillaPalmares(perfil) + plantillaSalon(perfil) + plantillaFondos(perfil) + plantillaAmigos()
+      : plantillaPalmares(perfil, false) + plantillaSalon(perfil) + plantillaFondosDe(perfil) + plantillaAmigosDe(perfil);
 
-  cuerpo.innerHTML = pestana === "logros" ? cabeza + plantillaLogrosDe(perfil) : `
+  cuerpo.innerHTML = sabeTodo && pestana === "logros" ? cabeza + plantillaLogrosDe(perfil) : `
     ${cabeza}
     <div class="perfil-columnas ${derecha.trim() ? "" : "una"}">
       <div class="perfil-columna">${izquierda}</div>
@@ -603,6 +713,17 @@ export function abrirPerfilDe(uid, desdeElMio = false) {
   salonEntero = false;
   pintar();
   if (!dialogo.open) dialogo.showModal();
+
+  // Quien no tiene amistad ni solicitud contigo no está en la lista en vivo: se pide el perfil
+  // cada vez que se abre (lo último que se vio se enseña mientras llega)
+  if (!perfilesDeAmigos().has(uid)) {
+    perfilesDe([uid])
+      .then((mapa) => {
+        ajenos.set(uid, mapa.get(uid));
+        if (dialogo.open && viendo === uid) pintar();
+      })
+      .catch((error) => console.error("No se ha podido leer el perfil", error));
+  }
 }
 
 // ---------- Nombre ----------
@@ -889,6 +1010,14 @@ cuerpo.addEventListener("click", (e) => {
     abrirDestacados();
   } else if (boton.classList.contains("perfil-palmares")) {
     gestionarPalmares().catch(siFalla);
+  } else if (boton.classList.contains("perfil-amistad")) {
+    responderAmistad(boton).catch(siFalla);
+  } else if (boton.classList.contains("perfil-editar-sobre-mi")) {
+    abrirSobreMi();
+  } else if (boton.classList.contains("perfil-chat")) {
+    const uid = viendo;
+    dialogo.close();
+    import("./chat.js").then((modulo) => modulo.abrirChat(uid)).catch(siFalla);
   } else if (boton.classList.contains("perfil-retar")) {
     retar(viendo).catch(siFalla);
   } else if (boton.classList.contains("perfil-fondos-mas")) {
@@ -945,6 +1074,15 @@ dialogo.addEventListener("click", (e) => {
   if (empezoFuera && fueraDe(e)) dialogo.close();
   empezoFuera = false;
 });
+
+dialogoSobreMi.querySelector(".sobre-mi-formulario").addEventListener("submit", (e) => {
+  e.preventDefault();
+  guardarSobreMi().catch((error) => {
+    console.error(error);
+    errorSobreMi.textContent = t("No se ha podido guardar.");
+  });
+});
+dialogoSobreMi.querySelector(".sobre-mi-cancelar").addEventListener("click", () => dialogoSobreMi.close());
 
 dialogoTitulo.querySelector(".titulo-lista").addEventListener("click", (e) => {
   const opcion = e.target.closest(".titulo-opcion");
@@ -1009,5 +1147,7 @@ const repintar = () => {
 };
 alCambiarMiPerfil(repintar);
 alCambiarPerfilesAmigos(repintar);
+alCambiarAmistades(repintar);
+alCambiarChats(repintar);
 alCambiarPresencia(repintar);
 alCambiarLockes(repintar);

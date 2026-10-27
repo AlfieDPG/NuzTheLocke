@@ -45,9 +45,9 @@ export default {
   "Tu contraseña": "Your password",
   "Para confirmar que eres tú se abrirá la ventana de Google.": "The Google window will open to confirm it's you.",
   "Borrar para siempre": "Delete forever",
-  "Mis lockes ganados": "My won lockes",
-  "Los lockes que ganes en «Lockes» se apuntan solos. Aquí puedes añadir a mano los de antes o corregir algo.":
-    "The lockes you win in “Lockes” are added automatically. Here you can add older ones by hand or fix something.",
+  "Mis lockes": "My lockes",
+  "Los lockes que terminas en «Lockes» se apuntan solos, ganes o no, y también los que un amigo apunta contigo dentro. Aquí puedes añadir a mano los de antes, marcar si los ganaste o corregir algo.":
+    "The lockes you finish in “Lockes” are added automatically, whether you win or not, and so are the ones a friend adds with you in them. Here you can add older ones by hand, mark whether you won them or fix something.",
   "Añadir locke": "Add locke",
 
   // ---------- Nuevo locke ----------

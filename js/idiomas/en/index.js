@@ -15,5 +15,6 @@ import amigos from "./amigos.js";
 import perfil from "./perfil.js";
 import randomizer from "./randomizer.js";
 import foro from "./foro.js";
+import chat from "./chat.js";
 
-export default { ...comun, ...pagina, ...inicio, ...equipos, ...lockes, ...rutas, ...pokedex, ...calculadora, ...normas, ...logros, ...amigos, ...perfil, ...randomizer, ...foro };
+export default { ...comun, ...pagina, ...inicio, ...equipos, ...lockes, ...rutas, ...pokedex, ...calculadora, ...normas, ...logros, ...amigos, ...perfil, ...randomizer, ...foro, ...chat };

@@ -283,6 +283,11 @@ main {
   color: var(--color-locke, #3498db);
 }
 
+/* Respuestas a tus hilos del foro (js/avisos.js) */
+.aviso-icono.foro {
+  color: #2ecc71;
+}
+
 /* Aviso del árbitro de normas (js/avisos.js): el mismo naranja que en la actividad del locke */
 .aviso-icono.arbitro {
   color: #f39c12;
@@ -862,7 +867,8 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 
 .perfil-destacar,
 .perfil-ver-amigos,
-.perfil-palmares {
+.perfil-palmares,
+.perfil-editar-sobre-mi {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -885,12 +891,14 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 }
 
 .perfil-ver-amigos:hover,
-.perfil-palmares:hover {
+.perfil-palmares:hover,
+.perfil-editar-sobre-mi:hover {
   background: var(--t-control-2);
 }
 
 .perfil-destacar .icono,
-.perfil-palmares .icono {
+.perfil-palmares .icono,
+.perfil-editar-sobre-mi .icono {
   width: 0.85rem;
   height: 0.85rem;
 }
@@ -1788,6 +1796,12 @@ button.perfil-fondo:hover:not(:disabled) {
   opacity: 0.6;
 }
 
+/* Los jugados que no ganó: sin corona y más apagados */
+.perfil-ganado.perdido {
+  font-weight: 600;
+  opacity: 0.75;
+}
+
 @media (min-width: 761px) {
   .perfil-cabeza {
     flex-direction: row;
@@ -1850,6 +1864,55 @@ button.perfil-fondo:hover:not(:disabled) {
 .perfil-retar .icono {
   width: 0.95rem;
   height: 0.95rem;
+}
+
+/* Solicitud de amistad ya enviada: en lugar del botón, un texto */
+.perfil-solicitud {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+/* Sobre mí: la frase, el horario y la etiqueta de «busca compañeros» */
+.perfil-sobre-mi p {
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+.perfil-sobre-mi .perfil-vacio {
+  margin-top: 0.35rem;
+}
+
+.perfil-busca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: bold;
+  color: var(--t-azulado);
+}
+
+.perfil-busca .icono {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.perfil-horario {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+#dialogo-sobre-mi textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: 0.45rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: normal;
+  line-height: 1.4;
+  resize: vertical;
 }
 
 /* ---------- En el perfil de un amigo: sus fondos y sus amigos, solo para ver ---------- */

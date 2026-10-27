@@ -202,6 +202,10 @@ para crearlo). Para crearlo a mano: Firestore → **Índices → Compuestos → 
 ID de colección `comentarios`, ámbito de consulta **Grupo de colección**, campos `uid` (Ascendente)
 y `creado` (Ascendente) → Crear. Tarda un par de minutos en estar listo.
 
+**Avisos de respuestas en la campana.** Se escuchan tus hilos (los que has creado, hasta 50) y se compara
+el número de respuestas con el último que viste (guardado solo en este navegador, `js/comun/avisos-foro.js`).
+No hay avisos con la web cerrada: solo al entrar, o en vivo con ella abierta. Abrir el hilo los deja al día.
+
 **Cuota.** Abrir el foro lee 25 hilos (más los fijados); cada hilo abierto escucha sus comentarios
 en vivo hasta que se cierra. Los hilos no se escuchan en vivo: se recargan con el botón ↻ o al
 volver a la sección pasado un minuto.
@@ -209,6 +213,47 @@ volver a la sección pasado un minuto.
 **Al borrar un comentario el contador de respuestas no baja.** Es a propósito: el id de cada
 comentario es `uid_N` (N = el número de respuestas que dejó), y las reglas lo usan para exigir
 que comentar y subir el contador vayan juntos. Si bajara, un id podría repetirse.
+
+### 4. El chat entre amigos
+
+`chats/{par}`, `chats/{par}/mensajes/{id}` y `bloqueos/{por}_{a}` (`js/comun/chat.js` y `js/chat.js`).
+Solo se chatea con amigos (la amistad tiene que estar aceptada) y se entra desde el botón de mensaje
+junto a la campana, desde el perfil de un amigo, desde su ficha en Amigos o desde su ficha en el foro.
+
+| Colección | Quién la ve | Quién la escribe |
+| --- | --- | --- |
+| `chats/{par}` | los dos | los dos, solo su propia hora de «enviado» y «leído» (1 s entre mensajes) |
+| `chats/{par}/mensajes` | los dos, mientras sean amigos | quien lo envía; los dos pueden borrar (también al quitar la amistad) |
+| `bloqueos/{por}_{a}` | solo quien bloquea | solo quien bloquea |
+
+- `par` es el mismo id que la amistad (los dos uid ordenados). Los moderadores **no** pueden leer los
+  chats; al denunciar a alguien desde un chat se manda como copia lo último que escribió esa persona.
+- **Bloquear** = quitar la amistad (con su chat) + apuntar el bloqueo. Las reglas de `amistades` no
+  dejan crear una solicitud a quien te ha bloqueado. Se desbloquea desde la lista de chats («Personas
+  bloqueadas») o desde la ficha del foro.
+- Quitar a un amigo, bloquearlo o borrar la cuenta vacían el chat (primero los mensajes y luego el chat).
+
+**Chat de cada locke.** Los lockes con más de un jugador tienen un botón **Chat** en su tarjeta (`js/versus/index.js`).
+Es una sola conversación para los que juegan (y han aceptado): `lockes/{id}/mensajes/{id}` con el mismo formato y
+la misma caducidad. Cada uno borra los suyos y quien creó el locke, los de cualquiera. El freno de 1 s es
+`lockes/{id}/ritmoChat/{uid}`. Al borrar el locke se borra su chat, y al borrar tu cuenta, tus mensajes en los chats de
+tus lockes. No tiene aviso de «sin leer».
+
+**Los mensajes caducan a los 90 días (no hay que configurar nada en la consola).** Cada mensaje lleva un
+campo `expira`. La web deja de enseñar los caducados y los borra del servidor ella misma: al abrir una
+conversación y, una vez por sesión, en todos los chats del que entra (`borrarCaducados` en
+`js/comun/chat.js`). Un chat que nadie abra conserva los caducados en el servidor hasta que alguno de los
+dos vuelva a entrar, pero nadie puede verlos.
+
+*Por qué no una política TTL de Firestore:* crearla exige activar la facturación (plan Blaze, de pago por
+uso; con el plan gratuito sale «403: Project pokelocke-24512 has billing disabled»). Si algún día se pasa
+a Blaze, se puede añadir en Google Cloud → Firestore → la base de datos → **Time-to-live (TTL)** →
+grupo de colección `mensajes`, campo `expira`, desfase 0 (y entonces el borrado ya no depende de que
+alguien abra el chat).
+
+**Cuota.** Hay una escucha en vivo de tus chats (un documento por amigo con el que has hablado) y otra
+de tus bloqueos. Una conversación abierta escucha sus últimos 60 mensajes hasta que la cierras. Cada
+mensaje enviado son 2 escrituras (el mensaje y la hora de «enviado»).
 
 ## Privacidad de los perfiles
 

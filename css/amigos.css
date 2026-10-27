@@ -359,8 +359,19 @@
   background: #c0392b;
 }
 
-.ficha-acciones .accion-estadisticas:hover {
+.ficha-acciones .accion-estadisticas:hover,
+.ficha-acciones .accion-chat:hover {
   background: rgb(var(--color-vista));
+  color: #2b2d3a;
+}
+
+/* Si te ha escrito y no lo has leído, el botón se ve siempre, en amarillo */
+.ficha-acciones:has(.accion-chat.sin-leer) {
+  opacity: 1;
+}
+
+.ficha-acciones .accion-chat.sin-leer {
+  background: #f1c40f;
   color: #2b2d3a;
 }
 
@@ -494,6 +505,22 @@
   opacity: 0.8;
 }
 
+/* Debajo del tipo, cuántos de esos jugados ganó */
+.contador-ganados {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.contador-ganados .icono {
+  width: 0.7rem;
+  height: 0.7rem;
+  color: #f1c40f;
+}
+
 /* ---------- Lista de lockes ganados ---------- */
 
 .lockes-ganados {
@@ -531,6 +558,24 @@
 .locke-nombre {
   font-weight: bold;
   font-size: 0.93rem;
+}
+
+/* Los ganados, con su corona delante; los que no, sin ella y un poco más apagados */
+.locke-corona {
+  display: inline-flex;
+  margin-right: 0.3rem;
+  vertical-align: -0.1em;
+  color: #f1c40f;
+}
+
+.locke-corona .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.locke-ganado.perdido .locke-nombre {
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 /* ---------- Listas que enseñan los 5 últimos (fichas y cara a cara) ---------- */
@@ -1126,6 +1171,36 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
+}
+
+/* «Lo gané» y, si no, quién ganó */
+.fila-palmares-resultado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.fila-palmares-resultado .palmares-gane {
+  align-self: center;
+  padding-bottom: 0;
+}
+
+.palmares-gane .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #f1c40f;
+  vertical-align: -0.1em;
+}
+
+.palmares-ganador {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.fila-palmares.gano .palmares-ganador {
+  display: none;
 }
 
 /* Cada locke: la fila de siempre y, debajo, sus detalles plegables */

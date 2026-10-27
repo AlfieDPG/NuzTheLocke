@@ -592,6 +592,12 @@ async function contexto() {
   // jugado y terminado tú, aunque no los ganaras (cada uno una vez)
   const vistos = new Set([...deVersus, ...apuntados.map((ganado) => ganado.id)]);
   const participados = [];
+  // Los que jugaste y no ganaste, ya apuntados en tu perfil (de la web, a mano o de un amigo)
+  for (const perdido of perfil.perdidos || []) {
+    if (vistos.has(perdido.id)) continue;
+    vistos.add(perdido.id);
+    participados.push(perdido);
+  }
   for (const otro of (perfilesDeAmigos() || new Map()).values()) {
     for (const ganado of (otro && otro.ganados) || []) {
       if (vistos.has(ganado.id) || !(ganado.participantes || []).some((p) => soyYo(p, yo, perfil))) continue;

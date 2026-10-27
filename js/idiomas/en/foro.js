@@ -112,6 +112,7 @@ export default {
   "{n} lockes ganados": "{n} lockes won",
   "Solicitud de amistad pendiente": "Friend request pending",
   "Añadir a amigos": "Add as friend",
+  "Moderación": "Moderation",
   "Solicitud de amistad enviada.": "Friend request sent.",
   "Silenciar en el foro": "Mute in the forum",
   "Quitar el silencio": "Unmute",

@@ -347,6 +347,8 @@ function pintarLado(lado) {
         ${c.mote ? `<small>${escaparHTML(nombre(c))}</small>` : ""}
         <div class="calc-tipos">${chipsTipos(c.tipos)}</div>
       </div>
+      <button class="calc-poke-quitar" title="${lado === "atacante" ? t("Quitar al atacante") : t("Quitar al defensor")}"
+              aria-label="${lado === "atacante" ? t("Quitar al atacante") : t("Quitar al defensor")}">${icono("aspa")}</button>
     </div>
     <div class="calc-entreno-fila">
       <label class="calc-entreno-campo">${t("Nv.")}
@@ -740,6 +742,12 @@ function prepararColumna(lado) {
     if (!c) return;
     const boton = e.target.closest("button");
     if (!boton) return;
+    // Dejar el lado vacío: sin atacante (y sin ataque elegido) o sin defensor
+    if (boton.classList.contains("calc-poke-quitar")) {
+      buscandoHabilidad = null;
+      ponerEnLado(lado, null);
+      return;
+    }
     if (boton.classList.contains("calc-genero")) {
       const orden = ["", ...generosPosibles(c)];
       c.genero = orden[(orden.indexOf(generoDe(c)) + 1) % orden.length];

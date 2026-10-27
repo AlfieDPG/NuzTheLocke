@@ -758,50 +758,311 @@
 /* ---------- Ficha de una persona ---------- */
 
 .dialogo-foro-usuario {
-  width: min(26rem, 92vw);
+  position: relative;
+  width: min(23rem, 92vw);
+  padding: 0.9rem;
 }
 
+/* La equis, en la esquina (no hay pie de botones: sobraba espacio) */
+.foro-usuario-cerrar {
+  position: absolute;
+  top: 1.35rem;
+  right: 1.35rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: rgba(var(--t-tinte), 0.6);
+  cursor: pointer;
+}
+
+.foro-usuario-cerrar:hover {
+  background: rgba(var(--t-tinte), 0.1);
+  color: var(--t-texto);
+}
+
+.foro-usuario-cerrar .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* La cabecera, como la del perfil: capa de color a la izquierda (azul pizarra; verde si está
+   conectado; el color de la sección si eres tú), foto grande y el nombre en el tipo de los títulos */
 .foro-usuario-cabecera {
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  margin-bottom: 0.9rem;
+  padding: 0.9rem 2.6rem 0.9rem 0.9rem;
+  border-left: 0.3rem solid var(--t-azulado);
+  border-radius: 0.8rem;
+  background: var(--t-fondo-2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.foro-usuario-cabecera.mia {
+  border-left-color: rgb(var(--color-vista));
+}
+
+.foro-usuario-cabecera.conectado {
+  border-left-color: #2ecc71;
 }
 
 .foro-usuario-cabecera .foro-foto {
-  width: 4.2rem;
-  height: 4.2rem;
+  width: 4.4rem;
+  height: 4.4rem;
   cursor: default;
+}
+
+.foro-usuario-cabecera.mia .foro-foto {
+  border-color: rgb(var(--color-vista));
+}
+
+.foro-usuario-cabecera.conectado .foro-foto {
+  border-color: #2ecc71;
 }
 
 .foro-usuario-cabecera .foro-foto::before {
   font-size: 1.9rem;
 }
 
+.foro-usuario-datos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.foro-usuario-cabecera.mia .jugador-estado {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+.foro-usuario-cabecera.conectado .jugador-estado {
+  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+}
+
 .foro-usuario-cabecera h2 {
-  margin: 0 0 0.15rem;
-  font-size: 1.3rem;
+  margin: 0;
+  font-family: var(--letra-titulos);
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.05;
   overflow-wrap: anywhere;
 }
 
-.foro-usuario-cabecera h2 small {
+.foro-usuario-ganados {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.foro-usuario-ganados .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #f1c40f;
+}
+
+/* «· 3 ganados», detrás de los jugados */
+.foro-usuario-de-ellos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.35rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(var(--t-tinte), 0.25);
+}
+
+.foro-usuario-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.foro-usuario-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.12rem 0.55rem;
+  border-radius: 1rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-size: 0.72rem;
+  font-weight: bold;
+}
+
+.foro-usuario-chip .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.foro-usuario-chip.busca {
+  background: #2ecc71;
+  color: #12331f;
+}
+
+/* Lo que ha escrito de sí mismo, con la raya de color a la izquierda de una cita */
+.foro-usuario-sobre {
+  margin-top: 0.7rem;
+  padding: 0.1rem 0 0.1rem 0.75rem;
+  border-left: 0.2rem solid rgba(var(--t-tinte), 0.25);
+}
+
+.foro-usuario-sobre p {
+  margin: 0 0 0.25rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  opacity: 1;
+}
+
+.foro-usuario-sobre small {
+  display: block;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+/* Las acciones de siempre: ver el perfil (destacada) y charlar o pedir amistad, a partes iguales */
+.foro-usuario-principales {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.foro-usuario-principales button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.foro-usuario-principales button:hover {
+  background: var(--t-control-2);
+}
+
+.foro-usuario-principales button.principal {
+  background: rgb(var(--color-vista));
+  color: #1e1f2b;
+}
+
+.foro-usuario-principales button.principal:hover {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
+}
+
+.foro-usuario-principales .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Denunciar y bloquear, discretos: una línea de puntos y letra pequeña hasta que se pasa por encima */
+.foro-usuario-discretas {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed rgba(var(--t-tinte), 0.22);
+}
+
+.foro-usuario-discretas button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.3rem;
+  border: none;
+  background: none;
+  color: var(--t-texto);
+  font-family: inherit;
   font-size: 0.8rem;
-  font-weight: normal;
-  opacity: 0.7;
+  opacity: 0.65;
+  cursor: pointer;
 }
 
-.foro-usuario-cabecera p {
-  margin: 0;
+.foro-usuario-discretas button:hover {
+  color: #e67e73;
+  opacity: 1;
 }
 
-.foro-usuario-botones,
+.foro-usuario-discretas .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* Moderar, aparte y solo para quien modera */
+.foro-usuario-moderacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+}
+
+.foro-usuario-moderacion > span {
+  flex: 1 0 100%;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.foro-usuario-moderacion button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.foro-usuario-moderacion button[hidden] {
+  display: none;
+}
+
+.foro-usuario-moderacion button:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.foro-usuario-moderacion .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
 .denuncia-botones {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.foro-usuario-botones button,
 .denuncia-botones button {
   display: inline-flex;
   align-items: center;
@@ -817,18 +1078,15 @@
   cursor: pointer;
 }
 
-.foro-usuario-botones button:hover,
 .denuncia-botones button:hover {
   background: var(--t-control-2);
 }
 
-.foro-usuario-botones button.peligro:hover,
 .denuncia-botones button.peligro:hover {
   background: #c0392b;
   color: #fff;
 }
 
-.foro-usuario-botones .icono,
 .denuncia-botones .icono {
   width: 1rem;
   height: 1rem;

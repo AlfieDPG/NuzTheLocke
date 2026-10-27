@@ -27,6 +27,13 @@
 //   · ganados: su palmarés entero. Cada entrada se queda con una COPIA del tipo, no con
 //              una referencia, para que renombrar un tipo no reescriba la historia.
 //              [{ id, nombre, tipo: { id, nombre, color }, nota }]
+//   · perdidos: los lockes terminados que ha jugado y NO ha ganado, con la misma forma (y
+//              «ganador»: el nombre de quien ganó, o vacío). Llegan solos de dos sitios: los de
+//              «Lockes» al cerrarse y los que un amigo apunta en su palmarés con él dentro (con
+//              «de»: el uid de ese amigo). También se apuntan a mano. Ganados + perdidos son sus
+//              «lockes jugados» (lockesJugados).
+//   · descartados: ids de lockes de esos que llegan solos y que ha quitado a mano, para que no
+//              vuelvan a aparecer.
 
 import { usuarioActual, baseDeDatos, alCambiarSesion, nombreDeUsuario, recordarNombreDeCuenta } from "./nube.js";
 import { t } from "./idioma.js";
@@ -112,6 +119,7 @@ export function alCambiarMiPerfil(funcion) {
 
 function avisar() {
   for (const funcion of oyentes) funcion(mio);
+  revisarLosDeAmigos();
 }
 
 // ---------- Avisos de las amistades ----------
@@ -139,6 +147,15 @@ export function solicitudesEnviadas() {
   return listaAmistades.filter(
     (amistad) => amistad.estado === "pendiente" && amistad.pidio === usuario.uid
   );
+}
+
+// Cómo estoy con esa persona: null (nada), "ok" (amigos), "enviada" (se la pedí yo) o
+// "recibida" (me la pidió ella a mí)
+export function relacionCon(uid) {
+  const amistad = listaAmistades.find((cada) => cada.otro === uid);
+  if (!amistad) return null;
+  if (amistad.estado === "ok") return "ok";
+  return amistad.pidio === uid ? "recibida" : "enviada";
 }
 
 export function fallaLasAmistades() {
@@ -170,6 +187,7 @@ export function alCambiarPerfilesAmigos(funcion) {
 
 function avisarPerfilesAmigos() {
   for (const funcion of oyentesPerfilesAmigos) funcion(perfilesAmigos);
+  revisarLosDeAmigos();
 }
 
 // Se escucha a quien haya entrado en la lista de amistades y se deja de escuchar a quien
@@ -232,7 +250,7 @@ export function tiposParaFicha(perfil) {
   const tipos = tiposDe(perfil).slice();
   const vistos = new Set(tipos.map((tipo) => tipo.id));
 
-  for (const ganado of (perfil && perfil.ganados) || []) {
+  for (const ganado of lockesJugados(perfil)) {
     const tipo = ganado.tipo;
     if (!tipo || vistos.has(tipo.id)) continue;
     vistos.add(tipo.id);
@@ -240,6 +258,33 @@ export function tiposParaFicha(perfil) {
   }
 
   return tipos;
+}
+
+// Todos sus lockes terminados: los ganados (con gano: true) y los perdidos (gano: false)
+export function lockesJugados(perfil) {
+  return [
+    ...((perfil && perfil.ganados) || []).map((ganado) => ({ ...ganado, gano: true })),
+    ...((perfil && perfil.perdidos) || []).map((perdido) => ({ ...perdido, gano: false }))
+  ];
+}
+
+// Los ids que ya están en su perfil (jugados o descartados): lo que llega solo no se repite
+function idsApuntados(perfil) {
+  return new Set([...lockesJugados(perfil).map((locke) => locke.id), ...((perfil && perfil.descartados) || [])]);
+}
+
+// ¿Hay algún locke cerrado de estos que aún no esté en mi perfil? (lockes.js lo mira en cada
+// cambio de «Lockes» antes de lanzar apuntarLockesGanados, que hace una consulta)
+export function hayLockesSinApuntar(lockes) {
+  const usuario = usuarioActual();
+  if (!usuario || !mio) return false;
+  const apuntados = idsApuntados(mio);
+  const perdidos = new Set((mio.perdidos || []).map((perdido) => perdido.id));
+  return lockes.some((locke) => {
+    if (locke.estado !== "cerrado" || ((locke.estados || {})[usuario.uid] || "aceptado") !== "aceptado") return false;
+    if (locke.ganador === usuario.uid) return !(locke.contado || []).includes(usuario.uid) || perdidos.has(locke.id);
+    return !apuntados.has(locke.id);
+  });
 }
 
 // Id para las entradas que se apuntan a mano (las automáticas usan el id del locke)
@@ -647,9 +692,28 @@ export async function aceptarAmistad(id) {
   await fn.updateDoc(fn.doc(bd, "amistades", id), { estado: "ok" });
 }
 
+// Quitar a un amigo (o rechazar una solicitud) vacía también su chat. Firestore no borra lo de
+// dentro de un documento, y los mensajes solo se pueden leer mientras la amistad existe: por eso
+// primero el chat y luego la amistad. Si lo del chat falla, la amistad se quita igual.
 export async function borrarAmistad(id) {
   const { bd, fn } = baseDeDatos();
+  const amistad = listaAmistades.find((cada) => cada.id === id);
+  if (amistad && amistad.estado === "ok") {
+    await borrarChat(id).catch((error) => console.error("No se ha podido vaciar el chat", error));
+  }
   await fn.deleteDoc(fn.doc(bd, "amistades", id));
+}
+
+// Los mensajes de un chat, de 400 en 400, y luego el chat mismo. «id» es el de la amistad.
+export async function borrarChat(id) {
+  const { bd, fn } = baseDeDatos();
+  const instantanea = await fn.getDocs(fn.collection(bd, "chats", id, "mensajes"));
+  for (let i = 0; i < instantanea.docs.length; i += 400) {
+    const lote = fn.writeBatch(bd);
+    for (const documento of instantanea.docs.slice(i, i + 400)) lote.delete(documento.ref);
+    await lote.commit();
+  }
+  await fn.deleteDoc(fn.doc(bd, "chats", id));
 }
 
 // Lo que se guarda en tus lockes ganados de un locke de Versus. Es una copia, no un enlace:
@@ -703,16 +767,29 @@ function resumenDeLocke(id, locke) {
   };
 }
 
-// ---------- Lockes ganados automáticos ----------
+// ---------- Lockes terminados automáticos ----------
 //
-// Al cerrar un locke, el que lo cierra marca el ganador. El +1 en el palmarés no lo puede
-// escribir él: las reglas solo dejan que cada uno escriba su propio perfil. Así que lo
-// hace el ganador en cuanto abre la web, y el locke se queda apuntado en «contado» para
-// que no se sume dos veces.
+// Al cerrar un locke, el que lo cierra marca el ganador. Apuntarlo en el perfil de cada uno no
+// lo puede hacer él: las reglas solo dejan que cada uno escriba su propio perfil. Así que lo
+// hace cada jugador en cuanto abre la web:
+//
+//   · quien ganó, en «ganados», y el locke se queda apuntado en «contado» para que no se sume
+//     dos veces (si lo quita a mano de su palmarés, no vuelve);
+//   · los demás, en «perdidos» (sin «contado»: ahí basta con mirar si ya está en el perfil, y
+//     los que se quitan a mano van a «descartados»).
+//
+// Si un locke que tenías como perdido acaba con victoria tuya (se volvió a abrir), pasa a ganados.
 //
 // Sin Cloud Functions a propósito: esas piden plan de pago.
 
-export async function apuntarLockesGanados() {
+let apuntando = null; // la que está en marcha (los avisos de «Lockes» llegan seguidos)
+
+export function apuntarLockesGanados() {
+  if (!apuntando) apuntando = apuntarTerminados().finally(() => (apuntando = null));
+  return apuntando;
+}
+
+async function apuntarTerminados() {
   const usuario = usuarioActual();
   const acceso = baseDeDatos();
   if (!usuario || !acceso) return;
@@ -725,32 +802,100 @@ export async function apuntarLockesGanados() {
     fn.query(fn.collection(bd, "lockes"), fn.where("jugadores", "array-contains", usuario.uid))
   );
 
-  const nuevos = [];
+  const referencia = fn.doc(bd, "perfiles", usuario.uid);
+  const guardado = (await fn.getDoc(referencia)).data() || {};
+  const ganados = guardado.ganados || [];
+  const perdidos = guardado.perdidos || [];
+  const apuntados = idsApuntados(guardado);
+  const enGanados = new Set(ganados.map((ganado) => ganado.id));
+  const enPerdidos = new Set(perdidos.map((perdido) => perdido.id));
+
+  const nuevosGanados = [];
+  const nuevosPerdidos = [];
   const porMarcar = [];
 
   encontrados.forEach((documento) => {
     const locke = documento.data();
-    if (locke.estado !== "cerrado" || locke.ganador !== usuario.uid) return;
-    if ((locke.contado || []).includes(usuario.uid)) return;
+    const id = documento.id;
+    if (locke.estado !== "cerrado") return;
+    if (((locke.estados || {})[usuario.uid] || "aceptado") !== "aceptado") return;
 
-    nuevos.push(resumenDeLocke(documento.id, locke));
-    porMarcar.push(documento.ref);
+    if (locke.ganador === usuario.uid) {
+      const contado = (locke.contado || []).includes(usuario.uid);
+      // Contado y no está como perdido: ya está (o lo quitaste a mano)
+      if (contado && !enPerdidos.has(id)) return;
+      if (!enGanados.has(id)) nuevosGanados.push(resumenDeLocke(id, locke));
+      if (!contado) porMarcar.push(documento.ref);
+    } else if (!apuntados.has(id)) {
+      nuevosPerdidos.push(resumenDeLocke(id, locke));
+    }
   });
 
-  if (!nuevos.length) return;
+  if (!nuevosGanados.length && !nuevosPerdidos.length && !porMarcar.length) return;
 
-  const referencia = fn.doc(bd, "perfiles", usuario.uid);
-  const guardado = await fn.getDoc(referencia);
-  const ganados = (guardado.data() || {}).ganados || [];
-  const yaEstan = new Set(ganados.map((ganado) => ganado.id));
-
-  await fn.updateDoc(referencia, {
-    ganados: [...ganados, ...nuevos.filter((nuevo) => !yaEstan.has(nuevo.id))]
-  });
+  if (nuevosGanados.length || nuevosPerdidos.length) {
+    const pasanAGanados = new Set(nuevosGanados.map((nuevo) => nuevo.id));
+    await fn.updateDoc(referencia, {
+      ganados: [...ganados, ...nuevosGanados],
+      perdidos: [...perdidos.filter((perdido) => !pasanAGanados.has(perdido.id)), ...nuevosPerdidos]
+    });
+  }
 
   await Promise.all(
     porMarcar.map((referenciaLocke) =>
       fn.updateDoc(referenciaLocke, { contado: fn.arrayUnion(usuario.uid) })
     )
   );
+}
+
+// ---------- Los que te apuntan tus amigos ----------
+//
+// Si un amigo apunta en su palmarés un locke con tú dentro (por tu uid, que pone la ventana de
+// «Mis lockes» al elegirte, o por tu nombre en los de antes), ese locke también lo has jugado tú,
+// y lo perdiste (ganó él). Se
+// copia en tus «perdidos», con «de» = su uid: así lo ve también quien mira tu perfil sin ser
+// amigo de esa persona. Se mira cada vez que cambian los perfiles de tus amigos.
+
+let temporizadorDeAmigos = null;
+
+function revisarLosDeAmigos() {
+  clearTimeout(temporizadorDeAmigos);
+  temporizadorDeAmigos = setTimeout(() => {
+    apuntarLosDeAmigos().catch((error) => console.error("No se han podido apuntar los lockes de tus amigos", error));
+  }, 1500);
+}
+
+async function apuntarLosDeAmigos() {
+  const usuario = usuarioActual();
+  const acceso = baseDeDatos();
+  if (!usuario || !acceso || !mio) return;
+
+  // El mismo criterio que «soyYo» (logros.js), el que deja poner tu equipo en el locke de otro:
+  // por tu uid si el participante lo lleva y, si no (los apuntados antes de guardarse el uid), por
+  // tu nombre o tu mote
+  const nombresMios = [mio.nombre, mio.mote].map((nombre) => String(nombre || "").trim().toLowerCase()).filter(Boolean);
+  const soyYo = (p) => {
+    if (p.uid) return p.uid === usuario.uid;
+    if (p.id === usuario.uid) return true;
+    return nombresMios.includes(String(p.nombre || "").trim().toLowerCase());
+  };
+
+  const apuntados = idsApuntados(mio);
+  const nuevos = [];
+  for (const amistad of amigosAceptados()) {
+    const perfil = perfilesAmigos.get(amistad.otro);
+    for (const ganado of (perfil && perfil.ganados) || []) {
+      if (apuntados.has(ganado.id)) continue;
+      if (!(ganado.participantes || []).some(soyYo)) continue;
+      apuntados.add(ganado.id);
+      nuevos.push({ ...ganado, ganador: ganado.ganador || perfil.nombre || "", de: amistad.otro });
+    }
+  }
+  if (!nuevos.length) return;
+
+  const { bd, fn } = acceso;
+  // JSON de ida y vuelta: Firestore no acepta «undefined»
+  await fn.updateDoc(fn.doc(bd, "perfiles", usuario.uid), {
+    perdidos: fn.arrayUnion(...JSON.parse(JSON.stringify(nuevos)))
+  });
 }

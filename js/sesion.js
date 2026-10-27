@@ -26,6 +26,8 @@ import {
 } from "./comun/perfiles.js";
 import { iniciarLockes, salirDeTodosMisLockes } from "./comun/lockes.js";
 import { borrarMiForo } from "./comun/foro.js";
+import { iniciarChats, borrarMisBloqueos } from "./comun/chat.js";
+import { iniciarAvisosForo } from "./comun/avisos-foro.js";
 import { iniciarAvisos } from "./avisos.js";
 import { iniciarPresencia, borrarMiPresencia } from "./comun/presencia.js";
 import { iniciarLogros } from "./comun/logros.js";
@@ -323,7 +325,8 @@ function borrarCuenta() {
     await salirDeTodosMisLockes();
     // Mis hilos y comentarios del foro: si falla, que no impida borrar la cuenta
     await borrarMiForo().catch((fallo) => console.error(fallo));
-    await borrarMisAmistades();
+    await borrarMisAmistades();     // también vacía los chats con mis amigos
+    await borrarMisBloqueos().catch((fallo) => console.error(fallo));
     await borrarMisDatosGuardados();
     await borrarMiPerfil();
     await borrarCuentaDeFirebase(); // recarga la página
@@ -412,6 +415,8 @@ export async function iniciarSesionUI() {
   // Todo esto antes de iniciarNube: así ya están escuchando cuando llegue la sesión
   iniciarPerfiles();
   iniciarLockes();
+  iniciarChats();
+  iniciarAvisosForo();
   iniciarAvisos();
   iniciarPresencia();
   iniciarLogros();

@@ -478,7 +478,7 @@ export function iniciar() {
     const destino = e.target.closest("[data-vista]");
     if (destino) return irA(destino.dataset.vista);
     if (e.target.closest(".inicio-nuevo")) return nuevoLocke();
-    if (e.target.closest(".inicio-avisos")) return document.querySelector(".avisos-boton").click();
+    if (e.target.closest(".inicio-avisos")) return document.querySelector(".avisos-boton:not(.chat-boton)").click();
     if (e.target.closest(".inicio-entrar")) return document.querySelector(".sesion-boton").click();
     // El resto de un bloque (Lockes, Conectados, Últimos equipos) lleva a su sección
     const bloque = e.target.closest("[data-ir]");

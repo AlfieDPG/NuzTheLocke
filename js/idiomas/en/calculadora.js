@@ -14,6 +14,8 @@ export default {
   "Subir {stat}": "Raise {stat}",
   "Objeto...": "Item...",
   "¿Quién ataca?": "Who attacks?",
+  "Quitar al atacante": "Remove the attacker",
+  "Quitar al defensor": "Remove the defender",
   "¿Quién recibe el golpe?": "Who takes the hit?",
   "EVs repartidos": "EVs assigned",
   "Etapa": "Stage",

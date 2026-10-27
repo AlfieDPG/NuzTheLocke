@@ -25,8 +25,9 @@ import {
   TIPOS_POR_DEFECTO, alCambiarMiPerfil, alCambiarAmistades, miPerfil, fallaElPerfil, tiposDe, tiposParaFicha,
   amigosAceptados, solicitudesRecibidas, solicitudesEnviadas, fallaLasAmistades,
   perfilesDeAmigos, alCambiarPerfilesAmigos, buscarAmigo, pedirAmistad, aceptarAmistad, borrarAmistad,
-  guardarMiPerfil, nuevoId, colorDeTipo
+  guardarMiPerfil, nuevoId, colorDeTipo, lockesJugados
 } from "../comun/perfiles.js";
+import { haySinLeer, alCambiarChats } from "../comun/chat.js";
 import { confirmar } from "../comun/ventanas.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
@@ -53,23 +54,26 @@ function etiquetaTipo(nombre, total) {
   return `${nombre}s`;
 }
 
-function plantillaContador(tipo, total) {
+// Los jugados de ese tipo en grande y, debajo, cuántos de ellos ganó
+function plantillaContador(tipo, total, ganados) {
   return `
     <div class="contador-locke" style="--color-locke: ${colorDeTipo(tipo)}">
       <span class="contador-numero">${total}</span>
       <span class="contador-tipo">${escaparHTML(etiquetaTipo(tipo.nombre, total))}</span>
+      <span class="contador-ganados">${icono("corona")}${t(ganados === 1 ? "{n} ganado" : "{n} ganados", { n: ganados })}</span>
     </div>`;
 }
 
 // Lockes que se ven de entrada en una lista; el resto, detrás de «Ver todos»
 const MOSTRAR_DE_ENTRADA = 5;
 
+// Un locke jugado: con corona si lo ganó; los demás, un poco más apagados
 function plantillaLocke(ganado, posicion, extra) {
   const tipo = ganado.tipo || TIPOS_POR_DEFECTO[0];
   return `
-    <li class="locke-ganado ${extra ? "extra" : ""}" data-posicion="${posicion}" style="--color-locke: ${colorDeTipo(tipo)}"
+    <li class="locke-ganado ${ganado.gano ? "gano" : "perdido"} ${extra ? "extra" : ""}" data-posicion="${posicion}" style="--color-locke: ${colorDeTipo(tipo)}"
         title="${t("Pulsa para ver los datos de este locke")}">
-      <span class="locke-nombre">${escaparHTML(ganado.nombre)}</span>
+      <span class="locke-nombre">${ganado.gano ? `<span class="locke-corona" title="${t("Ganado")}">${icono("corona")}</span>` : ""}${escaparHTML(ganado.nombre)}</span>
       ${ganado.nota ? `<span class="locke-nota">${escaparHTML(ganado.nota)}</span>` : ""}
     </li>`;
 }
@@ -98,8 +102,8 @@ function botonVerTodos(total) {
     </li>`;
 }
 
-function plantillaListaGanados(ganados) {
-  const ordenados = delMasReciente(ganados, (ganado) => ganado.fechaFin);
+function plantillaListaGanados(jugados) {
+  const ordenados = delMasReciente(jugados, (ganado) => ganado.fechaFin);
   return (
     ordenados.map(({ elemento, posicion }, i) => plantillaLocke(elemento, posicion, i >= MOSTRAR_DE_ENTRADA)).join("") +
     botonVerTodos(ordenados.length)
@@ -123,21 +127,24 @@ function alternarVerTodos(boton) {
 // guarda en el perfil (ver resumenDeLocke en perfiles.js): el locke original puede no ser
 // legible para quien mira la ficha.
 
-let fichasPintadas = new Map(); // clave de la ficha -> { nombre, ganados, mia }
+let fichasPintadas = new Map(); // clave de la ficha -> { nombre, jugados, mia }
 let flotante = null;
 
 function plantillaFlotante(ganado, ficha) {
   const tipo = ganado.tipo || TIPOS_POR_DEFECTO[0];
   const juego = nombreJuego(ganado);
   const fecha = fechaLarga(ganado.fechaFin);
-  const ganador = ganado.ganador || ficha.nombre;
+  // Los ganados los ganó el dueño de la ficha (si no se apuntó otro nombre); los perdidos, quien diga
+  const ganador = ganado.gano === false ? ganado.ganador || "" : ganado.ganador || ficha.nombre;
   const participantes = ganado.participantes || [];
 
   const filas = [];
   if (juego) filas.push(`<div class="flotante-fila">${icono("mando")}<span>${escaparHTML(juego)}</span></div>`);
   if (fecha) filas.push(`<div class="flotante-fila">${icono("calendario")}<span>${t("Terminó el {fecha}", { fecha: escaparHTML(fecha) })}</span></div>`);
   if (deVidasIlimitadas(ganado)) filas.push(`<div class="flotante-fila">${icono("corazon")}<span>${t("Vidas ilimitadas")}</span></div>`);
-  filas.push(`<div class="flotante-fila ganador">${icono("corona")}<span>${t("Ganó {nombre}", { nombre: `<b>${escaparHTML(ganador)}</b>` })}</span></div>`);
+  filas.push(ganador
+    ? `<div class="flotante-fila ganador">${icono("corona")}<span>${t("Ganó {nombre}", { nombre: `<b>${escaparHTML(ganador)}</b>` })}</span></div>`
+    : `<div class="flotante-fila">${icono("aspa")}<span>${t("Nadie ganó")}</span></div>`);
 
   const usuario = usuarioActual();
   const lista = participantes.length
@@ -149,7 +156,8 @@ function plantillaFlotante(ganado, ficha) {
             // null: el locke era de vidas ilimitadas. "" o nada: no se apuntó.
             const vidas = p.vidas === null ? "∞" : p.vidas === "" || p.vidas === undefined ? "" : p.vidas;
             const gano = p.nombre === ganador;
-            const suyo = equipoPropio(ficha.clave, ganado.id, p);
+            // El dueño del locke apuntado: el de la ficha o, si es una copia del de un amigo, ese amigo
+            const suyo = equipoPropio(ganado.de || ficha.clave, ganado.id, p);
             const equipo = suyo ? suyo.equipo : p.equipo;
             const mvp = suyo ? suyo.mvp : p.mvp;
             // En el locke de otro en el que sales tú, pones tu equipo final
@@ -261,7 +269,7 @@ function abrirFlotante(elemento, ganado, ficha) {
   flotante.innerHTML = plantillaFlotante(ganado, ficha);
   flotante.addEventListener("click", (e) => {
     const boton = e.target.closest(".flotante-mi-equipo");
-    if (boton) elegirMiEquipo(boton, ficha.clave, ganado).catch((error) => console.error(error));
+    if (boton) elegirMiEquipo(boton, ganado.de || ficha.clave, ganado).catch((error) => console.error(error));
   });
   document.body.appendChild(flotante);
   elemento.classList.add("abierto");
@@ -290,12 +298,13 @@ function plantillaAcciones(ficha) {
       <div class="ficha-acciones">
         <button class="accion-estadisticas" title="${t("Estadísticas")}">${icono("estadisticas")}</button>
         <button class="accion-tipos" title="${t("Tipos de locke")}">${icono("etiqueta")}</button>
-        <button class="accion-palmares" title="${t("Editar mis lockes ganados")}">${icono("lapiz")}</button>
+        <button class="accion-palmares" title="${t("Editar mis lockes")}">${icono("lapiz")}</button>
       </div>`;
   }
 
   return `
     <div class="ficha-acciones">
+      <button class="accion-chat ${haySinLeer(ficha.clave) ? "sin-leer" : ""}" title="${t("Chat")}">${icono("mensaje")}</button>
       <button class="accion-estadisticas" title="${t("Estadísticas y cara a cara")}">${icono("estadisticas")}</button>
       <button class="accion-quitar" title="${t("Quitar de amigos")}">${icono("aspa")}</button>
     </div>`;
@@ -383,7 +392,10 @@ function plantillaFicha(ficha) {
     : "";
 
   const tipos = ficha.tipos
-    .map((tipo) => plantillaContador(tipo, ficha.ganados.filter((g) => g.tipo && g.tipo.id === tipo.id).length))
+    .map((tipo) => {
+      const delTipo = ficha.jugados.filter((jugado) => jugado.tipo && jugado.tipo.id === tipo.id);
+      return plantillaContador(tipo, delTipo.length, delTipo.filter((jugado) => jugado.gano).length);
+    })
     .join("");
 
   const conectado = !ficha.mia && estaConectado(ficha.clave);
@@ -408,7 +420,7 @@ function plantillaFicha(ficha) {
 
       <div class="contadores-locke">${tipos}</div>
 
-      <ul class="lockes-ganados lista-plegable">${plantillaListaGanados(ficha.ganados)}</ul>
+      <ul class="lockes-ganados lista-plegable">${plantillaListaGanados(ficha.jugados)}</ul>
     </article>`;
 }
 
@@ -420,7 +432,8 @@ function fichaDePerfil(perfil, mia) {
     nombre: perfil.nombre || t("Jugador"),
     urls: [perfil.foto].filter(Boolean),
     tipos: tiposParaFicha(perfil),
-    ganados: perfil.ganados || [],
+    // Todos los terminados que ha jugado: los ganados (gano: true) y los que no
+    jugados: lockesJugados(perfil),
     fondo: fondoDe(perfil),
     mia
   };
@@ -615,12 +628,20 @@ function pintarPalmares() {
         .join("");
 
       return `
-        <div class="fila-palmares" data-posicion="${posicion}">
+        <div class="fila-palmares ${ganado.gano ? "gano" : ""}" data-posicion="${posicion}">
           <div class="fila-palmares-principal">
             <input class="palmares-nombre" type="text" value="${escaparHTML(ganado.nombre)}" placeholder="${t("Juego o nombre del locke")}">
             <select class="palmares-tipo">${opciones}</select>
             <input class="palmares-nota" type="text" value="${escaparHTML(ganado.nota || "")}" placeholder="${t("Nota (opcional)")}">
             <button class="palmares-quitar" title="${t("Quitar")}">${icono("aspa")}</button>
+          </div>
+          <div class="fila-palmares-resultado">
+            <label class="palmares-casilla palmares-gane">
+              <input class="palmares-gano" type="checkbox" ${ganado.gano ? "checked" : ""}>
+              <span>${icono("corona")} ${t("Lo gané")}</span>
+            </label>
+            <input class="palmares-ganador" type="text" maxlength="40" value="${escaparHTML(ganado.gano ? "" : ganado.ganador || "")}"
+                   placeholder="${t("¿Quién ganó? (opcional)")}" aria-label="${t("¿Quién ganó? (opcional)")}">
           </div>
           ${plantillaDetalles(ganado)}
         </div>`;
@@ -806,10 +827,15 @@ function leerFila(fila, posicion, tipos) {
   const idTipo = fila.querySelector(".palmares-tipo").value;
   const anterior = ganadosEnEdicion[posicion] || {};
   const ilimitadas = fila.querySelector(".palmares-ilimitadas").checked;
+  const gano = fila.querySelector(".palmares-gano").checked;
 
   return {
-    ...anterior, // conserva lo que no se edita aquí (el ganador de los de Versus)
+    ...anterior, // conserva lo que no se edita aquí (el ganador de los de Versus, de quién es la copia)
     id: anterior.id || nuevoId(),
+    gano,
+    // Ganado: el de antes si ya lo era (en los de Versus, tu nombre); si no, vacío (eres tú).
+    // No ganado: lo que diga la casilla.
+    ganador: gano ? (anterior.gano ? anterior.ganador || "" : "") : fila.querySelector(".palmares-ganador").value.trim(),
     nombre: fila.querySelector(".palmares-nombre").value,
     nota: fila.querySelector(".palmares-nota").value,
     tipo: tipos.find((tipo) => tipo.id === idTipo) || tipos[0],
@@ -846,15 +872,21 @@ function leerFila(fila, posicion, tipos) {
   };
 }
 
-// También desde el perfil (js/perfil.js, «Lockes ganados» → «Gestionar»)
+// Los ids que había al abrir: los que falten al guardar se han quitado a mano y van a
+// «descartados» (si eran de los que llegan solos, así no vuelven)
+let idsAlAbrir = new Set();
+
+// También desde el perfil (js/perfil.js, «Lockes jugados» → «Gestionar»). Todos tus lockes
+// terminados: los ganados y los que no, cada uno con su casilla «Lo gané».
 export function abrirPalmares() {
   const mio = miPerfil();
   // Copia de verdad (equipos y combates incluidos) y un id para cada participante: los
   // combates dicen quién ganó y con qué equipo jugó cada uno por ese id
-  ganadosEnEdicion = JSON.parse(JSON.stringify(mio.ganados || [])).map((ganado) => ({
+  ganadosEnEdicion = JSON.parse(JSON.stringify(lockesJugados(mio))).map((ganado) => ({
     ...ganado,
     participantes: (ganado.participantes || []).map((p) => ({ ...p, id: p.id || nuevoId() }))
   }));
+  idsAlAbrir = new Set(ganadosEnEdicion.map((ganado) => ganado.id));
   pintarPalmares();
   dialogoPalmares.showModal();
 }
@@ -874,7 +906,7 @@ function uidsPorNombre() {
 
 async function guardarPalmares() {
   const uids = uidsPorNombre();
-  const ganados = leerPalmaresDelDialogo()
+  const lockes = leerPalmaresDelDialogo()
     .map(({ abierto, ...ganado }) => {
       const participantes = ganado.participantes
         .map(({ uid, ...p }) => {
@@ -904,8 +936,16 @@ async function guardarPalmares() {
     })
     .filter((ganado) => ganado.nombre);
 
+  // Cada uno a su lista; «gano» solo sirve aquí
+  const ganados = lockes.filter((locke) => locke.gano).map(({ gano, ...locke }) => locke);
+  const perdidos = lockes.filter((locke) => !locke.gano).map(({ gano, ...locke }) => locke);
+  const quedan = new Set(lockes.map((locke) => locke.id));
+  const descartados = [...new Set([...((miPerfil() || {}).descartados || []), ...[...idsAlAbrir].filter((id) => !quedan.has(id))])]
+    .filter((id) => !quedan.has(id))
+    .slice(-300);
+
   // JSON de ida y vuelta: Firestore no acepta «undefined»
-  await guardarMiPerfil({ ganados: JSON.parse(JSON.stringify(ganados)) });
+  await guardarMiPerfil(JSON.parse(JSON.stringify({ ganados, perdidos, descartados })));
   dialogoPalmares.close();
 }
 
@@ -966,7 +1006,7 @@ function activarFichas() {
     const locke = e.target.closest(".locke-ganado");
     if (locke) {
       const datos = fichasPintadas.get(ficha.dataset.clave);
-      const ganado = datos && datos.ganados[Number(locke.dataset.posicion)];
+      const ganado = datos && datos.jugados[Number(locke.dataset.posicion)];
       if (ganado) abrirFlotante(locke, ganado, datos);
       return;
     }
@@ -982,6 +1022,9 @@ function activarFichas() {
       if (boton.classList.contains("ver-todos")) {
         cerrarFlotante();
         alternarVerTodos(boton);
+      } else if (boton.classList.contains("accion-chat")) {
+        const { abrirChat } = await import("../chat.js");
+        abrirChat(ficha.dataset.clave);
       } else if (boton.classList.contains("accion-tipos")) abrirTipos();
       else if (boton.classList.contains("accion-palmares")) abrirPalmares();
       else if (boton.classList.contains("accion-estadisticas")) abrirEstadisticas(ficha.dataset.clave, htmlComparacion(ficha.dataset.clave));
@@ -1070,7 +1113,7 @@ export function iniciar() {
   // Diálogo del palmarés
   dialogoPalmares.querySelector(".palmares-anadir").addEventListener("click", () => {
     ganadosEnEdicion = leerPalmaresDelDialogo();
-    ganadosEnEdicion.push({ id: nuevoId(), nombre: "", nota: "", tipo: tiposDelDialogo()[0] });
+    ganadosEnEdicion.push({ id: nuevoId(), nombre: "", nota: "", tipo: tiposDelDialogo()[0], gano: true });
     pintarPalmares();
   });
   dialogoPalmares.querySelector(".palmares-lista").addEventListener("click", (e) => {
@@ -1115,6 +1158,12 @@ export function iniciar() {
   dialogoPalmares.querySelector(".palmares-lista").addEventListener("change", (e) => {
     const fila = e.target.closest(".fila-palmares");
     if (!fila) return;
+
+    // «Lo gané»: sin marcar, sale la casilla de quién ganó
+    if (e.target.classList.contains("palmares-gano")) {
+      fila.classList.toggle("gano", e.target.checked);
+      return;
+    }
 
     // Vidas ilimitadas: se esconden las vidas de cada participante (salen como ∞)
     if (e.target.classList.contains("palmares-ilimitadas")) {
@@ -1164,6 +1213,13 @@ export function iniciar() {
   alCambiarAmistades(repintar);
   // Y cuando cambia el perfil de un amigo (ha ganado un locke, se ha cambiado el mote...)
   alCambiarPerfilesAmigos(repintar);
+
+  // Lo mismo con quién te ha escrito sin que lo hayas leído: solo se toca la clase del botón
+  alCambiarChats(() => {
+    for (const boton of lista.querySelectorAll(".ficha-jugador:not(.mia) .accion-chat")) {
+      boton.classList.toggle("sin-leer", haySinLeer(boton.closest(".ficha-jugador").dataset.clave));
+    }
+  });
 
   // Quién está conectado cambia a menudo: solo se toca la clase, sin repintar las fichas
   alCambiarPresencia(() => {

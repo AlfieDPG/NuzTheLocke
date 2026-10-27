@@ -36,6 +36,7 @@
   <link rel="stylesheet" href="css/nuzlocke.css">
   <link rel="stylesheet" href="css/amigos.css">
   <link rel="stylesheet" href="css/foro.css">
+  <link rel="stylesheet" href="css/chat.css">
   <link rel="stylesheet" href="css/versus.css">
   <link rel="stylesheet" href="css/pokedex.css">
   <link rel="stylesheet" href="css/logros.css">
@@ -92,6 +93,7 @@
             <img class="sesion-foto" alt="" referrerpolicy="no-referrer">
             <span class="sesion-nombre"></span>
           </button>
+          <button class="avisos-boton chat-boton" title="Chats"></button>
           <button class="avisos-boton" title="Notificaciones"></button>
         </div>
         <button class="sesion-boton"></button>
@@ -370,10 +372,8 @@
   </dialog>
 
   <dialog id="dialogo-foro-usuario" class="dialogo-foro dialogo-foro-usuario">
+    <button class="foro-usuario-cerrar" title="Cerrar" aria-label="Cerrar"></button>
     <div class="foro-usuario-cuerpo"></div>
-    <div class="dialogo-botones">
-      <button class="foro-usuario-cerrar">Cerrar</button>
-    </div>
   </dialog>
 
   <!-- Ventanas de la sesión: las maneja js/sesion.js -->
@@ -503,6 +503,54 @@
     </div>
   </dialog>
 
+  <!-- Chat con tus amigos: la lista y cada conversación (js/chat.js) -->
+  <dialog id="dialogo-chat" class="dialogo-chat">
+    <header class="chat-cabeza">
+      <button class="chat-volver" title="Volver a los chats" hidden></button>
+      <h2 class="chat-titulo">Chats</h2>
+      <div class="chat-acciones" hidden>
+        <button class="chat-vaciar" title="Vaciar la conversación"></button>
+        <button class="chat-denunciar" title="Denunciar a esta persona"></button>
+        <button class="chat-bloquear" title="Bloquear a esta persona"></button>
+      </div>
+      <button class="chat-cerrar" title="Cerrar"></button>
+    </header>
+    <div class="chat-lista"></div>
+    <div class="chat-conversacion" hidden>
+      <div class="chat-mensajes"></div>
+      <form class="chat-formulario">
+        <textarea class="chat-campo" rows="1" maxlength="1000" placeholder="Escribe un mensaje" aria-label="Escribe un mensaje"></textarea>
+        <button type="submit" class="chat-enviar" title="Enviar"></button>
+      </form>
+      <p class="chat-error"></p>
+    </div>
+    <p class="chat-pie"></p>
+  </dialog>
+
+  <!-- Lo que cuentas de ti en tu perfil: frase, horario y si buscas compañeros (js/perfil.js) -->
+  <dialog id="dialogo-sobre-mi" class="dialogo-sesion">
+    <h2>Sobre mí</h2>
+    <form class="sobre-mi-formulario">
+      <label>
+        <span>Una frase sobre ti</span>
+        <textarea class="sobre-mi-texto" rows="3" maxlength="200" placeholder="Por ejemplo: juego Nuzlockes aleatorizados desde hace años."></textarea>
+      </label>
+      <label>
+        <span>Horario (opcional)</span>
+        <input class="sobre-mi-horario" type="text" maxlength="40" autocomplete="off" placeholder="Por ejemplo: noches y fines de semana (España)">
+      </label>
+      <label class="casilla-sesion sobre-mi-busca">
+        <input type="checkbox">
+        <span>Busco compañeros para un locke</span>
+      </label>
+      <span class="sesion-error sobre-mi-error"></span>
+      <div class="dialogo-botones">
+        <button type="button" class="boton-gris sobre-mi-cancelar">Cancelar</button>
+        <button type="submit" class="boton-verde">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="dialogo-titulo" class="dialogo-sesion">
     <h2>Título</h2>
     <div class="titulo-lista"></div>
@@ -547,8 +595,8 @@
   </dialog>
 
   <dialog id="dialogo-palmares">
-    <h2>Mis lockes ganados</h2>
-    <p>Los lockes que ganes en «Lockes» se apuntan solos. Aquí puedes añadir a mano los de antes o corregir algo.</p>
+    <h2>Mis lockes</h2>
+    <p>Los lockes que terminas en «Lockes» se apuntan solos, ganes o no, y también los que un amigo apunta contigo dentro. Aquí puedes añadir a mano los de antes, marcar si los ganaste o corregir algo.</p>
     <div class="palmares-lista"></div>
     <button class="palmares-anadir">Añadir locke</button>
     <div class="dialogo-botones">

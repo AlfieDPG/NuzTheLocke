@@ -39,7 +39,8 @@
 // dejarían ni leer la invitación. Quién ha aceptado está en «estados».
 
 import { usuarioActual, baseDeDatos, alCambiarSesion, cuandoEsteSincronizado } from "./nube.js";
-import { apuntarLockesGanados, miPerfil, alCambiarMiPerfil, guardarMiPerfil } from "./perfiles.js";
+import { apuntarLockesGanados, hayLockesSinApuntar, miPerfil, alCambiarMiPerfil, guardarMiPerfil } from "./perfiles.js";
+import { borrarChatDeLocke, borrarMisMensajesDeLocke } from "./chat.js";
 import { quitarConjuntosAjenos, normasDeLocke } from "./normas.js";
 import { hoyComoTexto } from "./utilidades.js";
 import { leer, escribir } from "./almacen.js";
@@ -260,15 +261,9 @@ function escuchar(usuario) {
       todos = instantanea.docs.map((documento) => ({ id: documento.id, ...documento.data() }));
       avisar();
 
-      // Si alguien ha cerrado un locke que he ganado, el +1 me lo apunto yo. Se mira aquí
-      // antes de llamar para no lanzar una consulta en cada clic del marcador.
-      const sinApuntar = todos.some(
-        (locke) =>
-          locke.estado === "cerrado" &&
-          locke.ganador === usuario.uid &&
-          !(locke.contado || []).includes(usuario.uid)
-      );
-      if (sinApuntar) apuntarLockesGanados().catch((error) => console.error(error));
+      // Si alguien ha cerrado un locke en el que juego, lo apunto yo en mi perfil (ganado o
+      // perdido). Se mira aquí antes de llamar para no lanzar una consulta en cada clic del marcador.
+      if (hayLockesSinApuntar(todos)) apuntarLockesGanados().catch((error) => console.error(error));
 
       ponerMiNombre();
       recibirNormasDeMisLockes();
@@ -991,6 +986,8 @@ export async function borrarLocke(id) {
   } catch (error) {
     console.error("No se ha podido borrar la actividad del locke", error);
   }
+  // Su chat (mensajes y marcas de ritmo), por lo mismo
+  await borrarChatDeLocke(id).catch((error) => console.error("No se ha podido borrar el chat del locke", error));
   await fn.deleteDoc(ref);
 }
 
@@ -1100,7 +1097,8 @@ export async function salirDeTodosMisLockes() {
       if (locke.creador === usuario.uid && !quedanOtros) return borrarLocke(locke.id);
 
       const { fn, ref } = referencia(locke.id);
-      return fn.updateDoc(ref, {
+      // Mis mensajes del chat del locke, antes de salir (si falla, que no impida borrar la cuenta)
+      return borrarMisMensajesDeLocke(locke.id).catch((error) => console.error(error)).then(() => fn.updateDoc(ref, {
         jugadores: fn.arrayRemove(usuario.uid),
         [`estados.${usuario.uid}`]: fn.deleteField(),
         [`vidas.${usuario.uid}`]: fn.deleteField(),
@@ -1111,7 +1109,7 @@ export async function salirDeTodosMisLockes() {
         [`rom.${usuario.uid}`]: fn.deleteField(),
         [`salon.${usuario.uid}`]: fn.deleteField(),
         actualizado: Date.now()
-      });
+      }));
     })
   );
 }

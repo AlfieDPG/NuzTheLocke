@@ -277,6 +277,34 @@
   min-width: 0;
 }
 
+/* Quitar al Pokémon de su lado: la equis, arriba a la derecha de su cabecera */
+.calc-poke-quitar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  margin-left: auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: rgba(var(--t-tinte), 0.55);
+  cursor: pointer;
+}
+
+.calc-poke-quitar:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.calc-poke-quitar .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
 /* El nombre y, a su derecha, la forma (si no caben, la forma baja) */
 .calc-nombre-fila {
   display: flex;
