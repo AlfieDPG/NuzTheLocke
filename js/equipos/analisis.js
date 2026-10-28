@@ -38,8 +38,8 @@ export const PESOS = {
   // Puntos por cada punto de nota de Showdown por encima (o por debajo) de 2, «útil»
   habilidad: 2.5,
   // Ataques que valen algo además del daño: subirse estadísticas, curarse, dejar un estado al
-  // rival, poner trampas (Trampa Rocas, Púas, Red Viscosa: dañan o frenan a cada Pokémon que
-  // saque el rival), barreras (Reflejo, Pantalla de Luz) y frenar al rival (Viento Hielo, Viento
+  // rival, poner trampas (Trampa Rocas, Púas: dañan a cada Pokémon que saque el rival),
+  // barreras (Reflejo, Pantalla de Luz) y frenar al rival (Red Viscosa, Viento Hielo, Viento
   // Afín, Espacio Raro...)
   estado: { sube: 4, cura: 3, altera: 3, trampa: 3, barrera: 3, frena: 2, tope: 10 },
   // Lo que suma una Hierba Blanca o una Hierba Única que le sirve
@@ -171,7 +171,7 @@ const ESTADO = {
   willowisp: { altera: true }, thunderwave: { altera: true }, toxic: { altera: true }, spore: { altera: true },
   sleeppowder: { altera: true }, hypnosis: { altera: true }, lovelykiss: { altera: true }, yawn: { altera: true },
   glare: { altera: true }, stunspore: { altera: true }, darkvoid: { altera: true }, sing: { altera: true },
-  stealthrock: { trampa: true }, spikes: { trampa: true }, toxicspikes: { trampa: true }, stickyweb: { trampa: true, frena: true },
+  stealthrock: { trampa: true }, spikes: { trampa: true }, toxicspikes: { trampa: true }, stickyweb: { frena: true },
   reflect: { barrera: true }, lightscreen: { barrera: true }, auroraveil: { barrera: true },
   tailwind: { frena: true }, trickroom: { frena: true }, scaryface: { frena: true }, cottonspore: { frena: true },
   stringshot: { frena: true }
@@ -430,7 +430,7 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
     const rompecoraza = bajan.find((a) => clave(a.en) === "shellsmash");
     if (rompecoraza) {
       extra += PESOS.hierba;
-      apuntar(t("{objeto} con {ataque}: le devuelve las Defensas y se queda con las subidas", { objeto: nombre(objeto), ataque: nombre(rompecoraza) }), true);
+      apuntar(t("{objeto} con {ataque}: le devuelve la Defensa y la Def. Esp. que baja, y no le quita lo que sube", { objeto: nombre(objeto), ataque: nombre(rompecoraza) }), true);
     } else if (bajan.length) {
       extra += PESOS.hierba / 2;
       apuntar(t("{objeto}: la primera vez que use {ataques}, no pierde estadísticas", { objeto: nombre(objeto), ataques: bajan.map(nombre).join(", ") }), true);
@@ -497,7 +497,7 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
   }
   if (trampas.length) {
     deEstado += PESOS.estado.trampa;
-    apuntar(t("Pone trampas que dañan o frenan a cada Pokémon que saque el rival ({ataques})", { ataques: nombres(trampas) }), true);
+    apuntar(t("Pone trampas que dañan a cada Pokémon que saque el rival ({ataques})", { ataques: nombres(trampas) }), true);
   }
   if (barreras.length) {
     deEstado += PESOS.estado.barrera;

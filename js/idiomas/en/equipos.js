@@ -223,7 +223,7 @@ export default {
   "Todos atacan con ataques especiales: un rival con mucha Def. Esp. os frena a todos":
     "Everyone attacks with special moves: a foe with high Sp. Def stops the whole team",
   "Nadie es rápido ni puede frenar al rival: casi todos los rivales atacarán antes": "Nobody is fast or can slow the foe down: almost every foe will move first",
-  "{objeto} con {ataque}: le devuelve las Defensas y se queda con las subidas": "{objeto} with {ataque}: it gets its defences back and keeps the boosts",
+  "{objeto} con {ataque}: le devuelve la Defensa y la Def. Esp. que baja, y no le quita lo que sube": "{objeto} with {ataque}: it restores the Defense and Sp. Def it drops, and keeps the boosts",
   "{objeto}: la primera vez que use {ataques}, no pierde estadísticas": "{objeto}: the first time it uses {ataques}, it loses no stats",
   "{objeto} apenas le sirve: no tiene ataques que le bajen sus estadísticas": "{objeto} barely helps: it has no moves that lower its own stats",
   "{objeto}: la primera vez, {ataques} sale sin tener que cargar": "{objeto}: the first time, {ataques} goes off without charging",
@@ -231,7 +231,7 @@ export default {
   "{ataque}: desde la {gen}.ª generación solo funciona si lo usa {quien} (mira en qué juego estás)": "{ataque}: from generation {gen} on, it only works when {quien} uses it (check which game you are playing)",
   "{ataque} no le sirve: en este juego solo funciona si lo usa {quien}": "{ataque} is useless here: in this game it only works when {quien} uses it",
   "{ataque} no le sirve: solo funciona si lo usa {quien}": "{ataque} is useless here: it only works when {quien} uses it",
-  "Pone trampas que dañan o frenan a cada Pokémon que saque el rival ({ataques})": "It sets hazards that hurt or slow every Pokémon the foe sends out ({ataques})",
+  "Pone trampas que dañan a cada Pokémon que saque el rival ({ataques})": "It sets hazards that hurt every Pokémon the foe sends out ({ataques})",
   "Pone barreras que protegen a todo el equipo ({ataques})": "It sets screens that protect the whole team ({ataques})",
   "Puede frenar al rival o hacer que el equipo ataque antes ({ataques})": "It can slow the foe down or let the team move first ({ataques})",
   "{n} comparten el tipo {tipo}": "{n} share the {tipo} type",
