@@ -13,6 +13,7 @@ import { analizarPokemon, buscarEquipos, palabraNota } from "./analisis.js";
 import { cargarContexto, mostrarAnalisis, colorNota, recordarMochila } from "./analizar.js";
 import { STATS, NATURALEZAS, entrenoDe, statsFinales } from "./entreno.js";
 import { misLockes } from "../comun/lockes.js";
+import { generacionDeJuego } from "../comun/juegos.js";
 import { leer, escribir } from "../comun/almacen.js";
 import { pedirJSON, URL_API } from "../comun/api.js";
 import { coloresTipo, tiposEs, iconoTipo } from "../comun/tipos.js";
@@ -26,15 +27,26 @@ import { t, nombre } from "../comun/idioma.js";
 const CLAVE_LOCKE = "poketeams-buscar-locke-v1";
 const MAX_FIJOS = 6;
 
+// Lo que se puede dejar sin contar, como piden las normas de algunos combates (los EVs se
+// ponen luego a todos, se juega con IVs perfectos, hay mentas...). Se recuerda para la próxima vez.
+const CLAVE_AJUSTES = "poketeams-buscar-ajustes-v1";
+const AJUSTES = [
+  ["sinEvs", "Sin EVs", "Como si nadie tuviera EVs: para cuando las normas no los cuentan o se ponen luego"],
+  ["ivsPerfectos", "IVs perfectos", "Como si todos tuvieran 31 en todo"],
+  ["sinNaturaleza", "Naturaleza neutra", "Como si todos tuvieran una neutra: por las mentas, o si no cuenta"]
+];
+
 const dialogo = document.getElementById("dialogo-buscar-equipo");
 const cuerpo = dialogo.querySelector(".buscar-cuerpo");
 
-// Lo que se enseña: { locke, lockes, candidatos (analizados, de más a menos nota), conDetalle,
+// Lo que se enseña: { locke, lockes, caja (los de la partida, tal cual), ajustes (AJUSTES: sí/no),
+// candidatos (analizados con los ajustes, de más a menos nota), conDetalle,
 // hayArchivo (vinculado pero sin permiso), mochila, contexto (el del análisis),
 // estados: Map(candidato -> "fijo" | "fuera"), elegido (el de la ficha de la derecha),
 // resultados: [{ miembros, nota }] | null }
 let actual = null;
 let alUsar = () => {};
+let alUsarFuera = () => {}; // lo de quien la abrió desde fuera de «Crear equipo» (abrirBuscar)
 
 const nombreDe = (poke) => poke.mote || nombre(poke);
 
@@ -49,7 +61,8 @@ async function lockesConPartida() {
   return misLockes().filter((locke) => partidaDe(locke.id));
 }
 
-async function abrir() {
+// idLocke: el locke con el que empezar (desde la ventana de la partida); si no, el de la última vez
+async function abrir(idLocke) {
   dialogo.showModal();
   mensaje(t("Cargando tus lockes..."));
   try {
@@ -59,7 +72,7 @@ async function abrir() {
       mensaje(t("Para buscar equipo hace falta la partida de un locke: en «Lockes», abre tu bloque y vincula el archivo de guardado (en Chrome o Edge) o léelo una vez."));
       return;
     }
-    const guardado = leer(CLAVE_LOCKE, "");
+    const guardado = typeof idLocke === "string" ? idLocke : leer(CLAVE_LOCKE, "");
     const locke = lockes.find((l) => l.id === guardado) || lockes[0];
     await cargarLocke(locke, lockes);
   } catch (error) {
@@ -88,15 +101,51 @@ async function cargarLocke(locke, lockes, pedir = false) {
   actual = {
     locke,
     lockes,
-    candidatos: caja.pokemon.map((p) => analizarPokemon(p, contexto)).sort((a, b) => b.nota - a.nota),
+    caja: caja.pokemon,
+    ajustes: leer(CLAVE_AJUSTES, {}) || {},
+    candidatos: [],
     conDetalle: caja.conDetalle,
     hayArchivo: !caja.conDetalle && (await hayVinculo(locke.id)),
     mochila: caja.mochila,
-    contexto,
+    contexto: { ...contexto, gen: generacionDeJuego(locke.juego) },
     estados: new Map(),
     elegido: null,
     resultados: null
   };
+  analizarCaja();
+  pintar();
+}
+
+// El Pokémon como se analiza: con los ajustes, una copia con otro entreno (para «Usar este
+// equipo» sigue yendo lo de la partida, en «partida»)
+function conAjustes(p) {
+  const { sinEvs, ivsPerfectos, sinNaturaleza } = actual.ajustes;
+  if (!sinEvs && !ivsPerfectos && !sinNaturaleza) return p;
+  const entreno = { ...p.entreno };
+  if (sinEvs) entreno.evs = [0, 0, 0, 0, 0, 0];
+  if (ivsPerfectos) entreno.ivs = [31, 31, 31, 31, 31, 31];
+  if (sinNaturaleza) delete entreno.naturaleza;
+  return { ...p, entreno };
+}
+
+// Analiza (otra vez) a todos con los ajustes. Los fijos, los de fuera y el de la ficha siguen
+// siéndolo; los equipos buscados ya no valen.
+function analizarCaja() {
+  const antes = new Map(actual.candidatos.map((m) => [m.original, m]));
+  const candidatos = actual.caja.map((p) => ({ ...analizarPokemon(conAjustes(p), actual.contexto), original: p }));
+  const nuevo = new Map(candidatos.map((m) => [m.original, m]));
+  const estados = new Map();
+  for (const [m, estado] of actual.estados) estados.set(nuevo.get(m.original), estado);
+  actual.estados = estados;
+  actual.elegido = actual.elegido && antes.has(actual.elegido.original) ? nuevo.get(actual.elegido.original) : null;
+  actual.candidatos = candidatos.sort((a, b) => b.nota - a.nota);
+  actual.resultados = null;
+}
+
+function cambiarAjuste(id, valor) {
+  actual.ajustes = { ...actual.ajustes, [id]: valor };
+  escribir(CLAVE_AJUSTES, actual.ajustes);
+  analizarCaja();
   pintar();
 }
 
@@ -184,6 +233,13 @@ function pintarPrincipal() {
       </label>
       <p class="buscar-fuente">${textoFuente()}</p>
     </div>
+    <fieldset class="buscar-ajustes">
+      <legend>${t("Para todos")}</legend>
+      ${AJUSTES.map(([id, texto, explica]) => `
+        <label class="casilla-sesion" title="${t(explica)}">
+          <input type="checkbox" data-ajuste="${id}" ${actual.ajustes[id] ? "checked" : ""}><span>${t(texto)}</span>
+        </label>`).join("")}
+    </fieldset>
     <p class="analisis-explica">${t("Pulsa un Pokémon para ver su ficha. En sus esquinas, la ✕ lo deja fuera de la búsqueda y el candado lo fija (irá seguro en el equipo). La nota no mira el nivel: fíjate en el de cada uno por si hay que entrenarlo.")}</p>
     ${actual.candidatos.length
       ? `<ul class="buscar-caja">${actual.candidatos.map(ficha).join("")}</ul>`
@@ -402,6 +458,8 @@ async function usar(r, boton) {
     if (actual.mochila) recordarMochila(actual.mochila, actual.locke.nombre);
     dialogo.close();
     alUsar(problemas);
+    alUsarFuera();
+    alUsarFuera = () => {};
   } catch (error) {
     console.error(error);
     boton.disabled = false;
@@ -410,10 +468,20 @@ async function usar(r, boton) {
   }
 }
 
+// Desde fuera de «Crear equipo» (la ventana de la partida de un locke), ya con ese locke.
+// alAlUsar(): el equipo elegido ya está en «Crear equipo» (además de lo de iniciarBuscar)
+export function abrirBuscar(idLocke, alAlUsar = () => {}) {
+  alUsarFuera = alAlUsar;
+  abrir(idLocke);
+}
+
 // alAlUsar(problemas): el equipo ya está en «Crear equipo» (problemas: lo que no se reconoció)
 export function iniciarBuscar(alAlUsar) {
   alUsar = alAlUsar;
-  document.getElementById("buscar-equipo").addEventListener("click", abrir);
+  document.getElementById("buscar-equipo").addEventListener("click", () => {
+    alUsarFuera = () => {};
+    abrir();
+  });
   document.getElementById("buscar-equipo-cerrar").addEventListener("click", () => dialogo.close());
 
   cuerpo.addEventListener("click", (e) => {
@@ -438,6 +506,7 @@ export function iniciarBuscar(alAlUsar) {
   });
 
   cuerpo.addEventListener("change", (e) => {
+    if (actual && e.target.dataset.ajuste) cambiarAjuste(e.target.dataset.ajuste, e.target.checked);
     if (!actual || !e.target.matches(".buscar-locke")) return;
     const locke = actual.lockes.find((l) => l.id === e.target.value);
     if (locke) {

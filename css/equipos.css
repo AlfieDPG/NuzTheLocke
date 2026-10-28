@@ -2279,6 +2279,33 @@
   font-size: 0.82rem;
 }
 
+/* Lo que se puede dejar sin contar (EVs, IVs, naturaleza): en una fila, con su título al lado */
+.buscar-ajustes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 1.2rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  border: none;
+}
+
+.buscar-ajustes legend {
+  float: left;
+  margin-right: 0.2rem;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--t-gris);
+}
+
+#dialogo-buscar-equipo .buscar-ajustes label.casilla-sesion {
+  margin-top: 0;
+  font-size: 0.85rem;
+}
+
 /* La caja: cada Pokémon, con lo que se pulsa para ver su ficha y, en las esquinas de arriba,
    los botoncitos de dejarlo fuera (izquierda) y fijarlo (derecha) */
 .buscar-caja {

@@ -37,8 +37,13 @@ export const PESOS = {
   velocidad: 0.2,
   // Puntos por cada punto de nota de Showdown por encima (o por debajo) de 2, «útil»
   habilidad: 2.5,
-  // Ataques de estado que valen algo: subirse estadísticas, curarse o dejar un estado al rival
-  estado: { sube: 4, cura: 3, altera: 3, tope: 8 },
+  // Ataques que valen algo además del daño: subirse estadísticas, curarse, dejar un estado al
+  // rival, poner trampas (Trampa Rocas, Púas, Red Viscosa: dañan o frenan a cada Pokémon que
+  // saque el rival), barreras (Reflejo, Pantalla de Luz) y frenar al rival (Viento Hielo, Viento
+  // Afín, Espacio Raro...)
+  estado: { sube: 4, cura: 3, altera: 3, trampa: 3, barrera: 3, frena: 2, tope: 10 },
+  // Lo que suma una Hierba Blanca o una Hierba Única que le sirve
+  hierba: 2,
 
   // La nota del equipo (los cuatro suman 1)
   miembros: 0.55,
@@ -165,8 +170,37 @@ const ESTADO = {
   rest: { cura: true }, junglehealing: { cura: true }, lunarblessing: { cura: true },
   willowisp: { altera: true }, thunderwave: { altera: true }, toxic: { altera: true }, spore: { altera: true },
   sleeppowder: { altera: true }, hypnosis: { altera: true }, lovelykiss: { altera: true }, yawn: { altera: true },
-  glare: { altera: true }, stunspore: { altera: true }, darkvoid: { altera: true }, sing: { altera: true }
+  glare: { altera: true }, stunspore: { altera: true }, darkvoid: { altera: true }, sing: { altera: true },
+  stealthrock: { trampa: true }, spikes: { trampa: true }, toxicspikes: { trampa: true }, stickyweb: { trampa: true, frena: true },
+  reflect: { barrera: true }, lightscreen: { barrera: true }, auroraveil: { barrera: true },
+  tailwind: { frena: true }, trickroom: { frena: true }, scaryface: { frena: true }, cottonspore: { frena: true },
+  stringshot: { frena: true }
 };
+
+// Ataques que hacen daño y además bajan la Velocidad del rival
+const FRENAN = ["icywind", "electroweb", "bulldoze", "rocktomb", "mudshot", "lowsweep", "glaciate", "drumbeating", "pounce"];
+
+// Ataques que solo funcionan con un Pokémon (desde: la generación desde la que es así; sin
+// ella, siempre). Con otro, fallan.
+const SOLO_DE = {
+  darkvoid: { especie: 491, quien: "Darkrai", desde: 7 },
+  aurawheel: { especie: 877, quien: "Morpeko" },
+  hyperspacefury: { especie: 720, quien: "Hoopa" }
+};
+
+// Los que bajan sus propias estadísticas (la Hierba Blanca se las devuelve una vez) y los que
+// cargan un turno (la Hierba Única se lo ahorra una vez)
+const BAJAN_LAS_SUYAS = [
+  "shellsmash", "closecombat", "superpower", "overheat", "dracometeor", "leafstorm", "psychoboost", "fleurcannon",
+  "hammerarm", "icehammer", "vcreate", "makeitrain", "spinout", "armorcannon", "clangingscales", "dragonascent",
+  "headlongrush", "hyperspacefury"
+];
+const CARGAN = [
+  "solarbeam", "solarblade", "skyattack", "skullbash", "razorwind", "freezeshock", "iceburn", "meteorbeam",
+  "electroshot", "geomancy", "fly", "dig", "dive", "bounce", "phantomforce", "shadowforce"
+];
+// Con la Hierba Única, lo que se queda de los que cargan: la primera vez salen sin esperar
+const CARGA_CON_HIERBA = 0.75;
 
 // Ataques con pega: lo que se queda de su daño y por qué
 const CON_PEGA = {
@@ -234,27 +268,41 @@ function combatienteDe(poke, familias) {
 
 // Sus ataques, repartidos: los que hacen daño, con lo que necesita la fórmula
 // ({ nombre, datos, golpes, factor, pega }), y los de estado que cuentan
-function repartirAtaques(poke, ataques, yo) {
+// fallan: [{ ataque, solo, seguro }] los de SOLO_DE que en él no funcionan (seguro: false si
+// puede que sí, sin saber la generación). gen: la del juego (null si no se sabe).
+function repartirAtaques(poke, ataques, yo, gen) {
   const danio = [];
   const estado = [];
+  const fallan = [];
   const encadenado = clave(poke.habilidad && poke.habilidad.en) === "skilllink";
+  const conHierbaUnica = clave(poke.objeto && poke.objeto.en) === "powerherb";
 
   for (const a of poke.ataques || []) {
     if (!a) continue;
     const k = clave(a.en);
     // Los de potencia fija, de datos/ataques.json; los demás, con su categoría (los supuestos
     // de sugerirMejoras traen su potencia)
+    const solo = SOLO_DE[k];
+    let falla = false;
+    if (solo && poke.id !== solo.especie && !(solo.desde && gen && gen < solo.desde)) {
+      const seguro = !solo.desde || Boolean(gen);
+      fallan.push({ ataque: a, solo, seguro });
+      falla = seguro;
+    }
     let datos = ataques.get(a.id);
     if (!datos && CLASES[a.categoria]) datos = { tipo: a.tipo, potencia: a.potencia || POTENCIA_VARIABLE, clase: CLASES[a.categoria] };
     if (!datos) {
-      if (ESTADO[k]) estado.push({ ataque: a, ...ESTADO[k] });
+      if (ESTADO[k] && !falla) estado.push({ ataque: a, ...ESTADO[k] });
       continue;
     }
     const golpes = DE_DOS_A_CINCO.includes(k) ? (encadenado ? 5 : 3.1) : VARIOS_GOLPES[k] || 1;
     // La precisión, de datos/ataques.json (así sale igual en «Crear equipo» que en la caja)
     const precision = (datos.precision || a.precision || 100) / 100;
     const pega = CON_PEGA[k];
-    danio.push({ nombre: nombre(a), datos, golpes, factor: precision * (pega ? pega[0] : 1), pega: pega && pega[1], ataque: a });
+    let queda = pega ? pega[0] : 1;
+    if (conHierbaUnica && CARGAN.includes(k)) queda = Math.max(queda, CARGA_CON_HIERBA);
+    if (falla) queda = 0;
+    danio.push({ nombre: nombre(a), datos, golpes, factor: precision * queda, pega: pega && pega[1], ataque: a, frena: FRENAN.includes(k) });
   }
 
   // Sin ningún ataque puesto: se le supone uno de potencia 80 de cada tipo suyo, con la mejor
@@ -266,7 +314,7 @@ function repartirAtaques(poke, ataques, yo) {
       danio.push({ nombre: t("un ataque de tipo {tipo} y potencia 80", { tipo: tiposEs[tipo] }), datos: ataqueNormal(tipo, clase), golpes: 1, factor: 1 });
     }
   }
-  return { danio, estado, supuestos };
+  return { danio, estado, fallan, supuestos };
 }
 
 // ---------- Cada Pokémon ----------
@@ -275,14 +323,14 @@ function repartirAtaques(poke, ataques, yo) {
 //   "mixto" o ""), rapido, cobertura: { tipo: { porcentaje, veces, golpe } },
 //   efectividad: { tipo: lo que le hace }, notas: [{ texto, bien (true, false o null) }] }
 //   contexto: { ataques (Map de ../calculadora/ataques.js), notas (datos/habilidades.json),
-//               familias (datos/familias.json) }
-export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias }) {
+//               familias (datos/familias.json), gen (la del juego; sin ella, null) }
+export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias, gen = null }) {
   const notas = [];
   const apuntar = (texto, bien) => notas.push({ texto, bien });
   const yo = combatienteDe(poke, familias);
   const nivel = yo.nivel;
   const ref = referencia(nivel);
-  const { danio, estado, supuestos } = repartirAtaques(poke, ataques, yo);
+  const { danio, estado, fallan, supuestos } = repartirAtaques(poke, ataques, yo, gen);
 
   // Ataque: su mejor golpe contra cada tipo
   const cobertura = {};
@@ -323,6 +371,10 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
   const suben = estado.filter((e) => e.sube && (e.sube === "ambos" || e.sube === clase || clase === "mixto"));
   const curan = estado.filter((e) => e.cura);
   const alteran = estado.filter((e) => e.altera);
+  const trampas = estado.filter((e) => e.trampa);
+  const barreras = estado.filter((e) => e.barrera);
+  // Los que frenan al rival, de estado y de daño
+  const frenan = [...estado.filter((e) => e.frena), ...danio.filter((g) => g.frena && g.factor > 0)];
 
   // La habilidad
   const habilidad = poke.habilidad;
@@ -371,6 +423,31 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
     extra -= CHOCA_CON_ESTADO;
     apuntar(t("Con {objeto} no puede usar ataques de estado", { objeto: nombre(objeto) }), false);
   }
+  // Las hierbas: solo sirven con algunos ataques
+  const conMios = (lista) => (poke.ataques || []).filter((a) => a && lista.includes(clave(a.en)));
+  if (ko === "whiteherb") {
+    const bajan = conMios(BAJAN_LAS_SUYAS);
+    const rompecoraza = bajan.find((a) => clave(a.en) === "shellsmash");
+    if (rompecoraza) {
+      extra += PESOS.hierba;
+      apuntar(t("{objeto} con {ataque}: le devuelve las Defensas y se queda con las subidas", { objeto: nombre(objeto), ataque: nombre(rompecoraza) }), true);
+    } else if (bajan.length) {
+      extra += PESOS.hierba / 2;
+      apuntar(t("{objeto}: la primera vez que use {ataques}, no pierde estadísticas", { objeto: nombre(objeto), ataques: bajan.map(nombre).join(", ") }), true);
+    } else {
+      apuntar(t("{objeto} apenas le sirve: no tiene ataques que le bajen sus estadísticas", { objeto: nombre(objeto) }), false);
+    }
+  }
+  if (ko === "powerherb") {
+    const cargan = conMios(CARGAN);
+    if (cargan.length) {
+      extra += PESOS.hierba;
+      apuntar(t("{objeto}: la primera vez, {ataques} sale sin tener que cargar", { objeto: nombre(objeto), ataques: cargan.map(nombre).join(", ") }), true);
+    } else {
+      apuntar(t("{objeto} no le sirve: solo vale para ataques que cargan un turno (Rayo Solar, Vuelo...)", { objeto: nombre(objeto) }), false);
+    }
+  }
+
   const util = yo.objeto && UTILES[ko];
   if (util && (!util.tipo || yo.tipos.includes(util.tipo))) {
     extra += util.puntos;
@@ -397,6 +474,12 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
   }
 
   for (const golpe of danio) if (golpe.pega) apuntar(t(golpe.pega, { ataque: golpe.nombre }), false);
+  for (const { ataque: a, solo, seguro } of fallan) {
+    const datos = { ataque: nombre(a), quien: solo.quien, gen: solo.desde };
+    if (!seguro) apuntar(t("{ataque}: desde la {gen}.ª generación solo funciona si lo usa {quien} (mira en qué juego estás)", datos), null);
+    else if (solo.desde) apuntar(t("{ataque} no le sirve: en este juego solo funciona si lo usa {quien}", datos), false);
+    else apuntar(t("{ataque} no le sirve: solo funciona si lo usa {quien}", datos), false);
+  }
 
   const nombres = (lista) => lista.map((e) => nombre(e.ataque)).join(", ");
   let deEstado = 0;
@@ -412,6 +495,18 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
     deEstado += PESOS.estado.altera;
     apuntar(t("Deja al rival quemado, paralizado, envenenado o dormido ({ataques})", { ataques: nombres(alteran) }), true);
   }
+  if (trampas.length) {
+    deEstado += PESOS.estado.trampa;
+    apuntar(t("Pone trampas que dañan o frenan a cada Pokémon que saque el rival ({ataques})", { ataques: nombres(trampas) }), true);
+  }
+  if (barreras.length) {
+    deEstado += PESOS.estado.barrera;
+    apuntar(t("Pone barreras que protegen a todo el equipo ({ataques})", { ataques: nombres(barreras) }), true);
+  }
+  if (frenan.length) {
+    deEstado += PESOS.estado.frena;
+    apuntar(t("Puede frenar al rival o hacer que el equipo ataque antes ({ataques})", { ataques: nombres(frenan) }), true);
+  }
   extra += Math.min(deEstado, PESOS.estado.tope);
 
   const ataque = puntuar(vecesAtaque);
@@ -422,6 +517,7 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
   return {
     poke, nivel, ataque, aguante, velocidad: veloz, nota, clase,
     rapido: vecesVelocidad >= RAPIDO,
+    frena: frenan.length > 0,
     cobertura, efectividad, notas,
     // Lo mismo en listas por tipo (en el orden de TIPOS), para las cuentas rápidas del equipo
     veces: TIPOS.map((tipo) => cobertura[tipo].veces),
@@ -471,7 +567,8 @@ function cuentasEquipo(miembros) {
   let rapido = false;
   for (const m of miembros) {
     suma += m.nota;
-    if (m.rapido) rapido = true;
+    // Quien frena al rival (Red Viscosa, Viento Afín, Espacio Raro...) también vale
+    if (m.rapido || m.frena) rapido = true;
     if (m.clase) atacantes++;
     if (m.clase === "fisico") fisicos++;
     if (m.clase === "especial") especiales++;
@@ -547,7 +644,7 @@ export function analizarEquipo(miembros) {
   if (cuentas.todosEspeciales) {
     avisar(t("Todos atacan con ataques especiales: un rival con mucha Def. Esp. os frena a todos"), false);
   }
-  if (cuentas.nadieRapido) avisar(t("Nadie es rápido: casi todos los rivales atacarán antes"), false);
+  if (cuentas.nadieRapido) avisar(t("Nadie es rápido ni puede frenar al rival: casi todos los rivales atacarán antes"), false);
   for (const { tipo, cuantos } of cuentas.repetidos) {
     avisar(t("{n} comparten el tipo {tipo}", { n: cuantos, tipo: tiposEs[tipo] }), false);
   }

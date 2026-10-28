@@ -34,6 +34,17 @@ export const JUEGOS = conNombre([
   { id: "swsh", es: "Espada / Escudo", en: "Sword / Shield", region: "galar" }
 ]);
 
+// La generación de cada juego, para lo que cambia de una a otra (Brecha Negra en el análisis).
+// Añil, que no es oficial, sin generación.
+const GENERACIONES = {
+  frlg: 3, hgss: 4, dp: 4, platino: 4, bw: 5, b2w2: 5, xy: 6, oras: 6, sm: 7, usum: 7, swsh: 8, bdsp: 8
+};
+
+// null si no se sabe
+export function generacionDeJuego(id) {
+  return GENERACIONES[id] || null;
+}
+
 // Nombre de un juego por su id (o el id, si no es uno de la web)
 export function nombreDeJuego(id) {
   const juego = JUEGOS.find((cada) => cada.id === id);

@@ -104,6 +104,8 @@ export default {
 
   // ---------- Partida vinculada ----------
   "Descartar": "Discard",
+  "Buscar mejor equipo": "Find best team",
+  "Los mejores equipos que puedes formar con los Pokémon vivos de tu caja": "The best teams you can build from the living Pokémon in your boxes",
   "Copias": "Backups",
   "Volver a como estaba antes de guardar": "Go back to how it was before saving",
   "Desvincular la partida": "Unlink the save file",

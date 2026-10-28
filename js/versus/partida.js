@@ -318,8 +318,7 @@ function pintarPartida() {
       <h3>
         ${t("Equipo")}
         ${conSitio ? `<button class="partida-meter">${icono("importar")} ${t("Meter equipo")}</button>` : ""}
-        <button class="partida-copiar">${icono("copiar")} ${t("Copiar a Mis equipos")}</button>
-      </h3>
+        <button class="partida-copiar">${icono("copiar")} ${t("Copiar a Mis equipos")}</button>      </h3>
       <div class="partida-pokemon">
         ${partida.equipo.map((p, i) => ficha(p, conSitio ? `e${i}` : "")).join("")}
         ${conSitio && partida.equipo.length < 6 ? fichaVacia(`e${partida.equipo.length}`) : ""}
@@ -432,6 +431,29 @@ async function cerrarPartida() {
     boton.classList.remove("guardando");
   }
   dialogo.close();
+}
+
+// «Buscar equipo» de «Crear equipo» (js/equipos/buscar.js), ya con este locke. Busca con la
+// partida como está guardada (sin los cambios de aquí sin guardar). El equipo elegido va a
+// «Crear equipo»: allí se va, guardando antes lo de esta ventana.
+async function buscarEquipo() {
+  const id = idAbierto;
+  const boton = dialogo.querySelector(".partida-buscar");
+  boton.disabled = true;
+  try {
+    const { prepararSeccion, irA } = await import("../navegacion.js");
+    await prepararSeccion("equipos"); // la que pone en marcha la ventana
+    const { abrirBuscar } = await import("../equipos/buscar.js");
+    abrirBuscar(id, async () => {
+      await cerrarPartida();
+      if (!dialogo.open) irA("crear");
+    });
+  } catch (error) {
+    console.error(error);
+    avisarVentana(t("No he podido leer la caja. Vuelve a probar en un momento."));
+  } finally {
+    boton.disabled = false;
+  }
 }
 
 async function copiarEquipo() {
@@ -704,6 +726,7 @@ export function iniciarPartida(alRepintar, alAvisar) {
   iniciarEditor(marcarEditando);
   activarArrastre();
   iniciarMeter();
+  dialogo.querySelector(".partida-buscar").addEventListener("click", buscarEquipo);
   dialogo.querySelector(".partida-copias").addEventListener("click", () => {
     abrirCopias(idAbierto).catch((error) => {
       console.error(error);

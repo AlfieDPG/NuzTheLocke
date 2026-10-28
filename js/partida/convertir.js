@@ -66,6 +66,9 @@ const NATURALEZAS = [
 // ---------- Nivel ----------
 
 export function experienciaPara(ritmo, n) {
+  // A nivel 1 siempre es 0 (la fórmula del ritmo medio-lento daría -54, que guardado sin signo
+  // sería un número enorme: nivel 100)
+  if (n <= 1) return 0;
   const cubo = n ** 3;
   switch (ritmo) {
     case 1: return Math.floor((5 * cubo) / 4);
