@@ -190,7 +190,7 @@
 
 .ruleta-resultado-botones .ruleta-quitar-ganadora:hover,
 .ruleta-acciones .ruleta-vaciar:hover:not(:disabled) {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .ruleta-resultado-botones .icono,
@@ -334,7 +334,7 @@
 
 .ruleta-borrar:hover:not(:disabled),
 .ruleta-quitar:hover:not(:disabled) {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 

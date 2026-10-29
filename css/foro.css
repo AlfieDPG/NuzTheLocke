@@ -615,7 +615,7 @@
 
 .foro-hilo-acciones button.peligro:hover,
 .comentario-acciones button.peligro:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -810,7 +810,7 @@
 }
 
 .foro-usuario-cabecera.conectado {
-  border-left-color: #2ecc71;
+  border-left-color: var(--t-bien);
 }
 
 .foro-usuario-cabecera .foro-foto {
@@ -824,7 +824,7 @@
 }
 
 .foro-usuario-cabecera.conectado .foro-foto {
-  border-color: #2ecc71;
+  border-color: var(--t-bien);
 }
 
 .foro-usuario-cabecera .foro-foto::before {
@@ -844,7 +844,7 @@
 }
 
 .foro-usuario-cabecera.conectado .jugador-estado {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .foro-usuario-cabecera h2 {
@@ -905,7 +905,7 @@
 }
 
 .foro-usuario-chip.busca {
-  background: #2ecc71;
+  background: var(--t-bien);
   color: #12331f;
 }
 
@@ -1048,7 +1048,7 @@
 }
 
 .foro-usuario-moderacion button:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -1083,7 +1083,7 @@
 }
 
 .denuncia-botones button.peligro:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -1335,6 +1335,6 @@
 }
 
 .moderador-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }

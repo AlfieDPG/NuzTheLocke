@@ -11,10 +11,11 @@
   <link rel="preconnect" href="https://firestore.googleapis.com">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js">
-  <!-- El mismo tema que la web (js/comun/ajustes.js) -->
+  <!-- El mismo tema y el mismo modo daltónico que la web (js/comun/ajustes.js) -->
   <script>
     try {
-      const tema = (JSON.parse(localStorage.getItem("poketeams-ajustes-v1")) || {}).tema;
+      const { tema, colores } = JSON.parse(localStorage.getItem("poketeams-ajustes-v1")) || {};
+      if (colores === "daltonicos") document.documentElement.dataset.colores = "daltonicos";
       if (tema === "oscuro" || tema === "claro") {
         document.documentElement.dataset.tema = tema;
       } else if (!tema && matchMedia("(prefers-color-scheme: light)").matches) {

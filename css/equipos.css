@@ -134,14 +134,14 @@
   padding: 0.45rem 0.85rem;
   border: none;
   border-radius: 0.45rem;
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
   font-weight: bold;
   cursor: pointer;
 }
 
 .quitar-pokemon:hover {
-  background: #e74c3c;
+  background: var(--t-rojo);
 }
 
 /* ---------- Botones de las barras (Crear equipo y Mis equipos) ----------
@@ -184,7 +184,7 @@
 }
 
 #vaciar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -999,7 +999,7 @@
 }
 
 .quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
   text-shadow: none;
   opacity: 1;
@@ -1472,7 +1472,7 @@
 }
 
 .grupo-botones .grupo-borrar:hover:not(:disabled) {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -1684,7 +1684,7 @@
 }
 
 .equipo-botones .borrar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -1782,7 +1782,7 @@
 /* ---------- Diálogos (importar paste y elegir forma) ---------- */
 
 #importar-aceptar {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
 }
 
@@ -2053,7 +2053,7 @@
 .analisis-bien {
   margin: 0;
   font-size: 0.9rem;
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 /* La nota grande del equipo y, al lado, lo que la forma */
@@ -2196,7 +2196,7 @@
 .mejora-sube b {
   font-family: var(--letra-titulos);
   font-size: 1.05rem;
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .mejora-sube small {
@@ -2275,7 +2275,7 @@
 }
 
 .analisis-avisos li.grave::before {
-  background: #e74c3c;
+  background: var(--t-rojo);
 }
 
 /* Cada Pokémon: retrato, nota, barras y el porqué */
@@ -2356,12 +2356,12 @@
 
 .analisis-notas li.bien::before {
   content: "+";
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .analisis-notas li.mal::before {
   content: "−";
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 /* Cobertura y puntos débiles: dos tablas con una fila por cada uno de los 18 tipos, en el
@@ -2449,11 +2449,11 @@
 }
 
 .cobertura.fuerte .fila-valor {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .cobertura.flojo .fila-valor {
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 /* Puntos débiles: cuántos son débiles, en negrita (naranja si son 2, rojo si son 3 o más, y
@@ -2474,7 +2474,7 @@
 
 .defensa.critico .defensa-debiles,
 .defensa.sin-aguante .defensa-aguantan {
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 .defensa-barra {
@@ -2496,7 +2496,7 @@
 }
 
 .defensa.critico .defensa-barra i {
-  background: #e74c3c;
+  background: var(--t-rojo);
 }
 
 /* Sin sitio para las dos tablas al lado de los Pokémon: debajo, una junto a la otra */
@@ -2751,7 +2751,7 @@
 }
 
 .buscar-dejar.activo {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 

@@ -260,7 +260,7 @@
 }
 
 .locke-acciones .locke-borrar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -269,12 +269,12 @@
 /* Borrar, a la izquierda y en rojo: lejos de Guardar para no darle sin querer */
 #locke-borrar {
   margin-right: auto;
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
 #locke-borrar:hover {
-  background: #e74c3c;
+  background: var(--t-rojo);
 }
 
 /* Los que ya están dentro, como etiquetas. Solo se puede echar a quien no ha contestado */
@@ -344,7 +344,7 @@ button.locke-anadir .icono {
 }
 
 #dialogo-elegir-amigos .elegir-ok {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
 }
 
@@ -375,7 +375,7 @@ button.locke-anadir .icono {
 
 .locke-quitar:hover:not(:disabled),
 .locke-desmarcar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -516,8 +516,19 @@ button.locke-anadir .icono {
   display: block;
 }
 
-.locke-quien {
+/* El nombre y, debajo, su título (si lleva). El título va fuera del nombre para que no se
+   tache con él si está eliminado */
+.locke-nombre-caja {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.locke-quien {
+  max-width: 100%;
   min-width: 0;
   font-family: var(--letra-titulos);
   font-size: 1.2rem;
@@ -549,9 +560,9 @@ button.locke-anadir .icono {
 .locke-jugador.eliminado,
 .locke-jugador.mio.eliminado {
   background:
-    repeating-linear-gradient(-45deg, rgba(231, 76, 60, 0.07) 0 0.6rem, transparent 0.6rem 1.2rem),
+    repeating-linear-gradient(-45deg, rgba(var(--t-rojo-rgb), 0.07) 0 0.6rem, transparent 0.6rem 1.2rem),
     #1f2029;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 3px 0 #c0392b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 3px 0 var(--t-rojo-oscuro);
 }
 
 .locke-jugador.eliminado .locke-cara {
@@ -568,7 +579,7 @@ button.locke-anadir .icono {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e74c3c;
+  color: var(--t-rojo);
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
 }
 
@@ -580,7 +591,7 @@ button.locke-anadir .icono {
 .locke-jugador.eliminado .locke-quien {
   color: rgba(var(--t-texto-rgb), 0.55);
   text-decoration: line-through;
-  text-decoration-color: rgba(231, 76, 60, 0.8);
+  text-decoration-color: rgba(var(--t-rojo-rgb), 0.8);
   text-decoration-thickness: 2px;
 }
 
@@ -588,7 +599,7 @@ button.locke-anadir .icono {
   margin-left: auto;
   padding: 0.15rem 0.55rem;
   border-radius: 0.3rem;
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
   font-size: 0.68rem;
   font-weight: bold;
@@ -613,7 +624,7 @@ button.locke-anadir .icono {
 
 @keyframes vida-cero {
   50% {
-    background: rgba(231, 76, 60, 0.16);
+    background: rgba(var(--t-rojo-rgb), 0.16);
   }
 }
 
@@ -832,7 +843,7 @@ button.locke-rom {
 }
 
 button.locke-rom.pasada {
-  border-color: rgba(46, 204, 113, 0.6);
+  border-color: rgba(var(--t-bien-rgb), 0.6);
 }
 
 button.locke-rom:hover {
@@ -842,11 +853,11 @@ button.locke-rom:hover {
 
 .locke-rom.pasada,
 button.locke-rom.pasada:hover {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .locke-rom.pasada {
-  background: rgba(46, 204, 113, 0.15);
+  background: rgba(var(--t-bien-rgb), 0.15);
 }
 
 /* ---------- Combates del locke ---------- */
@@ -1038,7 +1049,7 @@ button.locke-rom.pasada:hover {
 }
 
 .terminar-dato.bien {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
   opacity: 1;
 }
 
@@ -1568,11 +1579,11 @@ button.salon-cara:hover {
   margin-top: 0.6rem;
   font-size: 0.85rem;
   font-weight: bold;
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 #locke-crear {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
 }
 
@@ -1667,7 +1678,7 @@ button.salon-cara:hover {
   gap: 0.3rem;
   margin-left: auto;
   font-weight: bold;
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 .cementerio-cuenta .icono {
@@ -1751,8 +1762,8 @@ button.salon-cara:hover {
 }
 
 .tumba-nueva:hover {
-  border-color: #e74c3c;
-  background: rgba(231, 76, 60, 0.08);
+  border-color: var(--t-rojo);
+  background: rgba(var(--t-rojo-rgb), 0.08);
 }
 
 .tumba-nueva .icono {
@@ -1858,7 +1869,7 @@ button.salon-cara:hover {
 }
 
 .tumba-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .tumba-quitar .icono {
@@ -1921,13 +1932,13 @@ button.salon-cara:hover {
 .suceso-entra      { --color-suceso: #9b59b6; }
 .suceso-vida       { --color-suceso: #e84393; } /* vida recuperada */
 .suceso-vida.resta,
-.suceso-muerte     { --color-suceso: #e74c3c; }
+.suceso-muerte     { --color-suceso: var(--t-rojo); }
 .suceso-eliminado  { --color-suceso: #8b1e14; }
 .suceso-victoria,
 .suceso-combate    { --color-suceso: #e67e22; }
 .suceso-rom        { --color-suceso: #1abc9c; }
 .suceso-ganador    { --color-suceso: #f1c40f; }
-.suceso-ruta       { --color-suceso: #2ecc71; }
+.suceso-ruta       { --color-suceso: var(--t-bien); }
 .suceso-cap        { --color-suceso: #3498db; }
 .suceso-infraccion { --color-suceso: #f39c12; }
 
@@ -1956,7 +1967,7 @@ button.salon-cara:hover {
 }
 
 .suceso-eliminado .suceso-icono {
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 .suceso-icono {
@@ -2609,8 +2620,8 @@ button.salon-cara:hover {
 }
 
 .locke-partida-muertos {
-  background: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
+  background: rgba(var(--t-rojo-rgb), 0.2);
+  color: var(--t-rojo);
 }
 
 .locke-partida .icono,
@@ -2794,18 +2805,18 @@ button.salon-cara:hover {
 }
 
 .partida-marcar-muertos.activa {
-  background: rgba(231, 76, 60, 0.2);
-  box-shadow: inset 0 0 0 1px rgba(231, 76, 60, 0.6);
-  color: #e74c3c;
+  background: rgba(var(--t-rojo-rgb), 0.2);
+  box-shadow: inset 0 0 0 1px rgba(var(--t-rojo-rgb), 0.6);
+  color: var(--t-rojo);
 }
 
 .partida-marcar-muertos.activa:hover {
-  background: rgba(231, 76, 60, 0.3);
+  background: rgba(var(--t-rojo-rgb), 0.3);
 }
 
 /* Las cajas de muertos, en rojo apagado */
 .partida-caja.de-muertos .partida-ficha {
-  background: rgba(231, 76, 60, 0.1);
+  background: rgba(var(--t-rojo-rgb), 0.1);
 }
 
 .partida-caja.de-muertos .partida-cara {
@@ -2865,13 +2876,13 @@ button.salon-cara:hover {
 }
 
 .partida-desvincular {
-  background: rgba(231, 76, 60, 0.15) !important;
-  box-shadow: inset 0 0 0 1px rgba(231, 76, 60, 0.5);
-  color: #e74c3c !important;
+  background: rgba(var(--t-rojo-rgb), 0.15) !important;
+  box-shadow: inset 0 0 0 1px rgba(var(--t-rojo-rgb), 0.5);
+  color: var(--t-rojo) !important;
 }
 
 .partida-desvincular:hover {
-  background: #c0392b !important;
+  background: var(--t-rojo-oscuro) !important;
   box-shadow: none;
   color: #fff !important;
 }
@@ -2891,12 +2902,12 @@ button.salon-cara:hover {
 }
 
 #dialogo-partida.con-cambios .partida-cerrar {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
 }
 
 #dialogo-partida.con-cambios .partida-cerrar:hover {
-  background: #2ecc71;
+  background: var(--t-bien);
 }
 
 .partida-cerrar.guardando {
@@ -3318,7 +3329,7 @@ button.partida-hueco .icono {
 }
 
 .bolsa-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .bolsa-quitar .icono {
@@ -3821,13 +3832,13 @@ button.partida-ficha.arrastrando {
 }
 
 .editor-borrar {
-  background: rgba(231, 76, 60, 0.15);
-  box-shadow: inset 0 0 0 1px rgba(231, 76, 60, 0.5);
-  color: #e74c3c;
+  background: rgba(var(--t-rojo-rgb), 0.15);
+  box-shadow: inset 0 0 0 1px rgba(var(--t-rojo-rgb), 0.5);
+  color: var(--t-rojo);
 }
 
 .editor-borrar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   box-shadow: none;
   color: #fff;
 }
@@ -3855,12 +3866,12 @@ button.partida-ficha.arrastrando {
 }
 
 .editor-guardar {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
 }
 
 .editor-guardar:hover:not(:disabled) {
-  background: #2ecc71;
+  background: var(--t-bien);
 }
 
 .editor-guardar:disabled {
@@ -3995,8 +4006,8 @@ button.partida-ficha.arrastrando {
 }
 
 .locke-jugador .locke-partida-muertos {
-  background: color-mix(in srgb, #e74c3c 20%, var(--t-fondo));
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(231, 76, 60, 0.45);
+  background: color-mix(in srgb, var(--t-rojo) 20%, var(--t-fondo));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(var(--t-rojo-rgb), 0.45);
 }
 
 .locke-jugador :is(.locke-partida-abrir, .locke-salon-poner):hover {
@@ -4044,7 +4055,7 @@ button.locke-caidos:hover {
   font-size: 1.25rem;
   font-weight: 800;
   line-height: 1;
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 .locke-caidos-cuenta .icono {
@@ -4066,8 +4077,8 @@ button.locke-caidos:hover {
   height: 1.75rem;
   display: block;
   border-radius: 50%;
-  background: rgba(231, 76, 60, 0.18);
-  box-shadow: 0 0 0 1.5px rgba(231, 76, 60, 0.7);
+  background: rgba(var(--t-rojo-rgb), 0.18);
+  box-shadow: 0 0 0 1.5px rgba(var(--t-rojo-rgb), 0.7);
   filter: grayscale(0.85) brightness(0.9);
   image-rendering: pixelated;
 }

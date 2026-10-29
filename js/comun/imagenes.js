@@ -101,6 +101,30 @@ export function urlsPMDEmocion(p, emocion) {
   return urlsPMD(p).map((url) => url.replace(/Normal\.png$/, `${emocion}.png`));
 }
 
+// Las caras que existen de verdad para unas direcciones de su cara normal (las de urlsPMD o
+// urlsRetrato): promesa de [{ emocion, url }], en el orden de EMOCIONES_PMD. Se miran todas a
+// la vez y se recuerda (las imágenes, además, se quedan en la caché). Para ir cambiando de cara
+// al pulsar: las miniaturas de «Mis equipos» y la foto de perfil.
+const carasYaMiradas = new Map();
+
+export function carasDisponibles(normales) {
+  const clave = normales.join("|");
+  if (!carasYaMiradas.has(clave)) {
+    carasYaMiradas.set(
+      clave,
+      Promise.all(
+        EMOCIONES_PMD.map(async (emocion) => {
+          for (const url of normales.map((normal) => normal.replace(/Normal\.png$/, `${emocion}.png`))) {
+            if (await precargarImagen(url)) return { emocion, url };
+          }
+          return null;
+        })
+      ).then((lista) => lista.filter(Boolean))
+    );
+  }
+  return carasYaMiradas.get(clave);
+}
+
 // Iconos de objetos, de mejor a peor:
 //   1) Icono HD de Escarlata/Púrpura (Serebii): "Heavy-Duty Boots" -> heavy-dutyboots.png,
 //      "King's Rock" -> king'srock.png (minúsculas, sin espacios ni acentos; guiones y apóstrofos se quedan)

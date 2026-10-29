@@ -280,7 +280,7 @@
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .logro-fecha .icono {
@@ -313,11 +313,15 @@
   align-items: flex-end;
   gap: 0.3rem;
   flex: none;
+  margin-right: -0.25rem; /* toda la columna, un pelín hacia el borde: así los tres acaban igual */
 }
 
 .logro-lado .logro-nivel {
   position: static;
-  margin: -0.3rem -0.25rem 0 0;
+  margin-top: -0.3rem;
+  /* El espaciado entre letras deja un hueco después de la última: fuera, para que acabe donde
+     acaban la muestra del fondo y los Pokédólares */
+  margin-right: -0.08em;
 }
 
 .logro-lado .logro-fichas {

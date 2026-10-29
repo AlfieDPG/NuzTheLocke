@@ -691,11 +691,34 @@ function ponerAtacante(c) {
 }
 
 function ponerEnLado(lado, c) {
-  if (lado === "atacante") ponerAtacante(c);
-  else {
-    lados.defensor = c;
-    pintarTodo();
-  }
+  cambiarConAnimacion([lado], () => {
+    if (lado === "atacante") ponerAtacante(c);
+    else {
+      lados.defensor = c;
+      pintarTodo();
+    }
+  });
+}
+
+// Al entrar, cambiar o quitar un Pokémon (o al intercambiarlos), su ficha crece o se encoge
+// poco a poco hasta su nuevo alto (en vez de saltar) y lo de dentro aparece con un fundido
+const sinAnimaciones = matchMedia("(prefers-reduced-motion: reduce)");
+
+function cambiarConAnimacion(cuales, cambiar) {
+  const fichas = cuales.map((lado) => columnas[lado].querySelector(".calc-ficha"));
+  for (const ficha of fichas) for (const animacion of ficha.getAnimations()) animacion.cancel();
+  const antes = fichas.map((ficha) => ficha.offsetHeight);
+  cambiar();
+  if (sinAnimaciones.matches) return;
+  fichas.forEach((ficha, i) => {
+    if (!antes[i]) return; // la sección está escondida
+    ficha.style.overflow = "hidden";
+    const animacion = ficha.animate(
+      [{ height: `${antes[i]}px`, opacity: 0 }, { height: `${ficha.offsetHeight}px`, opacity: 1 }],
+      { duration: 260, easing: "ease-out" }
+    );
+    animacion.onfinish = animacion.oncancel = () => (ficha.style.overflow = "");
+  });
 }
 
 function elegirDeEquipo(lado, valor) {
@@ -882,8 +905,10 @@ export async function iniciar() {
     else if (boton.dataset.clima) campo.clima = campo.clima === boton.dataset.clima ? "" : boton.dataset.clima;
     else if (boton.classList.contains("calc-intercambiar")) {
       const defensor = lados.defensor;
-      lados.defensor = lados.atacante;
-      ponerAtacante(defensor);
+      cambiarConAnimacion(["atacante", "defensor"], () => {
+        lados.defensor = lados.atacante;
+        ponerAtacante(defensor);
+      });
       return;
     } else return;
     pintarTodo();

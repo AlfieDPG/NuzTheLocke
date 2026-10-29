@@ -20,6 +20,7 @@ export default {
   "Últimas tiradas": "Latest spins",
   "Mote de tu amigo...": "Your friend's username...",
   "Cómo ver a tus amigos": "How to show your friends",
+  "Modo daltónico": "Colour-blind mode",
   "Usar mi foto de Google": "Use my Google photo",
   "Agregar": "Add",
   "Randomlocke del grupo": "Group randomlocke",
@@ -122,6 +123,7 @@ export default {
   "¿Han muerto?": "Have they died?",
   "Quitar también una vida por cada uno": "Also remove a life for each one",
   "No": "No",
+  "Sí": "Yes",
   "Apuntar": "Record",
 
   // Ayuda de la partida

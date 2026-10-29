@@ -112,6 +112,43 @@ function plantillaListaGanados(jugados) {
   );
 }
 
+// Pulsando una ficha se abre o se cierra su lista de lockes, bajando o subiendo poco a poco (lo
+// de debajo también). Sin lockes no hay nada que enseñar: se queda como está.
+const sinAnimaciones = matchMedia("(prefers-reduced-motion: reduce)");
+
+function desplegarFicha(ficha) {
+  const lockes = ficha.querySelector(".lockes-ganados");
+  if (!lockes || !lockes.children.length) return;
+  // Mientras se cierra aún no lleva «plegada»: pulsar otra vez la vuelve a abrir
+  const abrir = ficha.classList.contains("plegada") || ficha.classList.contains("cerrando");
+  for (const animacion of lockes.getAnimations()) animacion.cancel();
+  ficha.classList.remove("cerrando");
+  if (sinAnimaciones.matches) {
+    ficha.classList.toggle("plegada", !abrir);
+    return;
+  }
+
+  ficha.classList.remove("plegada");
+  // El hueco entre la lista y lo de arriba (el gap de la ficha) también crece y se encoge
+  const hueco = parseFloat(getComputedStyle(ficha).rowGap) || 0;
+  const abierta = { height: `${lockes.offsetHeight}px`, marginTop: "0px", opacity: 1 };
+  const cerrada = { height: "0px", marginTop: `${-hueco}px`, opacity: 0 };
+  lockes.style.overflow = "hidden";
+  if (!abrir) ficha.classList.add("cerrando");
+  const animacion = lockes.animate(abrir ? [cerrada, abierta] : [abierta, cerrada], {
+    duration: 220,
+    easing: "ease-in-out",
+    fill: abrir ? "none" : "forwards" // al cerrar, cerrada hasta que se esconda de verdad
+  });
+  animacion.onfinish = () => {
+    lockes.style.overflow = "";
+    if (abrir) return;
+    ficha.classList.remove("cerrando");
+    ficha.classList.add("plegada");
+    animacion.cancel();
+  };
+}
+
 // Abre o cierra el resto de una lista
 function alternarVerTodos(boton) {
   const lista = boton.closest(".lista-plegable");
@@ -407,7 +444,7 @@ function plantillaFicha(ficha) {
     <article class="ficha-jugador plegada ${ficha.mia ? "mia" : ""} ${conectado ? "conectado" : ""} ${claseFondo(ficha.fondo)}"
              style="${estiloFondo(ficha.fondo)}"
              draggable="true" data-clave="${escaparHTML(ficha.clave)}"
-             title="${t("Pulsa para ver los lockes")}">
+             ${ficha.jugados.length ? `title="${t("Pulsa para ver los lockes")}"` : ""}>
       ${plantillaAcciones(ficha)}
       <header class="ficha-cabeza">
         <div class="jugador-foto ${claseMarco(ficha.marco)}" data-inicial="${escaparHTML(ficha.nombre[0] || "?")}" data-perfil="${escaparHTML(ficha.clave)}" title="${t("Ver perfil")}">${imagen}</div>
@@ -1018,7 +1055,7 @@ function activarFichas() {
     const boton = e.target.closest("button");
     if (!boton) {
       cerrarFlotante();
-      ficha.classList.toggle("plegada");
+      desplegarFicha(ficha);
       return;
     }
 

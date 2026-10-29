@@ -212,8 +212,8 @@
   background: var(--t-control);
 }
 
-.juego-intento.fallo { background: #e0574a; }
-.juego-intento.acierto { background: #2ecc71; }
+.juego-intento.fallo { background: var(--t-mal); }
+.juego-intento.acierto { background: var(--t-bien); }
 
 .juego-explicacion {
   margin: -0.2rem 0 0.8rem;
@@ -355,7 +355,7 @@
 .silueta-fallos .icono {
   width: 0.8rem;
   height: 0.8rem;
-  color: #e0574a;
+  color: var(--t-mal);
 }
 
 /* ---------- Adivínalo ---------- */
@@ -444,6 +444,20 @@
 
 .pistas-casilla.escala {
   background: hsl(var(--tono) 68% 40%);
+}
+
+/* Colores para daltónicos (css/base.css, --t-bien): acierto en azul, fallo en naranja y la
+   escala del amarillo (muy cerca) al naranja (lejos), sin pasar por el verde ni el rojo */
+:root[data-colores="daltonicos"] :is(.pistas-casilla, .pistas-muestra).si {
+  background: #2f7fc4;
+}
+
+:root[data-colores="daltonicos"] :is(.pistas-casilla, .pistas-muestra).no {
+  background: #cf6418;
+}
+
+:root[data-colores="daltonicos"] .pistas-casilla.escala {
+  background: hsl(calc(24 + var(--tono) * 0.4) 80% 42%);
 }
 
 /* Hacia dónde está el bueno: una flecha a la derecha del valor */
@@ -571,7 +585,7 @@
 .tienda-quitar .icono {
   width: 0.9rem;
   height: 0.9rem;
-  color: #2ecc71;
+  color: var(--t-bien);
 }
 
 .tienda-muestra {
@@ -1017,13 +1031,13 @@
 
 /* Recién respondida: lo que tenía, en verde si has acertado y en rojo si no */
 .masomenos-lado.bien {
-  background: rgba(46, 204, 113, 0.1);
-  box-shadow: inset 0 0 0 2px rgba(46, 204, 113, 0.55);
+  background: rgba(var(--t-bien-rgb), 0.1);
+  box-shadow: inset 0 0 0 2px rgba(var(--t-bien-rgb), 0.55);
 }
 
 .masomenos-lado.mal {
-  background: rgba(224, 87, 74, 0.1);
-  box-shadow: inset 0 0 0 2px rgba(224, 87, 74, 0.55);
+  background: rgba(var(--t-mal-rgb), 0.1);
+  box-shadow: inset 0 0 0 2px rgba(var(--t-mal-rgb), 0.55);
 }
 
 .masomenos-lado:is(.bien, .mal) .masomenos-valor {
@@ -1053,8 +1067,8 @@
   font-weight: bold;
 }
 
-.masomenos-lado.bien .masomenos-veredicto { color: #2ecc71; }
-.masomenos-lado.mal .masomenos-veredicto { color: #e0574a; }
+.masomenos-lado.bien .masomenos-veredicto { color: var(--t-bien); }
+.masomenos-lado.mal .masomenos-veredicto { color: var(--t-mal); }
 
 .masomenos-veredicto .icono {
   width: 1.1rem;
@@ -1229,7 +1243,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  color: #2ecc71;
+  color: var(--t-bien);
 }
 
 .clasificacion-fila .ficha-cifra {
@@ -1498,12 +1512,12 @@ button.lockedia-poke:hover {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #2ecc71;
+  background: var(--t-bien);
   transition: width 0.6s ease 0.2s;
 }
 
-.lockedia-ps span.amarillo { background: #e6b422; }
-.lockedia-ps span.rojo { background: #e0574a; }
+.lockedia-ps span.amarillo { background: var(--t-casi); }
+.lockedia-ps span.rojo { background: var(--t-mal); }
 
 #vista-juegos .lockedia-contra .icono {
   width: 1.8rem;
@@ -1522,8 +1536,8 @@ button.lockedia-poke:hover {
 }
 
 .lockedia-mensaje.mio { box-shadow: inset 3px 0 0 rgb(var(--color-vista)); }
-.lockedia-mensaje.cae-suyo { box-shadow: inset 3px 0 0 #2ecc71; color: color-mix(in srgb, #2ecc71 var(--t-vivo), black); }
-.lockedia-mensaje.cae-mio { box-shadow: inset 3px 0 0 #e0574a; color: #e0574a; }
+.lockedia-mensaje.cae-suyo { box-shadow: inset 3px 0 0 var(--t-bien); color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black); }
+.lockedia-mensaje.cae-mio { box-shadow: inset 3px 0 0 var(--t-mal); color: var(--t-mal); }
 
 /* El combate entero, plegado */
 .lockedia-registro {
@@ -1546,8 +1560,8 @@ button.lockedia-poke:hover {
   padding-left: 1.4rem;
 }
 
-.lockedia-registro .cae-suyo { color: color-mix(in srgb, #2ecc71 var(--t-vivo), black); font-weight: bold; }
-.lockedia-registro .cae-mio { color: #e0574a; font-weight: bold; }
+.lockedia-registro .cae-suyo { color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black); font-weight: bold; }
+.lockedia-registro .cae-mio { color: var(--t-mal); font-weight: bold; }
 
 /* ---------- En ancho (ordenador): cada reto aprovecha el espacio a lo horizontal ---------- */
 
@@ -1811,7 +1825,7 @@ button.lockedia-poke:hover {
 }
 
 .silueta-ronda-detalle small.bien { color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black); }
-.silueta-ronda-detalle small.mal { color: #e0574a; }
+.silueta-ronda-detalle small.mal { color: var(--t-mal); }
 .silueta-ronda-detalle .apagado { color: var(--t-gris); font-weight: normal; }
 
 .silueta-pistas {
@@ -1921,13 +1935,13 @@ button.lockedia-poke:hover {
 }
 
 .test-opcion.buena {
-  border-color: #2ecc71;
-  background: rgba(46, 204, 113, 0.18);
+  border-color: var(--t-bien);
+  background: rgba(var(--t-bien-rgb), 0.18);
 }
 
 .test-opcion.mala {
-  border-color: #e0574a;
-  background: rgba(224, 87, 74, 0.18);
+  border-color: var(--t-mal);
+  background: rgba(var(--t-mal-rgb), 0.18);
 }
 
 .test-resumen {
@@ -1946,13 +1960,13 @@ button.lockedia-poke:hover {
   padding: 0.45rem 0.7rem;
   border-radius: 0.6rem;
   background: var(--t-panel-3);
-  box-shadow: inset 3px 0 0 #2ecc71;
+  box-shadow: inset 3px 0 0 var(--t-bien);
   font-weight: bold;
   font-size: 0.9rem;
 }
 
 .test-resumen li.mal {
-  box-shadow: inset 3px 0 0 #e0574a;
+  box-shadow: inset 3px 0 0 var(--t-mal);
 }
 
 .test-resumen img {
@@ -1969,8 +1983,8 @@ button.lockedia-poke:hover {
   white-space: nowrap;
 }
 
-.test-resumen li.bien .icono { color: #2ecc71; }
-.test-resumen li.mal .icono { color: #e0574a; }
+.test-resumen li.bien .icono { color: var(--t-bien); }
+.test-resumen li.mal .icono { color: var(--t-mal); }
 
 /* El botón de escuchar el grito: grande y redondo; mientras suena, late */
 .grito-escuchar {

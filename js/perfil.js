@@ -37,7 +37,7 @@ import { leerGuardados } from "./equipos/estado.js";
 import { pokemonParaCopia } from "./comun/pokemon.js";
 import { pasteDelEquipo, copiarAlPortapapeles } from "./equipos/exportar.js";
 import {
-  imagenConRespaldo, urlsPMDEmocion, urlsRetrato, precargarImagen
+  imagenConRespaldo, urlsPMDEmocion, urlsRetrato, precargarImagen, carasDisponibles
 } from "./comun/imagenes.js";
 import { cargarDatos, datos } from "./comun/datos.js";
 import { activarAutocompletado, iconoPokemon } from "./comun/autocompletado.js";
@@ -911,31 +911,85 @@ async function copiarEquipo(boton) {
 
 // ---------- Foto (un Pokémon) ----------
 
-// { id, es, forma } · forma: {} la normal, o { etiqueta, idForma, formaPMD, imagenForma? }
-// (Mega, Alola...: se pregunta como en el creador de equipos, ver js/comun/elegir-forma.js)
+// { id, es, forma, cara } · forma: {} la normal, o { etiqueta, idForma, formaPMD, imagenForma? }
+// (Mega, Alola...: se pregunta como en el creador de equipos, ver js/comun/elegir-forma.js).
+// cara: la de Mundo Misterioso que se ha elegido pulsando la muestra (Normal, Happy...).
+// Con la foto que ya tenías (sin buscar otro Pokémon): { id, normales, cara }, con normales
+// las direcciones de su cara normal, sacadas de la foto guardada.
 let avatarElegido = null;
 let eligiendoAvatar = null; // la elección en curso (mientras sale la ventana de la forma)
 const listaPokemon = [];
 
-// Su retrato de Mundo Misterioso y, si no tiene, su sprite pequeño (el de la forma)
+// Las direcciones de su cara normal: las de su retrato de Mundo Misterioso (el de la forma)
+function normalesAvatar(elegido) {
+  if (elegido.normales) return elegido.normales;
+  const { idForma, formaPMD } = elegido.forma || {};
+  return urlsRetrato({ id: elegido.id, idForma, formaPMD });
+}
+
+// Su retrato con la cara elegida y, si esa no la tiene, el normal
 function urlsAvatar(elegido) {
-  const { idForma, formaPMD, imagenForma } = elegido.forma || {};
-  return [
-    ...urlsRetrato({ id: elegido.id, idForma, formaPMD })
-  ];
+  const normales = normalesAvatar(elegido);
+  const cara = elegido.cara || "Normal";
+  if (cara === "Normal") return normales;
+  return [...normales.map((url) => url.replace(/Normal\.png$/, `${cara}.png`)), ...normales];
+}
+
+// La foto que ya tienes, si es un retrato de Mundo Misterioso: así se le puede cambiar la cara
+// sin volver a buscar el Pokémon
+const RETRATO_PMD = /PMDCollab\/SpriteCollab\/.+\/([^/]+)\.png$/;
+
+function avatarDeMiFoto() {
+  const mio = miPerfil() || {};
+  const encontrada = typeof mio.foto === "string" && typeof mio.avatar === "number" && mio.foto.match(RETRATO_PMD);
+  if (!encontrada) return null;
+  return { id: mio.avatar, normales: [mio.foto.replace(/[^/]+\.png$/, "Normal.png")], cara: encontrada[1] };
 }
 
 function pintarMuestra() {
-  dialogoAvatar.querySelector(".avatar-muestra").innerHTML = !avatarElegido
+  const muestra = dialogoAvatar.querySelector(".avatar-muestra");
+  muestra.innerHTML = !avatarElegido
     ? plantillaFoto(miPerfil() || {}, "perfil-foto")
     : avatarElegido.subida
       ? `<img src="${avatarElegido.subida}" alt="">`
       : imagenConRespaldo(urlsAvatar(avatarElegido), `alt=""`);
+  // Se puede pulsar para cambiar de cara si es un Pokémon (el elegido o el que ya tenías)
+  const conCaras = avatarElegido ? !avatarElegido.subida : Boolean(avatarDeMiFoto());
+  muestra.disabled = !conCaras;
+  muestra.title = conCaras ? t("Pulsa para cambiarle la cara") : "";
+  if (conCaras) muestra.insertAdjacentHTML("beforeend", `<span class="avatar-cara">${icono("refrescar")}</span>`);
+}
+
+// La siguiente cara que tenga (las que no existen se saltan). Si solo tiene una, se sacude
+let cambiandoCara = false;
+
+async function siguienteCara() {
+  if (cambiandoCara) return;
+  if (!avatarElegido) avatarElegido = avatarDeMiFoto();
+  if (!avatarElegido || avatarElegido.subida) return;
+  const muestra = dialogoAvatar.querySelector(".avatar-muestra");
+  cambiandoCara = true;
+  muestra.classList.add("cambiando-cara");
+  try {
+    const lista = await carasDisponibles(normalesAvatar(avatarElegido));
+    if (lista.length > 1) {
+      const actual = lista.findIndex((cara) => cara.emocion === (avatarElegido.cara || "Normal"));
+      avatarElegido.cara = lista[(actual + 1) % lista.length].emocion;
+      pintarMuestra();
+    } else {
+      muestra.classList.remove("sin-mas-caras");
+      void muestra.offsetWidth; // reinicia la animación si se pulsa varias veces seguidas
+      muestra.classList.add("sin-mas-caras");
+    }
+  } finally {
+    cambiandoCara = false;
+    muestra.classList.remove("cambiando-cara");
+  }
 }
 
 // Elegida la especie: si tiene varias formas, se pregunta cuál (cancelar = la normal)
 async function elegirAvatar(pokemon) {
-  avatarElegido = { id: pokemon.id, es: pokemon.es, en: pokemon.en, forma: {} };
+  avatarElegido = { id: pokemon.id, es: pokemon.es, en: pokemon.en, forma: {}, cara: "Normal" };
   campoAvatar.value = nombreDe(pokemon);
   pintarMuestra();
 
@@ -1222,6 +1276,9 @@ dialogoAvatar.querySelector(".avatar-formulario").addEventListener("submit", (e)
   });
 });
 dialogoAvatar.querySelector(".avatar-cancelar").addEventListener("click", () => dialogoAvatar.close());
+dialogoAvatar.querySelector(".avatar-muestra").addEventListener("click", () => {
+  siguienteCara().catch((error) => console.error(error));
+});
 const archivoAvatar = dialogoAvatar.querySelector(".avatar-archivo");
 dialogoAvatar.querySelector(".avatar-subir").addEventListener("click", () => archivoAvatar.click());
 archivoAvatar.addEventListener("change", () => {

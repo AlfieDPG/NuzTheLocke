@@ -108,11 +108,11 @@
 }
 
 .solicitud .solicitud-aceptar {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
 }
 
 .solicitud .solicitud-aceptar:hover {
-  background: #2ecc71;
+  background: var(--t-bien);
 }
 
 .solicitud .icono {
@@ -182,7 +182,7 @@
 }
 
 .ficha-jugador.conectado {
-  border-left-color: #2ecc71;
+  border-left-color: var(--t-bien);
 }
 
 /* Foto y nombre */
@@ -216,7 +216,7 @@
 }
 
 .ficha-jugador.conectado .jugador-estado {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 /* El punto verde que late: la web abierta ahora mismo */
@@ -224,13 +224,13 @@
   width: 0.6rem;
   height: 0.6rem;
   border-radius: 50%;
-  background: #2ecc71;
+  background: var(--t-bien);
   animation: latido 1.6s ease-in-out infinite;
 }
 
 @keyframes latido {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.6); }
-  50%      { opacity: 0.45; box-shadow: 0 0 0 0.35rem rgba(46, 204, 113, 0); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(var(--t-bien-rgb), 0.6); }
+  50%      { opacity: 0.45; box-shadow: 0 0 0 0.35rem rgba(var(--t-bien-rgb), 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -347,8 +347,10 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(127, 224, 240, 0.6);
 }
 
-/* Al pulsar en la ficha se esconde la lista y queda solo la foto, el nombre y el recuento */
-.ficha-jugador.plegada .lockes-ganados {
+/* Al pulsar en la ficha se esconde la lista y queda solo la foto, el nombre y el recuento.
+   Sin lockes, la lista no ocupa nada (ni el hueco de encima) */
+.ficha-jugador.plegada .lockes-ganados,
+.lockes-ganados:empty {
   display: none;
 }
 
@@ -386,7 +388,7 @@
 }
 
 .ficha-acciones .accion-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .ficha-acciones .accion-estadisticas:hover,
@@ -476,11 +478,11 @@
 }
 
 .ficha-jugador.conectado .jugador-foto {
-  border-color: #2ecc71;
+  border-color: var(--t-bien);
 }
 
 .ficha-jugador.conectado .jugador-nombre {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .ficha-jugador.mia .jugador-nombre {
@@ -938,11 +940,11 @@
 /* El que va ganando: resaltado, con corona y el número en verde */
 .luchador.gana {
   background: var(--t-panel-3);
-  box-shadow: 0 0 0 2px #2ecc71, 0 0 18px rgba(46, 204, 113, 0.35);
+  box-shadow: 0 0 0 2px var(--t-bien), 0 0 18px rgba(var(--t-bien-rgb), 0.35);
 }
 
 .luchador.gana .luchador-victorias {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .luchador.pierde {
@@ -1270,7 +1272,7 @@
 }
 
 .stats-amigo-marcador.pierde {
-  color: #e0574a;
+  color: var(--t-mal);
 }
 
 /* ---------- Diálogos de tipos y de palmarés ---------- */
@@ -1451,9 +1453,9 @@
 }
 
 .participante-rom input:checked + span {
-  background: rgba(46, 204, 113, 0.2);
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
-  box-shadow: inset 0 0 0 1px rgba(46, 204, 113, 0.5);
+  background: rgba(var(--t-bien-rgb), 0.2);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
+  box-shadow: inset 0 0 0 1px rgba(var(--t-bien-rgb), 0.5);
 }
 
 .participante-rom input:focus-visible + span {
@@ -1579,7 +1581,7 @@ button.cara-equipo.mvp:hover img {
 }
 
 .palmares-quitar-combate:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .palmares-quitar-combate .icono {
@@ -1623,11 +1625,11 @@ button.cara-equipo.mvp:hover img {
 
 .flotante-rom {
   display: inline-flex;
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .flotante-participantes li .flotante-rom .icono {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .flotante-equipo {
@@ -1739,7 +1741,7 @@ button.cara-equipo.mvp:hover img {
 }
 
 .participante-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .participante-quitar .icono {
@@ -1824,7 +1826,7 @@ button.cara-equipo.mvp:hover img {
 
 .tipo-quitar:hover,
 .palmares-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .tipos-anadir,
@@ -1848,7 +1850,7 @@ button.cara-equipo.mvp:hover img {
 
 #tipos-guardar,
 #palmares-guardar {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
 }
 

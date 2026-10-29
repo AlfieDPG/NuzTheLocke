@@ -13,7 +13,7 @@
 
 import { icono } from "../comun/iconos.js";
 import { escaparHTML, fechaLarga } from "../comun/utilidades.js";
-import { claseMarcoDe, fondoVisualDe } from "../comun/fichas.js";
+import { claseMarcoDe, fondoVisualDe, plantillaTituloDeUid } from "../comun/fichas.js";
 import { hayNube, usuarioActual } from "../comun/nube.js";
 import { leer, escribir } from "../comun/almacen.js";
 import { CLAVES_JUEGO, CLAVE_MULTIPLICADOR_CAPS, CLAVE_HIERBA_RUTAS } from "../comun/selector-juego.js";
@@ -208,7 +208,10 @@ function plantillaJugador(locke, uid) {
           ${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-respaldo="" data-quitar-si-falla>` : ""}
           ${eliminado ? `<span class="locke-cara-fuera">${icono("calavera")}</span>` : ""}
         </div>
-        <span class="locke-quien">${nombre}${esMio ? ` <small>(${t("tú")})</small>` : ""}</span>
+        <div class="locke-nombre-caja">
+          <span class="locke-quien">${nombre}${esMio ? ` <small>(${t("tú")})</small>` : ""}</span>
+          ${plantillaTituloDeUid(uid, "pequeno")}
+        </div>
         ${gano ? `<span class="locke-corona">${icono("corona")}</span>` : ""}
         ${pendiente ? `<span class="locke-pendiente">${t("Sin contestar")}</span>` : ""}
         ${eliminado ? `<span class="locke-eliminado">${t("Eliminado")}</span>` : ""}

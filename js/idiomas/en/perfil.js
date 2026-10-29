@@ -42,6 +42,7 @@ export default {
   "Esa imagen no se puede usar. Prueba con otra.": "That image can't be used. Try another one.",
   "Elige un Pokémon de la lista o sube una foto.": "Choose a Pokémon from the list or upload a photo.",
   "Sobre mí": "About me",
+  "Pulsa para cambiarle la cara": "Click to change its expression",
   "Busca compañeros para un locke": "Looking for people to play a locke with",
   "Busca compañeros": "Looking for players",
   "Horario": "Schedule",

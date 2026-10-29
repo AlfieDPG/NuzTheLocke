@@ -25,6 +25,7 @@ import { confirmar, avisar } from "../comun/ventanas.js";
 import { NIVELES, LOGROS } from "../comun/logros.js";
 import { copiarAlPortapapeles } from "../equipos/exportar.js";
 import { t, LOCALE } from "../comun/idioma.js";
+import { coloresParaDaltonicos } from "../comun/ajustes.js";
 import { estadoDe } from "./comun.js";
 import { montarSilueta } from "./silueta.js";
 import { montarPistas } from "./pistas.js";
@@ -164,7 +165,9 @@ async function compartir() {
   }
   const fecha = new Date(`${hoy()}T12:00:00Z`).toLocaleDateString(LOCALE, { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
   const enlace = `${location.origin}${location.pathname}#juegos`;
-  const texto = `NuzTheLocke · ${t("Reto del día")} ${fecha}\n\n${lineas.join("\n\n")}\n\n${enlace}`;
+  let texto = `NuzTheLocke · ${t("Reto del día")} ${fecha}\n\n${lineas.join("\n\n")}\n\n${enlace}`;
+  // Con los colores para daltónicos, los cuadraditos también: azul y naranja
+  if (coloresParaDaltonicos()) texto = texto.replaceAll("🟩", "🟦").replaceAll("🟥", "🟧");
   if (await copiarAlPortapapeles(texto)) {
     aviso.hidden = false;
     setTimeout(() => (aviso.hidden = true), 3000);

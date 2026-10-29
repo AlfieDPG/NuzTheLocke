@@ -1,10 +1,13 @@
-// Ajustes de la web (el botón de la rueda, abajo del panel): el tema y el idioma.
+// Ajustes de la web (el botón de la rueda, abajo del panel): el tema, los colores y el idioma.
 //
 // Se guardan como lo demás (almacen.js), así que con sesión iniciada se copian a la cuenta.
 //   · Tema: atardecer (el de por defecto), oscuro o claro. Se pone en <html data-tema="oscuro">
 //     o "claro"; el atardecer va sin nada. Lo pone ya el <script> del <head> de index.html
 //     antes de pintar nada (para que no parpadee), y aquí se cambia al elegirlo. Sin nada
 //     elegido, atardecer, salvo que el sistema esté en claro.
+//   · Modo daltónico: no (el de por defecto) o sí (<html data-colores="daltonicos">: lo verde
+//     y lo rojo de bien y mal, en azul y naranja; ver css/base.css). También lo pone ya el
+//     <script> del <head>.
 //   · Idioma: lo lee js/comun/idioma.js al cargar; cambiarlo recarga la página.
 
 import { leer, escribir } from "./almacen.js";
@@ -40,6 +43,24 @@ function aplicarTema() {
 export function cambiarTema(tema) {
   guardar({ tema });
   aplicarTema();
+}
+
+// ---------- Colores ----------
+
+export function coloresParaDaltonicos() {
+  return ajustes().colores === "daltonicos";
+}
+
+function aplicarColores() {
+  const daltonicos = coloresParaDaltonicos();
+  if (daltonicos) document.documentElement.dataset.colores = "daltonicos";
+  else delete document.documentElement.dataset.colores;
+  marcar("daltonico", daltonicos ? "si" : "no");
+}
+
+export function cambiarColores(daltonicos) {
+  guardar({ colores: daltonicos ? "daltonicos" : "" });
+  aplicarColores();
 }
 
 // ---------- Idioma ----------
@@ -93,21 +114,27 @@ export function iniciarAjustes() {
   for (const boton of dialogo.querySelectorAll("[data-tema]")) {
     boton.addEventListener("click", () => cambiarTema(boton.dataset.tema));
   }
+  for (const boton of dialogo.querySelectorAll("[data-daltonico]")) {
+    boton.addEventListener("click", () => cambiarColores(boton.dataset.daltonico === "si"));
+  }
   for (const boton of dialogo.querySelectorAll("[data-idioma]")) {
     boton.addEventListener("click", () => cambiarIdioma(boton.dataset.idioma));
   }
 
   aplicarTema();
+  aplicarColores();
   marcar("idioma", idioma);
   // Si sigue al del sistema y este cambia; si llega otro de la cuenta; o si se cambia en otra pestaña
   sistemaClaro.addEventListener("change", aplicarTema);
   cuandoEsteSincronizado().then(() => {
     aplicarTema();
+    aplicarColores();
     revisarIdioma();
   });
   addEventListener("storage", (e) => {
     if (e.key !== CLAVE_AJUSTES) return;
     aplicarTema();
+    aplicarColores();
     revisarIdioma();
   });
 }

@@ -91,7 +91,7 @@
 }
 
 .inicio-resumen .en-linea b {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 /* Cuántos usuarios hay, a la derecha de la cabecera */
@@ -480,7 +480,7 @@
 .inicio-cara.grande {
   width: 2.8rem;
   height: 2.8rem;
-  border-color: #2ecc71;
+  border-color: var(--t-bien);
   font-size: 1.1rem;
 }
 
@@ -703,12 +703,12 @@
 }
 
 .sugerencias-aviso.ok {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
   opacity: 1;
 }
 
 .sugerencias-aviso.error {
-  color: #e74c3c;
+  color: var(--t-rojo);
   opacity: 1;
 }
 

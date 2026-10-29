@@ -18,10 +18,12 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js">
-  <!-- El tema (atardecer, oscuro o claro) antes de pintar nada, para que no parpadee (ver js/comun/ajustes.js) -->
+  <!-- El tema (atardecer, oscuro o claro) y los colores para daltónicos antes de pintar nada,
+       para que no parpadee (ver js/comun/ajustes.js) -->
   <script>
     try {
-      const tema = (JSON.parse(localStorage.getItem("poketeams-ajustes-v1")) || {}).tema;
+      const { tema, colores } = JSON.parse(localStorage.getItem("poketeams-ajustes-v1")) || {};
+      if (colores === "daltonicos") document.documentElement.dataset.colores = "daltonicos";
       if (tema === "oscuro" || tema === "claro") {
         document.documentElement.dataset.tema = tema;
       } else if (!tema && matchMedia("(prefers-color-scheme: light)").matches) {
@@ -524,7 +526,8 @@
     <h2>Foto de perfil</h2>
     <form class="avatar-formulario">
       <div class="avatar-fila">
-        <span class="avatar-muestra"></span>
+        <!-- Pulsándola, si es un Pokémon, va cambiando de cara (las de Mundo Misterioso) -->
+        <button type="button" class="avatar-muestra"></button>
         <label class="avatar-campo">
           <span>Pokémon</span>
           <input class="avatar-pokemon" type="text" autocomplete="off">
@@ -1220,6 +1223,14 @@
         <button data-tema="atardecer" role="radio" data-icono="atardecer">Atardecer</button>
         <button data-tema="oscuro" role="radio" data-icono="luna">Oscuro</button>
         <button data-tema="claro" role="radio" data-icono="sol">Claro</button>
+      </div>
+    </div>
+    <!-- Acierto y fallo en azul y naranja en vez de verde y rojo (css/base.css, --t-bien) -->
+    <div class="ajustes-fila">
+      <span class="ajustes-nombre">Modo daltónico</span>
+      <div class="ajustes-opciones" role="radiogroup" aria-label="Modo daltónico">
+        <button data-daltonico="no" role="radio">No</button>
+        <button data-daltonico="si" role="radio">Sí</button>
       </div>
     </div>
     <div class="ajustes-fila">

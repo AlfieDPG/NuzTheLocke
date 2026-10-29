@@ -7,7 +7,7 @@ import { icono } from "../comun/iconos.js";
 import { copiaProfunda, escaparHTML } from "../comun/utilidades.js";
 import { activarArrastre } from "../comun/arrastrar.js";
 import {
-  imagenConRespaldo, urlsPMD, urlsRetrato, urlsPMDEmocion, EMOCIONES_PMD, precargarImagen
+  imagenConRespaldo, urlsPMD, urlsRetrato, urlsPMDEmocion, carasDisponibles
 } from "../comun/imagenes.js";
 import { textoForma } from "../comun/pokemon.js";
 import { pasteDelEquipo, pasteDeTodos, copiarAlPortapapeles } from "./exportar.js";
@@ -113,25 +113,10 @@ async function exportarEquipo(guardado, boton) {
 // equipo («cara»). Para saber cuáles tiene se miran todas a la vez en cuanto pasas el ratón
 // por encima: así al pulsar ya va al momento (y el service worker las guarda para siempre).
 // Algunos solo tienen una (Hariyama): entonces la miniatura se sacude y no cambia.
-
-const carasDisponibles = new Map(); // direcciones de su cara normal -> promesa de [{ emocion, url }]
+// (Lo de mirar cuáles tiene está en js/comun/imagenes.js: también lo usa la foto de perfil)
 
 function caras(p) {
-  const clave = urlsPMD(p).join("|");
-  if (!carasDisponibles.has(clave)) {
-    carasDisponibles.set(
-      clave,
-      Promise.all(
-        EMOCIONES_PMD.map(async (emocion) => {
-          for (const url of urlsPMDEmocion(p, emocion)) {
-            if (await precargarImagen(url)) return { emocion, url };
-          }
-          return null;
-        })
-      ).then((lista) => lista.filter(Boolean))
-    );
-  }
-  return carasDisponibles.get(clave);
+  return carasDisponibles(urlsPMD(p));
 }
 
 async function cambiarDeCara(img, p, idEquipo) {

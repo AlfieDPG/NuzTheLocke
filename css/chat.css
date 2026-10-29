@@ -87,7 +87,7 @@
 
 .chat-cabeza .chat-bloquear:hover,
 .chat-cabeza .chat-vaciar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -378,7 +378,7 @@
 }
 
 .chat-borrar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -440,7 +440,7 @@
   flex: none;
   margin: 0;
   padding: 0 1rem 0.4rem;
-  color: #e74c3c;
+  color: var(--t-rojo);
   font-size: 0.8rem;
 }
 

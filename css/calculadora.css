@@ -296,7 +296,7 @@
 }
 
 .calc-poke-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -528,11 +528,11 @@
 }
 
 .calc-stat.sube .calc-stat-valor {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .calc-stat.baja .calc-stat-valor {
-  color: #ff7a6b;
+  color: color-mix(in srgb, var(--t-mal) 72%, white);
 }
 
 .calc-stat-barra {
@@ -567,12 +567,12 @@
 }
 
 .calc-etapa.sube .calc-etapa-valor {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
   opacity: 1;
 }
 
 .calc-etapa.baja .calc-etapa-valor {
-  color: #ff7a6b;
+  color: color-mix(in srgb, var(--t-mal) 72%, white);
   opacity: 1;
 }
 
@@ -695,7 +695,7 @@
 }
 
 .calc-objeto-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .calc-objeto-quitar .icono {
@@ -726,7 +726,7 @@
 
 .calc-ps {
   width: 100%;
-  accent-color: #2ecc71;
+  accent-color: var(--t-bien);
 }
 
 .calc-chips {
@@ -833,7 +833,7 @@
 }
 
 .calc-hueco-quitar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .calc-hueco-quitar .icono {
@@ -983,7 +983,7 @@
 }
 
 .calc-barra .queda {
-  background: #2ecc71;
+  background: var(--t-bien);
 }
 
 .calc-barra .quiza {
@@ -991,7 +991,7 @@
 }
 
 .calc-barra .pierde {
-  background: #e74c3c;
+  background: var(--t-mal);
 }
 
 .calc-veredicto {
@@ -1002,7 +1002,7 @@
 }
 
 .calc-resultado.ko .calc-veredicto {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
@@ -1051,13 +1051,13 @@
 }
 
 .calc-velocidad.antes {
-  background: rgba(46, 204, 113, 0.18);
-  color: #7ee2a8;
+  background: rgba(var(--t-bien-rgb), 0.18);
+  color: color-mix(in srgb, var(--t-bien) 62%, white);
 }
 
 .calc-velocidad.despues {
-  background: rgba(231, 76, 60, 0.2);
-  color: #ff9c90;
+  background: rgba(var(--t-mal-rgb), 0.2);
+  color: color-mix(in srgb, var(--t-mal) 62%, white);
 }
 
 .calc-velocidad.empate {

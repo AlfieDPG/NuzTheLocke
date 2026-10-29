@@ -236,7 +236,7 @@ main {
   padding: 0 0.25rem;
   box-sizing: border-box;
   border-radius: 1rem;
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
   font-size: 0.65rem;
   font-weight: bold;
@@ -285,7 +285,7 @@ main {
 
 /* Respuestas a tus hilos del foro (js/avisos.js) */
 .aviso-icono.foro {
-  color: #2ecc71;
+  color: var(--t-bien);
 }
 
 /* Aviso del árbitro de normas (js/avisos.js): el mismo naranja que en la actividad del locke */
@@ -336,15 +336,15 @@ main {
 }
 
 .aviso .aviso-si {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
 }
 
 .aviso .aviso-si:hover:not(:disabled) {
-  background: #2ecc71;
+  background: var(--t-bien);
 }
 
 .aviso .aviso-no:hover:not(:disabled) {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .aviso .icono {
@@ -459,7 +459,7 @@ main {
   margin-top: 0.6rem;
   font-size: 0.85rem;
   font-weight: bold;
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 .sesion-ayuda {
@@ -469,7 +469,7 @@ main {
 }
 
 .dialogo-sesion .boton-verde {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
   font-family: inherit;
 }
@@ -792,12 +792,12 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 }
 
 .perfil-nombre-form .perfil-nombre-ok {
-  background: #27ae60;
+  background: var(--t-bien-oscuro);
   color: #fff;
 }
 
 .perfil-nombre-form .perfil-nombre-ok:hover {
-  background: #2ecc71;
+  background: var(--t-bien);
 }
 
 .perfil-nombre-form button:disabled {
@@ -827,7 +827,7 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 
 .perfil-error {
   font-weight: bold;
-  color: #e74c3c;
+  color: var(--t-rojo);
 }
 
 .perfil-apartado {
@@ -888,7 +888,7 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 }
 
 .perfil-destacar:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 /* Solo el lápiz: cuadradito */
@@ -977,7 +977,7 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 }
 
 .perfil-equipo-botones .perfil-quitar-equipo:hover {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
 }
 
 .perfil-equipo-botones .icono {
@@ -1187,11 +1187,11 @@ button.perfil-fondo:hover:not(:disabled) {
 
 /* Conectado: el mismo verde que en «Amigos» */
 .perfil-amigo.conectado .perfil-amigo-foto {
-  border-color: #2ecc71;
+  border-color: var(--t-bien);
 }
 
 .perfil-amigo.conectado {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .perfil-amigo .perfil-amigo-foto.sin-foto {
@@ -1239,11 +1239,11 @@ button.perfil-fondo:hover:not(:disabled) {
   grid-column: 2;
   width: 1.2rem;
   height: 1.2rem;
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 .escaparate-equipo.destacado {
-  box-shadow: inset 0 0 0 1px rgba(46, 204, 113, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(var(--t-bien-rgb), 0.6);
 }
 
 /* Ventana de la foto: la muestra a la izquierda del buscador */
@@ -1272,6 +1272,69 @@ button.perfil-fondo:hover:not(:disabled) {
   height: 100%;
   object-fit: cover;
   image-rendering: pixelated;
+}
+
+/* Es un botón: pulsándola, el Pokémon cambia de cara (js/perfil.js). Lo redondo va en la foto
+   y no en el botón, para que el circulito de las flechas pueda asomar por la esquina */
+button.avatar-muestra {
+  position: relative;
+  padding: 0;
+  overflow: visible;
+  color: var(--t-texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+button.avatar-muestra:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.avatar-muestra > :first-child {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-cara {
+  position: absolute;
+  right: -0.3rem;
+  bottom: -0.3rem;
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 50%;
+  background: #c0392b;
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--t-panel);
+  transition: transform 0.25s;
+}
+
+.avatar-cara .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+button.avatar-muestra:hover:not(:disabled) .avatar-cara {
+  transform: rotate(90deg);
+}
+
+/* Mientras mira qué caras tiene (solo la primera vez, un momento) */
+.avatar-muestra.cambiando-cara {
+  cursor: progress;
+}
+
+.avatar-muestra.cambiando-cara > :first-child {
+  opacity: 0.6;
+}
+
+/* Solo tiene una cara: se sacude (la animación es la de «Mis equipos», css/equipos.css) */
+.avatar-muestra.sin-mas-caras {
+  animation: sacudida 0.35s ease-in-out;
 }
 
 .avatar-campo {
@@ -1547,6 +1610,7 @@ button.perfil-fondo:hover:not(:disabled) {
   font-weight: bold;
 }
 
+
 /* ---------- Preguntas frecuentes ---------- */
 
 #dialogo-ayuda {
@@ -1624,7 +1688,7 @@ button.perfil-fondo:hover:not(:disabled) {
 .dialogo-sesion .boton-rojo {
   border: none;
   border-radius: 0.45rem;
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
   font-family: inherit;
   font-weight: bold;
@@ -1632,7 +1696,7 @@ button.perfil-fondo:hover:not(:disabled) {
 }
 
 .dialogo-sesion .boton-rojo:hover {
-  background: #e74c3c;
+  background: var(--t-rojo);
 }
 
 .sesion-legal {
@@ -2029,7 +2093,7 @@ dialog textarea {
 }
 
 #dialogo-perfil .perfil-cabeza.conectado {
-  border-left-color: #2ecc71;
+  border-left-color: var(--t-bien);
 }
 
 .perfil-cabeza .perfil-avatar {
@@ -2041,7 +2105,7 @@ dialog textarea {
 }
 
 .perfil-cabeza.conectado .perfil-avatar {
-  border-color: #2ecc71;
+  border-color: var(--t-bien);
 }
 
 .perfil-cabeza.mia .jugador-estado {
@@ -2049,7 +2113,7 @@ dialog textarea {
 }
 
 .perfil-cabeza.conectado .jugador-estado {
-  color: color-mix(in srgb, #2ecc71 var(--t-vivo), black);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
 }
 
 #dialogo-perfil .perfil-nombre {

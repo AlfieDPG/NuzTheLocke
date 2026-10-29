@@ -388,7 +388,8 @@ td.col-numero {
   position: absolute;
   z-index: 50;
   box-sizing: border-box; /* para que crezca hasta su medida exacta (js/pokedex/evoluciones.js) */
-  max-width: min(46rem, calc(100vw - 16px));
+  /* Ancho para tres Pokémon, sus flechas y la Mega (con el aire de la derecha, .evo-arbol) */
+  max-width: min(52rem, calc(100vw - 16px));
   padding: 0.75rem 0.9rem;
   border-radius: 0.7rem;
   background: var(--t-panel);
@@ -446,7 +447,7 @@ td.col-numero {
   gap: 0.5rem;
   max-height: 70vh;
   margin: -0.75rem -0.9rem;
-  padding: 0.75rem 1.5rem 0.75rem 0.9rem;
+  padding: 0.75rem 1.25rem 0.75rem 0.9rem;
   overflow: auto;
   border-radius: inherit;
 }
@@ -478,10 +479,12 @@ td.col-numero {
   align-items: center;
 }
 
+/* Las ramas, una debajo de otra (dos Megas, las evoluciones de Eevee...), con aire entre ellas:
+   al pasar por encima, cada una crece */
 .evo-hijos {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.65rem;
 }
 
 .evo-pokemon {

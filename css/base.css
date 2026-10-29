@@ -124,6 +124,42 @@
   --t-icono-fecha: none;
 }
 
+/* ---------- Bien y mal ----------
+   Los verdes y rojos que dicen si algo es bueno o malo, en toda la web: acierto y fallo,
+   conectado, aceptar y guardar, borrar y eliminar, caídos, errores... Iguales en los tres
+   temas. Con el modo daltónico (Ajustes: <html data-colores="daltonicos">,
+   js/comun/ajustes.js) el verde pasa a azul y el rojo a naranja, que se distinguen con casi
+   cualquier daltonismo. Los rojos que son de identidad (el logo, el color de Lockes o de
+   Inicio, los corazones de las vidas, el aro de tu foto) no van aquí: no cambian.
+   Para algo nuevo que esté bien o mal, estos, no un color escrito a mano. */
+:root {
+  --t-bien: #2ecc71;
+  --t-bien-rgb: 46, 204, 113;
+  --t-bien-oscuro: #27ae60; /* botones de aceptar o guardar */
+  --t-bien-oscuro-rgb: 39, 174, 96;
+  --t-casi: #e6b422;
+  --t-mal: #e0574a;
+  --t-mal-rgb: 224, 87, 74;
+  --t-rojo: #e74c3c; /* errores, caídos, eliminados */
+  --t-rojo-rgb: 231, 76, 60;
+  --t-rojo-oscuro: #c0392b; /* botones de borrar */
+  --t-rojo-oscuro-rgb: 192, 57, 43;
+}
+
+:root[data-colores="daltonicos"] {
+  --t-bien: #4aa3e8;
+  --t-bien-rgb: 74, 163, 232;
+  --t-bien-oscuro: #2f7fc4;
+  --t-bien-oscuro-rgb: 47, 127, 196;
+  --t-casi: #f0d64a;
+  --t-mal: #ea7a26;
+  --t-mal-rgb: 234, 122, 38;
+  --t-rojo: #ea7a26;
+  --t-rojo-rgb: 234, 122, 38;
+  --t-rojo-oscuro: #c25e10;
+  --t-rojo-oscuro-rgb: 194, 94, 16;
+}
+
 html {
   /* Tamaño base: crece o se encoge según la ventana. (NO TOCAR el 1.72vh) */
   font-size: clamp(12px, min(1.72vh, 1.3vw), 24px);
@@ -752,12 +788,12 @@ dialog textarea {
 }
 
 .ventana-peligro {
-  background: #c0392b;
+  background: var(--t-rojo-oscuro);
   color: #fff;
 }
 
 .ventana-peligro:hover {
-  background: #e74c3c;
+  background: var(--t-rojo);
 }
 /* ---------- Desplegables (<select>) con el estilo de la web ----------
    La lista que se abre, como la de las sugerencias al escribir. Solo en los navegadores que

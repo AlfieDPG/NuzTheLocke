@@ -341,6 +341,11 @@ export function fondoVisualDe(uid) {
   return fondoVisual(perfilConocido(uid));
 }
 
+// Su título (la plaquita de plantillaTituloDe), sabiendo solo su uid: en las fichas de un locke
+export function plantillaTituloDeUid(uid, clase = "") {
+  return plantillaTituloDe(perfilConocido(uid), clase);
+}
+
 // Compra un artículo si llegan los Pokédólares. Devuelve "" si ha ido bien, o por qué no.
 export async function comprar(id) {
   const perfil = miPerfil();
