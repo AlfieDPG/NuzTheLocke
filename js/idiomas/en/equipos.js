@@ -16,6 +16,12 @@ export default {
   // «Mis equipos» (index.html)
   "Ver en lista": "List view",
   "Ver en tarjetas": "Card view",
+  "En tarjetas": "As cards",
+  "En lista": "As a list",
+  "Cómo ver los equipos": "How to show the teams",
+  "Más opciones": "More options",
+  "Pokémon en el equipo": "Pokémon in the team",
+  "Nuevo grupo: para juntar varios equipos (como las carpetas de Showdown)": "New group: to put several teams together (like Showdown folders)",
   "Un grupo para juntar varios equipos (como las carpetas de Showdown)": "A group to keep several teams together (like Showdown folders)",
   "Nuevo grupo": "New group",
   "Pega uno o varios equipos (copia de seguridad de Showdown)": "Paste one or more teams (Showdown backup)",
@@ -152,7 +158,9 @@ export default {
   "Exportar el grupo": "Export the group",
   "Borrar el grupo (sus equipos no)": "Delete the group (not its teams)",
   "Borrar el grupo": "Delete the group",
-  "Todavía no has guardado ningún equipo. Crea uno y pulsa «Guardar equipo».": "You haven't saved any team yet. Create one and click “Save team”.",
+  "Tu primer equipo": "Your first team",
+  "Aquí se guardan tus equipos. Crea uno y pulsa «Guardar equipo», o trae los tuyos de Showdown.": "Your teams are kept here. Create one and click “Save team”, or bring yours from Showdown.",
+  "Importar de Showdown": "Import from Showdown",
 
   // Elegir uno de tus equipos (Lockes, Amigos, partida)
   "No tienes equipos guardados.": "You don't have any saved teams.",

@@ -29,6 +29,7 @@ export default {
   // Ajustes
   "Ajustes": "Settings",
   "Tema": "Theme",
+  "Atardecer": "Sunset",
   "Oscuro": "Dark",
   "Claro": "Light",
   "Idioma": "Language",

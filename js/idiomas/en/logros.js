@@ -332,7 +332,7 @@ export default {
   "Sin un fallo": "Flawless",
   "Acierta los 10 rivales de «Supereficaz».": "Get all 10 opponents right in “Super effective”.",
   "Calculadora andante": "Walking calculator",
-  "Llega a 10 aciertos seguidos en «¿Más o menos?».": "Reach 10 in a row in “Higher or lower?”.",
+  "Acierta las 10 de «¿Más o menos?».": "Get all 10 right in “Higher or lower?”.",
   "Oído fino": "Sharp ears",
   "Acierta los 5 gritos de «¿De quién es este grito?».": "Get all 5 cries right in “Whose cry is this?”.",
   "Experto en evoluciones": "Evolution expert",

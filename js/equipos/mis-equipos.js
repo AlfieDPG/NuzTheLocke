@@ -20,24 +20,36 @@ const lista = document.getElementById("lista-equipos");
 
 // ---------- Tarjetas o lista ----------
 
+// Un interruptor de dos iconos a la derecha de la barra; el elegido, iluminado
 const CLAVE_VISTA = "poketeams-equipos-vista-v1";
-const boton = document.getElementById("cambiar-vista");
+const botonesVista = document.querySelectorAll(".vista-equipos [data-modo]");
 
 function aplicarVista(enLista) {
   lista.classList.toggle("modo-lista", enLista);
-  boton.textContent = enLista ? t("Ver en tarjetas") : t("Ver en lista");
+  // La sombra del elegido se desliza de un botón al otro (css/equipos.css, .vista-equipos::before)
+  document.querySelector(".vista-equipos")?.classList.toggle("en-lista", enLista);
+  for (const boton of botonesVista) {
+    const elegido = (boton.dataset.modo === "lista") === enLista;
+    boton.classList.toggle("elegido", elegido);
+    boton.setAttribute("aria-pressed", elegido);
+  }
 }
 
-boton.addEventListener("click", () => {
-  const enLista = !lista.classList.contains("modo-lista");
-  escribir(CLAVE_VISTA, enLista);
-  aplicarVista(enLista);
-});
+for (const boton of botonesVista) {
+  boton.innerHTML = icono(boton.dataset.modo === "lista" ? "lista" : "cuadricula");
+  boton.addEventListener("click", () => {
+    const enLista = boton.dataset.modo === "lista";
+    escribir(CLAVE_VISTA, enLista);
+    aplicarVista(enLista);
+  });
+}
 
 aplicarVista(leer(CLAVE_VISTA, false));
 
 // Todos los equipos a la vez, para pegarlos en Showdown («Backup/Restore all teams»)
 const botonTodos = document.getElementById("exportar-todos");
+botonTodos.innerHTML = `${icono("copiar")} <span>${t("Exportar todos")}</span>`;
+const textoTodos = botonTodos.querySelector("span");
 botonTodos.addEventListener("click", async () => {
   const guardados = leerGuardados();
   if (!guardados.length) return;
@@ -46,10 +58,10 @@ botonTodos.addEventListener("click", async () => {
     sumarContador("exportar");
     sumarContador("exportar-todos");
   }
-  botonTodos.textContent = copiado ? t("Copiados ✔") : t("No se pudo copiar");
+  textoTodos.textContent = copiado ? t("Copiados ✔") : t("No se pudo copiar");
   botonTodos.disabled = true;
   setTimeout(() => {
-    botonTodos.textContent = t("Exportar todos");
+    textoTodos.textContent = t("Exportar todos");
     botonTodos.disabled = false;
   }, 1500);
 });
@@ -346,6 +358,8 @@ function crearTarjeta(guardado) {
       );
     })
     .join("");
+  // Los que faltan para los 6, como los huecos de «Crear equipo» (pulsando, se abre el equipo)
+  const huecos = `<span class="miniatura-vacia" aria-hidden="true">${icono("mas")}</span>`.repeat(Math.max(0, 6 - guardado.pokemon.length));
 
   const tarjeta = document.createElement("div");
   tarjeta.className = "equipo-guardado";
@@ -363,7 +377,7 @@ function crearTarjeta(guardado) {
         <button class="borrar" title="${t("Borrar el equipo")}" aria-label="${t("Borrar")}">${icono("papelera")}</button>
       </div>
     </div>
-    <div class="equipo-miniaturas">${miniaturas}</div>
+    <div class="equipo-miniaturas">${miniaturas}${huecos}</div>
   `;
 
   tarjeta.querySelector("h3").textContent = guardado.nombre;
@@ -428,7 +442,7 @@ function crearSeccion(grupo, equipos, hayGrupos) {
     seccion.querySelector(".grupo-nombre").textContent = grupo.nombre;
   } else {
     seccion.innerHTML = `
-      ${hayGrupos ? `<header class="grupo-cabecera sin-grupo"><h2 class="grupo-nombre">${t("Sin grupo")}</h2><span class="grupo-cuenta">${equipos.length}</span></header>` : ""}
+      ${hayGrupos ? `<header class="grupo-cabecera sin-grupo"><h2 class="grupo-nombre">${t("Equipos")}</h2><span class="grupo-cuenta">${equipos.length}</span></header>` : ""}
       <div class="equipos-zona" data-grupo=""></div>`;
   }
 
@@ -446,13 +460,70 @@ lista.addEventListener("click", (e) => {
   else if (e.target.closest(".grupo-nombre")) renombrarGrupo(e.target.closest(".grupo-nombre"), id);
   else if (!e.target.closest("input")) {
     const grupo = leerGrupos().find((g) => g.id === id);
-    if (!grupo) return;
-    cambiarGrupo(id, { plegado: !grupo.plegado });
-    renderMisEquipos();
+    if (grupo) plegarGrupo(grupo, cabecera.closest(".grupo-equipos"));
   }
 });
 
+// Plegar o desplegar un grupo poco a poco: sus equipos se cierran (o se abren) cambiando de
+// alto. Se vuelve a pintar todo, así que al desplegar se anima la zona ya pintada.
+let plegando = false;
+
+async function plegarGrupo(grupo, seccion) {
+  if (plegando) return;
+  const plegar = !grupo.plegado;
+  const suave = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const animarAlto = (zona, desde, hasta, alFinal) => {
+    zona.style.overflow = "hidden";
+    const animacion = zona.animate(
+      [{ height: `${desde}px`, opacity: desde ? 1 : 0 }, { height: `${hasta}px`, opacity: hasta ? 1 : 0 }],
+      { duration: 220, easing: "ease-in-out" }
+    );
+    animacion.onfinish = () => {
+      zona.style.overflow = "";
+      if (alFinal) alFinal();
+    };
+    return animacion.finished;
+  };
+
+  plegando = true;
+  try {
+    const zona = seccion.querySelector(":scope > .equipos-zona");
+    if (plegar && suave && zona) await animarAlto(zona, zona.offsetHeight, 0, () => (zona.style.height = "0px"));
+    cambiarGrupo(grupo.id, { plegado: plegar });
+    renderMisEquipos();
+    if (!plegar && suave) {
+      const nueva = lista.querySelector(`.grupo-equipos[data-grupo="${CSS.escape(grupo.id)}"] > .equipos-zona`);
+      if (nueva) await animarAlto(nueva, 0, nueva.offsetHeight);
+    }
+  } finally {
+    plegando = false;
+  }
+}
+
 document.getElementById("nuevo-grupo").addEventListener("click", nuevoGrupo);
+
+// Sin equipos: un equipo «fantasma» con sus 6 huecos vacíos, como los de «Crear equipo», que
+// invitan a llenarlos. Los huecos y el botón llevan a crear uno; el otro botón, a importar.
+function plantillaSinEquipos() {
+  const hueco = `<button class="equipos-vacio-hueco" tabindex="-1" aria-hidden="true">${icono("mas")}</button>`;
+  return `
+    <div class="equipos-vacio">
+      <div>
+        <h3>${t("Tu primer equipo")}</h3>
+        <p>${t("Aquí se guardan tus equipos. Crea uno y pulsa «Guardar equipo», o trae los tuyos de Showdown.")}</p>
+      </div>
+      <div class="equipos-vacio-huecos">${hueco.repeat(6)}</div>
+      <div class="equipos-vacio-botones">
+        <button class="equipos-vacio-crear">${icono("mas")} ${t("Crear equipo")}</button>
+        <button class="equipos-vacio-importar">${icono("importar")} ${t("Importar de Showdown")}</button>
+      </div>
+    </div>`;
+}
+
+lista.addEventListener("click", (e) => {
+  if (e.target.closest(".equipos-vacio-crear, .equipos-vacio-hueco")) document.getElementById("crear-equipo-nuevo").click();
+  else if (e.target.closest(".equipos-vacio-importar")) document.getElementById("importar-varios").click();
+});
 
 export function renderMisEquipos() {
   cerrarMenuGrupos();
@@ -460,8 +531,7 @@ export function renderMisEquipos() {
   const grupos = leerGrupos();
 
   if (guardados.length === 0 && grupos.length === 0) {
-    lista.innerHTML =
-      `<p>${t("Todavía no has guardado ningún equipo. Crea uno y pulsa «Guardar equipo».")}</p>`;
+    lista.innerHTML = plantillaSinEquipos();
     return;
   }
 

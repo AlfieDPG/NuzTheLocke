@@ -1,6 +1,7 @@
 // Sección «Normas», en pestañas (como las regiones de Rutas y Level caps):
 //
-//   · Normas generales: las básicas de cualquier Nuzlocke, fijas. Es la que sale al entrar.
+//   · Normas generales: fijas, en dos apartados (las básicas de cualquier Nuzlocke y las
+//     extras, muy habituales pero no en todos). Es la que sale al entrar.
 //   · Una pestaña por cada conjunto tuyo: su nombre, sus normas (se crean, se cambian y se
 //     borran aquí) y una casilla para que lleve también las generales.
 //   · «Nuevo conjunto», al final.
@@ -80,11 +81,17 @@ function pintarPestanas() {
   ].join("");
 }
 
+const APARTADOS_GENERALES = [
+  { grupo: "basica", titulo: "Básicas", nota: "Las de cualquier Nuzlocke" },
+  { grupo: "extra", titulo: "Extras", nota: "Muy habituales, pero no están en todos" }
+];
+
 function cuerpoGenerales() {
-  return `
+  return APARTADOS_GENERALES.map(({ grupo, titulo, nota }) => `
     <section class="normas-grupo generales">
-      ${plantillaLista(NORMAS_GENERALES, false)}
-    </section>`;
+      <h2>${t(titulo)} <small>${t(nota)}</small></h2>
+      ${plantillaLista(NORMAS_GENERALES.filter((norma) => norma.grupo === grupo), false)}
+    </section>`).join("");
 }
 
 function cuerpoConjunto(conjunto) {

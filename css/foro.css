@@ -31,7 +31,7 @@
   border: none;
   border-radius: 0.45rem;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-family: inherit;
   font-weight: bold;
   cursor: pointer;
@@ -467,7 +467,7 @@
 
 .dialogo-foro .dialogo-botones button:last-child:not(.foro-hilo-cerrar):not(.foro-usuario-cerrar) {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 /* ---------- Un hilo abierto ---------- */
@@ -610,7 +610,7 @@
 
 .foro-hilo-acciones button.activo {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .foro-hilo-acciones button.peligro:hover,
@@ -744,7 +744,7 @@
   border: none;
   border-radius: 0.45rem;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-family: inherit;
   font-weight: bold;
   cursor: pointer;
@@ -961,7 +961,7 @@
 
 .foro-usuario-principales button.principal {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .foro-usuario-principales button.principal:hover {
@@ -1216,7 +1216,7 @@
 
 .hilo-chip.principal {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 /* En un hilo principal los comentarios van de más nuevo a más viejo: la caja de responder sube
@@ -1279,7 +1279,7 @@
   border: none;
   border-radius: 0.45rem;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-family: inherit;
   font-weight: bold;
   cursor: pointer;

@@ -28,18 +28,73 @@
   font-size: 0.93rem;
 }
 
-/* Ancho fijo: si no, el desplegable se encoge según lo largo que sea el tipo elegido */
+/* El desplegable de los tipos (un «⋯» de js/comun/menu-mas.js con la flecha). Ancho fijo:
+   si no, se encoge según lo largo que sea el tipo elegido */
 .pokedex-tipo {
   flex: 0 0 11rem;
-  padding: 0.5rem 0.6rem;
-  border: none;
-  border-radius: 0.45rem;
-  background: var(--t-panel);
-  color: var(--t-texto);
-  font-family: inherit;
+}
+
+.pokedex-tipo .menu-mas-boton {
+  justify-content: flex-start;
+  gap: 0.45rem;
+  width: 100%;
+  height: auto;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.6rem;
   font-size: 0.9rem;
-  font-weight: bold;
-  cursor: pointer;
+}
+
+.pokedex-tipo-nombre {
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
+.pokedex-tipo .menu-mas-boton > .icono {
+  width: 1rem;
+  height: 1rem;
+  color: var(--t-gris-2);
+  transition: transform 0.2s;
+}
+
+.pokedex-tipo .menu-mas-boton[aria-expanded="true"] > .icono {
+  transform: rotate(180deg);
+}
+
+.pokedex-tipo .chip-tipo {
+  flex: none;
+  margin-right: 0;
+}
+
+/* La lista, en dos columnas (los 18 tipos de una vez, sin una lista larguísima) */
+.pokedex-tipo-lista:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.1rem;
+  left: 0;
+  right: auto;
+  min-width: 20rem;
+}
+
+.barra-pokedex .pokedex-tipo-lista button {
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  box-shadow: none;
+}
+
+.pokedex-tipo-lista button:first-child {
+  grid-column: 1 / -1;
+}
+
+.pokedex-tipo-lista button.elegido {
+  background: rgba(var(--color-vista), 0.16);
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+/* «Todos los tipos»: un cuadradito neutro donde los demás llevan el de su tipo */
+.chip-todos {
+  background: var(--t-control);
 }
 
 .pokedex-cuenta {
@@ -81,7 +136,7 @@
   height: 1.2rem;
   border-radius: 0.6rem;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-size: 0.75rem;
 }
 
@@ -136,7 +191,7 @@
 
 .pokedex-filtro-opciones button.activa {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .pokedex-filtros-quitar {
@@ -332,6 +387,7 @@ td.col-numero {
   --flecha: 2rem;
   position: absolute;
   z-index: 50;
+  box-sizing: border-box; /* para que crezca hasta su medida exacta (js/pokedex/evoluciones.js) */
   max-width: min(46rem, calc(100vw - 16px));
   padding: 0.75rem 0.9rem;
   border-radius: 0.7rem;
@@ -339,6 +395,26 @@ td.col-numero {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(var(--t-tinte), 0.08);
   color: var(--t-texto);
   font-size: 0.85rem;
+  transform-origin: var(--flecha) top;
+  animation: bocadillo-aparece 0.18s ease-out;
+}
+
+/* Al abrirse, crece un poco desde el piquito */
+.bocadillo-evo.encima {
+  transform-origin: var(--flecha) bottom;
+}
+
+@keyframes bocadillo-aparece {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bocadillo-evo {
+    animation: none;
+  }
 }
 
 /* El piquito, apuntando a la foto: arriba si el bocadillo va debajo y al revés */
@@ -360,12 +436,19 @@ td.col-numero {
   box-shadow: 1px 1px 0 rgba(var(--t-tinte), 0.08);
 }
 
+/* Con su propio scroll si la línea es muy larga. Lleva aire por dentro (y se come lo mismo de
+   fuera, así no cambia nada): al pasar por encima de un Pokémon crece y se ilumina, y sin ese
+   aire su sombra se cortaba y salían barras de scroll. A la derecha, algo más: ahí acaban las
+   Megas, que también crecen */
 .evo-arbol {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   max-height: 70vh;
+  margin: -0.75rem -0.9rem;
+  padding: 0.75rem 1.5rem 0.75rem 0.9rem;
   overflow: auto;
+  border-radius: inherit;
 }
 
 /* Cada forma regional con su propia línea, separada de la anterior */
@@ -417,11 +500,14 @@ td.col-numero {
   transition: transform 0.12s, background-color 0.12s, box-shadow 0.12s;
 }
 
-/* El mismo efecto al pasar por encima que las fotos de la tabla */
+/* El mismo efecto al pasar por encima que las fotos de la tabla (la sombra, algo más corta:
+   que quepa en el aire de .evo-arbol) */
 .evo-pokemon:hover {
+  position: relative;
+  z-index: 1;
   transform: scale(1.08);
   background: rgba(var(--color-vista), 0.18);
-  box-shadow: 0 0 0 2px rgba(var(--color-vista), 0.7), 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 2px rgba(var(--color-vista), 0.7), 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
 .evo-pokemon.actual {

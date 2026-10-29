@@ -34,10 +34,47 @@
 }
 
 /* ---------- Colores del tema ----------
-   Oscuro (el de siempre) en :root y claro en [data-tema="claro"] (lo pone js/comun/ajustes.js).
-   Los colores vivos (rojo, amarillo, el de cada sección...) son los mismos en los dos */
+   Tres temas (los pone js/comun/ajustes.js en <html data-tema>):
+   · Atardecer, el de por defecto, en :root sin más: un negro carbón, un pelín cálido en lo
+     más oscuro y cada vez más neutro según se aclara, porque en los grises claros el mismo
+     tono ya se ve marrón (sepia). La letra y sus grises, neutros.
+   · Oscuro, [data-tema="oscuro"]: el azul marino de siempre. Solo cambia lo que es distinto.
+   · Claro, [data-tema="claro"].
+   Los colores vivos (rojo, amarillo, el de cada sección...) son los mismos en todos */
 :root {
   color-scheme: dark;
+  --t-hundido: #1c1a19;
+  --t-fondo: #22201f;
+  --t-fondo-2: #2a2827;
+  --t-panel: #32302f;
+  --t-panel-2: #363332;
+  --t-panel-3: #3b3837;
+  --t-panel-4: #3c3a38;
+  --t-panel-5: #3e3b39;
+  --t-control: #423f3e;
+  --t-control-2: #545250;
+  --t-control-3: #706d6b;
+  --t-texto: #f2f2f2;
+  --t-texto-rgb: 242, 242, 242;
+  --t-texto-fuerte: #fff;
+  --t-gris: #a19d9b;
+  --t-gris-2: #b5b2b0;
+  --t-gris-3: #cbc9c8;
+  --t-gris-4: #928e8b;
+  --t-azulado: #6a7bb0;
+  --t-azulado-2: #7f8bb0;
+  /* La letra oscura encima de los colores vivos (botones, pestañas, etiquetas...) */
+  --t-tinta: #22201f;
+  --t-tinta-2: #32302f;
+  /* Brillos (blanco) y sombras de los huecos (negro), en rgb para usarlos con rgba() */
+  --t-tinte: 255, 255, 255;
+  --t-oscurecer: 0, 0, 0;
+  /* Cuánto color le queda a la letra de color vivo (en claro se oscurece para leerse) */
+  --t-vivo: 100%;
+  --t-icono-fecha: invert(0.8);
+}
+
+:root[data-tema="oscuro"] {
   --t-hundido: #171822;
   --t-fondo: #1e1f2b;
   --t-fondo-2: #252735;
@@ -49,21 +86,12 @@
   --t-control: #3a3d52;
   --t-control-2: #4a4e68;
   --t-control-3: #60658a;
-  --t-texto: #f2f2f2;
-  --t-texto-rgb: 242, 242, 242;
-  --t-texto-fuerte: #fff;
   --t-gris: #9a9cb0;
   --t-gris-2: #aab0c8;
   --t-gris-3: #c3cad6;
   --t-gris-4: #8a8fa8;
-  --t-azulado: #6a7bb0;
-  --t-azulado-2: #7f8bb0;
-  /* Brillos (blanco) y sombras de los huecos (negro), en rgb para usarlos con rgba() */
-  --t-tinte: 255, 255, 255;
-  --t-oscurecer: 0, 0, 0;
-  /* Cuánto color le queda a la letra de color vivo (en claro se oscurece para leerse) */
-  --t-vivo: 100%;
-  --t-icono-fecha: invert(0.8);
+  --t-tinta: #1e1f2b;
+  --t-tinta-2: #2b2d3a;
 }
 
 :root[data-tema="claro"] {
@@ -88,6 +116,8 @@
   --t-gris-4: #6a6f88;
   --t-azulado: #47579a;
   --t-azulado-2: #56639a;
+  --t-tinta: #1e1f2b;
+  --t-tinta-2: #2b2d3a;
   --t-tinte: 0, 0, 0;
   --t-oscurecer: 70, 80, 120;
   --t-vivo: 62%;
@@ -261,13 +291,13 @@ h3,
   border: none;
   border-radius: 0.2rem;
   background: var(--t-control);
-  color: #c9cbe0;
+  color: var(--t-gris-3);
   cursor: pointer;
 }
 
 .numero-pasos button:hover {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 /* La flechita: un pico hecho con dos bordes */
@@ -340,7 +370,7 @@ h3,
 
 .sugerencias .opcion.marcada {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .sugerencias .opcion-nombre {
@@ -544,7 +574,7 @@ dialog textarea {
   padding: 0 0.2rem;
   border-radius: 0.25rem;
   background: #f1c40f;
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
   font-size: 0.5rem;
   font-weight: bold;
   line-height: 1.2;
@@ -787,7 +817,7 @@ dialog textarea {
   select option:focus-visible {
     outline: none;
     background: rgb(var(--color-vista));
-    color: #1e1f2b;
+    color: var(--t-tinta);
   }
 
   select optgroup {

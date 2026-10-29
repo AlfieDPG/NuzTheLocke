@@ -1,9 +1,10 @@
 // Ajustes de la web (el botón de la rueda, abajo del panel): el tema y el idioma.
 //
 // Se guardan como lo demás (almacen.js), así que con sesión iniciada se copian a la cuenta.
-//   · Tema: se pone en <html data-tema="claro">. Lo pone ya el <script> del <head> de
-//     index.html antes de pintar nada (para que no parpadee), y aquí se cambia al elegirlo.
-//     Sin nada elegido, el del sistema.
+//   · Tema: atardecer (el de por defecto), oscuro o claro. Se pone en <html data-tema="oscuro">
+//     o "claro"; el atardecer va sin nada. Lo pone ya el <script> del <head> de index.html
+//     antes de pintar nada (para que no parpadee), y aquí se cambia al elegirlo. Sin nada
+//     elegido, atardecer, salvo que el sistema esté en claro.
 //   · Idioma: lo lee js/comun/idioma.js al cargar; cambiarlo recarga la página.
 
 import { leer, escribir } from "./almacen.js";
@@ -25,14 +26,14 @@ function guardar(cambios) {
 
 export function temaActual() {
   const { tema } = ajustes();
-  if (tema === "claro" || tema === "oscuro") return tema;
-  return sistemaClaro.matches ? "claro" : "oscuro";
+  if (tema === "atardecer" || tema === "oscuro" || tema === "claro") return tema;
+  return sistemaClaro.matches ? "claro" : "atardecer";
 }
 
 function aplicarTema() {
   const tema = temaActual();
-  if (tema === "claro") document.documentElement.dataset.tema = "claro";
-  else delete document.documentElement.dataset.tema;
+  if (tema === "atardecer") delete document.documentElement.dataset.tema;
+  else document.documentElement.dataset.tema = tema;
   marcar("tema", tema);
 }
 
@@ -64,11 +65,30 @@ function marcar(ajuste, valor) {
     boton.classList.toggle("elegido", elegido);
     boton.setAttribute("aria-checked", elegido);
   }
+  for (const grupo of document.querySelectorAll("#dialogo-ajustes .ajustes-opciones")) moverSombra(grupo);
+}
+
+// La sombra de la elegida es una sola por fila (css/layout.css, .ajustes-opciones::before) y
+// se desliza hasta la nueva. Con la ventana cerrada no hay medidas: se coloca al abrirla, sin
+// animación (animar = false)
+function moverSombra(grupo, animar = true) {
+  const elegido = grupo.querySelector(".elegido");
+  if (!elegido || !elegido.offsetWidth) return;
+  if (!animar) grupo.classList.add("sin-animar");
+  grupo.style.setProperty("--sombra-x", `${elegido.offsetLeft}px`);
+  grupo.style.setProperty("--sombra-ancho", `${elegido.offsetWidth}px`);
+  if (!animar) {
+    void grupo.offsetWidth; // que se pinte ya en su sitio antes de volver a animar
+    grupo.classList.remove("sin-animar");
+  }
 }
 
 export function iniciarAjustes() {
   const dialogo = document.querySelector("#dialogo-ajustes");
-  document.querySelector(".boton-ajustes").addEventListener("click", () => dialogo.showModal());
+  document.querySelector(".boton-ajustes").addEventListener("click", () => {
+    dialogo.showModal();
+    for (const grupo of dialogo.querySelectorAll(".ajustes-opciones")) moverSombra(grupo, false);
+  });
   dialogo.querySelector(".ajustes-cerrar").addEventListener("click", () => dialogo.close());
   for (const boton of dialogo.querySelectorAll("[data-tema]")) {
     boton.addEventListener("click", () => cambiarTema(boton.dataset.tema));

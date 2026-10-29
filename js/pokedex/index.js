@@ -14,6 +14,8 @@ import { coloresTipo, tiposEs, iconoTipo } from "../comun/tipos.js";
 import { quitarAcentos } from "../comun/utilidades.js";
 import { abrirEvoluciones, cerrarEvoluciones } from "./evoluciones.js";
 import { t, LOCALE, enIngles } from "../comun/idioma.js";
+import { icono } from "../comun/iconos.js";
+import { activarMenuMas } from "../comun/menu-mas.js";
 
 // "valor" es lo que se usa para ordenar. La columna de la foto no lo tiene, así que no se ordena.
 const COLUMNAS = [
@@ -34,7 +36,9 @@ const vista = document.getElementById("vista-pokedex");
 const aviso = vista.querySelector(".pokedex-aviso");
 const barra = vista.querySelector(".barra-pokedex");
 const campoBuscar = vista.querySelector(".pokedex-buscar");
-const selectorTipo = vista.querySelector(".pokedex-tipo");
+const cajaTipo = vista.querySelector(".pokedex-tipo");
+const botonTipo = cajaTipo.querySelector(".menu-mas-boton");
+const listaTipos = cajaTipo.querySelector(".pokedex-tipo-lista");
 const cuentaEl = vista.querySelector(".pokedex-cuenta");
 const botonFiltros = vista.querySelector(".pokedex-filtros-boton");
 const panelFiltros = vista.querySelector(".pokedex-filtros");
@@ -206,6 +210,63 @@ function pasaFiltros(p) {
   return !textoBuscado || p.busqueda.includes(textoBuscado);
 }
 
+// Lo que se mueve (el panel de filtros, el bocadillo...), solo si no se ha pedido que no
+const suave = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// El panel de filtros se abre bajando poco a poco (y la tabla, con él) y se cierra igual.
+// No se anima su alto: con eso la tabla entera (más de mil filas) se volvía a colocar en
+// cada fotograma y daba tirones. El panel se pone o se quita de golpe y lo que se anima es
+// solo un desplazamiento (transform), que no obliga a recolocar nada: la tabla sale desde
+// donde estaba y el panel se descubre de arriba abajo.
+let animacionesFiltros = [];
+
+function desplegarFiltros(abrir) {
+  botonFiltros.setAttribute("aria-expanded", String(abrir));
+  botonFiltros.classList.toggle("abierto", abrir);
+  for (const animacion of animacionesFiltros) animacion.cancel();
+  animacionesFiltros = [];
+  panelFiltros.hidden = false;
+  if (!suave()) {
+    panelFiltros.hidden = !abrir;
+    return;
+  }
+
+  const alto = panelFiltros.offsetHeight + parseFloat(getComputedStyle(panelFiltros).marginTop);
+  // Al cerrar, todo se queda en su sitio final (fill) hasta quitar el panel: si no, la tabla
+  // volvería abajo un fotograma antes de que el panel se fuera
+  const opciones = { duration: 220, easing: "ease-in-out", fill: abrir ? "none" : "forwards" };
+  const abierto = { transform: "translateY(0)", clipPath: "inset(0 0 0 0)", opacity: 1 };
+  const cerrado = { transform: `translateY(${-alto}px)`, clipPath: `inset(${alto}px 0 0 0)`, opacity: 0 };
+  const panel = panelFiltros.animate(abrir ? [cerrado, abierto] : [abierto, cerrado], opciones);
+  const debajo = tabla.animate(
+    abrir ? [{ transform: `translateY(${-alto}px)` }, { transform: "translateY(0)" }] : [{ transform: "translateY(0)" }, { transform: `translateY(${-alto}px)` }],
+    opciones
+  );
+  animacionesFiltros = [panel, debajo];
+  // Al cerrar, el panel se quita justo cuando la tabla ha llegado arriba: no se nota el cambio
+  if (!abrir) {
+    panel.onfinish = () => {
+      panelFiltros.hidden = true;
+      panel.cancel();
+      debajo.cancel();
+      animacionesFiltros = [];
+    };
+  }
+}
+
+// El desplegable de los tipos: el elegido en el botón y, en la lista, todos con su icono
+function pintarTipo() {
+  const opcion = (valor, nombre) => `
+    <button data-tipo="${valor}" class="${valor === tipoElegido ? "elegido" : ""}" aria-pressed="${valor === tipoElegido}">
+      ${valor ? chipTipo(valor) : `<span class="chip-tipo chip-todos"></span>`}${nombre}
+    </button>`;
+  listaTipos.innerHTML = opcion("", t("Todos los tipos")) + Object.keys(tiposEs).map((tipo) => opcion(tipo, tiposEs[tipo])).join("");
+  botonTipo.innerHTML = `
+    ${tipoElegido ? chipTipo(tipoElegido) : ""}
+    <span class="pokedex-tipo-nombre">${tipoElegido ? tiposEs[tipoElegido] : t("Todos los tipos")}</span>
+    ${icono("abajo")}`;
+}
+
 function pintarFiltros() {
   const activos = FILTROS.reduce((suma, filtro) => suma + filtros[filtro.clave].size, 0);
   panelFiltros.innerHTML =
@@ -245,28 +306,25 @@ function aplicarFiltros() {
 }
 
 function prepararFiltros() {
-  for (const tipo of Object.keys(tiposEs)) {
-    const opcion = document.createElement("option");
-    opcion.value = tipo;
-    opcion.textContent = tiposEs[tipo];
-    selectorTipo.appendChild(opcion);
-  }
+  activarMenuMas(cajaTipo, "abajo");
+  pintarTipo();
 
   campoBuscar.addEventListener("input", () => {
     textoBuscado = quitarAcentos(campoBuscar.value.trim());
     aplicarFiltros();
   });
 
-  selectorTipo.addEventListener("change", () => {
-    tipoElegido = selectorTipo.value;
+  listaTipos.addEventListener("click", (e) => {
+    const boton = e.target.closest("[data-tipo]");
+    if (!boton) return;
+    tipoElegido = boton.dataset.tipo;
+    cerrarEvoluciones();
+    pintarTipo();
     aplicarFiltros();
   });
 
-  botonFiltros.addEventListener("click", () => {
-    panelFiltros.hidden = !panelFiltros.hidden;
-    botonFiltros.setAttribute("aria-expanded", String(!panelFiltros.hidden));
-    botonFiltros.classList.toggle("abierto", !panelFiltros.hidden);
-  });
+  // Abierto o cerrando: lo que diga el botón (el panel sigue a la vista mientras se cierra)
+  botonFiltros.addEventListener("click", () => desplegarFiltros(botonFiltros.getAttribute("aria-expanded") !== "true"));
 
   panelFiltros.addEventListener("click", (e) => {
     const boton = e.target.closest("button");
@@ -337,7 +395,6 @@ export async function iniciar() {
   });
   // Al buscar, filtrar u ordenar, la foto se mueve o se esconde: el bocadillo se va
   campoBuscar.addEventListener("input", cerrarEvoluciones);
-  selectorTipo.addEventListener("change", cerrarEvoluciones);
   cabecera.addEventListener("click", cerrarEvoluciones);
 }
 

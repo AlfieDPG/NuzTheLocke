@@ -414,9 +414,7 @@ function plantillaFicha(ficha) {
         <div class="ficha-quien">
           <h2 class="jugador-nombre">${alt}</h2>
           ${ficha.titulo || ""}
-          ${ficha.mia
-            ? `<span class="jugador-estado">${t("Tú")}</span>`
-            : conectado
+          ${!ficha.mia && conectado
               ? `<span class="jugador-estado" title="${t("Tiene la web abierta")}"><span class="punto-conectado"></span>${t("Conectado")}</span>`
               : ""}
         </div>
@@ -1052,13 +1050,20 @@ async function quitarAmigo(ficha) {
 
 // ---------- Tarjetas o lista ----------
 //
-// Como en «Mis equipos». Se queda en este navegador (no va a la nube).
+// Como en «Mis equipos»: dos iconos a la derecha de la barra, con la sombra del elegido que se
+// desliza (css/equipos.css, .vista-equipos::before). Se queda en este navegador (no va a la nube).
 
 const CLAVE_VISTA = "poketeams-amigos-vista-v1";
 
 function aplicarVista(enLista) {
   lista.classList.toggle("modo-lista", enLista);
-  seccion.querySelector(".amigos-vista").textContent = enLista ? t("Ver en tarjetas") : t("Ver en lista");
+  const interruptor = seccion.querySelector(".amigos-vista");
+  interruptor.classList.toggle("en-lista", enLista);
+  for (const boton of interruptor.querySelectorAll("[data-modo]")) {
+    const elegido = (boton.dataset.modo === "lista") === enLista;
+    boton.classList.toggle("elegido", elegido);
+    boton.setAttribute("aria-pressed", elegido);
+  }
 }
 
 // ---------- Arranque ----------
@@ -1074,16 +1079,21 @@ export function iniciar() {
   campoCorreo = seccion.querySelector(".amigos-correo");
 
   seccion.querySelector(".barra-amigos").hidden = !hayNube();
-  seccion.querySelector(".amigos-agregar").addEventListener("click", agregar);
+  const botonAgregar = seccion.querySelector(".amigos-agregar");
+  botonAgregar.insertAdjacentHTML("afterbegin", `${icono("mas")} `);
+  botonAgregar.addEventListener("click", agregar);
   campoCorreo.addEventListener("keydown", (e) => {
     if (e.key === "Enter") agregar();
   });
 
-  seccion.querySelector(".amigos-vista").addEventListener("click", () => {
-    const enLista = !lista.classList.contains("modo-lista");
-    escribir(CLAVE_VISTA, enLista);
-    aplicarVista(enLista);
-  });
+  for (const boton of seccion.querySelectorAll(".amigos-vista [data-modo]")) {
+    boton.innerHTML = icono(boton.dataset.modo === "lista" ? "lista" : "cuadricula");
+    boton.addEventListener("click", () => {
+      const enLista = boton.dataset.modo === "lista";
+      escribir(CLAVE_VISTA, enLista);
+      aplicarVista(enLista);
+    });
+  }
   aplicarVista(leer(CLAVE_VISTA, false));
 
   activarArrastreFichas();

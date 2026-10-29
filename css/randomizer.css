@@ -85,7 +85,7 @@
 
 .random-ayuda:hover {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 /* «Borrar todo» y «Randomizar» juntos, a la derecha */
@@ -101,7 +101,7 @@
 .random-ir {
   padding: 0.6rem 1.4rem;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .random-ir:disabled {
@@ -267,7 +267,7 @@
 
 .random-segmentado button.activa {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-weight: bold;
 }
 
@@ -433,5 +433,5 @@
 .random-info:focus-visible {
   border-color: rgb(var(--color-vista));
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }

@@ -2,7 +2,7 @@
 // tipos de ataque: hay que elegir el que más daño le hace (solo uno es el mejor). Hay SEGUNDOS
 // para todos; el reloj empieza al pulsar «Empezar» y sigue corriendo aunque recargues.
 //
-// Las rondas son las mismas para todo el mundo (salen del día). Pokédólares: 4 por acierto (40 si
+// Las rondas son las mismas para todo el mundo (salen del día). Pokédólares: 5 por acierto (50 si
 // aciertas todas), más lo de la racha.
 
 import { escaparHTML } from "../comun/utilidades.js";
@@ -16,7 +16,7 @@ import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, pla
 const JUEGO = "eficaz";
 const RONDAS = 10;
 const SEGUNDOS = 45;
-const POR_ACIERTO = 4;
+const POR_ACIERTO = 5;
 
 let caja = null;
 let rondas = [];

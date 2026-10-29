@@ -214,7 +214,7 @@ const LOGROS_DE_JUEGOS = [
     nombre: "Sin un fallo", descripcion: "Acierta los 10 rivales de «Supereficaz».",
     valor: (c) => c.contadores["perfecto-eficaz"] || 0 },
   { id: "j-masomenos", categoria: "retos", nivel: "oro", icono: "estadisticas",
-    nombre: "Calculadora andante", descripcion: "Llega a 10 aciertos seguidos en «¿Más o menos?».",
+    nombre: "Calculadora andante", descripcion: "Acierta las 10 de «¿Más o menos?».",
     valor: (c) => c.contadores["perfecto-masomenos"] || 0 },
   { id: "j-grito", categoria: "retos", nivel: "plata", icono: "campana",
     nombre: "Oído fino", descripcion: "Acierta los 5 gritos de «¿De quién es este grito?».",

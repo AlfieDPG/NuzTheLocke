@@ -1,7 +1,8 @@
 // Sección «Ruleta»: una ruleta con las opciones que pongas (recompensas por ganar un
 // combate, castigos, lo que sea). Al pulsar el centro gira y cae en una al azar.
 //
-//   · Puede haber varias (pestañas de arriba), cada una con su nombre y sus opciones.
+//   · Puede haber varias, cada una con su nombre y sus opciones. Se cambia de una a otra (o se
+//     crea otra) con la flecha pegada al nombre, que abre la lista.
 //   · Las opciones se escriben a la derecha y la ruleta cambia según escribes.
 //   · El resultado se elige ANTES de girar, con el azar del navegador (crypto), y la ruleta
 //     simplemente gira hasta dejarlo bajo la flecha: todas las casillas tienen la misma
@@ -19,6 +20,7 @@ import { escaparHTML } from "../comun/utilidades.js";
 import { sumarContador } from "../comun/contadores.js";
 import { confirmar } from "../comun/ventanas.js";
 import { t } from "../comun/idioma.js";
+import { activarMenuMas } from "../comun/menu-mas.js";
 
 const CLAVE = "poketeams-ruletas-v1";
 const MAX_RULETAS = 20;
@@ -45,7 +47,7 @@ const COLORES = [
 const RADIO = 96;
 
 const vista = document.getElementById("vista-ruleta");
-const pestanas = vista.querySelector(".ruleta-pestanas");
+const listaRuletas = vista.querySelector(".ruleta-lista");
 // Lo que gira es lo de dentro del SVG, no el SVG: un cuadrado girado se sale por las esquinas y
 // la página cambiaba de tamaño (y salía y se iba la barra de scroll) mientras daba vueltas
 const rueda = vista.querySelector(".ruleta-giro");
@@ -54,6 +56,7 @@ const resultado = vista.querySelector(".ruleta-resultado");
 const campoNombre = vista.querySelector(".ruleta-nombre");
 const listaOpciones = vista.querySelector(".ruleta-opciones");
 const campoNueva = vista.querySelector(".ruleta-nueva");
+const cajaNueva = vista.querySelector(".ruleta-anadir");
 const cajaHistorial = vista.querySelector(".ruleta-historial-caja");
 const historialLista = vista.querySelector(".ruleta-historial");
 
@@ -327,18 +330,24 @@ function pintarOpciones() {
         </div>`
     )
     .join("");
-  campoNueva.hidden = opciones.length >= MAX_OPCIONES;
+  cajaNueva.hidden = opciones.length >= MAX_OPCIONES;
 }
 
-function pintarPestanas() {
-  pestanas.innerHTML =
+// La lista de la flecha: tus ruletas (la de ahora, marcada) y, debajo, «Nueva ruleta»
+function pintarLista() {
+  const cuantas = (n) => (n === 1 ? t("1 opción") : t("{n} opciones", { n }));
+  listaRuletas.innerHTML =
     estado.ruletas
       .map(
-        (ruleta) =>
-          `<button data-ruleta="${escaparHTML(ruleta.id)}" class="${ruleta.id === estado.activa ? "activa" : ""}">${escaparHTML(ruleta.nombre || t("Sin nombre"))}</button>`
+        (ruleta) => `
+          <button data-ruleta="${escaparHTML(ruleta.id)}" class="${ruleta.id === estado.activa ? "elegida" : ""}">
+            ${ruleta.id === estado.activa ? icono("visto") : icono("ruleta")}
+            <span class="ruleta-lista-nombre">${escaparHTML(ruleta.nombre || t("Sin nombre"))}</span>
+            <small>${cuantas(ruleta.opciones.length)}</small>
+          </button>`
       )
       .join("") +
-    (estado.ruletas.length < MAX_RULETAS ? `<button class="ruleta-nueva-pestana" title="${t("Nueva ruleta")}" aria-label="${t("Nueva ruleta")}">${icono("mas")}</button>` : "");
+    (estado.ruletas.length < MAX_RULETAS ? `<button class="ruleta-nueva-ruleta">${icono("mas")} ${t("Nueva ruleta")}</button>` : "");
 }
 
 function pintarHistorial() {
@@ -356,7 +365,7 @@ function olvidarResultado() {
 
 function pintarTodo() {
   campoNombre.value = actual().nombre;
-  pintarPestanas();
+  pintarLista();
   pintarOpciones();
   pintarRueda();
 }
@@ -371,7 +380,7 @@ function anadirOpcion() {
   olvidarResultado();
   pintarOpciones();
   pintarRueda();
-  if (!campoNueva.hidden) campoNueva.focus();
+  if (!cajaNueva.hidden) campoNueva.focus();
 }
 
 function quitarOpcion(indice) {
@@ -389,14 +398,16 @@ export function iniciar() {
   vista.querySelector(".ruleta-borrar").innerHTML = icono("papelera");
   vista.querySelector(".ruleta-mezclar").innerHTML = `${icono("mezclar")} ${t("Mezclar")}`;
   vista.querySelector(".ruleta-vaciar").innerHTML = `${icono("papelera")} ${t("Vaciar")}`;
+  vista.querySelector(".ruleta-anadir-boton").insertAdjacentHTML("afterbegin", `${icono("mas")} `);
+  activarMenuMas(vista.querySelector(".ruleta-elegir"), "abajo");
 
   botonGirar.addEventListener("click", girar);
 
-  pestanas.addEventListener("click", (e) => {
+  listaRuletas.addEventListener("click", (e) => {
     if (girando) return;
     const boton = e.target.closest("button");
     if (!boton) return;
-    if (boton.classList.contains("ruleta-nueva-pestana")) {
+    if (boton.classList.contains("ruleta-nueva-ruleta")) {
       const nueva = { id: nuevoId(), nombre: t("Ruleta {n}", { n: estado.ruletas.length + 1 }), opciones: [] };
       estado.ruletas.push(nueva);
       estado.activa = nueva.id;
@@ -406,13 +417,17 @@ export function iniciar() {
     guardar();
     olvidarResultado();
     pintarTodo();
-    if (!actual().opciones.length) campoNombre.select();
+    // Una nueva: el nombre ya elegido, para escribir el suyo encima
+    if (!actual().opciones.length) {
+      campoNombre.focus();
+      campoNombre.select();
+    }
   });
 
   campoNombre.addEventListener("input", () => {
     actual().nombre = campoNombre.value.trim() || t("Sin nombre");
     guardar();
-    pintarPestanas();
+    pintarLista();
   });
 
   vista.querySelector(".ruleta-borrar").addEventListener("click", async () => {
@@ -460,6 +475,7 @@ export function iniciar() {
     anadirOpcion();
   });
   campoNueva.addEventListener("blur", anadirOpcion);
+  vista.querySelector(".ruleta-anadir-boton").addEventListener("click", anadirOpcion);
 
   vista.querySelector(".ruleta-mezclar").addEventListener("click", () => {
     const opciones = actual().opciones;

@@ -3,7 +3,7 @@
 // veces que quieras (solo suena al pulsar «Escuchar»). Los gritos son los de PokeAPI
 // (github.com/PokeAPI/cries), en .ogg.
 //
-// Pokédólares: 6 por acierto (30 si aciertas todos), más lo de la racha.
+// Pokédólares: 9 por acierto (45 si aciertas todos), más lo de la racha.
 
 import { icono } from "../comun/iconos.js";
 import { t } from "../comun/idioma.js";
@@ -30,7 +30,7 @@ export const montarGrito = crearTest({
   juego: "grito",
   titulo: t("¿De quién es este grito?"),
   explicacion: t("Escucha el grito y elige de quién es. Puedes escucharlo todas las veces que quieras."),
-  porAcierto: 6,
+  porAcierto: 9,
   armar(especies, azar) {
     const salen = mezclar(especies, azar).slice(0, RONDAS * 4);
     return Array.from({ length: RONDAS }, (_, i) => {

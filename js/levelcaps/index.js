@@ -348,6 +348,105 @@ function activarEditor() {
   });
 }
 
+// ---------- Al marcar un combate, que se vea el cambio ----------
+//
+// Se vuelve a pintar todo, así que antes se apunta cómo estaba (el alto de cada fila, la barra
+// de progreso, dónde estaba el marco del próximo combate y qué medallas había) y después se
+// anima de eso a lo nuevo: el marco baja deslizándose al siguiente mientras su fila se abre y la
+// del anterior se cierra, la barra avanza y la medalla ganada se colorea.
+
+function fotoAntes() {
+  const filas = new Map();
+  for (const casilla of lista.querySelectorAll("input[data-clave]")) {
+    filas.set(casilla.dataset.clave, casilla.closest(".cap").offsetHeight);
+  }
+  const pista = resumen.querySelector(".caps-pista i");
+  const medallas = new Map([...resumen.querySelectorAll(".caps-medalla-imagen")].map((m) => [m.title, m.classList.contains("ganada")]));
+  const siguiente = lista.querySelector(".cap.siguiente");
+  return { filas, ancho: pista ? pista.style.width : "", medallas, marco: siguiente && medirFila(siguiente) };
+}
+
+function medirFila(fila) {
+  return { arriba: fila.offsetTop, izquierda: fila.offsetLeft, alto: fila.offsetHeight, ancho: fila.offsetWidth };
+}
+
+// Una copia del marco (su fondo y su sombra) viaja de donde estaba al nuevo próximo combate,
+// siguiéndolo fotograma a fotograma mientras su fila cambia de alto. Mientras, la fila nueva no
+// pinta el suyo (.marco-llegando)
+function moverMarco(desde, fila, duracion) {
+  const estilo = getComputedStyle(fila);
+  const marco = document.createElement("li");
+  marco.className = "caps-marco";
+  marco.setAttribute("aria-hidden", "true");
+  marco.style.background = estilo.backgroundColor;
+  marco.style.boxShadow = estilo.boxShadow;
+  marco.style.borderRadius = estilo.borderRadius;
+  lista.prepend(marco); // primero: las filas se pintan por encima
+  fila.classList.add("marco-llegando");
+
+  const inicio = performance.now();
+  const suavizar = (x) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
+  const mezclar = (a, b, x) => a + (b - a) * x;
+  const paso = (ahora) => {
+    const avance = Math.min(1, (ahora - inicio) / duracion);
+    if (!marco.isConnected || avance >= 1) {
+      marco.remove();
+      fila.classList.remove("marco-llegando");
+      return;
+    }
+    const x = suavizar(avance);
+    const hasta = medirFila(fila);
+    marco.style.top = `${mezclar(desde.arriba, hasta.arriba, x)}px`;
+    marco.style.left = `${mezclar(desde.izquierda, hasta.izquierda, x)}px`;
+    marco.style.height = `${mezclar(desde.alto, hasta.alto, x)}px`;
+    marco.style.width = `${mezclar(desde.ancho, hasta.ancho, x)}px`;
+    requestAnimationFrame(paso);
+  };
+  paso(inicio);
+}
+
+function animarCambio(antes) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const suave = { duration: 320, easing: "ease-in-out" };
+
+  // Solo el alto de las filas que cambian: las de debajo se mueven solas con ellas
+  for (const casilla of lista.querySelectorAll("input[data-clave]")) {
+    const fila = casilla.closest(".cap");
+    const altoAntes = antes.filas.get(casilla.dataset.clave);
+    if (altoAntes === undefined || Math.abs(altoAntes - fila.offsetHeight) < 1) continue;
+    fila.style.overflow = "hidden";
+    fila.animate([{ height: `${altoAntes}px` }, { height: `${fila.offsetHeight}px` }], suave).onfinish = () => {
+      fila.style.overflow = "";
+    };
+  }
+
+  const siguiente = lista.querySelector(".cap.siguiente");
+  if (antes.marco && siguiente && Math.abs(antes.marco.arriba - siguiente.offsetTop) > 1) moverMarco(antes.marco, siguiente, suave.duration);
+
+  const pista = resumen.querySelector(".caps-pista i");
+  if (pista && antes.ancho && antes.ancho !== pista.style.width) {
+    pista.animate([{ width: antes.ancho }, { width: pista.style.width }], suave);
+  }
+
+  // La medalla recién ganada pasa de gris a su color con un saltito; la que se pierde, a gris
+  for (const medalla of resumen.querySelectorAll(".caps-medalla-imagen")) {
+    const ganada = medalla.classList.contains("ganada");
+    if (!antes.medallas.has(medalla.title) || antes.medallas.get(medalla.title) === ganada) continue;
+    if (ganada) {
+      medalla.animate(
+        [
+          { filter: "grayscale(1) opacity(0.35)", transform: "scale(1)" },
+          { filter: "grayscale(0) opacity(1)", transform: "scale(1.3)", offset: 0.55 },
+          { transform: "scale(1)" }
+        ],
+        { duration: 550, easing: "ease-out" }
+      );
+    } else {
+      medalla.animate([{ filter: "grayscale(0) opacity(1)" }, {}], { duration: 300, easing: "ease-out" });
+    }
+  }
+}
+
 // ---------- Arranque ----------
 
 export function iniciar() {
@@ -362,7 +461,9 @@ export function iniciar() {
     Object.assign(guardados, leer(CLAVE_SUPERADOS, {}) || {});
     guardados[juego.id] = [...superados];
     escribir(CLAVE_SUPERADOS, guardados);
+    const antes = fotoAntes();
     pintarLista(); // cambia quién es el próximo, el progreso y las medallas
+    animarCambio(antes);
 
     // A la actividad de tus lockes de este juego («ha vencido a Brock»)
     const combate = combates.find((c) => claveCombate(c) === casilla.dataset.clave);

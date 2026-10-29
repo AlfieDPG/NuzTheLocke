@@ -419,7 +419,7 @@ main {
   border-radius: 0.45rem;
   background: #f2f2f2;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: bold;
@@ -889,6 +889,14 @@ button.perfil-avatar:hover .perfil-avatar-lapiz {
 
 .perfil-destacar:hover {
   background: #c0392b;
+}
+
+/* Solo el lápiz: cuadradito */
+.perfil-editar-sobre-mi {
+  justify-content: center;
+  padding: 0;
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .perfil-ver-amigos:hover,
@@ -1479,13 +1487,39 @@ button.perfil-fondo:hover:not(:disabled) {
 
 /* Las opciones, juntas como un interruptor */
 .ajustes-opciones {
+  position: relative;
   display: flex;
   padding: 0.2rem;
   border-radius: 0.55rem;
   background: var(--t-fondo);
 }
 
+/* La sombra de la elegida: una sola, que se desliza a la nueva (la coloca js/comun/ajustes.js) */
+.ajustes-opciones::before {
+  content: "";
+  position: absolute;
+  top: 0.2rem;
+  bottom: 0.2rem;
+  left: 0;
+  width: var(--sombra-ancho, 0);
+  border-radius: 0.4rem;
+  background: var(--t-control);
+  transform: translateX(var(--sombra-x, 0));
+  transition: transform 0.25s ease, width 0.25s ease;
+}
+
+.ajustes-opciones.sin-animar::before {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ajustes-opciones::before {
+    transition: none;
+  }
+}
+
 .ajustes-opciones button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -1509,7 +1543,6 @@ button.perfil-fondo:hover:not(:disabled) {
 }
 
 .ajustes-opciones button.elegido {
-  background: var(--t-control);
   color: var(--t-texto);
   font-weight: bold;
 }
@@ -1854,7 +1887,7 @@ button.perfil-fondo:hover:not(:disabled) {
   border: none;
   border-radius: 0.45rem;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-family: inherit;
   font-size: 0.85rem;
   font-weight: bold;
@@ -1958,9 +1991,9 @@ button.perfil-fondo:hover:not(:disabled) {
 #vista-rutas .barra-nuzlocke :is(input, button),
 #vista-levelcaps .barra-nuzlocke button,
 .barra-pokedex :is(input, select, button),
-.barra-amigos :is(input, button),
-.ruleta-cabecera :is(input, button),
-.ruleta-nueva,
+.ruleta-elegir,
+.ruleta-borrar,
+.ruleta-anadir,
 .conjunto-barra button,
 .selector-juegos button {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);

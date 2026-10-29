@@ -27,7 +27,7 @@
 
 .selector-regiones button.activa {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 /* Las pestañas de arriba del todo (regiones de Rutas y Level caps, Normas, Ruleta) cuelgan
@@ -66,7 +66,7 @@
   --fondo: rgb(var(--color-vista));
   padding-bottom: 0.8rem;
   background: var(--fondo);
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-weight: 800;
 }
 
@@ -89,6 +89,71 @@
   left: 100%;
   background: radial-gradient(circle at 100% 100%, transparent var(--curva), var(--fondo) calc(var(--curva) + 0.5px));
 }
+
+/* Al cambiar de pestaña, una copia del relleno (con sus curvas) viaja de la vieja a la nueva
+   (js/comun/pestanas-deslizantes.js); las pestañas, por encima, y la nueva sin su relleno
+   hasta que llega */
+:is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-juegos) > .selector-regiones:first-child {
+  position: relative;
+}
+
+:is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-juegos) > .selector-regiones:first-child button {
+  z-index: 1;
+}
+
+:is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-juegos) > .selector-regiones:first-child button.pestana-llegando {
+  --fondo: transparent;
+  background: transparent;
+  color: var(--t-texto);
+}
+
+.pestana-viajera {
+  --curva: 1.1rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 0 0 0.9rem 0.9rem;
+  background: var(--fondo);
+  pointer-events: none;
+}
+
+.pestana-viajera::before,
+.pestana-viajera::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: var(--curva);
+  height: var(--curva);
+}
+
+.pestana-viajera::before {
+  right: 100%;
+  background: radial-gradient(circle at 0 100%, transparent var(--curva), var(--fondo) calc(var(--curva) + 0.5px));
+}
+
+.pestana-viajera::after {
+  left: 100%;
+  background: radial-gradient(circle at 100% 100%, transparent var(--curva), var(--fondo) calc(var(--curva) + 0.5px));
+}
+
+/* La de Logros, de pie sobre la línea: redondeada arriba y con las curvas abajo */
+.pestana-viajera.de-pie {
+  border-radius: 0.9rem 0.9rem 0 0;
+}
+
+.pestana-viajera.de-pie::before,
+.pestana-viajera.de-pie::after {
+  top: auto;
+  bottom: 0;
+}
+
+.pestana-viajera.de-pie::before {
+  background: radial-gradient(circle at 0 0, transparent var(--curva), var(--fondo) calc(var(--curva) + 0.5px));
+}
+
+.pestana-viajera.de-pie::after {
+  background: radial-gradient(circle at 100% 0, transparent var(--curva), var(--fondo) calc(var(--curva) + 0.5px));
+}
 .selector-juegos {
   display: flex;
   flex-wrap: wrap;
@@ -109,7 +174,7 @@
 
 .selector-juegos button.activo {
   background: rgb(var(--color-vista));
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
 }
 /* ---------- Barra (buscador, progreso, desmarcar) ---------- */
 
@@ -681,7 +746,7 @@
   height: 1.15rem;
   border-radius: 50%;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-size: 0.72rem;
   font-weight: 900;
   line-height: 1;
@@ -1020,6 +1085,24 @@
   opacity: 0.5;
 }
 
+/* Al marcar un combate, el marco viaja al siguiente (js/levelcaps/index.js, moverMarco): una
+   copia por debajo de las filas, y la fila de destino sin el suyo hasta que llega */
+.caps-ruta {
+  position: relative;
+}
+
+.caps-marco {
+  position: absolute;
+  margin: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.caps-ruta .cap.siguiente.marco-llegando {
+  background: transparent;
+  box-shadow: none;
+}
+
 /* El que toca ahora, desplegado */
 .caps-ruta .cap.siguiente {
   margin: 0.3rem 0;
@@ -1267,7 +1350,8 @@
 
 /* ---------- Normas ---------- */
 
-/* Sin max-width: las tarjetas ocupan todo el ancho del contenido */
+/* Sin max-width: las normas ocupan todo el ancho, pero en columnas (abajo, .normas-grupo ul)
+   para que las líneas no salgan larguísimas */
 .normas {
   display: flex;
   flex-direction: column;
@@ -1294,7 +1378,7 @@
 
 .normas-pestanas .pestana-locke.activa {
   background: #f1c40f;
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
 }
 
 .pestana-cerrar {
@@ -1431,7 +1515,7 @@
 
 .normas-grupo h2 button:hover {
   background: var(--color-apartado);
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .normas-grupo h2 button .icono {
@@ -1524,9 +1608,9 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(30rem, 100%), 1fr));
+  gap: 0.6rem;
 }
 
 .normas-grupo li {

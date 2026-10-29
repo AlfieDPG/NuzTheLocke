@@ -407,10 +407,47 @@ function colocar() {
   bocadillo.style.setProperty("--flecha", `${foto.left + foto.width / 2 - izquierda}px`);
 }
 
+const suave = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Al cerrarse se desvanece un momento (ya no se puede pulsar) y después se quita
 export function cerrarEvoluciones() {
-  if (bocadillo) bocadillo.remove();
+  if (bocadillo) {
+    const viejo = bocadillo;
+    viejo.style.pointerEvents = "none";
+    if (suave()) {
+      const animacion = viejo.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(0.96)" }], { duration: 120, easing: "ease-in" });
+      animacion.onfinish = () => viejo.remove();
+    } else viejo.remove();
+  }
   bocadillo = null;
   abiertoDe = null;
+}
+
+// Cuando llega la línea (en vez del «Cargando...»), el bocadillo crece hasta su tamaño en vez
+// de saltar; si va encima de la foto, su borde de abajo se queda quieto
+function crecer(antes) {
+  if (!suave()) return;
+  const ahora = { ancho: bocadillo.offsetWidth, alto: bocadillo.offsetHeight, arriba: bocadillo.style.top };
+  if (Math.abs(ahora.ancho - antes.ancho) < 2 && Math.abs(ahora.alto - antes.alto) < 2) return;
+  const este = bocadillo;
+  // Mientras crece, lo de dentro no se sale ni saca barras de scroll; el piquito (que está
+  // fuera, ::before) sí se ve: por eso «clip» con margen y no «hidden»
+  const arbol = este.querySelector(".evo-arbol");
+  este.style.overflow = "clip";
+  este.style.overflowClipMargin = "0.6rem";
+  if (arbol) arbol.style.overflow = "hidden";
+  const animacion = este.animate(
+    [
+      { width: `${antes.ancho}px`, height: `${antes.alto}px`, top: antes.arriba },
+      { width: `${ahora.ancho}px`, height: `${ahora.alto}px`, top: ahora.arriba }
+    ],
+    { duration: 200, easing: "ease-out" }
+  );
+  animacion.onfinish = () => {
+    este.style.overflow = "";
+    este.style.overflowClipMargin = "";
+    if (arbol) arbol.style.overflow = "";
+  };
 }
 
 // boton: la foto pulsada; numero: su número de la Pokédex; clave: el id de su forma (la de la
@@ -445,8 +482,10 @@ export async function abrirEvoluciones(boton, numero, clave = numero) {
     html = `<p class="evo-aviso">${t("No se ha podido cargar. Revisa tu conexión.")}</p>`;
   }
   if (bocadillo !== este) return; // mientras cargaba se ha cerrado o se ha abierto otro
+  const antes = { ancho: bocadillo.offsetWidth, alto: bocadillo.offsetHeight, arriba: bocadillo.style.top };
   bocadillo.innerHTML = html;
   colocar();
+  crecer(antes);
 }
 
 // ---------- Cerrar ----------

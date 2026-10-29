@@ -27,34 +27,41 @@ const CLAVE_NORMAS = "poketeams-normas-v2";
 export const ID_GENERALES = "generales";
 export const NOMBRE_GENERALES = t("Normas generales");
 
+// grupo: «basica» (las de cualquier Nuzlocke) o «extra» (muy habituales, pero no en todos)
 export const NORMAS_GENERALES = [
   {
     id: "general-captura",
+    grupo: "basica",
     nombre: "Una captura por zona",
     texto: "Solo puedes capturar el primer Pokémon salvaje que encuentres en cada ruta, ciudad o zona. Si se debilita o huye, pierdes la captura de esa zona. Si es de una especie que ya tienes (duplicado), puedes saltártelo y probar con el siguiente."
   },
   {
     id: "general-muerto",
+    grupo: "basica",
     nombre: "Debilitado = muerto",
     texto: "Si un Pokémon se debilita, está muerto para siempre: no puedes volver a usarlo. Libéralo o déjalo en una caja «cementerio»."
   },
   {
     id: "general-motes",
+    grupo: "basica",
     nombre: "Motes obligatorios",
     texto: "Pon mote a todos tus Pokémon."
   },
   {
     id: "general-fin",
+    grupo: "basica",
     nombre: "Fin de la partida",
     texto: "Pierdes cuando te quedas sin Pokémon que puedas usar, ni en el equipo ni en la caja, o cuando te quedas sin vidas."
   },
   {
     id: "general-variocolor",
+    grupo: "extra",
     nombre: "Variocolor",
     texto: "Si te sale un Pokémon variocolor (shiny), puedes capturarlo aunque no sea el Pokémon de la ruta."
   },
   {
     id: "general-curas",
+    grupo: "extra",
     nombre: "Sin comprar curas",
     texto: "No se pueden comprar objetos curativos."
   }

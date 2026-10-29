@@ -13,7 +13,7 @@
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--color-nivel) 55%, #fff), var(--color-nivel) 60%, color-mix(in srgb, var(--color-nivel) 70%, #000));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-nivel) 60%, #000), 0 3px 8px rgba(0, 0, 0, 0.4);
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .logro-insignia .icono {
@@ -173,8 +173,24 @@
   --fondo: rgb(var(--color-vista));
   padding-top: 0.8rem;
   background: var(--fondo);
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-weight: 800;
+}
+
+/* Al cambiar, el relleno viaja de una a otra (js/comun/pestanas-deslizantes.js; la copia que
+   viaja, .pestana-viajera.de-pie, en css/nuzlocke.css) */
+.logros-filtro {
+  position: relative;
+}
+
+.logros-filtro button {
+  z-index: 1;
+}
+
+.logros-filtro button.pestana-llegando {
+  --fondo: transparent;
+  background: transparent;
+  color: var(--t-texto);
 }
 
 .logros-filtro button::before,

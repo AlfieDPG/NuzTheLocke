@@ -1,27 +1,12 @@
 /* Sección «Ruleta» (js/ruleta/index.js) */
 
-.ruleta-pestanas button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.ruleta-pestanas .icono {
-  width: 0.9rem;
-  height: 0.9rem;
-}
-
-.ruleta-pestanas .ruleta-nueva-pestana {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-}
-
-/* La ruleta a la izquierda, las opciones a la derecha */
+/* La ruleta a la izquierda, las opciones a la derecha (sin pestañas arriba: se cambia de
+   ruleta con la flecha del nombre) */
 .ruleta-cuerpo {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
-  margin-top: 1rem;
+  margin-top: 2.9rem; /* la flecha, a la altura de cuando había pestañas */
 }
 
 .ruleta-zona {
@@ -32,10 +17,10 @@
   flex: 1 1 34rem;
 }
 
-/* Del alto justo para que quepan en la pantalla las pestañas, la ruleta y el resultado */
+/* Del alto justo para que quepan en la pantalla la ruleta y el resultado, con un margen abajo */
 .ruleta-marco {
   position: relative;
-  width: min(46rem, max(16rem, calc(100vh - 17rem)), 100%);
+  width: min(48rem, max(16rem, calc(100vh - 15.5rem)), 100%);
   aspect-ratio: 1;
 }
 
@@ -236,6 +221,77 @@
   gap: 0.4rem;
 }
 
+/* El nombre con la flecha pegada, como una sola casilla: la flecha abre tus ruletas */
+.ruleta-elegir {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0.45rem;
+}
+
+.ruleta-elegir .ruleta-nombre {
+  border-radius: 0.45rem 0 0 0.45rem;
+}
+
+/* Sin el reborde de color al escribir en las casillas con botón pegado */
+.ruleta-elegir .ruleta-nombre:focus,
+.ruleta-anadir .ruleta-nueva:focus {
+  border-color: transparent;
+}
+
+.ruleta-elegir .menu-mas-boton {
+  align-self: stretch;
+  height: auto;
+  border-left: 1px solid rgba(var(--t-oscurecer), 0.35);
+  border-radius: 0 0.45rem 0.45rem 0;
+  background: var(--t-fondo);
+  color: var(--t-gris-2);
+}
+
+.ruleta-elegir .menu-mas-boton:hover:not(:disabled),
+.ruleta-elegir .menu-mas-boton[aria-expanded="true"] {
+  background: var(--t-control);
+  color: var(--t-texto);
+}
+
+.ruleta-elegir .menu-mas-boton .icono {
+  transition: transform 0.2s;
+}
+
+.ruleta-elegir .menu-mas-boton[aria-expanded="true"] .icono {
+  transform: rotate(180deg);
+}
+
+/* La lista, del ancho de la casilla */
+.ruleta-lista {
+  left: 0;
+  right: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.ruleta-lista .ruleta-lista-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ruleta-lista small {
+  color: var(--t-gris);
+  font-weight: normal;
+}
+
+.ruleta-lista .elegida .icono {
+  color: rgb(var(--color-vista));
+}
+
+.ruleta-lista .ruleta-nueva-ruleta {
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.1);
+  border-radius: 0 0 0.4rem 0.4rem;
+}
+
 .ruleta-panel input {
   min-width: 0;
   padding: 0.45rem 0.6rem;
@@ -334,9 +390,45 @@
   cursor: pointer;
 }
 
-.ruleta-panel .ruleta-nueva {
-  border-style: dashed;
-  background: transparent;
+/* «Añadir opción...» con «Añadir» pegado, como el buscador de «Crear equipo» */
+.ruleta-anadir {
+  display: flex;
+  border-radius: 0.45rem;
+}
+
+.ruleta-anadir[hidden] {
+  display: none;
+}
+
+.ruleta-anadir .ruleta-nueva {
+  flex: 1;
+  border-radius: 0.45rem 0 0 0.45rem;
+}
+
+.ruleta-anadir-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  padding: 0 0.85rem;
+  border: none;
+  border-left: 1px solid rgba(var(--t-oscurecer), 0.35);
+  border-radius: 0 0.45rem 0.45rem 0;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.ruleta-anadir-boton:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.ruleta-anadir-boton .icono {
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
 .ruleta-acciones {
@@ -366,8 +458,7 @@
 }
 
 /* Mientras gira no se toca nada */
-.girando .ruleta-panel,
-.girando .ruleta-pestanas {
+.girando .ruleta-panel {
   opacity: 0.55;
   pointer-events: none;
 }
@@ -434,8 +525,3 @@
   opacity: 1;
 }
 
-/* «Añadir opción...»: con el fondo oscuro de las demás casillas, para que no se funda con la tarjeta */
-.ruleta-panel .ruleta-nueva {
-  border: 1px dashed rgba(var(--t-tinte), 0.3);
-  background: var(--t-fondo);
-}

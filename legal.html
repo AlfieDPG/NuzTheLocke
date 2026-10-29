@@ -10,7 +10,9 @@
   <script>
     try {
       const tema = (JSON.parse(localStorage.getItem("poketeams-ajustes-v1")) || {}).tema;
-      if (tema === "claro" || (!tema && matchMedia("(prefers-color-scheme: light)").matches)) {
+      if (tema === "oscuro" || tema === "claro") {
+        document.documentElement.dataset.tema = tema;
+      } else if (!tema && matchMedia("(prefers-color-scheme: light)").matches) {
         document.documentElement.dataset.tema = "claro";
       }
     } catch (error) {}
@@ -38,12 +40,18 @@
 
     :root {
       color-scheme: dark;
-      --fondo: #1e1f2b;
+      --fondo: #22201f;
       --texto: #f2f2f2;
-      --panel: #2c2e3e;
-      --control: #3a3d52;
+      --panel: #32302f;
+      --control: #423f3e;
       --linea: rgba(255, 255, 255, 0.12);
       --enlace: #7fb3e6;
+    }
+
+    :root[data-tema="oscuro"] {
+      --fondo: #1e1f2b;
+      --panel: #2c2e3e;
+      --control: #3a3d52;
     }
 
     :root[data-tema="claro"] {

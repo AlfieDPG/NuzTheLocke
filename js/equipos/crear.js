@@ -105,7 +105,8 @@ const pokemonDe = new WeakMap(); // tarjeta -> su Pokémon (para las fichas al p
 export function renderCrear() {
   ocultarTooltip();
   if (campoNombre.value !== estado.nombre) campoNombre.value = estado.nombre;
-  contadorEl.textContent = t("Equipo: {n}/{max}", { n: estado.equipo.length, max: MAX_EQUIPO });
+  contadorEl.textContent = `${estado.equipo.length}/${MAX_EQUIPO}`;
+  contadorEl.title = t("Pokémon en el equipo");
   // Las tarjetas del equipo y, detrás, un hueco vacío por cada sitio que quede libre
   const tarjetas = estado.equipo.map((poke) => crearTarjeta(poke));
   for (let i = estado.equipo.length; i < MAX_EQUIPO; i++) tarjetas.push(crearHueco());
@@ -186,6 +187,8 @@ function crearTarjeta(poke) {
   const tarjeta = document.createElement("div");
   tarjeta.className = "tarjeta";
   tarjeta.draggable = true;
+  // El color de su primer tipo, para el degradado de arriba de la tarjeta (css/equipos.css)
+  tarjeta.style.setProperty("--color-tipo", coloresTipo[poke.tipos[0]] || "transparent");
   tarjetas.set(poke, tarjeta);
   pokemonDe.set(tarjeta, poke);
 
@@ -725,10 +728,11 @@ export function iniciarCrear() {
     if (boton) boton.innerHTML = textoBotonEntreno(poke);
   });
 
-  // Importar y exportar llevan su nombre al lado del icono, para que se sepa qué es cada uno
+  // Importar y exportar (en el menú «⋯») y Guardar llevan su nombre al lado del icono;
+  // Vaciar, solo la papelera, pegado a Guardar
   ponerBoton("importar-equipo", "importar", t("Importar"), t("Importar: pegar un equipo de Showdown"));
   ponerBoton("exportar-equipo", "copiar", t("Exportar"), t("Exportar: copiar el equipo como paste"));
-  ponerIcono("guardar", "guardar", t("Guardar equipo"));
+  ponerBoton("guardar", "guardar", t("Guardar"), t("Guardar equipo"));
   ponerIcono("vaciar", "papelera", t("Vaciar equipo"));
 
   campoNombre.addEventListener("input", () => {

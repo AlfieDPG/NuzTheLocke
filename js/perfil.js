@@ -283,7 +283,7 @@ function plantillaColeccion(perfil, mio) {
                       </span>`;
             })
             .join("")}</div>
-           <small class="perfil-coleccion-nota">${coleccion.destacados.length ? (mio ? t("Tus destacados (se eligen en la colección)") : t("Sus destacados")) : (mio ? t("Los últimos que te han salido") : t("Los últimos que le han salido"))}</small>`
+           ${coleccion.destacados.length ? `<small class="perfil-coleccion-nota">${mio ? t("Tus destacados (se eligen en la colección)") : t("Sus destacados")}</small>` : ""}`
         : `<p class="perfil-vacio">${mio ? t("Abre huevos en «Juegos» → «Colección» para empezarla.") : t("Todavía no ha abierto ningún huevo.")}</p>`}
     </section>`;
 }
@@ -625,7 +625,7 @@ function plantillaSobreMi(perfil, mio) {
     <section class="perfil-apartado perfil-sobre-mi">
       <h3>
         ${t("Sobre mí")}
-        ${mio ? `<button class="perfil-editar-sobre-mi">${icono("lapiz")} ${t("Editar")}</button>` : ""}
+        ${mio ? `<button class="perfil-editar-sobre-mi" title="${t("Editar")}" aria-label="${t("Editar")}">${icono("lapiz")}</button>` : ""}
       </h3>
       ${perfil.busca ? `<p class="perfil-busca">${icono("persona")} ${t("Busca compañeros para un locke")}</p>` : ""}
       ${texto ? `<p class="perfil-sobre-mi-texto">${escaparHTML(texto)}</p>` : ""}

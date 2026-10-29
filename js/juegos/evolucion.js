@@ -5,7 +5,7 @@
 //
 // Las evoluciones salen de datos/familias.json ({ especie: de la que viene }).
 //
-// Pokédólares: 5 por acierto (30 si aciertas todos), más lo de la racha.
+// Pokédólares: 8 por acierto (48 si aciertas todos), más lo de la racha.
 
 import { escaparHTML } from "../comun/utilidades.js";
 import { imagenConRespaldo, urlsRetrato } from "../comun/imagenes.js";
@@ -19,7 +19,7 @@ export const montarEvolucion = crearTest({
   juego: "evolucion",
   titulo: t("¿En qué evoluciona?"),
   explicacion: t("Elige en qué evoluciona cada Pokémon."),
-  porAcierto: 5,
+  porAcierto: 8,
   armar(especies, azar) {
     const porId = new Map(especies.map((especie) => [especie.id, especie]));
     const deQuien = familias();

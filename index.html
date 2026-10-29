@@ -18,11 +18,13 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js">
-  <!-- El tema (claro u oscuro) antes de pintar nada, para que no parpadee (ver js/comun/ajustes.js) -->
+  <!-- El tema (atardecer, oscuro o claro) antes de pintar nada, para que no parpadee (ver js/comun/ajustes.js) -->
   <script>
     try {
       const tema = (JSON.parse(localStorage.getItem("poketeams-ajustes-v1")) || {}).tema;
-      if (tema === "claro" || (!tema && matchMedia("(prefers-color-scheme: light)").matches)) {
+      if (tema === "oscuro" || tema === "claro") {
+        document.documentElement.dataset.tema = tema;
+      } else if (!tema && matchMedia("(prefers-color-scheme: light)").matches) {
         document.documentElement.dataset.tema = "claro";
       }
     } catch (error) {}
@@ -113,11 +115,11 @@
         <section id="vista-inicio" hidden></section>
 
         <section id="vista-crear" hidden>
+          <!-- Nombre y contador | el buscador para añadir Pokémon | ayudas, guardar y vaciar, y «⋯»
+               con importar y exportar -->
           <div class="barra-superior">
             <div class="lado-izq">
               <input id="nombre-equipo" type="text" placeholder="Nombre del equipo">
-              <button id="analizar-equipo" title="Nota del equipo, cobertura, puntos débiles y el porqué de cada cosa">Analizar</button>
-              <button id="buscar-equipo" title="El mejor equipo con los Pokémon de la caja de uno de tus lockes">Buscar equipo</button>
               <span id="contador"></span>
             </div>
 
@@ -128,10 +130,21 @@
             </div>
 
             <div class="lado-der">
-              <button id="importar-equipo">Importar</button>
-              <button id="exportar-equipo">Exportar</button>
-              <button id="guardar">Guardar equipo</button>
-              <button id="vaciar">Vaciar equipo</button>
+              <div class="botones-juntos">
+                <button id="analizar-equipo" title="Nota del equipo, cobertura, puntos débiles y el porqué de cada cosa">Analizar</button>
+                <button id="buscar-equipo" title="El mejor equipo con los Pokémon de la caja de uno de tus lockes">Buscar equipo</button>
+              </div>
+              <div class="botones-juntos">
+                <button id="guardar">Guardar equipo</button>
+                <button id="vaciar">Vaciar equipo</button>
+              </div>
+              <div class="menu-mas">
+                <button class="menu-mas-boton" title="Más opciones" aria-label="Más opciones"></button>
+                <div class="menu-mas-lista" hidden>
+                  <button id="importar-equipo">Importar</button>
+                  <button id="exportar-equipo">Exportar</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -139,12 +152,24 @@
         </section>
 
         <section id="vista-equipos" hidden>
+          <!-- Crear equipo, nuevo grupo, «⋯» con importar y exportar y, a la derecha, ver en
+               tarjetas o en lista -->
           <div class="barra-equipos">
             <button id="crear-equipo-nuevo">Crear equipo</button>
-            <button id="cambiar-vista">Ver en lista</button>
-            <button id="nuevo-grupo" title="Un grupo para juntar varios equipos (como las carpetas de Showdown)">Nuevo grupo</button>
-            <button id="importar-varios" title="Pega uno o varios equipos (copia de seguridad de Showdown)">Importar</button>
-            <button id="exportar-todos" title="Copia todos los equipos para pegarlos en Showdown («Backup/Restore all teams»)">Exportar todos</button>
+            <!-- Solo el icono de la carpeta; el texto, en title y aria-label -->
+            <button id="nuevo-grupo" title="Nuevo grupo: para juntar varios equipos (como las carpetas de Showdown)" aria-label="Nuevo grupo"></button>
+            <div class="menu-mas">
+              <button class="menu-mas-boton" title="Más opciones" aria-label="Más opciones"></button>
+              <div class="menu-mas-lista" hidden>
+                <button id="importar-varios" title="Pega uno o varios equipos (copia de seguridad de Showdown)">Importar</button>
+                <!-- Se queda abierto: el «Copiados ✔» sale en el propio botón -->
+                <button id="exportar-todos" data-sigue-abierto title="Copia todos los equipos para pegarlos en Showdown («Backup/Restore all teams»)">Exportar todos</button>
+              </div>
+            </div>
+            <div class="vista-equipos" role="group" aria-label="Cómo ver los equipos">
+              <button data-modo="tarjetas" title="En tarjetas" aria-label="En tarjetas"></button>
+              <button data-modo="lista" title="En lista" aria-label="En lista"></button>
+            </div>
           </div>
           <div id="lista-equipos"></div>
         </section>
@@ -185,9 +210,11 @@
           <div class="pokedex-aviso" hidden></div>
           <div class="barra-pokedex" hidden>
             <input class="pokedex-buscar" type="search" placeholder="Buscar Pokémon...">
-            <select class="pokedex-tipo">
-              <option value="">Todos los tipos</option>
-            </select>
+            <!-- El tipo, en un desplegable propio (con el icono de cada tipo): js/pokedex/index.js -->
+            <div class="menu-mas pokedex-tipo">
+              <button class="menu-mas-boton" aria-label="Tipo"></button>
+              <div class="menu-mas-lista pokedex-tipo-lista" hidden></div>
+            </div>
             <button class="pokedex-filtros-boton" aria-expanded="false">Filtros</button>
             <span class="pokedex-cuenta"></span>
           </div>
@@ -222,7 +249,6 @@
         </section>
 
         <section id="vista-ruleta" hidden>
-          <div class="selector-regiones ruleta-pestanas"></div>
           <div class="ruleta-cuerpo">
             <div class="ruleta-zona">
               <div class="ruleta-marco">
@@ -233,12 +259,21 @@
               <div class="ruleta-resultado oculto"></div>
             </div>
             <div class="ruleta-panel">
+              <!-- El nombre se escribe ahí mismo; con la flecha pegada se abre la lista de tus
+                   ruletas para cambiar a otra o crear una nueva (js/comun/menu-mas.js) -->
               <div class="ruleta-cabecera">
-                <input class="ruleta-nombre" type="text" maxlength="30" autocomplete="off" placeholder="Nombre">
+                <div class="menu-mas ruleta-elegir">
+                  <input class="ruleta-nombre" type="text" maxlength="30" autocomplete="off" placeholder="Nombre">
+                  <button class="menu-mas-boton" title="Tus ruletas" aria-label="Tus ruletas"></button>
+                  <div class="menu-mas-lista ruleta-lista" hidden></div>
+                </div>
                 <button class="ruleta-borrar" title="Borrar esta ruleta"></button>
               </div>
               <div class="ruleta-opciones"></div>
-              <input class="ruleta-nueva" type="text" maxlength="40" autocomplete="off" placeholder="Añadir opción...">
+              <div class="ruleta-anadir">
+                <input class="ruleta-nueva" type="text" maxlength="40" autocomplete="off" placeholder="Añadir opción...">
+                <button class="ruleta-anadir-boton">Añadir</button>
+              </div>
               <div class="ruleta-acciones">
                 <button class="ruleta-mezclar"></button>
                 <button class="ruleta-vaciar"></button>
@@ -302,11 +337,18 @@
         </section>
 
         <section id="vista-amigos" hidden>
+          <!-- La casilla con «Agregar» pegado (como el buscador de «Crear equipo») y, a la derecha,
+               ver en tarjetas o en lista (como en «Mis equipos») -->
           <div class="barra-amigos">
-            <input class="amigos-correo" type="text" placeholder="Mote de tu amigo...">
-            <button class="amigos-agregar">Agregar</button>
-            <button class="amigos-vista">Ver en lista</button>
+            <div class="amigos-buscador">
+              <input class="amigos-correo" type="text" placeholder="Mote de tu amigo...">
+              <button class="amigos-agregar">Agregar</button>
+            </div>
             <span class="amigos-aviso"></span>
+            <div class="amigos-vista" role="group" aria-label="Cómo ver a tus amigos">
+              <button data-modo="tarjetas" title="En tarjetas" aria-label="En tarjetas"></button>
+              <button data-modo="lista" title="En lista" aria-label="En lista"></button>
+            </div>
           </div>
           <div class="amigos-solicitudes" hidden></div>
           <div class="jugadores"></div>
@@ -1175,6 +1217,7 @@
     <div class="ajustes-fila">
       <span class="ajustes-nombre">Tema</span>
       <div class="ajustes-opciones" role="radiogroup" aria-label="Tema">
+        <button data-tema="atardecer" role="radio" data-icono="atardecer">Atardecer</button>
         <button data-tema="oscuro" role="radio" data-icono="luna">Oscuro</button>
         <button data-tema="claro" role="radio" data-icono="sol">Claro</button>
       </div>

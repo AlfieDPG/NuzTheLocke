@@ -104,12 +104,12 @@ function pintarCabecera() {
 // Arriba, una tarjeta pequeña por reto (con lo que llevas hoy en cada uno); debajo, solo el
 // elegido. Al entrar se abre el primero que te quede por jugar.
 const JUEGOS = [
-  { id: "silueta", nombre: t("¿Quién es ese Pokémon?"), icono: "lupa", maximo: 30, montar: montarSilueta },
+  { id: "silueta", nombre: t("¿Quién es ese Pokémon?"), icono: "lupa", maximo: 45, montar: montarSilueta },
   { id: "pistas", nombre: t("Adivínalo"), icono: "pokedex", maximo: 50, montar: montarPistas },
-  { id: "eficaz", nombre: t("Supereficaz"), icono: "rayo", maximo: 40, montar: montarEficaz },
+  { id: "eficaz", nombre: t("Supereficaz"), icono: "rayo", maximo: 50, montar: montarEficaz },
   { id: "masomenos", nombre: t("¿Más o menos?"), icono: "estadisticas", maximo: 50, montar: montarMasOMenos },
-  { id: "grito", nombre: t("¿De quién es este grito?"), icono: "campana", maximo: 30, montar: montarGrito },
-  { id: "evolucion", nombre: t("¿En qué evoluciona?"), icono: "intercambiar", maximo: 30, montar: montarEvolucion },
+  { id: "grito", nombre: t("¿De quién es este grito?"), icono: "campana", maximo: 45, montar: montarGrito },
+  { id: "evolucion", nombre: t("¿En qué evoluciona?"), icono: "intercambiar", maximo: 48, montar: montarEvolucion },
   { id: "locke", nombre: t("Locke del día"), icono: "espadas", maximo: 60, montar: montarLocke }
 ];
 let reto = null;

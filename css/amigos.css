@@ -9,45 +9,53 @@
   margin-bottom: 0.85rem;
 }
 
+/* La casilla y «Agregar» pegados en una sola tarjetita, como el buscador de «Crear equipo».
+   El interruptor tarjetas/lista es el de «Mis equipos» (css/equipos.css, .vista-equipos) */
+.amigos-buscador {
+  display: flex;
+  flex: 0 1 26rem;
+  min-width: 0;
+  border-radius: 0.45rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
 .amigos-correo {
-  width: 22rem;
-  max-width: 100%;
-  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
   padding: 0.5rem 0.6rem;
   border: none;
-  border-radius: 0.45rem;
+  border-radius: 0.45rem 0 0 0.45rem;
   font-size: 0.93rem;
 }
 
+/* Sin el contorno de color al escribir: con «Agregar» pegado queda raro */
+.amigos-correo:focus-visible {
+  outline: none;
+}
+
 .amigos-agregar {
-  padding: 0.5rem 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 0.45rem;
+  border-left: 1px solid rgba(var(--t-oscurecer), 0.35);
+  border-radius: 0 0.45rem 0.45rem 0;
   background: rgb(var(--color-vista));
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
   font-family: inherit;
   font-weight: bold;
   cursor: pointer;
 }
 
+/* El único botón de color de la sección: el principal */
 .amigos-agregar:hover {
   background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
 }
 
-/* «Ver en lista / en tarjetas», como en «Mis equipos», junto a «Agregar» */
-.amigos-vista {
-  padding: 0.45rem 0.85rem;
-  border: none;
-  border-radius: 0.45rem;
-  background: var(--t-panel);
-  color: var(--t-texto);
-  font-family: inherit;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.amigos-vista:hover {
-  background: var(--t-control);
+.amigos-agregar .icono {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 .amigos-aviso {
@@ -384,7 +392,7 @@
 .ficha-acciones .accion-estadisticas:hover,
 .ficha-acciones .accion-chat:hover {
   background: rgb(var(--color-vista));
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
 }
 
 /* Si te ha escrito y no lo has leído, el botón se ve siempre, en amarillo */
@@ -394,7 +402,7 @@
 
 .ficha-acciones .accion-chat.sin-leer {
   background: #f1c40f;
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
 }
 
 .ficha-acciones .icono {
@@ -752,7 +760,7 @@
   padding: 0.12rem 0.45rem;
   border-radius: 0.3rem;
   background: var(--color-locke, #3498db);
-  color: #1e1f2b;
+  color: var(--t-tinta);
   font-size: 0.66rem;
   font-weight: bold;
   text-transform: uppercase;
@@ -1644,7 +1652,7 @@ button.cara-equipo.mvp:hover img {
 
 .flotante-mi-equipo:hover {
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .flotante-mi-equipo .icono {

@@ -1,10 +1,10 @@
 // «¿Más o menos?»: a la izquierda un Pokémon con una de sus estadísticas a la vista; a la
-// derecha otro, con la misma estadística escondida. ¿Tiene más o menos? Si aciertas, el de la
-// derecha pasa a la izquierda y sale otro (y otra estadística). Al primer fallo se acaba; como
-// mucho RONDAS seguidas.
+// derecha otro, con la misma estadística escondida. ¿Tiene más o menos? Al responder se ve
+// cuánto tenía (un momento) y, aciertes o falles, el de la derecha pasa a la izquierda y sale
+// otro (y otra estadística). Siempre RONDAS; los fallos solo no suman.
 //
 // La cadena es la misma para todo el mundo (sale del día) y nunca hay empates. Pokédólares: 5 por
-// acierto (50 si llegas al final), más lo de la racha.
+// acierto (50 si las aciertas todas), más lo de la racha.
 
 import { escaparHTML } from "../comun/utilidades.js";
 import { icono } from "../comun/iconos.js";
@@ -16,6 +16,7 @@ import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, pla
 const JUEGO = "masomenos";
 const RONDAS = 10;
 const POR_ACIERTO = 5;
+const PAUSA = 1500; // ms con lo que tenía a la vista antes de pasar a la siguiente
 
 // índice en «bases» (o «total»)
 const ESTADISTICAS = [
@@ -33,8 +34,15 @@ let cadena = [];   // RONDAS + 1 Pokémon
 let cuales = [];   // la estadística de cada ronda
 let estado = null;
 let ocupado = false;
+let mostrando = null; // la ronda recién respondida, mientras se ve su resultado
 
 const valor = (especie, estadistica) => (estadistica.id === "total" ? especie.total : especie.bases[estadistica.id]);
+
+// Si la respuesta de la ronda i es la buena
+function acertada(i) {
+  const mas = valor(cadena[i + 1], cuales[i]) > valor(cadena[i], cuales[i]);
+  return (estado.intentos[i] === "mas") === mas;
+}
 
 export async function montarMasOMenos(contenedor) {
   caja = contenedor;
@@ -64,9 +72,10 @@ function armarCadena(especies) {
   }
 }
 
-function plantillaLado(especie, estadistica, oculto, botones = "") {
+// oculto: el de la derecha sin responder; resultado: "bien" o "mal" si se acaba de responder
+function plantillaLado(especie, estadistica, oculto, botones = "", resultado = "") {
   return `
-    <div class="masomenos-lado ${oculto ? "adivinar" : ""}">
+    <div class="masomenos-lado ${oculto ? "adivinar" : ""} ${resultado}">
       <span class="masomenos-etiqueta">${oculto ? t("¿Cuánto tiene?") : t("Tiene")}</span>
       ${imagenConRespaldo(urlsRetrato({ id: especie.id }), `alt="" data-quitar-si-falla`)}
       <strong>${escaparHTML(nombreDe(especie))}</strong>
@@ -76,31 +85,39 @@ function plantillaLado(especie, estadistica, oculto, botones = "") {
     </div>`;
 }
 
+// La comparación de la ronda i ya respondida, con los dos valores y si se acertó
+function plantillaRespondida(i) {
+  const bien = acertada(i);
+  const veredicto = `<p class="masomenos-veredicto">${bien ? `${icono("visto")} ${t("¡Bien!")}` : `${icono("aspa")} ${t("Fallo")}`}</p>`;
+  return `
+    <div class="masomenos-duelo">
+      ${plantillaLado(cadena[i], cuales[i], false)}
+      <span class="masomenos-vs">${t("contra")}</span>
+      ${plantillaLado(cadena[i + 1], cuales[i], false, veredicto, bien ? "bien" : "mal")}
+    </div>`;
+}
+
 function pintar() {
-  const ronda = estado.aciertos + (estado.fallo ? 1 : 0);
+  // Antes un fallo acababa el reto: las jugadas de entonces tienen menos de RONDAS respuestas
+  const respondidas = estado.intentos.length;
   const marcador = Array.from({ length: RONDAS }, (_, i) => {
-    const clase = i < estado.aciertos ? "acierto" : estado.fallo && i === estado.aciertos ? "fallo" : "";
+    const clase = i < respondidas ? (acertada(i) ? "acierto" : "fallo") : "";
     return `<span class="juego-intento ${clase}"></span>`;
   }).join("");
 
   let medio;
   if (estado.otroSitio) {
     medio = plantillaFin(estado, t("Ya lo jugaste hoy."));
+  } else if (mostrando !== null) {
+    medio = plantillaRespondida(mostrando);
   } else if (estado.fin) {
     // Se ve la última comparación, ya con los dos valores
-    const i = Math.min(ronda, RONDAS) - 1;
-    const ultima = i >= 0
-      ? `<div class="masomenos-duelo">
-          ${plantillaLado(cadena[i], cuales[i], false)}
-          <span class="masomenos-vs">${t("contra")}</span>
-          ${plantillaLado(cadena[i + 1], cuales[i], false)}
-        </div>`
-      : "";
-    medio = ultima + plantillaFin(estado, t(estado.aciertos === 1 ? "{n} acierto seguido." : "{n} aciertos seguidos.", { n: estado.aciertos }));
+    const ultima = respondidas ? plantillaRespondida(Math.min(respondidas, RONDAS) - 1) : "";
+    medio = ultima + plantillaFin(estado, t("{n} de {total} aciertos.", { n: estado.aciertos, total: RONDAS }));
   } else {
     // La pregunta es siempre sobre el de la derecha (el escondido), y los botones van en su
     // tarjeta, con su nombre: «Duskull tiene más» / «Duskull tiene menos»
-    const i = estado.aciertos;
+    const i = respondidas;
     const izquierda = escaparHTML(nombreDe(cadena[i]));
     const derecha = escaparHTML(nombreDe(cadena[i + 1]));
     const estadistica = escaparHTML(cuales[i].nombre);
@@ -134,24 +151,33 @@ async function responder(respuesta) {
   if (ocupado || estado.fin) return;
   ocupado = true;
   try {
-    const i = estado.aciertos;
-    const mas = valor(cadena[i + 1], cuales[i]) > valor(cadena[i], cuales[i]);
+    const i = estado.intentos.length;
     estado.intentos.push(respuesta);
-    if ((respuesta === "mas") === mas) estado.aciertos++;
-    else estado.fallo = true;
+    if (acertada(i)) estado.aciertos++;
 
-    if (estado.fallo || estado.aciertos >= RONDAS) {
+    let apuntando = null;
+    if (estado.intentos.length >= RONDAS) {
       estado.acierto = estado.aciertos >= RONDAS;
-      const cuadros = "🟩".repeat(estado.aciertos) + (estado.fallo ? "🟥" : "");
+      const cuadros = estado.intentos.map((_, k) => (acertada(k) ? "🟩" : "🟥")).join("");
       estado.resumen = `${t("¿Más o menos?")} ${cuadros} ${estado.aciertos}/${RONDAS}`;
-      const apuntando = terminar(JUEGO, estado, estado.aciertos * POR_ACIERTO);
-      pintar();
-      await apuntando;
+      apuntando = terminar(JUEGO, estado, estado.aciertos * POR_ACIERTO);
     } else {
       guardarEstado(JUEGO, estado);
     }
+
+    // Lo que tenía, a la vista un momento; después, la siguiente (o el final)
+    mostrando = i;
     pintar();
+    await new Promise((listo) => setTimeout(listo, PAUSA));
+    mostrando = null;
+    if (!caja.isConnected) return;
+    pintar();
+    if (apuntando) {
+      await apuntando;
+      if (caja.isConnected) pintar();
+    }
   } finally {
+    mostrando = null;
     ocupado = false;
   }
 }

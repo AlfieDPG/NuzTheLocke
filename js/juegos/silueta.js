@@ -5,7 +5,7 @@
 //
 // A la izquierda, la silueta (grande); a la derecha, las tres rondas, la casilla y las pistas.
 //
-// Pokédólares: 10, 7 o 4 por cada silueta según el intento en que la aciertes (30 como mucho),
+// Pokédólares: 15, 10 o 6 por cada silueta según el intento en que la aciertes (45 como mucho),
 // más lo de la racha.
 //
 //   estado: { rondas: [{ intentos: [numero], acierto }], fin, ... } (ver comun.js)
@@ -21,7 +21,7 @@ import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, pla
 
 const JUEGO = "silueta";
 const INTENTOS = 3;
-const PUNTOS = [10, 7, 4];
+const PUNTOS = [15, 10, 6];
 const RONDAS = [
   { nombre: t("Fácil"), gens: [1, 2, 3] },
   { nombre: t("Media"), gens: [4, 5, 6] },

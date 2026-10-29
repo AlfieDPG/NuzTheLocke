@@ -190,7 +190,7 @@
   padding: 0.1rem 0.5rem;
   border-radius: 1rem;
   background: #f1c40f;
-  color: #2b2d3a;
+  color: var(--t-tinta-2);
   font-size: 0.7rem;
   font-weight: bold;
 }
@@ -423,7 +423,7 @@
   border: none;
   border-radius: 0.6rem;
   background: rgb(var(--color-vista));
-  color: #1e1f2b;
+  color: var(--t-tinta);
   cursor: pointer;
 }
 

@@ -170,6 +170,8 @@ export default {
   "Tiene": "Has",
   "Tiene más": "Has more",
   "Tiene menos": "Has less",
+  "¡Bien!": "Correct!",
+  "Fallo": "Wrong",
   "contra": "vs",
   "Tres intentos. Cada fallo te da una pista.": "Three attempts. Every miss gives you a hint.",
   "¡Empieza el combate! {a} contra {b}.": "The battle begins! {a} vs {b}.",

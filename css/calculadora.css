@@ -1013,7 +1013,7 @@
 
 .calc-resultado.posible .calc-veredicto {
   background: #f1c40f;
-  color: #1e1f2b;
+  color: var(--t-tinta);
 }
 
 .calc-resultado.nada .calc-veredicto {

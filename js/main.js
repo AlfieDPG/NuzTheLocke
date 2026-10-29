@@ -9,8 +9,10 @@ import { perfilesDeAmigos } from "./comun/perfiles.js";
 import { iniciarAjustes } from "./comun/ajustes.js";
 import { icono } from "./comun/iconos.js";
 import "./comun/numero.js"; // las flechas de las casillas de número (en toda la web)
+import { activarPestanasDeslizantes } from "./comun/pestanas-deslizantes.js";
 
 activarRespaldoImagenes();
+activarPestanasDeslizantes(); // antes de pintar nada, para ver ya las primeras pestañas
 iniciarNavegacion();
 irA(vistaInicial()); // la que hubiera al recargar, o Inicio si se entra de nuevas
 

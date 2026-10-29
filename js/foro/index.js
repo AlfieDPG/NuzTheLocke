@@ -655,11 +655,49 @@ function verComentariosAnteriores() {
 
 // El panel de la derecha: el hilo abierto o, si no hay, «Elige un hilo». En pantallas estrechas el
 // panel abierto ocupa toda la pantalla (ver foro.css) y se cierra con la aspa.
+// Con un fundido: el hilo entra deslizándose un poco (también al pasar de un hilo a otro) y,
+// al cerrarlo, se desvanece antes de que vuelva el aviso de la derecha
+let cambioDePanel = 0;
+let animacionCierre = null;
+
 function mostrarPanel(abierto) {
-  seccion.querySelector(".foro-panel").classList.toggle("abierto", abierto);
-  seccion.querySelector(".foro-panel-vacio").hidden = abierto;
-  panelHilo.hidden = !abierto;
-  if (abierto) panelHilo.scrollTop = 0;
+  const vacio = seccion.querySelector(".foro-panel-vacio");
+  const suave = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const cambio = ++cambioDePanel;
+  const aparecer = (elemento, desde) =>
+    suave && elemento.animate([{ opacity: 0, transform: desde }, { opacity: 1, transform: "none" }], { duration: 200, easing: "ease-out" });
+
+  if (animacionCierre) animacionCierre.cancel();
+  animacionCierre = null;
+
+  if (abierto) {
+    seccion.querySelector(".foro-panel").classList.add("abierto");
+    vacio.hidden = true;
+    panelHilo.hidden = false;
+    panelHilo.scrollTop = 0;
+    aparecer(panelHilo, "translateX(0.75rem)");
+    return;
+  }
+
+  const cerrar = () => {
+    if (cambio !== cambioDePanel) return; // mientras se cerraba, se ha abierto otro
+    seccion.querySelector(".foro-panel").classList.remove("abierto");
+    panelHilo.hidden = true;
+    vacio.hidden = false;
+    aparecer(vacio, "none");
+  };
+  if (suave && !panelHilo.hidden) {
+    // Se queda transparente al acabar (fill) hasta que se esconde: así no parpadea
+    const animacion = panelHilo.animate([{ opacity: 1 }, { opacity: 0, transform: "translateX(0.75rem)" }], { duration: 150, easing: "ease-in", fill: "forwards" });
+    animacionCierre = animacion;
+    animacion.onfinish = () => {
+      cerrar();
+      animacion.cancel();
+      if (animacionCierre === animacion) animacionCierre = null;
+    };
+  } else {
+    cerrar();
+  }
 }
 
 // Salta a la fila de otro hilo con el teclado. La fila se marca al momento, pero el hilo se abre

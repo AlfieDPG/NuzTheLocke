@@ -3,6 +3,10 @@
 export default {
   // Normas generales
   "Normas generales": "General rules",
+  "Básicas": "Basics",
+  "Las de cualquier Nuzlocke": "The ones in every Nuzlocke",
+  "Extras": "Extras",
+  "Muy habituales, pero no están en todos": "Very common, but not in every run",
   "Normas del locke": "Locke rules",
   "Una captura por zona": "One catch per area",
   "Solo puedes capturar el primer Pokémon salvaje que encuentres en cada ruta, ciudad o zona. Si se debilita o huye, pierdes la captura de esa zona. Si es de una especie que ya tienes (duplicado), puedes saltártelo y probar con el siguiente.":
@@ -49,6 +53,9 @@ export default {
   "Quitarla de la ruleta": "Remove it from the wheel",
   "Cambiar el color": "Change the colour",
   "Nueva ruleta": "New wheel",
+  "Tus ruletas": "Your wheels",
+  "{n} opciones": "{n} options",
+  "1 opción": "1 option",
   "Mezclar": "Shuffle",
   "Ruleta {n}": "Wheel {n}",
   "¿Borrar la ruleta «{nombre}»?": "Delete the wheel “{nombre}”?",

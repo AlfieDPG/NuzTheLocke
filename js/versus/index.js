@@ -328,6 +328,19 @@ function resultadoDeEtapa(locke) {
   return locke.ganador ? t("Ganó {nombre}", { nombre: (locke.nombres || {})[locke.ganador] || t("alguien") }) : t("Nadie ganó");
 }
 
+// Sin sesión no hay lockes que enseñar: qué son y el botón para entrar (en vez de la página
+// en blanco). Sin nube, solo el aviso.
+function plantillaSinSesion() {
+  if (!hayNube()) return `<p class="versus-sin-nube">${t("Los lockes necesitan la nube: no están disponibles en esta versión de la web.")}</p>`;
+  return `
+    <div class="versus-sin-sesion">
+      ${icono("espadas")}
+      <h2>${t("Juega tus lockes con amigos")}</h2>
+      <p>${t("Crea un locke, invita a tus amigos y llevad juntos las vidas, las muertes y los combates. También puedes vincular tu partida para seguirla al momento.")}</p>
+      <button class="versus-entrar">${icono("persona")} ${t("Iniciar sesión")}</button>
+    </div>`;
+}
+
 function plantillaCadena(etapas) {
   const ultima = etapas[etapas.length - 1];
   const cadena = ultima.cadena;
@@ -466,7 +479,7 @@ async function crearEtapa() {
 
 function pintar() {
   if (!hayNube() || !usuarioActual()) {
-    lista.innerHTML = "";
+    lista.innerHTML = plantillaSinSesion();
     botonNuevo.hidden = true;
     aviso.textContent = "";
     return;
@@ -1281,6 +1294,11 @@ export function iniciar() {
   );
 
   lista.addEventListener("click", async (e) => {
+    // Sin sesión: abre la ventana de entrar de siempre (la del panel lateral)
+    if (e.target.closest(".versus-entrar")) {
+      document.querySelector(".sesion-boton").click();
+      return;
+    }
     const siguienteEtapa = e.target.closest(".cadena-siguiente");
     if (siguienteEtapa) {
       abrirEtapa(siguienteEtapa.dataset.id);
