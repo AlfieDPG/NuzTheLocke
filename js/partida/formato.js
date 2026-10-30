@@ -13,6 +13,7 @@ import { JUEGOS_EDITABLES, sePuedeEditar, leerHueco, huecoVacio, editarHuecos } 
 import * as pk3ds from "./pokemon3ds.js";
 import { bolsillosDe, leerMochila, escribirMochila } from "./mochila3ds.js";
 import { mapaDS, leerPartidaDS, entrenadorDS } from "./nds.js";
+import { esPartidaGBA, leerPartidaGBA, CAJAS_GBA } from "./gba.js";
 import { JUEGOS_EDITABLES_DS, sePuedeEditarDS, leerHuecoDS, huecoVacioDS, editarHuecosDS, cuantosEquipoDS } from "./escribirds.js";
 import { pokemonDS } from "./pokemonds.js";
 import { bolsillosDS, leerMochilaDS, escribirMochilaDS } from "./mochilads.js";
@@ -99,6 +100,10 @@ export function formatoDe(bytes) {
       pokemon: POKEMON_BDSP,
       mochila: { bolsillosDe: bolsillosBDSP, leerMochila: leerMochilaBDSP, escribirMochila: escribirMochilaBDSP }
     };
+  }
+  // GBA: solo leer (la ventana «Partida» exporta las cajas desde aquí)
+  if (esPartidaGBA(bytes)) {
+    return { id: "frlg", gen: 3, cajas: CAJAS_GBA, cajasAbiertas: () => CAJAS_GBA, leer: leerPartidaGBA, sePuedeEditar: () => false };
   }
   const mapa = mapaDS(bytes);
   if (!mapa) return null;

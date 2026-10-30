@@ -368,3 +368,40 @@ export function leerPartidaDS(bytes) {
     cajas
   };
 }
+
+// ---------- En la memoria, mientras se juega (js/jugar) ----------
+//
+// El juego tiene el equipo como { cuántos caben, cuántos hay, los seis Pokémon }, con el mismo formato que en la
+// partida guardada (cifrado y con su suma). En la memoria del emulador puede haber más de una lista así (en combate, el
+// juego copia los equipos; y está la copia de la partida guardada): buscarEquiposDS las da todas y quien llama elige.
+
+const TAM_EN_EQUIPO = { 4: TAM_EQUIPO_GEN4, 5: TAM_EQUIPO_GEN5 };
+
+// El equipo que empieza en «inicio» (en los bytes «b»), o null si ahí no hay uno
+export function equipoEnEstadoDS(b, inicio, gen) {
+  const tam = TAM_EN_EQUIPO[gen];
+  if (!tam || inicio < 0 || inicio + 8 + 6 * tam > b.length) return null;
+  const cuantos = u32(b, inicio + 4);
+  if (cuantos < 1 || cuantos > 6) return null;
+  const equipo = [];
+  for (let k = 0; k < cuantos; k++) {
+    const o = inicio + 8 + k * tam;
+    const v = descifrarDS(b.slice(o, o + tam).buffer);
+    if (!v) return null;
+    const p = interpretarDS(v, gen, true);
+    if (!p || p.especie > 649 || !p.nivel || p.nivel > 100 || !p.psMax || p.ps > p.psMax) return null;
+    equipo.push(p);
+  }
+  return equipo;
+}
+
+// Dónde empiezan todos los equipos que hay en «b» (o entre «desde» y «hasta», para buscar a trozos)
+export function buscarEquiposDS(b, gen, desde = 0, hasta = b.length) {
+  const salida = [];
+  for (let i = desde; i < hasta && i + 16 <= b.length; i += 4) {
+    // Lo primero que se mira, lo más barato: cuántos hay (de 1 a 6)
+    if (b[i + 4] < 1 || b[i + 4] > 6 || b[i + 5] || b[i + 6] || b[i + 7]) continue;
+    if (equipoEnEstadoDS(b, i, gen)) salida.push(i);
+  }
+  return salida;
+}

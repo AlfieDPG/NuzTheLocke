@@ -18,7 +18,7 @@ import {
   plantillaCampoJuego, activarCamposJuego, leerCampoJuego, nombreJuego
 } from "../comun/campo-juego.js";
 import { hayNube, usuarioActual } from "../comun/nube.js";
-import { estaConectado, alCambiarPresencia } from "../comun/presencia.js";
+import { estaConectado, alCambiarPresencia, directoDe } from "../comun/presencia.js";
 import { caraACara } from "../comun/cara-a-cara.js";
 import { iniciarEstadisticas, abrirEstadisticas } from "./estadisticas.js";
 import { soyYo } from "../comun/logros.js";
@@ -454,6 +454,7 @@ function plantillaFicha(ficha) {
           ${!ficha.mia && conectado
               ? `<span class="jugador-estado" title="${t("Tiene la web abierta")}"><span class="punto-conectado"></span>${t("Conectado")}</span>`
               : ""}
+          ${ficha.mia ? "" : plantillaDirecto(ficha.clave)}
         </div>
       </header>
 
@@ -461,6 +462,13 @@ function plantillaFicha(ficha) {
 
       <ul class="lockes-ganados lista-plegable">${plantillaListaGanados(ficha.jugados)}</ul>
     </article>`;
+}
+
+// Si está jugando en directo desde «Jugar» (js/jugar/directo.js): el botón para verlo
+function plantillaDirecto(uid) {
+  const juego = directoDe(uid);
+  return `<button class="ver-directo" ${juego ? "" : "hidden"} title="${escaparHTML(t("Ver su partida en directo: {juego}", { juego }))}">
+            <span class="directo-punto"></span>${t("En directo")}</button>`;
 }
 
 // ---------- Armar la lista de fichas ----------
@@ -1063,6 +1071,10 @@ function activarFichas() {
       if (boton.classList.contains("ver-todos")) {
         cerrarFlotante();
         alternarVerTodos(boton);
+      } else if (boton.classList.contains("ver-directo")) {
+        const datos = fichasPintadas.get(ficha.dataset.clave);
+        const { verDirecto } = await import("../jugar/directo.js");
+        verDirecto(ficha.dataset.clave, datos ? datos.nombre : "", directoDe(ficha.dataset.clave));
       } else if (boton.classList.contains("accion-chat")) {
         const { abrirChat } = await import("../chat.js");
         abrirChat(ficha.dataset.clave);
@@ -1296,6 +1308,8 @@ export function iniciar() {
   alCambiarPresencia(() => {
     for (const ficha of lista.querySelectorAll(".ficha-jugador:not(.mia)")) {
       ficha.classList.toggle("conectado", estaConectado(ficha.dataset.clave));
+      const directo = ficha.querySelector(".ver-directo");
+      if (directo) directo.outerHTML = plantillaDirecto(ficha.dataset.clave);
     }
   });
 }

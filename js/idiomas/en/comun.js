@@ -24,6 +24,7 @@ export default {
   "Créditos y privacidad": "Credits and privacy",
   "Preguntas frecuentes": "FAQ",
   "Tu cuenta": "Your account",
+  "Tu perfil": "Your profile",
   "Notificaciones": "Notifications",
 
   // Ajustes

@@ -4,7 +4,8 @@
 // randomizar y las normas de la pestaña. Todo empieza «sin cambios». Desde un locke
 // («Randomizar mi ROM») las normas son las del locke y no se tocan: elegir la ROM y randomizar.
 //
-// La ROM no sale nunca del navegador: se lee, se randomiza aquí y se descarga.
+// La ROM no sale nunca del navegador: se lee, se randomiza aquí y se descarga. Las de GBA y DS, además, con
+// «Randomizar y jugar»: sin descargar nada, pasa a ser una partida nueva de «Jugar» (js/jugar/partidas.js).
 //
 //   localStorage «poketeams-randomizer-v1»: { reglas } (las tuyas)
 //   localStorage «poketeams-randomizer-semillas-v1»: { idLocke: semilla } (la tuya de cada
@@ -25,14 +26,15 @@ import { t, LOCALE, nombre as nombreDe } from "../comun/idioma.js";
 
 // La última especie de cada juego (para elegir las iniciales a mano). Sin ROM ni locke, la del
 // más nuevo: al randomizar, la que no exista en el juego sale al azar (randomizar.js)
-const ULTIMA_ESPECIE = { dp: 493, platino: 493, hgss: 493, bw: 649, b2w2: 649, xy: 721, oras: 721, sm: 802, usum: 807, bdsp: 493, swsh: 898 };
+const ULTIMA_ESPECIE = { frlg: 386, dp: 493, platino: 493, hgss: 493, bw: 649, b2w2: 649, xy: 721, oras: 721, sm: 802, usum: 807, bdsp: 493, swsh: 898 };
 const ULTIMA_DE_TODAS = Math.max(...Object.values(ULTIMA_ESPECIE));
 
 const CLAVE_SEMILLAS = "poketeams-randomizer-semillas-v1";
 
-// Juego de js/comun/juegos.js por las tres primeras letras del código de la ROM
+// Juego de js/comun/juegos.js por las tres primeras letras del código de la ROM (las de GBA: Rojo Fuego y Verde Hoja)
 const JUEGO_DE_CODIGO = {
-  IRE: "b2w2", IRD: "b2w2", IRB: "bw", IRA: "bw", ADA: "dp", APA: "dp", CPU: "platino", IPK: "hgss", IPG: "hgss"
+  IRE: "b2w2", IRD: "b2w2", IRB: "bw", IRA: "bw", ADA: "dp", APA: "dp", CPU: "platino", IPK: "hgss", IPG: "hgss",
+  BPR: "frlg", BPG: "frlg"
 };
 const GEN4 = ["dp", "platino", "hgss"];
 // Los de 3DS (se leen del .3ds y salen como archivos sueltos para el emulador o la consola)
@@ -40,7 +42,7 @@ const TRES_DS = ["xy", "oras", "sm", "usum"];
 // Juego de js/comun/juegos.js por el código de producto de un .3ds («CTR-P-EK2A»)
 const JUEGO_DE_CODIGO_3DS = { EK: "xy", EC: "oras", BN: "sm", A2: "usum" };
 // La generación de cada juego (las actualizaciones de datos son a las siguientes)
-const GENERACION_DE = { dp: 4, platino: 4, hgss: 4, bw: 5, b2w2: 5, xy: 6, oras: 6, sm: 7, usum: 7, bdsp: 8, swsh: 8 };
+const GENERACION_DE = { frlg: 3, dp: 4, platino: 4, hgss: 4, bw: 5, b2w2: 5, xy: 6, oras: 6, sm: 7, usum: 7, bdsp: 8, swsh: 8 };
 // Los de Switch (se elige su carpeta «romfs» y sale un .zip, un mod)
 const SWITCH = ["swsh", "bdsp"];
 // Lo que no tiene cada juego (no sale en su pestaña): no tienen tutores de ataques Negro y Blanco, Diamante y Perla,
@@ -56,7 +58,7 @@ const COMPAT = [["no", "Sin cambios"], ["aleatoria", "Aleatorio"], ["total", "To
 const ALEATORIO = [["no", "Sin cambios"], ["azar", "Aleatorio"]];
 const SI_NO = [[false, "Sin cambios"], [true, "Aleatorio"]];
 // Solo Sol, Luna, Ultrasol y Ultraluna tienen tótems
-const SIN_TOTEMS = ["dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", ...SWITCH];
+const SIN_TOTEMS = ["frlg", "dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", ...SWITCH];
 // Las generaciones a las que se puede actualizar (las de después del juego)
 const GENERACIONES = (juego) => [
   [0, t("Sin cambios")], ...[5, 6, 7, 8, 9].filter((g) => g > (GENERACION_DE[juego] || 5)).map((g) => [g, t("{n}.ª generación", { n: g })])
@@ -253,7 +255,7 @@ const PESTANAS = [
           },
           { k: "nivel", texto: "Multiplicador de niveles", ...MULTIPLICADOR },
           {
-            k: "unico", tipo: "casilla", texto: "Un solo Pokémon por zona en el campo", no: ["dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", "sm", "usum", "bdsp"],
+            k: "unico", tipo: "casilla", texto: "Un solo Pokémon por zona en el campo", no: ["frlg", "dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", "sm", "usum", "bdsp"],
             ayuda: "En Espada y Escudo los Pokémon salvajes se ven por el campo, así que podrías elegir contra cuál luchar. Con esta opción, todos los que se ven en cada zona son de la misma especie, elegida al azar: te toca la que te toca.\n\nLos que salen de la hierba alta con «!» siguen siendo al azar entre los de la zona."
           },
           {
@@ -262,7 +264,7 @@ const PESTANAS = [
           },
           { k: "objetos", tipo: "casilla", texto: "Objetos de los Pokémon salvajes aleatorios" },
           {
-            k: "pueblos", tipo: "casilla", texto: "Hierba en los pueblos", no: ["sm", "usum", ...SWITCH],
+            k: "pueblos", tipo: "casilla", texto: "Hierba en los pueblos", no: ["frlg", "sm", "usum", ...SWITCH],
             ayuda: "Añade una zona de hierba alta invisible en los pueblos y ciudades que no tienen Pokémon salvajes. Salen los mismos Pokémon que en la ruta por la que se llega a ese pueblo."
           }
         ]
@@ -560,11 +562,12 @@ function pintar() {
       <button class="random-ayuda" title="${t("Qué elegir en cada consola y qué hacer con lo que sale")}" aria-label="${t("Ayuda")}">?</button>
       <span class="random-rom ${rom && rom.error ? "con-error" : ""}">${rom ? escaparHTML(rom.error || `${rom.nombre} · ${rom.archivo.name}`) : ""}</span>
       <button class="random-vaciar" ${!idLocke && hayAlgo(reglas) ? "" : "disabled"}>${icono("deshacer")} ${t("Borrar todo")}</button>
+      ${rom && !rom.es3DS && !rom.carpeta ? `<button class="random-jugar" ${!rom.error && !trabajando && hayAlgo(reglas) ? "" : "disabled"} title="${t("Sin descargar nada: se queda en «Jugar», lista para jugar")}">${icono("consola")} ${t("Randomizar y jugar")}</button>` : ""}
       <button class="random-ir" ${rom && !rom.error && !trabajando && hayAlgo(reglas) ? "" : "disabled"} title="${hayAlgo(reglas) ? "" : t("Cambia algo primero")}">${icono("mezclar")} ${trabajando ? t("Randomizando...") : t("Randomizar")}</button>
     </div>
     <span class="random-estado"></span>
     <div class="random-tarjetas">${actual.apartados.filter(apartadoVisible).map((a) => plantillaApartado(a, reglas, bloqueado)).join("")}</div>
-    <input class="random-archivo" type="file" accept=".nds,.3ds" hidden>
+    <input class="random-archivo" type="file" accept=".nds,.3ds,.gba" hidden>
     <input class="random-carpeta" type="file" webkitdirectory hidden>`;
 }
 // ---------- ROM ----------
@@ -590,12 +593,16 @@ async function elegirRom(archivo) {
       if (juego && !(particion[0x188 + 7] & 4)) {
         rom.error = t("Ese .3ds está cifrado: hace falta uno descifrado.");
       }
+    } else if (cabecera[0xb2] === 0x96) {
+      // Una ROM de GBA: el código va en 0xAC
+      juego = JUEGO_DE_CODIGO[new TextDecoder("latin1").decode(cabecera.subarray(0xac, 0xaf))];
+      rom.esGBA = true;
     } else {
       const codigo = new TextDecoder("latin1").decode(cabecera.subarray(0x0c, 0x10));
       juego = JUEGO_DE_CODIGO[codigo.slice(0, 3)];
     }
     if (!juego) {
-      rom.error = t("Este juego todavía no se puede randomizar (de momento, los de DS, los de 3DS y los de Switch).");
+      rom.error = t("Este juego todavía no se puede randomizar (de momento, Rojo Fuego y Verde Hoja y los de DS, 3DS y Switch).");
     } else {
       rom.juego = juego;
       rom.nombre = (JUEGOS.find((j) => j.id === juego) || {}).nombre || juego;
@@ -684,7 +691,8 @@ function semillaPara() {
   return semillas[idLocke];
 }
 
-async function randomizar() {
+// jugar: las de GBA, a una partida nueva de «Jugar» en lugar de descargarla
+async function randomizar(jugar = false) {
   if (!rom || rom.error || trabajando) return;
   trabajando = true;
   pintar();
@@ -720,7 +728,27 @@ async function randomizar() {
     } else {
       bytes = new Uint8Array(await rom.archivo.arrayBuffer());
       await modulos.randomizar.randomizarROM(bytes, reglasActuales(), semillaPara());
-      nombre = rom.archivo.name.replace(/(\.nds)?$/i, " (random).nds");
+      if (jugar) {
+        const { crearPartida } = await import("../jugar/partidas.js");
+        const extension = rom.esGBA ? "gba" : "nds";
+        const archivo = rom.archivo.name.replace(/(\.(gba|nds))?$/i, ` (random).${extension}`);
+        const locke = idLocke ? lockePorId(idLocke) : null;
+        const id = await crearPartida({
+          nombre: locke ? locke.nombre : archivo.replace(/\.(gba|nds)$/i, ""), consola: extension, juego: rom.juego,
+          idLocke: locke && locke.juego === rom.juego ? idLocke : "", archivo, bytes, randomizada: true
+        });
+        sumarContador("randomizar");
+        if (idLocke) sumarContador("randomizar-locke");
+        sumarContador(`randomizar-${extension}`);
+        trabajando = false;
+        pintar();
+        // La misma clave que CLAVE_ELEGIDO de js/jugar/index.js: «Jugar» la abre y empieza
+        escribir("poketeams-jugar-v1", { partida: id });
+        const { irA } = await import("../navegacion.js");
+        irA("jugar");
+        return;
+      }
+      nombre = rom.esGBA ? rom.archivo.name.replace(/(\.gba)?$/i, " (random).gba") : rom.archivo.name.replace(/(\.nds)?$/i, " (random).nds");
     }
     const enlace = document.createElement("a");
     enlace.href = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
@@ -730,7 +758,7 @@ async function randomizar() {
     // Para los logros: cuántas, desde un locke y de qué consola
     sumarContador("randomizar");
     if (idLocke) sumarContador("randomizar-locke");
-    sumarContador(`randomizar-${rom.es3DS ? "3ds" : rom.carpeta ? "switch" : "nds"}`);
+    sumarContador(`randomizar-${rom.es3DS ? "3ds" : rom.carpeta ? "switch" : rom.esGBA ? "gba" : "nds"}`);
     trabajando = false;
     pintar();
     estado().textContent = t("Lista: {nombre}", { nombre });
@@ -785,6 +813,7 @@ export function iniciar() {
     else if (boton.classList.contains("random-elegir-carpeta")) elegirCarpetaConAviso();
     else if (boton.classList.contains("random-ayuda")) document.querySelector("#dialogo-ayuda-rom").showModal();
     else if (boton.classList.contains("random-ir")) randomizar();
+    else if (boton.classList.contains("random-jugar")) randomizar(true);
     else if (boton.dataset.normas) accionNormas(boton.dataset.normas);
     else if (boton.classList.contains("random-vaciar")) vaciarNormas();
   });

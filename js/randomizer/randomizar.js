@@ -6,6 +6,7 @@
 // Devuelve un resumen sin spoilers: qué se ha tocado, no cómo.
 
 import { RomNDS } from "./rom-nds.js";
+import { RomGBA, esRomGBA } from "./rom-gba.js";
 import { crearAzar } from "./azar.js";
 import { completarReglas } from "./reglas.js";
 import { cargarDatosRandomizer, montarDatosRandomizer, clasificarObjetos, deGeneracion } from "./datos.js";
@@ -17,6 +18,7 @@ import { esGen4 } from "./juego-gen4-ident.js";
 async function cargarMotor(rom) {
   if (rom.esSwitch) return rom.juego === "bdsp" ? import("./juego-bdsp.js") : import("./juego-swsh.js");
   if (rom.es3DS) return import("./juego-3ds.js");
+  if (rom.esGBA) return import("./juego-gba.js");
   return esGen4(rom) ? import("./juego-gen4.js") : import("./juego-gen5.js");
 }
 
@@ -306,7 +308,8 @@ function randomizarEvoluciones(datos, reglas) {
     if (objetos) {
       const conObjeto = [];
       for (const evo of originales) if (METODOS_OBJETO.has(evo.metodo) && !conObjeto.some((x) => destino(x) === destino(evo))) conObjeto.push(evo);
-      const reparte = conObjeto.length === 2 && conGeneros(e);
+      // (en la 3.ª generación no hay evoluciones por nivel de un solo género: el primero por nivel y el otro, por amistad)
+      const reparte = conObjeto.length === 2 && conGeneros(e) && !datos.perfil.evoSinNivelGenero;
       conObjeto.forEach((evo, i) => {
         const genero = evo.metodo === EVO.piedraMacho ? "macho" : evo.metodo === EVO.piedraHembra ? "hembra" : reparte ? ["macho", "hembra"][i] : null;
         porNivel(evo, genero);
@@ -314,7 +317,8 @@ function randomizarEvoluciones(datos, reglas) {
     }
     if (dificiles) {
       for (const evo of originales) {
-        if (evo.metodo === EVO.intercambioObjeto) {
+        if (evo.metodo === EVO.intercambioObjeto && datos.perfil.evoSinObjetoHora) porNivel(evo, null);
+        else if (evo.metodo === EVO.intercambioObjeto) {
           if (e.evoluciones.length + 2 > cabe) continue;
           anadir(evo, EVO.objetoDia, evo.dato);
           anadir(evo, EVO.objetoNoche, evo.dato);
@@ -535,10 +539,14 @@ function ataquesANivel(aprende, nivel) {
 // ---------- Salvajes ----------
 
 function randomizarSalvajes(datos, reglas, azar) {
-  const lista = candidatas(datos, reglas.salvajes);
+  // (sin los que el juego no deja salir en libertad: Unown en Rojo Fuego y Verde Hoja)
+  const nunca = new Set(datos.perfil.sinSalvajes || []);
+  const todos = candidatas(datos, reglas.salvajes).filter((e) => !nunca.has(e.id));
   const modo = reglas.salvajes.modo;
   const nivel = reglas.salvajes.nivel;
   for (const area of datos.salvajes) {
+    // Los que no pueden salir en esa zona (en la Zona Safari, los que no dejan huir)
+    const lista = area.prohibir ? todos.filter((e) => !area.prohibir(e)) : todos;
     // En cada archivo (una ruta), cada especie original pasa a ser otra distinta, igual en todas
     // sus zonas y estaciones. Con «variedad», cada hueco se sortea por separado (como en el Universal Pokémon
     // Randomizer): en una ruta con solo Starly y Bidoof salen tantas especies como huecos, no dos
@@ -876,8 +884,8 @@ function equilibrarPrecios(datos, objetos) {
 
 export async function randomizarROM(bytes, reglasEntrada, semilla) {
   const reglas = completarReglas(reglasEntrada);
-  // Una ROM de DS (los bytes) o un juego de 3DS ya preparado (ver ./rom-3ds.js)
-  const rom = bytes.es3DS || bytes.esSwitch ? bytes : new RomNDS(bytes);
+  // Una ROM de DS o de GBA (los bytes) o un juego de 3DS ya preparado (ver ./rom-3ds.js)
+  const rom = bytes.es3DS || bytes.esSwitch ? bytes : esRomGBA(bytes) ? new RomGBA(bytes) : new RomNDS(bytes);
   const M = await cargarMotor(rom);
   // La hierba de los pueblos, antes de leer nada (sus Pokémon son salvajes como los demás)
   // (en 3DS carga antes lo que le falta: puede tardar)

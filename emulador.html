@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emulador · NuzTheLocke</title>
+  <!-- El emulador de la sección «Jugar» (js/jugar/index.js), que la mete en un marco: así
+       EmulatorJS (sus variables, su estilo) no se mezcla con la web, y pararlo es quitar el marco.
+       EmulatorJS (GPL-3.0) y sus núcleos mGBA (MPL-2.0) y melonDS (GPL-3.0) se bajan de su propia web
+       (cdn.emulatorjs.org), sin cambios. La ROM no sale del navegador. El firmware de la DS lo hace la web
+       (js/jugar/firmware-ds.js). -->
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    #juego { width: 100%; height: 100%; }
+    /* Sin la interfaz de EmulatorJS: los botones, el mando táctil y los ajustes los pone la web */
+    .ejs_menu_bar, .ejs_virtualGamepad_parent, .ejs_virtualGamepad_open, .ejs_context_menu { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="juego"></div>
+  <script>
+    // La versión, fija: una nueva podría cambiar lo que lee la web (el estado del emulador)
+    const DATOS = "https://cdn.emulatorjs.org/4.2.3/data/";
+
+    // Para el directo (js/jugar/directo.js): el sonido del juego también a una salida que se puede mandar. Todo lo
+    // que va a los altavoces va también ahí (EmulatorJS no da otra forma de sacarlo).
+    const salidasDeSonido = [];
+    const conectar = AudioNode.prototype.connect;
+    AudioNode.prototype.connect = function (destino, ...resto) {
+      const resultado = conectar.call(this, destino, ...resto);
+      if (destino instanceof AudioDestinationNode) {
+        let salida = salidasDeSonido.find((s) => s.context === this.context);
+        if (!salida) {
+          salida = this.context.createMediaStreamDestination();
+          salidasDeSonido.push(salida);
+        }
+        conectar.call(this, salida);
+      }
+      return resultado;
+    };
+
+    // El filtro de la pantalla: uno de los de EmulatorJS («bicubic»: suave) o «disabled» (nítido, como sale)
+    window.ponerFiltro = (nombre) => {
+      if (window.EJS_emulator && window.EJS_emulator.gameManager) window.EJS_emulator.enableShader(nombre);
+    };
+
+    // La imagen y el sonido del juego, para mandarlos (null si el juego aún no ha arrancado)
+    window.capturarDirecto = () => {
+      const lienzo = document.querySelector("#juego canvas");
+      if (!lienzo || !lienzo.captureStream) return null;
+      const medios = lienzo.captureStream(30);
+      // Copias: al acabar el directo se paran sin dejar mudo el juego para el siguiente
+      for (const salida of salidasDeSonido) for (const pista of salida.stream.getAudioTracks()) medios.addTrack(pista.clone());
+      return medios;
+    };
+
+    // Lo llama la sección: { nucleo («gba» o «melonds»), bytes y archivo de la ROM (el nombre decide dónde se
+    // guarda la partida: uno por partida), firmware (el de la DS, js/jugar/firmware-ds.js), nombre, ingles,
+    // alEmpezar(emulador) }
+    // opciones: las del núcleo con las que arranca (las pantallas de la DS)
+    window.arrancar = ({ nucleo = "gba", bytes, archivo, firmware, nombre, ingles, opciones = {}, alEmpezar }) => {
+      window.EJS_defaultOptions = opciones;
+      // El firmware, junto a la ROM (es donde lo busca melonDS) y antes de que arranque el juego
+      let firmwarePuesto = !firmware;
+      const ponerFirmware = (FS) => {
+        FS.writeFile("/firmware.bin", new Uint8Array(firmware));
+        firmwarePuesto = true;
+      };
+      if (firmware) window.EJS_ready = () => window.EJS_emulator.on("saveDatabaseLoaded", ponerFirmware);
+      window.EJS_player = "#juego";
+      window.EJS_core = nucleo;
+      // El File se hace aquí dentro: EmulatorJS mira si es un File de esta página, y uno hecho
+      // en la de fuera no lo es (lo toma por una dirección y da «Error de red»)
+      window.EJS_gameUrl = new File([bytes], archivo);
+      window.EJS_gameName = nombre;
+      window.EJS_pathtodata = DATOS;
+      window.EJS_language = ingles ? "en-US" : "es-ES";
+      window.EJS_startOnLoaded = true;
+      window.EJS_color = "#e0574a";
+      window.EJS_backgroundColor = "#000";
+      // Sin lo que aquí sobra: el juego en red de EmulatorJS (necesita su propio servidor) y su
+      // gestor de ROMs guardadas (la web ya guarda la tuya)
+      window.EJS_Buttons = { netplay: false, cacheManager: false };
+      window.EJS_onGameStart = () => {
+        // El teclado lo lleva la web (js/jugar/index.js): aquí solo se dejan los mandos
+        // (value2); con las teclas de EmulatorJS, cada tecla contaría dos veces
+        for (const botones of Object.values(window.EJS_emulator.controls || {})) {
+          for (const boton of Object.values(botones || {})) if (boton) delete boton.value;
+        }
+        // Si no dio tiempo a ponerlo antes, ahora, y el juego vuelve a empezar (lo lee al encenderse)
+        if (!firmwarePuesto) {
+          const juego = window.EJS_emulator.gameManager;
+          ponerFirmware(juego.FS);
+          juego.restart();
+        }
+        alEmpezar(window.EJS_emulator);
+      };
+      const script = document.createElement("script");
+      script.src = DATOS + "loader.js";
+      document.body.appendChild(script);
+    };
+  </script>
+</body>
+</html>

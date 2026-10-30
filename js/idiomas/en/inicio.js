@@ -1,7 +1,9 @@
 // Inicio (js/inicio/index.js). Las notas y avisos de arriba van en los dos idiomas allí mismo.
 
 export default {
-  "Notas y avisos": "News and notices",
+  "Notas y avisos": "Notes and notices",
+  "Novedades": "What's new",
+  "Ver todas ({n})": "See all ({n})",
   "Bienvenido a NuzTheLocke": "Welcome to NuzTheLocke",
   "Todo lo que necesitas para jugar <b>Nuzlockes</b> (y cualquier otro locke) en un solo sitio: tus equipos, las rutas, los level caps, una calculadora de daño, un randomizer… y lockes compartidos con tus amigos.":
     "Everything you need to play <b>Nuzlockes</b> (and any other locke) in one place: your teams, routes, level caps, a damage calculator, a randomizer… and lockes shared with your friends.",

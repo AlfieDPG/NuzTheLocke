@@ -4,6 +4,7 @@
 //   · Tus lockes en marcha, con tus vidas y victorias: pulsando uno se va a él en «Lockes».
 //   · Los amigos conectados ahora mismo.
 //   · Tus últimos equipos guardados.
+//   · Novedades: lo último que ha salido en la web (debajo de los lockes).
 //   · Notas y avisos del desarrollador para todos los usuarios, y un cuadro para mandarle
 //     sugerencias.
 //
@@ -57,17 +58,17 @@ const NOTA_INICIO = {
 const AVISOS = [
   {
     icono: "mezclar", color: "160, 205, 80",
-    es: `El <b>Randomizer</b> ya funciona con ROMs de <b>NDS, 3DS y Switch</b> (Espada / Escudo y
-      Diamante Brillante / Perla Reluciente). Los de GBA, en camino.`,
-    en: `The <b>Randomizer</b> now works with <b>NDS, 3DS and Switch</b> ROMs (Sword / Shield and
-      Brilliant Diamond / Shining Pearl). GBA games are on the way.`
+    es: `El <b>Randomizer</b> funciona con ROMs de <b>GBA</b> (Rojo Fuego / Verde Hoja), <b>NDS, 3DS
+      y Switch</b> (Espada / Escudo y Diamante Brillante / Perla Reluciente).`,
+    en: `The <b>Randomizer</b> works with <b>GBA</b> (FireRed / LeafGreen), <b>NDS, 3DS and
+      Switch</b> ROMs (Sword / Shield and Brilliant Diamond / Shining Pearl).`
   },
   {
     icono: "enlace", color: "214, 88, 76",
-    es: `Puedes <b>vincular tu partida</b> a un locke con todos los juegos de DS, 3DS y Switch, ahora
-      también con Diamante Brillante y Perla Reluciente.`,
-    en: `You can <b>link your save file</b> to a locke with every DS, 3DS and Switch game, now
-      including Brilliant Diamond and Shining Pearl.`
+    es: `Puedes <b>vincular tu partida</b> a un locke con Rojo Fuego / Verde Hoja y todos los juegos
+      de DS, 3DS y Switch.`,
+    en: `You can <b>link your save file</b> to a locke with FireRed / LeafGreen and every DS, 3DS
+      and Switch game.`
   },
   {
     icono: "ayuda", color: "91, 141, 239",
@@ -84,6 +85,120 @@ const AVISOS = [
       would be piracy and I don't fancy going to jail :)`
   }
 ];
+
+// ---------- Novedades ----------
+//
+// Lo último que ha salido, en el orden en que se enseña (lo más importante, primero: no tiene por
+// qué ir por fechas). En Inicio salen las NOVEDADES_A_LA_VISTA primeras y el resto en «Ver todas».
+// Cada una lleva a su sección (vista) al pulsarla, con su icono y el color de esa sección. Mismo
+// formato de textos que los avisos.
+
+const NOVEDADES_A_LA_VISTA = 3;
+
+const NOVEDADES = [
+  {
+    fecha: "2026-10-29", vista: "jugar", icono: "consola", color: "186, 62, 102",
+    es: `Nueva sección <b>Jugar</b>: juega a Rojo Fuego, Verde Hoja y los Pokémon de DS desde la web.
+      Tu equipo y tus capturas se apuntan solos en el locke.`,
+    en: `New <b>Play</b> section: play FireRed, LeafGreen and the DS Pokémon games in the browser.
+      Your team and catches are recorded in your locke automatically.`
+  },
+  {
+    fecha: "2026-10-26", vista: "foro", icono: "mensaje", color: "196, 128, 214",
+    es: `Nueva sección <b>Foro</b>: busca compañeros para tu próximo locke, pide ayuda o charla, y
+      habla en privado con tus amigos.`,
+    en: `New <b>Forum</b> section: find partners for your next locke, ask for help or chat, and
+      message your friends privately.`
+  },
+  {
+    fecha: "2026-10-27", vista: "juegos", icono: "mando", color: "76, 182, 92",
+    es: `Nueva sección <b>Juegos</b>: retos diarios (silueta, pistas, gritos...) que dan
+      Pokédólares para la tienda y huevos para tu colección.`,
+    en: `New <b>Games</b> section: daily challenges (silhouette, clues, cries...) that earn
+      Pokédollars for the shop and eggs for your collection.`
+  },
+  {
+    fecha: "2026-10-30", vista: "jugar", icono: "directo", color: "186, 62, 102",
+    es: `<b>En directo</b>: emite tu partida de «Jugar» y tus amigos la ven con sonido y chat.`,
+    en: `<b>Live</b>: stream your “Play” game and your friends watch it with sound and chat.`
+  },
+  {
+    fecha: "2026-10-30", vista: "lockes", icono: "espadas", color: "214, 88, 76",
+    es: `<b>Combates en Showdown</b>: en los combates de un locke, copia tu equipo y abre Showdown
+      para retar a tu rival.`,
+    en: `<b>Showdown battles</b>: in a locke's battles, copy your team and open Showdown to
+      challenge your rival.`
+  },
+  {
+    fecha: "2026-10-30", vista: "jugar", icono: "ajustes", color: "186, 62, 102",
+    es: `«Jugar» renovado: velocidad, volumen, <b>cambiar teclas</b>, filtro de pantalla y cómo
+      ver las dos pantallas de DS.`,
+    en: `“Play” revamped: speed, volume, <b>key remapping</b>, screen filter and how to show the
+      two DS screens.`
+  },
+  {
+    fecha: "2026-10-29", vista: "randomizer", icono: "mezclar", color: "160, 205, 80",
+    es: `<b>Randomizer de Rojo Fuego / Verde Hoja</b>, y «Randomizar y jugar» para empezar a jugar
+      la ROM al momento.`,
+    en: `<b>FireRed / LeafGreen Randomizer</b>, and “Randomize and play” to start playing the ROM
+      right away.`
+  }
+];
+
+function fechaNovedad(fecha) {
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  return new Date(anio, mes - 1, dia).toLocaleDateString(LOCALE, { day: "numeric", month: "short" });
+}
+
+function plantillaNovedad(novedad) {
+  return `
+    <li>
+      <button class="inicio-novedad" data-vista="${novedad.vista}" style="--color-aviso: ${novedad.color}">
+        <span class="inicio-aviso-icono">${icono(novedad.icono)}</span>
+        <span class="inicio-novedad-texto">
+          <span class="inicio-novedad-fecha">${fechaNovedad(novedad.fecha)}</span>
+          ${segunIdioma(novedad.es, novedad.en)}
+        </span>
+      </button>
+    </li>`;
+}
+
+function plantillaNovedades() {
+  if (!NOVEDADES.length) return "";
+  const resto = NOVEDADES.length - NOVEDADES_A_LA_VISTA;
+  return `
+    <section class="inicio-bloque inicio-novedades">
+      <h2>${icono("estrella")} ${t("Novedades")}</h2>
+      <ul class="inicio-novedades-lista">${NOVEDADES.slice(0, NOVEDADES_A_LA_VISTA).map(plantillaNovedad).join("")}</ul>
+      ${resto > 0
+        ? `<div class="inicio-pie"><button class="inicio-novedades-todas">${t("Ver todas ({n})", { n: NOVEDADES.length })}</button></div>`
+        : ""}
+    </section>`;
+}
+
+// «Ver todas»: una ventana con la lista entera (se crea la primera vez)
+function abrirNovedades() {
+  let dialogo = document.querySelector("#dialogo-novedades");
+  if (!dialogo) {
+    dialogo = document.createElement("dialog");
+    dialogo.id = "dialogo-novedades";
+    dialogo.className = "dialogo-sesion";
+    document.body.append(dialogo);
+    dialogo.addEventListener("click", (e) => {
+      if (e.target.closest(".novedades-cerrar")) return dialogo.close();
+      const destino = e.target.closest("[data-vista]");
+      if (destino) {
+        dialogo.close();
+        irA(destino.dataset.vista);
+      }
+    });
+  }
+  dialogo.innerHTML = `
+    <h2>${t("Novedades")}</h2>
+    <ul class="inicio-novedades-lista">${NOVEDADES.map(plantillaNovedad).join("")}</ul>
+    <div class="dialogo-botones"><button class="boton-gris novedades-cerrar">${t("Cerrar")}</button></div>`;
+  dialogo.showModal();
+}
 
 function plantillaAvisos() {
   const nota = segunIdioma(NOTA_INICIO.es, NOTA_INICIO.en).trim();
@@ -117,7 +232,7 @@ const SECCIONES = [
     texto: "Marca dónde ya has hecho la captura en cada juego." },
   { vista: "levelcaps", icono: "escudo", color: "0, 184, 169", nombre: "Level caps",
     texto: "El nivel máximo antes de cada combate importante." },
-  { vista: "pokedex", icono: "pokedex", color: "240, 100, 130", nombre: "Pokédex",
+  { vista: "pokedex", icono: "pokedex", color: "232, 82, 110", nombre: "Pokédex",
     texto: "Las estadísticas base de todos los Pokémon, para ordenar a tu gusto." },
   { vista: "calculadora", icono: "calculadora", color: "155, 110, 230", nombre: "Calculadora",
     texto: "Cuánto daño hace cada ataque y en cuántos golpes cae." },
@@ -359,7 +474,7 @@ function pintar() {
     ${invitado() ? plantillaBienvenida() : ""}
     ${conSesion()
       ? `<div class="inicio-columnas">
-           ${plantillaLockes()}
+           <div class="inicio-lado inicio-izq">${plantillaLockes()}${plantillaNovedades()}</div>
            <div class="inicio-lado">${plantillaAmigos()}${plantillaEquipos()}</div>
          </div>`
       : ""}
@@ -474,6 +589,7 @@ export function iniciar() {
   seccion = document.querySelector("#vista-inicio");
 
   seccion.addEventListener("click", (e) => {
+    if (e.target.closest(".inicio-novedades-todas")) return abrirNovedades();
     const locke = e.target.closest(".inicio-locke");
     if (locke) return irAlLocke(locke.dataset.id);
     const destino = e.target.closest("[data-vista]");

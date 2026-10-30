@@ -39,6 +39,7 @@
 .random-elegir,
 .random-elegir-carpeta,
 .random-vaciar,
+.random-jugar,
 .random-ir {
   display: inline-flex;
   align-items: center;
@@ -105,6 +106,21 @@
 }
 
 .random-ir:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* «Randomizar y jugar» (las de GBA): al lado, con el color de «Jugar» */
+.random-jugar {
+  background: var(--t-panel);
+  color: color-mix(in srgb, rgb(186, 62, 102) 75%, var(--t-texto));
+}
+
+.random-jugar:hover:not(:disabled) {
+  background: var(--t-panel-5);
+}
+
+.random-jugar:disabled {
   opacity: 0.4;
   cursor: default;
 }

@@ -17,7 +17,7 @@ const APARTADOS = ["rutas", "ciudades", "postgame", "eventos"];
 
 // Ediciones de cada juego: los Pokémon que vienen de otro juego no cuentan
 const EDICIONES = {
-  dp: ["Diamante", "Perla"], platino: ["Platino"], hgss: ["HeartGold", "SoulSilver"], bw: ["Negro", "Blanco"],
+  frlg: ["Rojo Fuego", "Verde Hoja"], dp: ["Diamante", "Perla"], platino: ["Platino"], hgss: ["HeartGold", "SoulSilver"], bw: ["Negro", "Blanco"],
   b2w2: ["Negro 2", "Blanco 2"], xy: ["X", "Y"], oras: ["Rubí Omega", "Zafiro Alfa"], sm: ["Sol", "Luna"], usum: ["Ultrasol", "Ultraluna"],
   swsh: ["Espada", "Escudo"], bdsp: ["Diamante Brillante", "Perla Reluciente"]
 };

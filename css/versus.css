@@ -2496,9 +2496,10 @@ button.salon-cara:hover {
   margin-bottom: 0.9rem;
 }
 
+/* Todo en una línea: foto, nombre, el equipo y los botones */
 .combate-equipo {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.6rem;
@@ -2516,17 +2517,25 @@ button.salon-cara:hover {
 }
 
 .combate-equipo-nombre {
-  display: flex;
-  flex-direction: column;
-  min-width: 5rem;
+  flex: 0 1 auto;
+  min-width: 2.5rem;
+  overflow: hidden;
   font-weight: bold;
   font-size: 0.9rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.combate-equipo-nombre small {
-  font-weight: normal;
-  font-size: 0.75rem;
-  opacity: 0.7;
+/* Los seis retratos en fila, algo más pequeños que en otras partes */
+.combate-equipo .caras-equipo {
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 0.1rem;
+}
+
+.combate-equipo .cara-equipo img {
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
 .combate-sin-equipo {
@@ -2534,13 +2543,53 @@ button.salon-cara:hover {
   opacity: 0.5;
 }
 
-.combate-elegir-equipo {
+/* «Showdown» y «Cambiar», juntos a la derecha */
+.combate-equipo-botones {
   display: inline-flex;
-  align-items: center;
+  flex: none;
   gap: 0.35rem;
   margin-left: auto;
 }
 
+.combate-equipo-botones:not(:has(button)) {
+  display: none;
+}
+
+.combate-elegir-equipo,
+.combate-showdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Es un enlace (abre Showdown): con la misma pinta que «Cambiar» */
+.combate-showdown {
+  text-decoration: none;
+}
+
+/* Recién copiado: en verde un momento */
+.combate-showdown.copiado {
+  background: rgba(var(--t-verde-rgb, 82, 183, 136), 0.25);
+  color: var(--t-texto-fuerte);
+}
+
+.combate-showdown-ayuda {
+  margin: -0.4rem 0 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.8;
+}
+
+.combate-showdown-ayuda.error {
+  color: var(--t-rojo, #e0574a);
+  opacity: 1;
+}
+
+.combate-showdown .icono,
 .combate-elegir-equipo .icono {
   width: 1rem;
   height: 1rem;
@@ -2588,7 +2637,8 @@ button.salon-cara:hover {
 
 .locke-partida-vincular,
 .locke-partida-reanudar,
-.locke-partida-muertos {
+.locke-partida-muertos,
+.locke-partida-jugar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2611,12 +2661,18 @@ button.salon-cara:hover {
 
 .locke-partida-vincular:hover,
 .locke-partida-reanudar:hover,
-.locke-partida-muertos:hover {
+.locke-partida-muertos:hover,
+.locke-partida-jugar:hover {
   background: var(--t-control-2);
 }
 
 .locke-partida-reanudar {
   color: var(--color-locke, rgb(var(--color-vista)));
+}
+
+/* «Jugar» (el emulador de la web), en el color de esa sección */
+.locke-partida-jugar {
+  color: color-mix(in srgb, rgb(186, 62, 102) 75%, var(--t-texto));
 }
 
 .locke-partida-muertos {
@@ -4463,6 +4519,11 @@ button.locke-caidos:hover .locke-caidos-caras img {
 
 :is(#dialogo-combate, #dialogo-terminar, #dialogo-salon) {
   width: min(34rem, 94vw);
+}
+
+/* Algo más ancho: cada equipo va en una sola línea con sus dos botones */
+#dialogo-combate {
+  width: min(38rem, 94vw);
 }
 
 #dialogo-muerte {

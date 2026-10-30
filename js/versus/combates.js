@@ -3,7 +3,7 @@
 // Cómo se gana un locke: hay que pasarse la ROM. Si no se la pasa nadie, no gana nadie; si
 // solo uno, ese, aunque fuese perdiendo los combates; si varios, el que más combates gana. Los
 // combates (cuántos y cuándo: «tras la 3ª medalla», «Liga»...) los pone quien crea el locke, y
-// cada uno se juega fuera (en Showdown) y aquí se apunta quién ganó y cómo (al mejor de 3: 2-0,
+// cada uno se juega fuera (en Showdown: el botón «Showdown» copia tu equipo y lo abre) y aquí se apunta quién ganó y cómo (al mejor de 3: 2-0,
 // 2-1). Con 3 o más jugadores, cada combate lo gana uno y le suma un punto: vale para un
 // todos contra todos o para un torneo por rondas.
 //
@@ -26,6 +26,7 @@ import {
 } from "../comun/lockes.js";
 import { equipoParaCombate } from "../partida/partidas.js";
 import { confirmar } from "../comun/ventanas.js";
+import { pasteDelEquipo, copiarAlPortapapeles } from "../equipos/exportar.js";
 import { campoNumero } from "../comun/numero.js";
 import { t } from "../comun/idioma.js";
 
@@ -122,6 +123,9 @@ export function plantillaSalon(locke, uid, mio) {
 // ---------- Apuntar un combate ----------
 
 let dialogoCombate = null;
+// El editor de equipos de Showdown: ahí se importa el equipo copiado
+const SHOWDOWN = "https://play.pokemonshowdown.com/teambuilder";
+
 let enCombate = null; // { id (locke), idCombate, puntos: { uid: combates ganados } }
 
 // Quién va ganando con esos puntos: el que más tiene, si es uno solo y más que 0
@@ -195,13 +199,19 @@ function pintarCombate() {
     .map((uid) => {
       const equipo = equipoDeCombate(locke, uid, enCombate.idCombate);
       const mio = uid === yo && !soloVer;
+      // Tu equipo, copiado como paste para importarlo en Showdown (que se abre en otra pestaña)
+      const showdown = uid === yo && equipo
+        ? `<a class="boton-gris combate-showdown" href="${SHOWDOWN}" target="_blank" rel="noopener" title="${t("Copia tu equipo y abre Showdown para importarlo")}">${icono("copiar")} Showdown</a>`
+        : "";
       return `
         <div class="combate-equipo ${uid === yo ? "mio" : ""}">
           ${fotoDe(locke, uid, "combate-opcion-foto")}
-          <span class="combate-equipo-nombre">${escaparHTML(nombreDe(locke, uid))}
-            ${equipo ? `<small>${escaparHTML(equipo.nombre)}</small>` : ""}</span>
+          <span class="combate-equipo-nombre">${escaparHTML(nombreDe(locke, uid))}</span>
           ${equipo ? carasDeEquipo(equipo) : `<span class="combate-sin-equipo">${t("Sin equipo")}</span>`}
-          ${mio ? `<button type="button" class="boton-gris combate-elegir-equipo">${icono("pokeball")} ${equipo ? t("Cambiar") : t("Elegir")}</button>` : ""}
+          <span class="combate-equipo-botones">
+            ${showdown}
+            ${mio ? `<button type="button" class="boton-gris combate-elegir-equipo">${icono("pokeball")} ${equipo ? t("Cambiar") : t("Elegir")}</button>` : ""}
+          </span>
         </div>`;
     })
     .join("");
@@ -216,6 +226,7 @@ export function abrirCombate(id, idCombate) {
   if (!locke) return;
   const resultado = (locke.resultados || {})[idCombate] || {};
   enCombate = { id, idCombate, puntos: puntosDe(locke, resultado) };
+  dialogoCombate.querySelector(".combate-showdown-ayuda").hidden = true;
   pintarCombate();
   dialogoCombate.showModal();
 }
@@ -332,6 +343,31 @@ export function iniciarCombates(fallo) {
 
   // Combate
   dialogoCombate.addEventListener("click", async (e) => {
+    // «Showdown» es un enlace: abre Showdown en otra pestaña él solo. Antes, en el mismo clic, se
+    // copia el equipo (la copia empieza ya, antes de que la pestaña nueva se lleve el foco)
+    const showdown = e.target.closest(".combate-showdown");
+    if (showdown) {
+      const locke = lockePorId(enCombate.id);
+      const equipo = locke && equipoDeCombate(locke, usuarioActual().uid, enCombate.idCombate);
+      if (!equipo) return;
+      const copiado = await copiarAlPortapapeles(pasteDelEquipo(equipo.pokemon || []));
+      const ayuda = dialogoCombate.querySelector(".combate-showdown-ayuda");
+      ayuda.hidden = false;
+      ayuda.classList.toggle("error", !copiado);
+      ayuda.textContent = copiado
+        ? t("Equipo copiado. En Showdown: «New Team» → «Import from text», pega el equipo (Ctrl+V) y «Save». Luego reta a tu rival con ese equipo.")
+        : t("No se ha podido copiar el equipo.");
+      if (copiado) {
+        showdown.classList.add("copiado");
+        showdown.innerHTML = `${icono("visto")} ${t("¡Copiado!")}`;
+        setTimeout(() => {
+          if (!showdown.isConnected) return;
+          showdown.classList.remove("copiado");
+          showdown.innerHTML = `${icono("copiar")} Showdown`;
+        }, 2500);
+      }
+      return;
+    }
     const elegir = e.target.closest(".combate-elegir-equipo");
     if (elegir) {
       const { id, idCombate } = enCombate;

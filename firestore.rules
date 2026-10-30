@@ -12,7 +12,9 @@ rules_version = '2';
 //                            ver el palmarés de un amigo). Lo escribe su dueño. Sin correo.
 //   motes/{mote}          -> qué cuenta tiene cada mote. Uno por persona, sin repetidos.
 //   correos/{correo}      -> ya no se usa (antes: buscar por correo). Cada uno solo puede borrar el suyo.
-//   presencia/{uid}       -> cuándo se vio a cada uno con la web abierta. Lo escribe su dueño.
+//   presencia/{uid}       -> cuándo se vio a cada uno con la web abierta (y, si emite, a qué juega en directo).
+//                            Lo escribe su dueño.
+//   directos/{uid}/espectadores/{suUid} -> para conectarse al directo de un amigo. Solo los dos. Ver «Directos».
 //   amistades/{par}       -> solo los dos implicados. El id es los dos uid ordenados.
 //   lockes/{id}           -> solo los que juegan ese locke. Cada uno toca SOLO sus vidas,
 //                            sus victorias y su respuesta a la invitación. Nombre, juego,
@@ -286,9 +288,11 @@ service cloud.firestore {
     match /presencia/{uid} {
       allow get: if identificado();
       allow create, update: if identificado() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['visto', 'conectado'])
+        && request.resource.data.keys().hasOnly(['visto', 'conectado', 'directo'])
         && request.resource.data.visto == request.time
-        && request.resource.data.conectado is bool;
+        && request.resource.data.conectado is bool
+        && (!('directo' in request.resource.data)
+          || (request.resource.data.directo is string && request.resource.data.directo.size() <= 60));
       allow delete: if identificado() && request.auth.uid == uid;
     }
 
@@ -447,6 +451,44 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/chats/$(par)).data.enviado[request.auth.uid] == request.time;
 
       allow delete: if identificado() && request.auth.uid in par.split('_');
+    }
+
+    // ---------- Directos de «Jugar» ----------
+    //
+    // Ver la partida de un amigo mientras juega (js/jugar/directo.js). La imagen, el sonido y el chat van de un
+    // navegador a otro: aquí solo se presentan. Un documento por espectador, con su uid de id:
+    //
+    //   directos/{uid}/espectadores/{suUid}   { pedido, nombre, oferta?, respuesta? }
+    //
+    //   · Lo crea el espectador (solo si son amigos) con «pedido» y su nombre; quien emite escribe «oferta»; el
+    //     espectador, «respuesta». Cada uno solo lo suyo. Solo lo leen ellos dos; lo borra cualquiera de los dos.
+
+    match /directos/{uid}/espectadores/{suUid} {
+      function sonAmigos() {
+        let par = uid < suUid ? uid + '_' + suUid : suUid + '_' + uid;
+        return get(/databases/$(database)/documents/amistades/$(par)).data.estado == 'ok';
+      }
+
+      allow read: if identificado() && (request.auth.uid == uid || request.auth.uid == suUid);
+
+      allow create: if identificado() && request.auth.uid == suUid && suUid != uid && sonAmigos()
+        && request.resource.data.keys().hasOnly(['pedido', 'nombre'])
+        && request.resource.data.pedido == request.time
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() <= 40;
+
+      allow update: if identificado() && sonAmigos() && (
+        (request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['oferta'])
+          && request.resource.data.oferta is string
+          && request.resource.data.oferta.size() <= 20000)
+        || (request.auth.uid == suUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['respuesta'])
+          && request.resource.data.respuesta is string
+          && request.resource.data.respuesta.size() <= 20000)
+      );
+
+      allow delete: if identificado() && (request.auth.uid == uid || request.auth.uid == suUid);
     }
 
     match /bloqueos/{id} {

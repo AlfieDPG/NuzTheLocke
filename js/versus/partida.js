@@ -14,6 +14,7 @@
 // que has editado tu partida.
 
 import { icono } from "../comun/iconos.js";
+import { escribir } from "../comun/almacen.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { confirmar, avisar as avisarVentana } from "../comun/ventanas.js";
 import { usuarioActual } from "../comun/nube.js";
@@ -88,11 +89,17 @@ export function plantillaPartida(locke) {
       : `<button class="locke-partida-vincular">${icono("subir")} ${t("Leer partida")}</button>`;
   }
 
+  // Rojo Fuego / Verde Hoja y los de DS también se juegan desde la web (js/jugar)
+  const jugar = ["frlg", "dp", "platino", "hgss", "bw", "b2w2"].includes(locke.juego)
+    ? `<button class="locke-partida-jugar" title="${t("Jugar desde la web")}">${icono("consola")} ${t("Jugar")}</button>`
+    : "";
+
   return `
     <div class="locke-partida">
       ${partida ? `<button class="locke-partida-abrir" title="${t("Ver cajas")}">${carasDeEquipo({ nombre: t("Equipo de la partida"), pokemon: partida.equipo })}</button>` : ""}
       ${pendientes ? `<button class="locke-partida-muertos" title="${t("Muertos por apuntar")}">${icono("calavera")} ${pendientes}</button>` : ""}
       ${accion}
+      ${jugar}
       <button class="locke-partida-ayuda" title="${t("Cómo funciona")}">?</button>
     </div>`;
 }
@@ -115,6 +122,10 @@ export function accionPartida(boton, id) {
     abrirPartida(id);
   } else if (boton.classList.contains("locke-partida-muertos")) {
     proponerMuertos(id, false);
+  } else if (boton.classList.contains("locke-partida-jugar")) {
+    // La misma clave que CLAVE_ELEGIDO de js/jugar/index.js
+    escribir("poketeams-jugar-v1", { locke: id });
+    import("../navegacion.js").then(({ irA }) => irA("jugar"));
   } else if (boton.classList.contains("locke-partida-ayuda")) {
     document.querySelector("#dialogo-ayuda-partida").showModal();
   } else {
@@ -153,12 +164,12 @@ function avisarInfracciones(locke, infracciones) {
   );
 }
 
-async function alLeer(id, bytes, archivo) {
+async function alLeer(id, bytes, archivo, enVivo = null) {
   const locke = lockePorId(id);
   if (!locke) return false; // los lockes todavía no han llegado: en el siguiente vistazo
   if (locke.estado === "cerrado") return true; // ya no se lee: no vuelve a marcar «Rutas»
 
-  const resultado = await procesarArchivo(locke, bytes, archivo);
+  const resultado = await procesarArchivo(locke, bytes, archivo, enVivo);
   if (resultado.error) {
     if (resultado.reintentar) return false;
     // Puede que el emulador estuviera guardando: se mira otra vez antes de darlo por malo

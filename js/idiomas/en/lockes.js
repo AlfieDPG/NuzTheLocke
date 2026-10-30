@@ -185,6 +185,10 @@ export default {
   "Copiado a «Mis equipos», pero algunas cosas no se han podido reconocer:": "Copied to “My teams”, but some things couldn't be recognised:",
   "Copiado a «Mis equipos» ✔": "Copied to “My teams” ✔",
   "No se ha podido copiar el equipo.": "The team couldn't be copied.",
+  "¡Copiado!": "Copied!",
+  "Copia tu equipo y abre Showdown para importarlo": "Copies your team and opens Showdown to import it",
+  "Equipo copiado. En Showdown: «New Team» → «Import from text», pega el equipo (Ctrl+V) y «Save». Luego reta a tu rival con ese equipo.":
+    "Team copied. In Showdown: “New Team” → “Import from text”, paste the team (Ctrl+V) and “Save”. Then challenge your rival with that team.",
   "Copiar la caja como paste de Showdown": "Copy the box as a Showdown paste",
   "Copiada": "Copied",
   "No se ha podido exportar la caja.": "The box couldn't be exported.",

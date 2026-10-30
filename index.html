@@ -42,6 +42,7 @@
   <link rel="stylesheet" href="css/foro.css">
   <link rel="stylesheet" href="css/chat.css">
   <link rel="stylesheet" href="css/versus.css">
+  <link rel="stylesheet" href="css/jugar.css">
   <link rel="stylesheet" href="css/pokedex.css">
   <link rel="stylesheet" href="css/logros.css">
   <link rel="stylesheet" href="css/juegos.css">
@@ -61,6 +62,7 @@
 
         <!-- Los grupos del menú: un título pequeño sobre cada uno, sin cajas ni líneas -->
         <span class="menu-titulo">Partida</span>
+        <button data-vista="jugar" data-icono="consola" class="boton-seccion">Jugar</button>
         <button data-vista="rutas" data-icono="mapa" class="boton-seccion">Rutas</button>
         <button data-vista="levelcaps" data-icono="escudo" class="boton-seccion">Level caps</button>
         <button data-vista="normas" data-icono="libro" class="boton-seccion">Normas</button>
@@ -88,6 +90,7 @@
           <button class="menu-mi-perfil"></button>
           <div class="cuentas-lista"></div>
           <button class="menu-anadir"></button>
+          <button class="menu-salir"></button>
         </div>
         <div class="sesion-usuario" hidden>
           <button class="sesion-perfil" title="Tu cuenta">
@@ -241,6 +244,29 @@
         </section>
 
         <section id="vista-randomizer" hidden></section>
+
+        <!-- Jugar (js/jugar/index.js): el emulador dentro de la web -->
+        <section id="vista-jugar" hidden>
+          <div class="jugar-barra"></div>
+          <div class="jugar-cuerpo">
+            <!-- Sin jugar: tus partidas (cada una con su ROM y su partida guardada) -->
+            <div class="jugar-partidas"></div>
+            <!-- La pantalla, los botones del emulador y el mando táctil (pantalla completa: todo junto) -->
+            <div class="jugar-consola" hidden>
+              <div class="jugar-pantalla"></div>
+              <!-- En las pantallas anchas de DS: tu equipo y los avisos en una tira, al lado de los botones -->
+              <div class="jugar-tira" hidden></div>
+              <div class="jugar-controles" hidden></div>
+              <div class="jugar-mando" hidden></div>
+            </div>
+            <!-- Mientras se juega: cajas con los avisos, tu equipo, las teclas y el directo -->
+            <aside class="jugar-lateral">
+              <div class="jugar-panel"></div>
+              <!-- Mientras emites en directo para tus amigos: quién te ve y el chat (js/jugar/directo.js) -->
+              <section class="jugar-caja jugar-directo" hidden></section>
+            </aside>
+          </div>
+        </section>
 
         <section id="vista-lockes" hidden>
           <div class="barra-versus">
@@ -803,6 +829,7 @@
     <p class="combate-estado" role="status"></p>
     <span class="etiqueta-campo">Equipos</span>
     <div class="combate-equipos"></div>
+    <p class="combate-showdown-ayuda" role="status" hidden></p>
     <div class="dialogo-botones">
       <button type="button" class="boton-gris boton-izquierda combate-borrar">Sin jugar</button>
       <button type="button" class="boton-gris combate-cancelar">Cancelar</button>
@@ -945,7 +972,7 @@
     <h2>Tu partida en el locke</h2>
     <div class="ayuda-partida">
       <h3>Vincular</h3>
-      <p>En X / Y, Rubí Omega / Zafiro Alfa, Sol / Luna y Ultrasol / Ultraluna eliges el archivo «main» de la partida del emulador (Citra o Lime3DS). En Diamante / Perla, Platino, HeartGold / SoulSilver, Negro / Blanco y Negro 2 / Blanco 2, el archivo de guardado (.dsv de DeSmuME o .sav). En Espada / Escudo, el archivo «main» de la partida, y en Diamante Brillante / Perla Reluciente, el «SaveData.bin» (de Eden, Ryujinx o yuzu, o los que saca JKSV de la consola). La web lo vuelve a leer cada vez que guardas en el juego. Solo en Chrome o Edge de ordenador; en otros navegadores se lee a mano.</p>
+      <p>En X / Y, Rubí Omega / Zafiro Alfa, Sol / Luna y Ultrasol / Ultraluna eliges el archivo «main» de la partida del emulador (Citra o Lime3DS). En Rojo Fuego / Verde Hoja, la .sav del emulador (mGBA, VisualBoyAdvance...), o juega desde la sección «Jugar» y no hace falta vincular nada. En Diamante / Perla, Platino, HeartGold / SoulSilver, Negro / Blanco y Negro 2 / Blanco 2, el archivo de guardado (.dsv de DeSmuME o .sav). En Espada / Escudo, el archivo «main» de la partida, y en Diamante Brillante / Perla Reluciente, el «SaveData.bin» (de Eden, Ryujinx o yuzu, o los que saca JKSV de la consola). La web lo vuelve a leer cada vez que guardas en el juego. Solo en Chrome o Edge de ordenador; en otros navegadores se lee a mano.</p>
       <h3>No me deja elegir el archivo</h3>
       <p data-t>Chrome y Edge no dejan elegir nada de dentro de las carpetas del sistema, como <b>AppData</b>, y muchos emuladores guardan ahí las partidas. Como la web tiene que leer la partida de verdad (no una copia), hay que decirle al emulador que la guarde en una carpeta normal, como Documentos:</p>
       <p data-t><b>Citra, Lime3DS o Azahar:</b> Configurar → Almacenamiento → cambia la carpeta de la tarjeta SD.<br><b>Eden, yuzu o Sudachi:</b> Emulación → Configurar → Sistema de archivos → cambia la carpeta de la NAND.<br>Antes de cambiarla, copia lo que había en la carpeta de antes a la nueva, o el emulador no verá tus partidas.</p>
@@ -971,6 +998,9 @@
     <h2>Cómo randomizar tu juego</h2>
     <div class="ayuda-partida">
       <p>Tu juego no sale nunca de tu ordenador: la web lo lee, lo randomiza aquí mismo y te lo da para descargar. Necesitas tu propia copia del juego.</p>
+
+      <h3>Game Boy Advance</h3>
+      <p data-t>Pulsa «Elegir ROM» y elige el archivo <b>.gba</b> de Rojo Fuego o Verde Hoja. Te descarga otro .gba, con «(random)» en el nombre: ábrelo en tu emulador (mGBA, VisualBoyAdvance...) o juégalo aquí mismo, en «Jugar». Si ya habías empezado partida, empieza una nueva: la partida de antes no se lleva bien con la ROM nueva.</p>
 
       <h3>Nintendo DS</h3>
       <p data-t>Pulsa «Elegir ROM» y elige el archivo <b>.nds</b>. Te descarga otro .nds, con «(random)» en el nombre: ábrelo en tu emulador (DeSmuME, melonDS...) en lugar del de siempre.</p>

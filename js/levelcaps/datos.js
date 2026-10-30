@@ -3,7 +3,8 @@
 // aprox: true -> nivel sin verificar del todo (se muestra con «≈»).
 // seccion: "..." -> el combate sale aparte, al final, bajo ese título (no cuenta para el level cap actual).
 //
-// Tipos: gimnasio, alto-mando, campeon, historia (rival, jefes, pruebas...), extra (después de la Liga)
+// Tipos: gimnasio, prueba (las de Alola, en lugar de gimnasios), alto-mando, campeon, historia (rival, jefes...),
+// extra (después de la Liga)
 
 import { TEXTOS_EN } from "./textos-en.js";
 import { LUGARES_EN } from "../rutas/lugares-en.js";
@@ -26,6 +27,7 @@ const gim = (n, nombre, lugar, nivel) => ({ tipo: "gimnasio", etiqueta: `Gimnasi
 const am = (nombre, nivel, extra = {}) => ({ tipo: "alto-mando", etiqueta: "Alto Mando", nombre, nivel, ...extra });
 const campeon = (nombre, nivel, extra = {}) => ({ tipo: "campeon", etiqueta: "Campeón", nombre, nivel, ...extra });
 const historia = (etiqueta, nombre, nivel, extra = {}) => ({ tipo: "historia", etiqueta, nombre, nivel, ...extra });
+const prueba = (etiqueta, nombre, nivel) => ({ tipo: "prueba", etiqueta, nombre, nivel });
 const extra = (etiqueta, nombre, nivel, lugar) => ({ tipo: "extra", etiqueta, nombre, nivel, lugar });
 
 // Diamante / Perla (en este orden de gimnasios: Brega y Mananti antes que Fantina)
@@ -185,17 +187,17 @@ const DATOS = [
   {
     id: "sm",
     combates: [
-      historia("Prueba de Liam", "Gumshoos / Raticate dominante", 12),
-      historia("Gran prueba (Melemele)", "Kahuna Hala", 15),
-      historia("Prueba de Nereida", "Wishiwashi dominante", 20),
-      historia("Prueba de Kiawe", "Salazzle / Marowak dominante", 22),
-      historia("Prueba de Lulú", "Lurantis dominante", 24),
-      historia("Gran prueba (Akala)", "Kahuna Mayla", 27),
-      historia("Prueba de Chris", "Vikavolt dominante", 29),
-      historia("Prueba de Zarala", "Mimikyu dominante", 33),
-      historia("Gran prueba (Ula-Ula)", "Kahuna Denio", 39),
-      historia("Cañón de Poni", "Kommo-o dominante", 45),
-      historia("Gran prueba (Poni)", "Kahuna Hela", 54),
+      prueba("Prueba de Liam", "Gumshoos / Raticate dominante", 12),
+      prueba("Gran prueba (Melemele)", "Kahuna Hala", 15),
+      prueba("Prueba de Nereida", "Wishiwashi dominante", 20),
+      prueba("Prueba de Kiawe", "Salazzle / Marowak dominante", 22),
+      prueba("Prueba de Lulú", "Lurantis dominante", 24),
+      prueba("Gran prueba (Akala)", "Kahuna Mayla", 27),
+      prueba("Prueba de Chris", "Vikavolt dominante", 29),
+      prueba("Prueba de Zarala", "Mimikyu dominante", 33),
+      prueba("Gran prueba (Ula-Ula)", "Kahuna Denio", 39),
+      prueba("Cañón de Poni", "Kommo-o dominante", 45),
+      prueba("Gran prueba (Poni)", "Kahuna Hela", 54),
       am("Hala", 55, { aprox: true }), am("Mayla", 55, { aprox: true }),
       am("Zarala", 55, { aprox: true }), am("Kahili", 55, { aprox: true }),
       campeon("Kukui", 58, { aprox: true })
@@ -205,18 +207,18 @@ const DATOS = [
     id: "usum",
     combates: [
       historia("Escuela de Entrenadores", "Profesora Emily", 10),
-      historia("Prueba de Liam", "Gumshoos / Raticate dominante", 12),
-      historia("Gran prueba (Melemele)", "Kahuna Hala", 16),
-      historia("Prueba de Nereida", "Araquanid dominante", 20),
-      historia("Prueba de Kiawe", "Marowak dominante", 22),
-      historia("Prueba de Lulú", "Lurantis dominante", 24),
-      historia("Gran prueba (Akala)", "Kahuna Mayla", 28),
-      historia("Prueba de Chris", "Togedemaru dominante", 33),
-      historia("Prueba de Zarala", "Mimikyu dominante", 35),
-      historia("Gran prueba (Ula-Ula)", "Kahuna Denio", 44),
-      historia("Cañón de Poni", "Kommo-o dominante", 49),
-      historia("Gran prueba (Poni)", "Kahuna Hela", 54),
-      historia("Prueba de Mina", "Ribombee dominante", 55),
+      prueba("Prueba de Liam", "Gumshoos / Raticate dominante", 12),
+      prueba("Gran prueba (Melemele)", "Kahuna Hala", 16),
+      prueba("Prueba de Nereida", "Araquanid dominante", 20),
+      prueba("Prueba de Kiawe", "Marowak dominante", 22),
+      prueba("Prueba de Lulú", "Lurantis dominante", 24),
+      prueba("Gran prueba (Akala)", "Kahuna Mayla", 28),
+      prueba("Prueba de Chris", "Togedemaru dominante", 33),
+      prueba("Prueba de Zarala", "Mimikyu dominante", 35),
+      prueba("Gran prueba (Ula-Ula)", "Kahuna Denio", 44),
+      prueba("Cañón de Poni", "Kommo-o dominante", 49),
+      prueba("Gran prueba (Poni)", "Kahuna Hela", 54),
+      prueba("Prueba de Mina", "Ribombee dominante", 55),
       historia("Ultrópolis", "Ultra Necrozma", 60),
       am("Hala", 57), am("Mayla", 57), am("Zarala", 57), am("Kahili", 57),
       campeon("Tilo", 60)

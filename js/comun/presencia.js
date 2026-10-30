@@ -10,7 +10,10 @@
 // por eso solo se apunta cada 3 minutos y no con la pestaña escondida (una pestaña
 // olvidada abierta todo el día gastaría casi 500).
 //
-//   presencia/{uid}  { visto: hora del servidor, conectado: true | false }
+//   presencia/{uid}  { visto: hora del servidor, conectado: true | false, directo?: a qué juegas en directo }
+//
+// «directo»: mientras emites tu partida de «Jugar» para tus amigos (js/jugar/directo.js), el juego. Va aquí y
+// no en otro documento para no escuchar uno más por amigo: sus fichas de «Amigos» ya escuchan este.
 
 import { usuarioActual, baseDeDatos, alCambiarSesion } from "./nube.js";
 import { alCambiarAmistades, amigosAceptados } from "./perfiles.js";
@@ -22,6 +25,7 @@ let temporizador = null;
 let latido = null;
 let borrando = false;            // borrando la cuenta: ya no se apunta nada (ni al irse)
 let ultimaMarca = 0;             // cuándo se apuntó «conectado» por última vez
+let miDirecto = "";              // a qué juego en directo (vacío: a nada)
 
 const presencias = new Map();    // uid -> { visto (ms), conectado }
 const escuchas = new Map();      // uid -> función para dejar de escuchar
@@ -32,6 +36,11 @@ const oyentes = new Set();
 export function estaConectado(uid) {
   const presencia = presencias.get(uid);
   return Boolean(presencia && presencia.conectado && Date.now() - presencia.visto < LIMITE);
+}
+
+// A qué juega en directo (vacío si no emite)
+export function directoDe(uid) {
+  return estaConectado(uid) ? presencias.get(uid).directo : "";
 }
 
 export function alCambiarPresencia(funcion) {
@@ -51,8 +60,16 @@ function apuntar(conectado) {
   if (!usuario || !acceso || borrando) return;
   const { bd, fn } = acceso;
   ultimaMarca = conectado ? Date.now() : 0;
-  fn.setDoc(fn.doc(bd, "presencia", usuario.uid), { visto: fn.serverTimestamp(), conectado })
+  const datos = { visto: fn.serverTimestamp(), conectado };
+  if (conectado && miDirecto) datos.directo = miDirecto;
+  fn.setDoc(fn.doc(bd, "presencia", usuario.uid), datos)
     .catch((error) => console.error("No se ha podido apuntar la conexión", error));
+}
+
+// Empiezas o dejas de emitir (texto: el juego; vacío: ya no): se apunta enseguida
+export function ponerMiDirecto(texto) {
+  miDirecto = String(texto || "").slice(0, 60);
+  apuntar(true);
 }
 
 function empezarAApuntar() {
@@ -102,7 +119,11 @@ function escucharAmigos() {
         (documento) => {
           const datos = documento.data();
           if (datos && datos.visto) {
-            presencias.set(uid, { visto: datos.visto.toMillis(), conectado: Boolean(datos.conectado) });
+            presencias.set(uid, {
+              visto: datos.visto.toMillis(),
+              conectado: Boolean(datos.conectado),
+              directo: typeof datos.directo === "string" ? datos.directo : ""
+            });
           } else {
             presencias.delete(uid);
           }

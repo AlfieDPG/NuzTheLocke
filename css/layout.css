@@ -77,14 +77,26 @@ main {
   overflow-y: auto;
 }
 
-/* El título de cada grupo del menú: letra pequeña y apagada, alineada con el texto de los botones */
+/* El título de cada grupo del menú: letra pequeña y apagada y una rayita neutra que sale de él
+   hasta el borde (como los apartados de Rutas, pero sin color). Fino, para que quepa el menú. */
 .menu-titulo {
-  margin: 0.35rem 0 -0.05rem 0.8rem;
-  font-size: 0.68rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.3rem 0 -0.1rem 0.8rem;
+  font-size: 0.62rem;
   font-weight: 800;
+  line-height: 1;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.5;
+  color: rgba(var(--t-texto-rgb), 0.5);
+}
+
+.menu-titulo::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(var(--t-tinte), 0.12);
 }
 
 .menu-lateral button {
@@ -114,7 +126,7 @@ main {
 .menu-lateral [data-vista="equipos"]     { --color-boton: 91, 141, 239; }
 .menu-lateral [data-vista="rutas"]       { --color-boton: 82, 183, 136; }
 .menu-lateral [data-vista="levelcaps"]   { --color-boton: 0, 184, 169; }
-.menu-lateral [data-vista="pokedex"]     { --color-boton: 240, 100, 130; }
+.menu-lateral [data-vista="pokedex"]     { --color-boton: 232, 82, 110; }
 .menu-lateral [data-vista="calculadora"] { --color-boton: 155, 110, 230; }
 .menu-lateral [data-vista="normas"]      { --color-boton: 205, 165, 100; }
 .menu-lateral [data-vista="ruleta"]      { --color-boton: 240, 150, 60; }
@@ -123,6 +135,7 @@ main {
 .menu-lateral [data-vista="amigos"]      { --color-boton: 80, 190, 215; }
 .menu-lateral [data-vista="logros"]      { --color-boton: 241, 196, 15; }
 .menu-lateral [data-vista="juegos"]      { --color-boton: 76, 182, 92; }
+.menu-lateral [data-vista="jugar"]       { --color-boton: 186, 62, 102; }
 
 .menu-lateral :is(button, summary) .icono {
   color: color-mix(in srgb, rgb(var(--color-boton, var(--t-texto-rgb))) var(--t-vivo), black);
@@ -601,7 +614,8 @@ button.cuenta:hover {
 }
 
 .menu-mi-perfil,
-.menu-anadir {
+.menu-anadir,
+.menu-salir {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -618,8 +632,16 @@ button.cuenta:hover {
 }
 
 .menu-mi-perfil:hover,
-.menu-anadir:hover {
+.menu-anadir:hover,
+.menu-salir:hover {
   background: rgba(var(--t-tinte), 0.08);
+}
+
+/* «Cerrar sesión», lo último y apartado de lo demás */
+.menu-salir {
+  border-top: 1px solid rgba(var(--t-tinte), 0.08);
+  border-radius: 0 0 0.45rem 0.45rem;
+  color: rgba(var(--t-texto-rgb), 0.8);
 }
 
 .menu-mi-perfil {
@@ -1453,6 +1475,20 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
   background: rgba(var(--t-tinte), 0.08);
 }
 
+/* La foto lleva a tu perfil y el resto al desplegable: encima de la foto se resalta solo ella */
+.sesion-foto {
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.sesion-perfil:has(.sesion-foto:hover) {
+  background: transparent;
+}
+
+.sesion-foto:hover {
+  transform: scale(1.12);
+  filter: brightness(1.15) drop-shadow(0 0 4px rgba(var(--color-vista), 0.7));
+}
+
 /* min-width: 0 deja que un nombre largo se corte con «…» en vez de echar la campana fuera */
 .sesion-nombre {
   min-width: 0;
@@ -1477,6 +1513,12 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 
 .sesion-boton:hover {
   background: var(--t-control);
+}
+
+/* Vacío no ocupa sitio (si no, el hueco entre los botones de la sesión se le suma) */
+.sesion-aviso:empty,
+.sesion-boton[hidden] {
+  display: none;
 }
 
 .sesion-aviso {
@@ -1738,7 +1780,7 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 :root:has(#vista-equipos:not([hidden])) { --color-vista: 91, 141, 239; }
 :root:has(#vista-rutas:not([hidden])) { --color-vista: 82, 183, 136; }
 :root:has(#vista-levelcaps:not([hidden])) { --color-vista: 0, 184, 169; }
-:root:has(#vista-pokedex:not([hidden])) { --color-vista: 240, 100, 130; }
+:root:has(#vista-pokedex:not([hidden])) { --color-vista: 232, 82, 110; }
 :root:has(#vista-calculadora:not([hidden])) { --color-vista: 155, 110, 230; }
 :root:has(#vista-normas:not([hidden])) { --color-vista: 205, 165, 100; }
 :root:has(#vista-ruleta:not([hidden])) { --color-vista: 240, 150, 60; }
@@ -1747,6 +1789,7 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 :root:has(#vista-foro:not([hidden])) { --color-vista: 196, 128, 214; }
 :root:has(#vista-logros:not([hidden])) { --color-vista: 241, 196, 15; }
 :root:has(#vista-juegos:not([hidden])) { --color-vista: 76, 182, 92; }
+:root:has(#vista-jugar:not([hidden])) { --color-vista: 186, 62, 102; }
 
 /* Grupos desplegables del menú */
 
@@ -1785,6 +1828,63 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
   margin-left: 1.25rem;
   padding: 0.3rem 0 0.3rem 0.5rem;
   border-left: 2px solid rgba(var(--color-boton), 0.35);
+}
+
+/* ---------- Ventanas bajas (portátiles) ---------- */
+/* Que el menú quepa entero sin scroll: cuanto más baja la ventana, más juntos van los botones.
+   En ventanas altas queda como arriba. Si ni así cabe, el menú vuelve a tener scroll. */
+
+@media (min-width: 761px) and (max-height: 960px) {
+  .menu-lateral {
+    gap: 0.25rem;
+  }
+
+  .menu-lateral button {
+    padding-block: 0.45rem;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 840px) {
+  .logo {
+    padding-block: 0.5rem;
+  }
+
+  .menu-lateral {
+    gap: 0.15rem;
+    padding-block: 0.5rem;
+  }
+
+  .menu-lateral button {
+    padding-block: 0.3rem;
+  }
+
+  .menu-lateral .boton-destacado {
+    margin-bottom: 0.2rem;
+  }
+
+  .menu-titulo {
+    margin-top: 0.3rem;
+  }
+
+  .sesion {
+    padding-block: 0.5rem;
+  }
+
+  .pie-lateral {
+    padding-bottom: 0.45rem;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 700px) {
+  .menu-lateral button {
+    padding-block: 0.2rem;
+    font-size: 0.88rem;
+  }
+
+  .menu-titulo {
+    margin-top: 0.15rem;
+    font-size: 0.62rem;
+  }
 }
 
 /* ---------- Pantallas estrechas (móvil) ---------- */

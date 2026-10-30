@@ -165,7 +165,7 @@ export default {
   "Los juegos de Switch van cifrados: hay que sacar su carpeta «romfs» desde el emulador y elegirla con «Elegir carpeta» (mira el «?»).":
     "Switch games are encrypted: you have to extract their “romfs” folder from the emulator and pick it with “Choose folder” (see the “?”).",
   "Ese .3ds está cifrado: hace falta uno descifrado.": "That .3ds is encrypted: a decrypted one is needed.",
-  "Este juego todavía no se puede randomizar (de momento, los de DS, los de 3DS y los de Switch).": "This game can't be randomized yet (for now, DS, 3DS and Switch games).",
+  "Este juego todavía no se puede randomizar (de momento, Rojo Fuego y Verde Hoja y los de DS, 3DS y Switch).": "This game can't be randomized yet (for now, FireRed and LeafGreen and DS, 3DS and Switch games).",
   "Esa ROM es de {rom} y el locke, de {locke}.": "That ROM is {rom} and the locke is {locke}.",
   "No se ha podido leer el archivo.": "The file couldn't be read.",
   "Elige la carpeta «romfs» del juego (la que sacaste desde el emulador).": "Choose the game's “romfs” folder (the one you extracted from the emulator).",

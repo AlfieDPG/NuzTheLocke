@@ -7,8 +7,8 @@
 //   · Nombre de usuario obligatorio: mientras la cuenta no tenga uno (las de Google al
 //     entrar por primera vez) sale una ventana que no se puede cerrar. Así nadie va por
 //     ahí con el nombre de Google y no puede haber dos «Alfonso».
-//   · Pulsando tu nombre, un desplegable: tu perfil (js/perfil.js), cambiar de cuenta y
-//     añadir otra.
+//   · Pulsando tu foto, tu perfil (js/perfil.js); pulsando tu nombre, un desplegable: tu
+//     perfil, cambiar de cuenta y añadir otra.
 //   · Borrar la cuenta (el botón está en la ventana del perfil).
 
 import { escaparHTML } from "./comun/utilidades.js";
@@ -76,11 +76,13 @@ function pintar(usuario) {
 
   if (usuario) {
     pintarNombre();
-    boton.textContent = t("Cerrar sesión");
+    // Con sesión, «Cerrar sesión» va en el desplegable de tu nombre (así cabe el menú entero)
+    boton.hidden = true;
     aviso.textContent = "";
     if (dialogoEntrar.open) dialogoEntrar.close();
     if (dialogoCrear.open) dialogoCrear.close();
   } else {
+    boton.hidden = false;
     boton.textContent = t("Iniciar sesión");
     aviso.textContent = t("Inicia sesión para que todo se guarde en tu cuenta.");
     if (dialogoMote.open) dialogoMote.close();
@@ -284,6 +286,7 @@ function guardarMoteObligatorio() {
 function abrirMenuCuentas() {
   menuCuentas.querySelector(".menu-mi-perfil").innerHTML = `${icono("persona")} ${t("Mi perfil")}`;
   menuCuentas.querySelector(".menu-anadir").innerHTML = `${icono("mas")} ${t("Añadir otra cuenta")}`;
+  menuCuentas.querySelector(".menu-salir").innerHTML = `${icono("salir")} ${t("Cerrar sesión")}`;
   menuCuentas.querySelector(".cuentas-lista").innerHTML = cuentasRecordadas().map(plantillaCuenta).join("");
   menuCuentas.hidden = false;
 }
@@ -347,19 +350,21 @@ export async function iniciarSesionUI() {
   cajon.hidden = false;
   alCambiarSesion(pintar);
 
-  boton.addEventListener("click", async () => {
-    if (!usuarioActual()) {
-      abrirEntrar();
-      return;
-    }
-    boton.disabled = true;
+  boton.addEventListener("click", () => {
+    if (!usuarioActual()) abrirEntrar();
+  });
+
+  menuCuentas.querySelector(".menu-salir").addEventListener("click", async (e) => {
+    const salirBoton = e.currentTarget;
+    salirBoton.disabled = true;
     try {
       await salir();
     } catch (error) {
       aviso.textContent = t("No se ha podido completar. Inténtalo otra vez.");
       console.error(error);
     }
-    boton.disabled = false;
+    salirBoton.disabled = false;
+    cerrarMenuCuentas();
   });
 
   // Entrar
@@ -391,10 +396,12 @@ export async function iniciarSesionUI() {
     salir().catch((error) => console.error(error))
   );
 
-  // Desplegable de cuentas y perfil
+  // Desplegable de cuentas y perfil. La foto lleva directa a tu perfil; el nombre, al desplegable
+  foto.title = t("Tu perfil");
   cajon.querySelector(".sesion-perfil").addEventListener("click", (e) => {
     e.stopPropagation();
-    if (menuCuentas.hidden) abrirMenuCuentas();
+    if (e.target === foto) abrirPerfil();
+    else if (menuCuentas.hidden) abrirMenuCuentas();
     else cerrarMenuCuentas();
   });
   menuCuentas.querySelector(".menu-mi-perfil").addEventListener("click", abrirPerfil);

@@ -126,6 +126,13 @@ export async function hayVinculo(idLocke) {
   return Boolean(await operar("readonly", (almacen) => almacen.get(idLocke)).catch(() => null));
 }
 
+// La partida que llega de otro sitio que no es un archivo: la del emulador de la web (js/jugar),
+// con el equipo de su memoria (enVivo, ver procesarArchivo en ./partidas.js). Igual que al leer el
+// archivo vinculado: necesita la sección «Lockes» iniciada (es la que pone alLeer).
+export function entregarPartida(idLocke, bytes, nombre, enVivo = null) {
+  return alLeer(idLocke, bytes, nombre, enVivo);
+}
+
 // Sin la API: leer un archivo una vez (<input type="file">)
 export function leerUnaVez(idLocke) {
   const campo = document.createElement("input");

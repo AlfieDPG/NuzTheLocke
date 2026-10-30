@@ -658,6 +658,71 @@
   height: 1.3rem;
 }
 
+/* ---------- Novedades ---------- */
+/* Debajo de los lockes: las últimas tres en fila, cada una con el color de su sección a la
+   izquierda (como los avisos). Pulsando una se va a su sección. */
+
+.inicio-novedades { --color-bloque: 114, 182, 200; }
+
+.inicio-novedades-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inicio-novedad {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.55rem 0.7rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: var(--t-panel);
+  box-shadow: inset 3px 0 0 rgb(var(--color-aviso));
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inicio-novedad:hover {
+  background: var(--t-panel-3);
+}
+
+.inicio-novedad b {
+  color: var(--t-texto-fuerte);
+}
+
+.inicio-novedad-fecha {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  opacity: 0.55;
+}
+
+/* En «Ver todas», una debajo de otra */
+#dialogo-novedades {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
+#dialogo-novedades .inicio-novedades-lista {
+  grid-template-columns: minmax(0, 1fr);
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+#dialogo-novedades .inicio-aviso-icono .icono {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
 /* ---------- Sugerencias ---------- */
 
 .inicio-sugerencias { --color-bloque: 231, 76, 60; }
@@ -763,6 +828,15 @@
   /* El último de cada lado se estira hasta abajo */
   .inicio-fijo .inicio-lado > .inicio-bloque:last-child {
     flex-grow: 1;
+  }
+
+  /* A la izquierda, al revés: los lockes se llevan el alto que sobra y las novedades, el suyo */
+  .inicio-fijo .inicio-lado.inicio-izq > .inicio-bloque.inicio-lockes {
+    flex: 1 1 auto;
+  }
+
+  .inicio-fijo .inicio-lado.inicio-izq > .inicio-bloque.inicio-novedades {
+    flex: none;
   }
 
   .inicio-fijo .inicio-bloque > * {

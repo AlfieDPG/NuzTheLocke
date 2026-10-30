@@ -1,0 +1,1650 @@
+/* ---------- Jugar: el emulador dentro de la web (js/jugar/index.js) ----------
+   Sin jugar: la última partida en grande («Seguir jugando») y las demás en filas, a todo el ancho. Jugando: arriba la
+   partida (portada, nombre, «Parar»); debajo, la pantalla con sus botones agrupados y, a la derecha, cajas (avisos,
+   tu equipo, teclas, directo). En el móvil, uno debajo de otro. Cada partida lleva el color de su juego (--juego):
+   así se distinguen de un vistazo. Decidido con el usuario el 2026-10-30. */
+
+/* Los iconos (js/comun/iconos.js) no traen tamaño: aquí, el de la letra, y sin encogerse dentro de los botones. Para
+   la sección y lo que se abre encima de ella (el «⋯», las ventanas). :where no suma: cada sitio puede cambiarlo. */
+:where(#vista-jugar, .jugar-menu, .jugar-nueva, .jugar-teclas-ventana, .directo-ventana) .icono {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+/* ---------- Arriba ---------- */
+
+.jugar-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+}
+
+.jugar-barra:empty {
+  display: none;
+}
+
+.jugar-barra button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.jugar-barra button:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.jugar-barra .jugar-nueva-boton {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.jugar-barra .jugar-nueva-boton:hover {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
+}
+
+/* La partida que se juega: su portada, su nombre y, debajo, el locke y el juego */
+.jugar-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.jugar-cabeza .jugar-portada {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.jugar-cabeza-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jugar-cabeza-texto strong {
+  overflow: hidden;
+  font-family: var(--letra-titulos);
+  font-size: 1.2rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jugar-detalle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.8rem;
+  color: var(--t-gris-2);
+  font-size: 0.86rem;
+  font-weight: bold;
+}
+
+.jugar-detalle span,
+.jugar-cabeza .jugar-detalle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.jugar-acciones {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.jugar-acciones .jugar-sav-boton {
+  padding-inline: 0.6rem;
+}
+
+.jugar-acciones .jugar-parar {
+  background: var(--t-rojo-oscuro);
+  color: #fff;
+}
+
+.jugar-acciones .jugar-parar:hover {
+  background: var(--t-rojo);
+}
+
+/* La portada: el Pokémon de la carátula, en retrato, con el color de su juego por fuera */
+.jugar-portada {
+  flex: none;
+  border-radius: 0.6rem;
+  background: rgba(var(--t-tinte), 0.05);
+  box-shadow: 0 0 0 2px var(--juego, rgb(var(--color-vista)));
+  object-fit: cover;
+}
+
+/* ---------- Pantalla y panel ---------- */
+
+.jugar-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+.jugar-cuerpo.sin-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.jugar-cuerpo.sin-panel .jugar-lateral {
+  display: none;
+}
+
+/* La GBA es 3:2. --alto: lo que queda de ventana para la pantalla (lo mide js/jugar/index.js, ajustarPantalla);
+   el ancho sale de ahí, sin pasarse del hueco */
+.jugar-pantalla {
+  --alto-libre: var(--alto, calc(100vh - 12rem));
+  position: relative;
+  aspect-ratio: 3 / 2;
+  margin-inline: auto;
+  width: min(100%, calc(var(--alto-libre) * 1.5));
+  overflow: hidden;
+  border-radius: 0.9rem;
+  background: #000;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.jugar-marco {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Filtro LCD: una rejilla fina encima, un cuadro por cada píxel de la consola (no tapa los clics: la táctil) */
+.jugar-pantalla.lcd::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.28) 1px, transparent 1px);
+  background-size: calc(100% / var(--columnas, 240)) calc(100% / var(--filas, 160));
+}
+
+/* El panel: una caja para cada cosa, con la capa de color a la izquierda (roja, la de los avisos) */
+.jugar-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.jugar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.jugar-panel:empty {
+  display: none;
+}
+
+.jugar-caja {
+  padding: 0.85rem 1rem 0.95rem;
+  border-left: 0.35rem solid rgb(var(--color-vista));
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+}
+
+.jugar-caja-avisos {
+  border-left-color: var(--t-rojo);
+}
+
+.jugar-caja h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.jugar-caja h3 small {
+  margin-left: auto;
+  color: var(--t-gris);
+  font-family: var(--letra);
+  font-size: 0.78rem;
+  font-weight: bold;
+}
+
+.jugar-caja-avisos h3 .icono {
+  color: var(--t-rojo);
+}
+
+.jugar-explicacion {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.93rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.jugar-explicacion li + li {
+  margin-top: 0.45rem;
+}
+
+.jugar-nota {
+  margin: 0.6rem 0 0;
+  color: var(--t-gris);
+  font-size: 0.88rem;
+}
+
+/* Tu equipo: retrato, nombre y nivel, y la barra de PS debajo */
+.jugar-equipo,
+.jugar-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jugar-pokemon {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.2rem 0.55rem;
+}
+
+.jugar-cara {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.45rem;
+  background: rgba(var(--t-tinte), 0.05);
+  object-fit: cover;
+}
+
+.jugar-pokemon .jugar-cara {
+  grid-row: span 2;
+}
+
+.jugar-pokemon-nombre {
+  overflow: hidden;
+  font-family: var(--letra-titulos);
+  font-weight: bold;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jugar-pokemon small {
+  color: var(--t-gris);
+  font-size: 0.8rem;
+}
+
+.jugar-pokemon .jugar-ps {
+  grid-column: 2 / 4;
+}
+
+.jugar-cara.debilitado,
+.debilitado > .jugar-cara {
+  filter: grayscale(1) brightness(0.7);
+}
+
+/* La barra de PS, en los colores de bien / casi / mal (también los de daltónicos) */
+.jugar-ps {
+  height: 0.38rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--t-control);
+}
+
+.jugar-ps span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.jugar-ps.bien span { background: var(--t-bien); }
+.jugar-ps.casi span { background: var(--t-casi); }
+.jugar-ps.mal span { background: var(--t-mal); }
+
+/* Los avisos: el retrato del que se ha debilitado y qué hacer */
+.jugar-aviso {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  font-size: 0.92rem;
+}
+
+.jugar-aviso:not(:has(.jugar-cara)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.jugar-aviso + .jugar-aviso {
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.08);
+}
+
+.jugar-aviso-botones {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.jugar-aviso-botones button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  font-size: 0.86rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.jugar-aviso-botones button:hover {
+  background: var(--t-control-2);
+}
+
+.jugar-aviso-botones .jugar-apuntar {
+  flex: 1;
+  background: var(--t-rojo-oscuro);
+  color: #fff;
+}
+
+.jugar-aviso-botones .jugar-apuntar:hover {
+  background: var(--t-rojo);
+}
+
+/* Las teclas, plegadas: se abren al pulsar el título */
+.jugar-caja-teclas summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--t-gris-2);
+  font-weight: bold;
+  list-style: none;
+  cursor: pointer;
+}
+
+.jugar-caja-teclas summary::-webkit-details-marker {
+  display: none;
+}
+
+.jugar-caja-teclas summary::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.jugar-caja-teclas[open] summary {
+  margin-bottom: 0.7rem;
+}
+
+.jugar-caja-teclas[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.jugar-teclas {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.7rem;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.jugar-teclas dt {
+  justify-self: start;
+  padding: 0.05rem 0.45rem;
+  border-radius: 0.35rem;
+  background: var(--t-control);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.jugar-teclas dd {
+  margin: 0;
+  align-self: center;
+  color: var(--t-gris-2);
+}
+
+.jugar-cambiar-teclas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.jugar-cambiar-teclas:hover {
+  background: var(--t-control-2);
+}
+
+/* ---------- Debajo de la pantalla: los botones, por grupos ---------- */
+
+.jugar-consola {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.jugar-controles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.jugar-controles[hidden] {
+  display: none;
+}
+
+.jugar-grupo {
+  display: inline-flex;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.jugar-controles button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.jugar-grupo button:first-child {
+  border-radius: 0.45rem 0 0 0.45rem;
+}
+
+.jugar-grupo button:last-child {
+  border-radius: 0 0.45rem 0.45rem 0;
+}
+
+.jugar-grupo button + button {
+  border-left: 1px solid rgba(var(--t-oscurecer), 0.3);
+}
+
+.jugar-controles button:hover {
+  background: var(--t-control-2);
+}
+
+.jugar-controles button.activo {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.jugar-controles button.jugar-directo-boton.activo {
+  background: var(--t-rojo);
+  color: #fff;
+}
+
+.jugar-controles .jugar-velocidad {
+  padding-inline: 0.45rem;
+}
+
+/* El volumen: el altavoz (quita y pone el sonido) y la barra */
+.jugar-volumen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding-right: 0.75rem;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.jugar-controles .jugar-volumen button {
+  border-radius: 0.45rem;
+  background: none;
+}
+
+.jugar-volumen input {
+  width: 6rem;
+  accent-color: rgb(var(--color-vista));
+  cursor: pointer;
+}
+
+/* ---------- El menú «⋯» (js/jugar/menu.js): suelto en la página ---------- */
+
+.menu-mas-lista.jugar-menu {
+  position: fixed;
+  right: auto;
+  z-index: 60;
+  max-height: calc(100vh - 1rem);
+  overflow-y: auto;
+}
+
+.jugar-menu-titulo {
+  padding: 0.45rem 0.65rem 0.2rem;
+  color: var(--t-gris);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jugar-menu-titulo:not(:first-child) {
+  margin-top: 0.3rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.08);
+  padding-top: 0.55rem;
+}
+
+.jugar-menu button.marcado {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), var(--t-texto));
+}
+
+.jugar-menu button.marcado .icono {
+  color: inherit;
+}
+
+.jugar-menu button.peligro:hover {
+  background: var(--t-rojo-oscuro);
+  color: #fff;
+}
+
+.jugar-menu button.peligro:hover .icono {
+  color: #fff;
+}
+
+/* ---------- Pantalla completa: la pantalla todo lo grande que quepa y el mando debajo ---------- */
+
+.jugar-consola:fullscreen {
+  justify-content: center;
+  padding: 0.6rem;
+  background: var(--t-hundido);
+}
+
+.jugar-consola:fullscreen .jugar-pantalla {
+  width: min(100%, calc((100vh - 4.5rem) * 1.5));
+  max-height: none;
+}
+
+.jugar-consola:fullscreen:has(.jugar-mando:not([hidden])) .jugar-pantalla {
+  width: min(100%, calc((100vh - 16rem) * 1.5));
+}
+
+@media (max-width: 900px) {
+  .jugar-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Tus partidas (sin jugar) ----------
+   La última en grande, con su portada, su equipo y sus medallas; las demás, en filas. */
+
+.jugar-partidas {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.jugar-partidas[hidden],
+.jugar-consola[hidden] {
+  display: none;
+}
+
+.jugar-seguir {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.1rem 1.2rem;
+  border-left: 0.35rem solid var(--juego);
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+  /* Como las tarjetas de Equipos: un degradado suave del color de la versión (el de su Pokémon de
+     la carátula), desde la portada hacia la derecha */
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--juego) 14%, transparent), transparent 65%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.jugar-seguir > .jugar-portada {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 0.8rem;
+}
+
+.jugar-seguir-texto {
+  min-width: 0;
+}
+
+.jugar-ceja {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), var(--t-texto));
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jugar-seguir h3 {
+  margin: 0;
+  font-size: 1.55rem;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.jugar-seguir .jugar-detalle {
+  margin: 0.3rem 0 0.75rem;
+}
+
+/* Qué tipo de partida es: una etiqueta pequeña al lado del juego (el icono, del color de su sección: Lockes,
+   Randomizer) */
+.jugar-detalle .jugar-tipo,
+.jugar-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 1rem;
+  background: var(--t-fondo-2);
+  color: var(--t-gris-3);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.jugar-tipo.locke .icono {
+  color: #e0574a;
+}
+
+.jugar-tipo.random .icono {
+  color: #a9bd3c;
+}
+
+.jugar-tipo.normal .icono {
+  color: var(--t-gris);
+}
+
+/* Las medallas, pequeñas y como en «Lockes»: apagadas hasta que las consigues */
+.jugar-detalle .jugar-medallas,
+.jugar-medallas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
+.jugar-medalla {
+  width: 1.15rem;
+  height: 1.15rem;
+  object-fit: contain;
+  filter: grayscale(1) brightness(0.55);
+  opacity: 0.45;
+}
+
+.jugar-medalla.conseguida {
+  filter: drop-shadow(0 0 0.15rem rgba(255, 220, 120, 0.45));
+  opacity: 1;
+}
+
+/* El equipo: seis círculos con el retrato, los vacíos con borde de puntos (como en las filas, algo más grandes) */
+.jugar-seguir-equipo {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.jugar-seguir-equipo .jugar-cara,
+.jugar-seguir-equipo .jugar-hueco {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.jugar-seguir-botones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.jugar-partidas button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.jugar-partidas button:hover {
+  background: var(--t-control-2);
+}
+
+.jugar-partidas .jugar-jugar {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.jugar-partidas .jugar-jugar:hover {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
+}
+
+.jugar-seguir .jugar-jugar {
+  padding: 0.75rem 1.3rem;
+  font-size: 1.05rem;
+}
+
+.jugar-otras {
+  margin: 0.4rem 0 -0.4rem;
+  color: var(--t-gris-2);
+  font-size: 1rem;
+}
+
+.jugar-filas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* Cada fila, pegado a la izquierda: portada, nombre, tipo y los seis huecos; «Jugar» y «⋯», a la derecha */
+.jugar-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem 0.7rem;
+  border-left: 0.35rem solid var(--juego);
+  border-radius: 0.75rem;
+  background: var(--t-panel);
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--juego) 10%, transparent), transparent 55%);
+}
+
+.jugar-fila .jugar-jugar {
+  margin-left: auto;
+}
+
+/* El tipo, en un hueco del mismo ancho en todas: así los equipos empiezan a la misma altura */
+.jugar-fila-tipo {
+  flex: 0 0 9.5rem;
+}
+
+.jugar-fila > .jugar-portada {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+.jugar-fila-texto {
+  display: flex;
+  flex: 0 1 15rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jugar-fila-texto strong {
+  overflow: hidden;
+  font-family: var(--letra-titulos);
+  font-size: 1.02rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jugar-fila-texto .jugar-detalle {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jugar-fila-equipo {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.jugar-fila-equipo .jugar-cara,
+.jugar-seguir-equipo .jugar-cara,
+.jugar-hueco {
+  flex: none;
+  display: block;
+  box-sizing: border-box;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+}
+
+.jugar-hueco {
+  border: 2px dashed rgba(var(--t-tinte), 0.18);
+}
+
+@media (max-width: 760px) {
+  .jugar-seguir {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .jugar-seguir > .jugar-portada {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .jugar-seguir-botones {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
+
+  .jugar-seguir-botones .jugar-jugar {
+    flex: 1;
+  }
+
+  .jugar-fila-equipo,
+  .jugar-fila-tipo {
+    display: none;
+  }
+}
+
+/* Sin partidas todavía: qué es esto y el botón para crear la primera */
+.jugar-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  border: 2px dashed rgba(var(--color-vista), 0.5);
+  border-radius: 0.9rem;
+  color: var(--t-gris-2);
+  text-align: center;
+}
+
+.jugar-vacio > .icono {
+  width: 3rem;
+  height: 3rem;
+  color: rgb(var(--color-vista));
+}
+
+.jugar-vacio h3 {
+  margin: 0;
+  color: var(--t-texto);
+  font-size: 1.35rem;
+}
+
+.jugar-vacio .jugar-nueva-boton {
+  padding: 0.6rem 1.1rem;
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+/* ---------- Ventana «Cambiar teclas» (js/jugar/ajustes.js) ---------- */
+
+.jugar-teclas-ventana {
+  width: min(30rem, calc(100vw - 2rem));
+}
+
+.jugar-teclas-ventana h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.jugar-teclas-ventana h2 .icono {
+  color: rgb(var(--color-vista, 186, 62, 102));
+}
+
+.jugar-teclas-ventana h2 small {
+  color: var(--t-gris);
+  font-size: 0.9rem;
+}
+
+.jugar-teclas-ventana > .jugar-nota {
+  margin: 0.3rem 0 0.8rem;
+}
+
+.jugar-teclas-cabeza,
+.jugar-teclas-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8.5rem 8.5rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.jugar-teclas-cabeza {
+  color: var(--t-gris);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jugar-teclas-filas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 55vh;
+  margin: 0.3rem 0 0.9rem;
+  overflow-y: auto;
+}
+
+.jugar-teclas-fila > span:first-child {
+  font-weight: bold;
+}
+
+.jugar-tecla {
+  overflow: hidden;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: bold;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: center;
+  cursor: pointer;
+}
+
+.jugar-tecla:hover {
+  background: var(--t-control-2);
+}
+
+.jugar-tecla.esperando {
+  border-color: rgb(var(--color-vista));
+  background: rgba(var(--color-vista), 0.18);
+}
+
+.jugar-tecla.vacia {
+  background: none;
+  color: var(--t-gris);
+  cursor: default;
+}
+
+.jugar-teclas-ventana .dialogo-botones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ---------- El mando táctil (móvil) ----------
+   Cruceta a la izquierda, A y B a la derecha, L y R arriba, Select y Start en medio. */
+
+.jugar-mando {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas:
+    "hombros hombros hombros"
+    "cruceta centro ab";
+  align-items: center;
+  gap: 0.6rem 0.5rem;
+  padding: 0.2rem 0.3rem 0.6rem;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.jugar-mando[hidden] {
+  display: none;
+}
+
+.mando-boton {
+  border: none;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: var(--letra-titulos);
+  font-weight: bold;
+  box-shadow: 0 3px 0 rgba(var(--t-oscurecer), 0.45);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mando-boton.pulsado {
+  background: var(--t-control-2);
+  box-shadow: none;
+  transform: translateY(2px);
+}
+
+.mando-hombros {
+  grid-area: hombros;
+  display: flex;
+  justify-content: space-between;
+}
+
+.mando-hombro {
+  width: 5.5rem;
+  padding: 0.45rem 0;
+  border-radius: 0.6rem;
+}
+
+.mando-cruceta {
+  grid-area: cruceta;
+  justify-self: start;
+  display: grid;
+  grid-template-columns: repeat(3, 3rem);
+  grid-template-rows: repeat(3, 3rem);
+  grid-template-areas:
+    ". arriba ."
+    "izquierda . derecha"
+    ". abajo .";
+}
+
+.mando-cruceta .mando-boton {
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.mando-arriba { grid-area: arriba; }
+.mando-abajo { grid-area: abajo; }
+.mando-izquierda { grid-area: izquierda; }
+.mando-derecha { grid-area: derecha; }
+
+.mando-centro {
+  grid-area: centro;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mando-pequeno {
+  padding: 0.3rem 0.7rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+}
+
+.mando-ab {
+  grid-area: ab;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.mando-redondo {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  font-size: 1.2rem;
+}
+
+/* A, más arriba y en el color de la sección, como en la consola */
+.mando-a {
+  margin-bottom: 1.6rem;
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.mando-a.pulsado {
+  background: rgba(var(--color-vista), 0.75);
+}
+
+/* ---------- Ventana «Nueva partida» ---------- */
+
+.jugar-nueva {
+  width: min(30rem, calc(100vw - 2rem));
+}
+
+.jugar-nueva h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.8rem;
+  font-size: 1.25rem;
+}
+
+.jugar-nueva h2 svg {
+  color: rgb(var(--color-vista, 186, 62, 102));
+}
+
+.jugar-nueva-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.jugar-nueva-fila {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: bold;
+}
+
+.jugar-nueva-fila input,
+.jugar-nueva-fila select {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  border-radius: 0.45rem;
+  font-weight: normal;
+}
+
+.jugar-nueva-rom {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.jugar-nueva-rom small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--t-gris-2);
+  font-weight: normal;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jugar-nueva-elegir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.jugar-nueva-elegir:hover {
+  background: var(--t-control-2);
+}
+
+.jugar-nueva .ventana-aceptar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.jugar-nueva .ventana-aceptar:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.jugar-nueva-error {
+  margin: 0;
+  color: var(--t-rojo);
+  font-size: 0.9rem;
+}
+
+/* ---------- DS: las dos pantallas, centradas ----------
+   Una encima de otra (2:3), una al lado de otra (8:3) o la de arriba grande y la táctil pequeña al lado (2:1). Las
+   dos anchas no caben bien con el panel al lado: el panel pasa debajo (.ancha) y la pantalla usa todo el ancho. */
+
+.jugar-consola.ds .jugar-pantalla {
+  aspect-ratio: 2 / 3;
+  width: min(100%, calc(var(--alto-libre) * 2 / 3));
+}
+
+.jugar-consola.ds.ds-horizontal .jugar-pantalla {
+  aspect-ratio: 8 / 3;
+  width: min(100%, calc(var(--alto-libre) * 8 / 3));
+}
+
+.jugar-consola.ds.ds-grande .jugar-pantalla {
+  aspect-ratio: 2 / 1;
+  width: min(100%, calc(var(--alto-libre) * 2));
+}
+
+.jugar-cuerpo.ancha {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Debajo de la pantalla, en una fila: la tira (equipo y avisos) a la izquierda y los botones a la derecha */
+.jugar-cuerpo.ancha .jugar-consola {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "pantalla pantalla"
+    "tira controles"
+    "mando mando";
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.jugar-cuerpo.ancha .jugar-pantalla { grid-area: pantalla; }
+.jugar-cuerpo.ancha .jugar-tira { grid-area: tira; }
+.jugar-cuerpo.ancha .jugar-mando { grid-area: mando; }
+
+.jugar-cuerpo.ancha .jugar-controles {
+  grid-area: controles;
+  justify-content: flex-end;
+}
+
+.jugar-tira {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  min-width: 0;
+}
+
+.jugar-tira[hidden] {
+  display: none;
+}
+
+.jugar-tira-equipo {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* Cada Pokémon: su círculo y, debajo, su vida */
+.jugar-tira-poke {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: 2.6rem;
+}
+
+.jugar-tira-poke .jugar-cara,
+.jugar-tira-poke .jugar-hueco {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+}
+
+.jugar-tira-poke .jugar-ps {
+  width: 100%;
+}
+
+/* Un aviso de debilitado, en pequeño, con sus botones */
+.jugar-tira-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.6rem;
+  border-left: 0.3rem solid var(--t-rojo);
+  border-radius: 0.6rem;
+  background: var(--t-panel);
+  font-size: 0.88rem;
+}
+
+.jugar-tira-aviso > .icono {
+  color: var(--t-rojo);
+}
+
+.jugar-tira-aviso button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.jugar-tira-aviso .jugar-apuntar {
+  background: var(--t-rojo-oscuro);
+  color: #fff;
+}
+
+/* Debajo, las cajas del panel en columnas */
+.jugar-cuerpo.ancha .jugar-lateral {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  align-items: start;
+}
+
+.jugar-cuerpo.ancha .jugar-panel {
+  display: contents;
+}
+
+.jugar-consola.ds:fullscreen .jugar-pantalla {
+  width: min(100%, calc((100vh - 4.5rem) * 2 / 3));
+}
+
+.jugar-consola.ds.ds-horizontal:fullscreen .jugar-pantalla {
+  width: min(100%, calc((100vh - 4.5rem) * 8 / 3));
+}
+
+.jugar-consola.ds.ds-grande:fullscreen .jugar-pantalla {
+  width: min(100%, calc((100vh - 4.5rem) * 2));
+}
+
+.jugar-consola.ds:fullscreen:has(.jugar-mando:not([hidden])) .jugar-pantalla {
+  width: min(100%, calc((100vh - 16rem) * 2 / 3));
+}
+
+/* X arriba, Y a la izquierda, A a la derecha y B abajo, como en la consola */
+.mando-ab.mando-rombo {
+  display: grid;
+  grid-template-columns: repeat(3, 3.1rem);
+  grid-template-rows: repeat(3, 3.1rem);
+  grid-template-areas:
+    ". x ."
+    "y . a"
+    ". b .";
+  gap: 0;
+}
+
+.mando-rombo .mando-redondo {
+  width: 3.1rem;
+  height: 3.1rem;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.mando-rombo .mando-x { grid-area: x; }
+.mando-rombo .mando-y { grid-area: y; }
+.mando-rombo .mando-a { grid-area: a; }
+.mando-rombo .mando-b { grid-area: b; }
+
+/* ---------- En directo (js/jugar/directo.js) ----------
+   Quien emite: su caja debajo del panel, con quién le ve y el chat. Quien mira: una ventana con la pantalla del
+   juego y el chat al lado (debajo, en el móvil). El punto rojo que late: en directo ahora mismo. */
+
+.jugar-directo[hidden] {
+  display: none;
+}
+
+.directo-punto {
+  display: inline-block;
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--t-rojo);
+  animation: directo-latido 1.6s ease-in-out infinite;
+}
+
+@keyframes directo-latido {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .directo-punto {
+    animation: none;
+  }
+}
+
+.jugar-directo h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.directo-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.directo-mensajes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 16rem;
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  background: var(--t-fondo);
+  list-style: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.jugar-directo .directo-mensajes {
+  margin-top: 0.6rem;
+}
+
+.directo-mensajes strong {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), var(--t-texto));
+}
+
+.directo-sistema,
+.directo-vacio {
+  color: var(--t-gris);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.directo-escribir {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.directo-escribir input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  background: var(--t-fondo);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.92rem;
+}
+
+.directo-escribir input:focus {
+  outline: none;
+  border-color: rgb(var(--color-vista));
+}
+
+.directo-escribir button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.65rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-vista));
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+/* La ventana de quien mira */
+.ventana-web.directo-ventana {
+  width: min(64rem, 96vw);
+  padding: 0.9rem 1rem 1rem;
+}
+
+.directo-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.directo-cabeza h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.directo-cabeza h2 small {
+  color: var(--t-gris);
+  font-size: 0.85rem;
+  font-weight: normal;
+}
+
+.directo-cuantos {
+  color: var(--t-gris);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.directo-cabeza button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.directo-cabeza button:hover {
+  background: var(--t-control-2);
+}
+
+.directo-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+.directo-pantalla {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 16rem;
+  border-radius: 0.7rem;
+  overflow: hidden;
+  background: #000;
+}
+
+.directo-pantalla video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.directo-estado {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.directo-estado[hidden],
+.directo-sonido[hidden] {
+  display: none;
+}
+
+.directo-sonido {
+  position: absolute;
+  top: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-vista));
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.directo-ventana .directo-mensajes {
+  flex: 1;
+  max-height: none;
+  min-height: 10rem;
+}
+
+.directo-ventana .directo-chat {
+  max-height: 75vh;
+}
+
+@media (max-width: 760px) {
+  .directo-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .directo-ventana .directo-mensajes {
+    max-height: 12rem;
+  }
+}
+
+/* En pantallas estrechas, la tira de las anchas de DS encima de los botones */
+@media (max-width: 900px) {
+  .jugar-cuerpo.ancha .jugar-consola {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "pantalla" "tira" "controles" "mando";
+  }
+
+  .jugar-cuerpo.ancha .jugar-controles {
+    justify-content: center;
+  }
+}
+
+/* Los círculos del equipo de la partida grande: llenos y vacíos, del mismo tamaño (va al final para mandar sobre el
+   tamaño de las filas) */
+.jugar-seguir-equipo .jugar-cara,
+.jugar-seguir-equipo .jugar-hueco {
+  flex: none;
+  box-sizing: border-box;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+}
+
+/* «Teclas y mando», en la tira de las pantallas anchas de DS: abre la ventana con las teclas */
+.jugar-tira-teclas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.jugar-tira-teclas:hover {
+  background: var(--t-control-2);
+}
+
+.jugar-teclas-ventana .jugar-teclas {
+  margin: 0.8rem 0 1rem;
+}
