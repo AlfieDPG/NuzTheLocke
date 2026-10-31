@@ -112,7 +112,7 @@ export async function mirarSiYaJugado(juego, estado) {
 // Para los logros (js/comun/logros.js, los de «Retos»): retos terminados, los acertados del todo
 // (acierto) y los perfectos de cada juego (perfecto; si el juego no dice otra cosa, el acierto), y
 // los días con todos los retos hechos
-const TODOS_LOS_RETOS = ["silueta", "pistas", "eficaz", "masomenos", "locke", "grito", "evolucion"];
+const TODOS_LOS_RETOS = ["silueta", "pistas", "eficaz", "masomenos", "locke", "grito", "evolucion", "tipos", "intruso"];
 
 function contarParaLogros(juego, estado) {
   sumarContador("retos");
@@ -138,15 +138,24 @@ async function apuntar(juego, estado) {
       delete estado.error;
     } else estado.error = true; // con sesión pero sin el perfil cargado
   } catch (error) {
-    // Si sale «permission-denied», lo normal es que falte publicar las reglas de firestore.rules
-    console.error("No se ha podido apuntar la jugada", error);
-    estado.error = true;
+    // Si sale «permission-denied», lo normal es que falte publicar las reglas de firestore.rules.
+    // Puede que sí se apuntara y solo fallase la respuesta (sin conexión a medias): si la jugada
+    // ya está, vale la de Firestore (las reglas no dejan apuntarla dos veces).
+    const jugada = await jugadaDeHoy(juego).catch(() => null);
+    if (jugada) {
+      Object.assign(estado, { fichas: jugada.puntos, bono: 0 });
+      delete estado.error;
+    } else {
+      console.error("No se ha podido apuntar la jugada", error);
+      estado.error = true;
+    }
   }
   guardarEstado(juego, estado);
 }
 
-// «Volver a intentarlo» (en el aviso de error de plantillaFin): el reto ya está jugado, solo
-// falta apuntarlo. Al acabar, la sección vuelve a pintar el reto (js/juegos/index.js).
+// «Apuntarlos otra vez» (en el aviso de error de plantillaFin): NO vuelve a jugar el reto; se
+// intenta apuntar otra vez la misma puntuación. Al acabar, la sección vuelve a pintar el reto
+// (js/juegos/index.js); si vuelve a fallar, se dice (reintentado).
 document.addEventListener("click", async (e) => {
   const boton = e.target.closest(".juego-reintentar");
   if (!boton || !usuarioActual()) return;
@@ -154,6 +163,10 @@ document.addEventListener("click", async (e) => {
   const juego = boton.dataset.juego;
   const estado = estadoDe(juego);
   await apuntar(juego, estado);
+  if (estado.error) {
+    estado.reintentado = true;
+    guardarEstado(juego, estado);
+  }
   document.dispatchEvent(new CustomEvent("reto-repintar"));
 });
 
@@ -167,8 +180,11 @@ export function plantillaFin(estado, titulo) {
   let fichas = "";
   if (estado.otroSitio) fichas = t("Ya lo jugaste hoy en otro sitio: {n} Pokédólares.", { n: estado.fichas || 0 });
   else if (estado.error) {
-    fichas = `${t("No se han podido apuntar los Pokédólares.")}
-      ${estado.juego ? `<button class="juego-reintentar" data-juego="${estado.juego}">${t("Volver a intentarlo")}</button>` : ""}`;
+    const aviso = estado.reintentado
+      ? t("Siguen sin poder apuntarse. Prueba más tarde: tu resultado no se pierde.")
+      : t("El reto ya cuenta, pero no se han podido apuntar los Pokédólares.");
+    fichas = `${aviso}
+      ${estado.juego ? `<button class="juego-reintentar" data-juego="${estado.juego}">${t("Apuntarlos otra vez")}</button>` : ""}`;
   }
   else if (!usuarioActual()) fichas = t("Inicia sesión antes de jugar para ganar Pokédólares.");
   else if (estado.fichas == null) fichas = t("Apuntando tus Pokédólares...");

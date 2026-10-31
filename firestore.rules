@@ -208,7 +208,7 @@ service cloud.firestore {
       allow create: if identificado()
         && request.resource.data.keys().hasOnly(['uid', 'juego', 'dia', 'puntos', 'intentos', 'acierto', 'cuando'])
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.juego in ['silueta', 'pistas', 'eficaz', 'masomenos', 'locke', 'grito', 'evolucion']
+        && request.resource.data.juego in ['silueta', 'pistas', 'eficaz', 'masomenos', 'locke', 'grito', 'evolucion', 'tipos', 'intruso']
         && request.resource.data.dia is string
         && request.resource.data.dia.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         && id == request.auth.uid + '_' + request.resource.data.juego + '_' + request.resource.data.dia

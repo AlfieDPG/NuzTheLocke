@@ -2,7 +2,8 @@
 //
 //   · Arriba, tus Pokédólares, tu racha (días seguidos jugando) y lo que suma la racha a cada reto.
 //   · «Reto del día»: un reto de cada juego al día, el mismo para todo el mundo (js/juegos/
-//     silueta.js, pistas.js, eficaz.js, masomenos.js y locke.js). Lo común, en js/juegos/comun.js. Abajo,
+//     silueta.js, pistas.js, eficaz.js, masomenos.js, grito.js, evolucion.js, tipos.js, intruso.js
+//     y locke.js). Lo común, en js/juegos/comun.js. Abajo,
 //     un botón copia los resultados de hoy (con cuadraditos de colores) para compartirlos.
 //   · «Clasificación»: tú y tus amigos, por los Pokédólares ganados en los retos esta semana.
 //   · «Tienda»: fondos para tu tarjeta, marcos para tu foto y títulos, a cambio de Pokédólares.
@@ -34,6 +35,8 @@ import { montarMasOMenos } from "./masomenos.js";
 import { montarLocke } from "./locke.js";
 import { montarGrito } from "./grito.js";
 import { montarEvolucion } from "./evolucion.js";
+import { montarTipos } from "./tipos.js";
+import { montarIntruso } from "./intruso.js";
 import { montarColeccion } from "./coleccion.js";
 
 const vista = document.getElementById("vista-juegos");
@@ -111,6 +114,8 @@ const JUEGOS = [
   { id: "masomenos", nombre: t("¿Más o menos?"), icono: "estadisticas", maximo: 50, montar: montarMasOMenos },
   { id: "grito", nombre: t("¿De quién es este grito?"), icono: "campana", maximo: 45, montar: montarGrito },
   { id: "evolucion", nombre: t("¿En qué evoluciona?"), icono: "intercambiar", maximo: 48, montar: montarEvolucion },
+  { id: "tipos", nombre: t("¿De qué tipo es?"), icono: "etiqueta", maximo: 48, montar: montarTipos },
+  { id: "intruso", nombre: t("El intruso"), icono: "cuadricula", maximo: 50, montar: montarIntruso },
   { id: "locke", nombre: t("Locke del día"), icono: "espadas", maximo: 60, montar: montarLocke }
 ];
 let reto = null;

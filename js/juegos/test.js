@@ -1,4 +1,4 @@
-// Lo común de los retos tipo test (grito.js, evolucion.js): unas cuantas rondas, cada una con
+// Lo común de los retos tipo test (grito.js, evolucion.js, intruso.js): unas cuantas rondas, cada una con
 // una pregunta y cuatro Pokémon para elegir. Al responder se marca la buena (y la tuya, si no
 // lo era) y al poco se pasa a la siguiente. Al final, la lista de todas las rondas.
 //
@@ -7,6 +7,9 @@
 //     armar(especies, azar)  -> [{ buena: especie, opciones: [especie x4] }] (las rondas del día)
 //     pregunta(ronda, i)     -> HTML de lo que se pregunta en esa ronda
 //     alEntrar(ronda, caja)  -> (opcional) algo al enseñar la ronda (el grito: que suene)
+//     explicar(ronda)        -> (opcional) HTML del porqué de la buena: sale al responder y en la lista
+//     pausa                  -> (opcional) ms con la respuesta a la vista (si no, PAUSA)
+//     cargar()               -> (opcional) promesa con lo que haga falta antes de armar
 //   }) -> la función montar(contenedor) de ese reto
 //
 //   estado: { respuestas: [id], fin, ... } (ver comun.js)
@@ -55,10 +58,11 @@ export function crearTest(config) {
     return `<ol class="test-resumen">${rondas
       .map((ronda, i) => {
         const bien = estado.respuestas[i] === ronda.buena.id;
+        const porque = config.explicar ? `<small>${config.explicar(ronda)}</small>` : "";
         return `
           <li class="${bien ? "bien" : "mal"}">
             ${imagenConRespaldo(urlsRetrato({ id: ronda.buena.id }), `alt="" data-quitar-si-falla`)}
-            <span>${escaparHTML(nombreDe(ronda.buena))}</span>
+            <span>${escaparHTML(nombreDe(ronda.buena))}${porque}</span>
             ${icono(bien ? "visto" : "aspa")}
           </li>`;
       })
@@ -86,6 +90,7 @@ export function crearTest(config) {
           <div class="test-pregunta">
             <span class="test-ronda">${t("Pregunta {n} de {total}", { n: i + 1, total: rondas.length })}</span>
             ${config.pregunta(ronda, i)}
+            ${mostrando && config.explicar ? `<p class="test-explicacion">${config.explicar(ronda)}</p>` : ""}
           </div>
           <div class="test-opciones">${ronda.opciones.map((especie) => plantillaOpcion(especie, ronda, respuesta)).join("")}</div>
         </div>`;
@@ -123,7 +128,7 @@ export function crearTest(config) {
       guardarEstado(config.juego, estado);
     }
     pintar();
-    await new Promise((listo) => setTimeout(listo, PAUSA));
+    await new Promise((listo) => setTimeout(listo, config.pausa || PAUSA));
     mostrando = null;
     if (!caja.isConnected) return;
     pintar();
@@ -137,7 +142,8 @@ export function crearTest(config) {
     caja = contenedor;
     mostrando = null;
     caja.innerHTML = `<p class="juego-cargando">${t("Cargando...")}</p>`;
-    rondas = config.armar(await cargarEspecies(), azarDelDia(`${hoy()}|${config.juego}`));
+    const [especies] = await Promise.all([cargarEspecies(), config.cargar && config.cargar()]);
+    rondas = config.armar(especies, azarDelDia(`${hoy()}|${config.juego}`));
     estado = estadoDe(config.juego);
     if (!estado.respuestas) estado.respuestas = [];
     pintar();

@@ -2045,6 +2045,150 @@ button.lockedia-poke:hover {
   color: var(--t-gris-2);
 }
 
+/* El porqué de la buena (El intruso): debajo de la pregunta al responder, y en la lista del final */
+.test-explicacion {
+  margin: 0;
+  color: var(--t-gris-2);
+  font-weight: bold;
+  text-align: center;
+}
+
+.test-resumen li span small {
+  display: block;
+  white-space: normal; /* el porqué entero, aunque ocupe dos líneas */
+  color: var(--t-gris);
+  font-size: 0.75rem;
+  font-weight: normal;
+}
+
+/* ---------- El intruso ---------- */
+
+.intruso-pregunta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+#vista-juegos .intruso-pregunta .icono {
+  width: 3rem;
+  height: 3rem;
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+.intruso-pregunta strong {
+  font-size: 1.2rem;
+}
+
+/* ---------- ¿De qué tipo es? ----------
+   Los 18 tipos en tres columnas, con la capa de color de cada uno a la izquierda (como en
+   Supereficaz); el marcado, relleno de su color. Al comprobar: borde verde los buenos que
+   marcaste, rojo los que sobraban y discontinuo los que te faltaron. */
+
+.tipos-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.tipos-opciones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.tipos-opciones button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  background: var(--t-control);
+  box-shadow: inset 4px 0 0 var(--color-tipo);
+  color: var(--t-texto);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.tipos-opciones button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tipos-opciones button:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.tipos-opciones button:disabled {
+  cursor: default;
+}
+
+.tipos-opciones .icono-tipo {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  background: var(--color-tipo);
+}
+
+.tipos-opciones button.elegido {
+  background: var(--color-tipo);
+  color: #fff;
+}
+
+.tipos-opciones button.elegido .icono-tipo {
+  background: #fff;
+}
+
+.tipos-opciones button.buena {
+  border-color: var(--t-bien);
+  background: rgba(var(--t-bien-rgb), 0.18);
+}
+
+.tipos-opciones button.mala {
+  border-color: var(--t-mal);
+  background: rgba(var(--t-mal-rgb), 0.18);
+}
+
+.tipos-opciones button.faltaba {
+  border-style: dashed;
+  border-color: var(--t-bien);
+}
+
+.tipos-comprobar {
+  align-self: flex-end;
+}
+
+.tipos-comprobar:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Más preciso que «.test-resumen li span», que la estiraría */
+.test-resumen .tipos-resumen {
+  display: flex;
+  flex: none;
+  gap: 0.2rem;
+}
+
+.tipos-resumen .icono-tipo {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+  background: var(--color-tipo);
+}
+
+@media (max-width: 420px) {
+  .tipos-opciones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* «Volver a intentarlo», en el aviso de que no se han podido apuntar los Pokédólares */
 .juego-reintentar {
   margin-left: 0.4rem;
