@@ -136,6 +136,7 @@ main {
 .menu-lateral [data-vista="logros"]      { --color-boton: 241, 196, 15; }
 .menu-lateral [data-vista="juegos"]      { --color-boton: 76, 182, 92; }
 .menu-lateral [data-vista="jugar"]       { --color-boton: 186, 62, 102; }
+.menu-lateral [data-vista="lucha"]       { --color-boton: 222, 112, 52; }
 
 .menu-lateral :is(button, summary) .icono {
   color: color-mix(in srgb, rgb(var(--color-boton, var(--t-texto-rgb))) var(--t-vivo), black);
@@ -190,6 +191,48 @@ main {
   flex: none;
   width: 1.05rem;
   height: 1.05rem;
+}
+
+/* Una sección que aún está en pruebas («Combates»): una plaquita pequeña a la derecha del nombre */
+.menu-pruebas {
+  margin-left: auto;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.3rem;
+  background: rgba(var(--color-boton), 0.18);
+  color: rgb(var(--color-boton));
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ---------- El menú cabe siempre, sin scroll ----------
+   En el ordenador, los botones, los huecos y los títulos de grupo encogen con el alto de la ventana
+   (vh), con su tamaño de siempre como máximo: en una pantalla alta se ve igual que antes y en una
+   de portátil todo cabe sin bajar. Solo en ventanas muy bajitas (menos de unos 600 px) volvería a
+   salir la barra de scroll, como respaldo. */
+@media (min-width: 761px) {
+  .logo {
+    padding-block: clamp(0.45rem, 1.1vh, 0.8rem);
+  }
+
+  .menu-lateral {
+    gap: clamp(0.06rem, 0.35vh, 0.35rem);
+    padding-block: clamp(0.4rem, 1.2vh, 0.85rem);
+  }
+
+  .menu-lateral button {
+    padding-block: clamp(0.25rem, 0.75vh, 0.6rem);
+    font-size: clamp(0.8rem, 1.6vh, 0.95rem);
+  }
+
+  .menu-lateral .boton-destacado {
+    margin-bottom: clamp(0.1rem, 0.35vh, 0.35rem);
+  }
+
+  .menu-titulo {
+    margin-top: clamp(0.1rem, 0.4vh, 0.3rem);
+  }
 }
 
 /* Lo de dentro de «Equipos»: más pequeño, colgando del grupo con una rayita de su color */
@@ -304,6 +347,11 @@ main {
 /* Aviso del árbitro de normas (js/avisos.js): el mismo naranja que en la actividad del locke */
 .aviso-icono.arbitro {
   color: #f39c12;
+}
+
+/* Retos y turnos de «Lucha»: el color de la sección */
+.aviso-icono.lucha {
+  color: rgb(222, 112, 52);
 }
 
 .aviso-ir {
@@ -1790,6 +1838,7 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 :root:has(#vista-logros:not([hidden])) { --color-vista: 241, 196, 15; }
 :root:has(#vista-juegos:not([hidden])) { --color-vista: 76, 182, 92; }
 :root:has(#vista-jugar:not([hidden])) { --color-vista: 186, 62, 102; }
+:root:has(#vista-lucha:not([hidden])) { --color-vista: 222, 112, 52; }
 
 /* Grupos desplegables del menú */
 

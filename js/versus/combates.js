@@ -3,7 +3,8 @@
 // Cómo se gana un locke: hay que pasarse la ROM. Si no se la pasa nadie, no gana nadie; si
 // solo uno, ese, aunque fuese perdiendo los combates; si varios, el que más combates gana. Los
 // combates (cuántos y cuándo: «tras la 3ª medalla», «Liga»...) los pone quien crea el locke, y
-// cada uno se juega fuera (en Showdown: el botón «Showdown» copia tu equipo y lo abre) y aquí se apunta quién ganó y cómo (al mejor de 3: 2-0,
+// cada uno se juega en «Combates» (el botón «Retar» junto a cada rival: al terminar se suma sola la victoria) o fuera
+// (en Showdown: el botón «Showdown» copia tu equipo y lo abre) y aquí se apunta quién ganó y cómo (al mejor de 3: 2-0,
 // 2-1). Con 3 o más jugadores, cada combate lo gana uno y le suma un punto: vale para un
 // todos contra todos o para un torneo por rondas.
 //
@@ -29,6 +30,7 @@ import { confirmar } from "../comun/ventanas.js";
 import { pasteDelEquipo, copiarAlPortapapeles } from "../equipos/exportar.js";
 import { campoNumero } from "../comun/numero.js";
 import { t } from "../comun/idioma.js";
+import { irA, prepararSeccion } from "../navegacion.js";
 
 let alFallar = (error) => console.error(error);
 
@@ -203,6 +205,10 @@ function pintarCombate() {
       const showdown = uid === yo && equipo
         ? `<a class="boton-gris combate-showdown" href="${SHOWDOWN}" target="_blank" rel="noopener" title="${t("Copia tu equipo y abre Showdown para importarlo")}">${icono("copiar")} Showdown</a>`
         : "";
+      // Contra los demás: retarle en «Lucha» en este combate
+      const lucha = uid !== yo && !soloVer
+        ? `<button type="button" class="boton-gris combate-lucha" data-rival="${escaparHTML(uid)}" title="${t("Retarle aquí, en «Combates»: al terminar, la victoria se apunta sola")}">${icono("lucha")} ${t("Retar")}</button>`
+        : "";
       return `
         <div class="combate-equipo ${uid === yo ? "mio" : ""}">
           ${fotoDe(locke, uid, "combate-opcion-foto")}
@@ -210,6 +216,7 @@ function pintarCombate() {
           ${equipo ? carasDeEquipo(equipo) : `<span class="combate-sin-equipo">${t("Sin equipo")}</span>`}
           <span class="combate-equipo-botones">
             ${showdown}
+            ${lucha}
             ${mio ? `<button type="button" class="boton-gris combate-elegir-equipo">${icono("pokeball")} ${equipo ? t("Cambiar") : t("Elegir")}</button>` : ""}
           </span>
         </div>`;
@@ -366,6 +373,15 @@ export function iniciarCombates(fallo) {
           showdown.innerHTML = `${icono("copiar")} Showdown`;
         }, 2500);
       }
+      return;
+    }
+    const lucha = e.target.closest(".combate-lucha");
+    if (lucha) {
+      const { id, idCombate } = enCombate;
+      dialogoCombate.close();
+      await irA("lucha");
+      const seccion = await prepararSeccion("lucha");
+      seccion.abrirRetar({ rival: lucha.dataset.rival, locke: { id, combate: idCombate } });
       return;
     }
     const elegir = e.target.closest(".combate-elegir-equipo");

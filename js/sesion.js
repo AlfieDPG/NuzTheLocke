@@ -27,6 +27,7 @@ import {
 import { iniciarLockes, salirDeTodosMisLockes } from "./comun/lockes.js";
 import { borrarMiForo } from "./comun/foro.js";
 import { iniciarChats, borrarMisBloqueos } from "./comun/chat.js";
+import { iniciarLuchas, borrarMisLuchas } from "./comun/luchas.js";
 import { borrarMisJugadas, marcoDe, claseMarco } from "./comun/fichas.js";
 import { borrarMiColeccion } from "./comun/coleccion.js";
 import { iniciarAvisosForo } from "./comun/avisos-foro.js";
@@ -331,6 +332,8 @@ function borrarCuenta() {
     await salirDeTodosMisLockes();
     // Mis hilos y comentarios del foro: si falla, que no impida borrar la cuenta
     await borrarMiForo().catch((fallo) => console.error(fallo));
+    // Mis luchas: las que estén a medias se dan por perdidas
+    await borrarMisLuchas().catch((fallo) => console.error(fallo));
     await borrarMisAmistades();     // también vacía los chats con mis amigos
     await borrarMisBloqueos().catch((fallo) => console.error(fallo));
     await borrarMisDatosGuardados();
@@ -429,6 +432,7 @@ export async function iniciarSesionUI() {
   iniciarPerfiles();
   iniciarLockes();
   iniciarChats();
+  iniciarLuchas();
   iniciarAvisosForo();
   iniciarAvisos();
   iniciarPresencia();

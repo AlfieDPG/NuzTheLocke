@@ -255,6 +255,23 @@ alguien abra el chat).
 de tus bloqueos. Una conversación abierta escucha sus últimos 60 mensajes hasta que la cierras. Cada
 mensaje enviado son 2 escrituras (el mensaje y la hora de «enviado»).
 
+## Combates entre amigos (sección «Combates», código en js/lucha/)
+
+| Colección | Quién la lee | Quién escribe |
+|---|---|---|
+| `luchas/{id}` | los dos que luchan | quien reta la crea (solo a un amigo); quien acepta pone su equipo; cualquiera de los dos «espera» y el final |
+| `luchas/{id}/turnos/{n}` | los dos | cada uno solo sus campos (s1/e1 o s2/e2), una vez, mientras se juega |
+
+- No hay servidor: cada navegador calcula el combate con el motor de Showdown (`js/lucha/motor.js`) y la misma
+  semilla; en Firestore solo van las elecciones. Cuando eligen los dos a la vez, cada uno apunta antes un
+  «sello» (el resumen SHA-256 de su elección) para que nadie pueda ver la del otro antes de elegir. Más
+  detalles en `js/comun/luchas.js`.
+- **Cuota.** Una escucha en vivo de tus luchas (una consulta `array-contains`, sin índice que crear) y, con un
+  combate abierto, la de sus turnos. Cada turno normal son unas 5 escrituras (2 sellos, 2 elecciones y
+  «espera»). Al terminar, si era un combate de un locke, también la escritura del resultado en el locke.
+- Rechazar, retirar o quitar una lucha la borra para los dos (primero sus turnos). Al borrar la cuenta, las
+  que estén a medias se dan por perdidas y se borran.
+
 ## Privacidad de los perfiles
 
 - **Mote obligatorio.** Al entrar sin mote sale una ventana que no se puede cerrar (`js/sesion.js`,

@@ -32,6 +32,8 @@ rules_version = '2';
 //   jugadas/{uid}_{juego}_{dia} -> los retos del día de «Juegos» ya jugados y sus Fichas. Una por
 //                            juego y día, sin cambiarla. Ver «Juegos».
 //   colecciones/{uid}     -> los Pokémon que han salido de los huevos de «Juegos». Lo escribe su dueño.
+//   luchas/{id}           -> combates de «Lucha» entre dos amigos y, dentro, las elecciones de cada turno.
+//                            Solo los dos. Ver «Lucha».
 //   estadisticas/usuarios -> cuántos perfiles hay (solo un número). Lo lee cualquiera, incluso sin
 //                            sesión. Solo cambia de 1 en 1, junto con la creación o el borrado del
 //                            perfil propio. El documento se crea a mano (ver LEEME-nube.md).
@@ -905,6 +907,143 @@ service cloud.firestore {
         && request.resource.data.nota is string && request.resource.data.nota.size() <= 300
         && request.resource.data.copia is string && request.resource.data.copia.size() <= 700;
       allow read, update, delete: if esMod();
+    }
+
+    // ---------- Lucha ----------
+    //
+    // Combates entre dos amigos (js/comun/luchas.js lo explica todo: cada navegador calcula el combate
+    // y aquí solo se guardan las elecciones). Solo los leen y escriben los dos que luchan.
+    //
+    //   luchas/{id}             { jugadores: [retador, retado], estado, formato, nivel, motor, semilla,
+    //                             equipos, caras, nombres, fotos, locke, espera, ganador, rendido, creado, actualizado }
+    //   luchas/{id}/turnos/{n}  { s1, e1 (los de quien reta), s2, e2 (los de quien acepta) }
+    //
+    //   · Retar: quien reta es jugadores[0], solo a un amigo, en «reto» y con su equipo nada más.
+    //   · Aceptar: el retado, de «reto» a «jugando», con su equipo, sus caras, su nombre y la mitad b de la semilla.
+    //   · «espera» (a quién le toca): cualquiera de los dos mientras se juega.
+    //   · Terminar: de «jugando» a «fin» una sola vez, ganando uno de los dos o «empate». «rendido», solo uno mismo
+    //     (y entonces gana el otro).
+    //   · Borrar (rechazar, retirar, quitar de la lista): cualquiera de los dos, salvo mientras se juega.
+    //   · Turnos: cada uno solo sus dos campos, mientras se juega, y sin cambiar lo ya escrito (solo añadir).
+
+    function idPar(uno, otro) {
+      return uno < otro ? uno + '_' + otro : otro + '_' + uno;
+    }
+
+    match /luchas/{id} {
+      function esJugador() {
+        return request.auth.uid in resource.data.jugadores;
+      }
+
+      function cambian() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+
+      function pasteBien(paste) {
+        return paste is string && paste.size() <= 8000;
+      }
+
+      function carasBien(caras) {
+        return caras is list && caras.size() <= 6;
+      }
+
+      allow read: if identificado() && request.auth.uid in resource.data.jugadores;
+
+      allow create: if identificado()
+        && request.resource.data.keys().hasOnly(['jugadores', 'nombres', 'fotos', 'estado', 'formato', 'nivel', 'motor',
+             'semilla', 'equipos', 'caras', 'locke', 'creado', 'actualizado'])
+        && request.resource.data.jugadores is list
+        && request.resource.data.jugadores.size() == 2
+        && request.resource.data.jugadores[0] == request.auth.uid
+        && request.resource.data.jugadores[1] is string
+        && request.resource.data.jugadores[1] != request.auth.uid
+        && get(/databases/$(database)/documents/amistades/$(idPar(request.auth.uid, request.resource.data.jugadores[1]))).data.estado == 'ok'
+        && request.resource.data.estado == 'reto'
+        && request.resource.data.formato is string && request.resource.data.formato.size() <= 60
+        && request.resource.data.nivel in ['tal', '50']
+        && request.resource.data.motor is string && request.resource.data.motor.size() <= 20
+        && request.resource.data.semilla.keys().hasOnly(['a'])
+        && request.resource.data.semilla.a is list && request.resource.data.semilla.a.size() == 4
+        && request.resource.data.equipos.keys().hasOnly([request.auth.uid])
+        && pasteBien(request.resource.data.equipos[request.auth.uid])
+        && request.resource.data.caras.keys().hasOnly([request.auth.uid])
+        && carasBien(request.resource.data.caras[request.auth.uid])
+        && request.resource.data.nombres.keys().hasOnly(request.resource.data.jugadores)
+        && request.resource.data.fotos.keys().hasOnly(request.resource.data.jugadores)
+        && (request.resource.data.locke == null
+          || (request.resource.data.locke.keys().hasOnly(['id', 'combate'])
+            && request.resource.data.locke.id is string && request.resource.data.locke.combate is string))
+        && request.resource.data.creado is number
+        && request.resource.data.actualizado is number;
+
+      allow update: if identificado() && esJugador()
+        && request.resource.data.jugadores == resource.data.jugadores
+        && (
+          // Aceptar el reto
+          (resource.data.estado == 'reto'
+            && request.auth.uid == resource.data.jugadores[1]
+            && request.resource.data.estado == 'jugando'
+            && cambian().hasOnly(['estado', 'semilla', 'equipos', 'caras', 'nombres', 'fotos', 'actualizado'])
+            && request.resource.data.semilla.a == resource.data.semilla.a
+            && request.resource.data.semilla.keys().hasOnly(['a', 'b'])
+            && request.resource.data.semilla.b is list && request.resource.data.semilla.b.size() == 4
+            && request.resource.data.equipos.diff(resource.data.equipos).affectedKeys().hasOnly([request.auth.uid])
+            && pasteBien(request.resource.data.equipos[request.auth.uid])
+            && request.resource.data.caras.diff(resource.data.caras).affectedKeys().hasOnly([request.auth.uid])
+            && carasBien(request.resource.data.caras[request.auth.uid])
+            && request.resource.data.nombres.diff(resource.data.nombres).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.fotos.diff(resource.data.fotos).affectedKeys().hasOnly([request.auth.uid]))
+          // A quién le toca
+          || (resource.data.estado == 'jugando'
+            && cambian().hasOnly(['espera', 'actualizado'])
+            && request.resource.data.espera is list
+            && request.resource.data.espera.size() <= 2)
+          // Terminar o rendirse
+          || (resource.data.estado == 'jugando'
+            && request.resource.data.estado == 'fin'
+            && cambian().hasOnly(['estado', 'ganador', 'rendido', 'actualizado'])
+            && (request.resource.data.ganador in resource.data.jugadores || request.resource.data.ganador == 'empate')
+            && (!('rendido' in request.resource.data)
+              || (request.resource.data.rendido == request.auth.uid && request.resource.data.ganador != request.auth.uid)))
+        );
+
+      allow delete: if identificado() && esJugador() && resource.data.estado != 'jugando';
+    }
+
+    match /luchas/{id}/turnos/{n} {
+      function lucha() {
+        return get(/databases/$(database)/documents/luchas/$(id)).data;
+      }
+
+      // «1» si soy quien retó (p1), «2» si soy quien aceptó (p2)
+      function mio() {
+        return lucha().jugadores[0] == request.auth.uid ? '1' : '2';
+      }
+
+      function valorBien(campo) {
+        return !(campo in request.resource.data)
+          || (request.resource.data[campo] is string && request.resource.data[campo].size() <= 100);
+      }
+
+      function puedoEscribir() {
+        return identificado()
+          && request.auth.uid in lucha().jugadores
+          && lucha().estado == 'jugando'
+          && valorBien('s' + mio())
+          && valorBien('e' + mio());
+      }
+
+      allow read: if identificado() && request.auth.uid in lucha().jugadores;
+
+      allow create: if puedoEscribir()
+        && request.resource.data.keys().hasOnly(['s' + mio(), 'e' + mio()]);
+
+      allow update: if puedoEscribir()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['s' + mio(), 'e' + mio()])
+        && request.resource.data.diff(resource.data).changedKeys().size() == 0
+        && request.resource.data.diff(resource.data).removedKeys().size() == 0;
+
+      allow delete: if identificado() && request.auth.uid in lucha().jugadores && lucha().estado != 'jugando';
     }
 
     // Todo lo demás, cerrado

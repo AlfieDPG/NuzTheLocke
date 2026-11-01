@@ -568,6 +568,23 @@ export async function apuntarResultado(id, idCombate, ganador, marcador, puntos 
   }
 }
 
+// Una lucha de «Lucha» (js/lucha/) jugada en un combate del locke: suma un combate ganado a quien
+// la ha ganado y pone como ganador del combate al que más tenga (al mejor de 3, tres luchas). Si
+// empatan, se queda como ganador el de esta última.
+export async function sumarVictoriaCombate(id, idCombate, ganador) {
+  const locke = lockePorId(id);
+  if (!locke || locke.estado === "cerrado" || !combatesDe(locke).some((combate) => combate.id === idCombate)) return;
+  const resultado = (locke.resultados || {})[idCombate] || {};
+  const puntos = { ...(resultado.puntos || (resultado.ganador ? { [resultado.ganador]: 1 } : {})) };
+  puntos[ganador] = (Number(puntos[ganador]) || 0) + 1;
+  const jugando = (locke.jugadores || []).filter((uid) => estadoDe(locke, uid) === "aceptado");
+  const valores = jugando.map((uid) => Number(puntos[uid]) || 0);
+  const max = Math.max(0, ...valores);
+  const arriba = jugando.filter((uid) => (Number(puntos[uid]) || 0) === max);
+  const lider = arriba.length === 1 ? arriba[0] : ganador;
+  await apuntarResultado(id, idCombate, lider, valores.sort((a, b) => b - a).join("-"), puntos);
+}
+
 // El equipo con el que juegas un combate (cada uno pone el suyo): equipos: { uid: { idCombate:
 // { nombre, pokemon } } }. equipo null: se quita.
 export function equipoDeCombate(locke, uid, idCombate) {

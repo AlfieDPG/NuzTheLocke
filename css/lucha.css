@@ -1,0 +1,961 @@
+/* ---------- Lucha: combates entre amigos (js/lucha/index.js) ----------
+   La lista de luchas (por bloques: te retan, en marcha, esperando, terminadas) y el combate: el campo
+   con los dos Pokémon y sus fichas, la frase de lo que pasa, los botones para elegir y, a la derecha,
+   el registro. Los ataques con el color de su tipo, como en la Calculadora. Nada de cajas de texto
+   ni cursores de los juegos de GBA: es la web, no una copia de la pantalla del juego. */
+
+:where(#vista-lucha, #dialogo-lucha-retar) .icono {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+/* El botón de la sección (Retar, Aceptar, Luchar) */
+.lucha-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.lucha-boton:hover:not(:disabled) {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
+}
+
+#vista-lucha .boton-gris {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#vista-lucha .boton-gris:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.lucha-aviso {
+  margin: 1.5rem 0;
+  opacity: 0.8;
+}
+
+/* Mientras está en pruebas: un aviso arriba de la lista */
+.lucha-en-pruebas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.85rem 0 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  background: rgba(var(--color-vista), 0.12);
+  font-size: 0.88rem;
+}
+
+.lucha-en-pruebas .icono {
+  color: rgb(var(--color-vista));
+}
+
+.lucha-aviso.error,
+.lucha-espera.error {
+  color: var(--t-rojo);
+  opacity: 1;
+}
+
+/* ---------- La lista ---------- */
+
+.lucha-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0.85rem 0 1.1rem;
+}
+
+.lucha-explica {
+  flex: 1 1 20rem;
+  margin: 0;
+  font-size: 0.88rem;
+  opacity: 0.7;
+}
+
+.lucha-bloques {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(34rem, 100%), 1fr));
+  gap: 1.1rem 1.4rem;
+  align-items: start;
+}
+
+.lucha-bloque h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.lucha-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "foto texto botones"
+    "foto equipos estado";
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.55rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+}
+
+/* La capa de color, solo en las que piden algo de ti */
+.lucha-fila.destacada {
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+  background: linear-gradient(90deg, rgba(var(--color-vista), 0.12), var(--t-panel) 45%);
+}
+
+.lucha-fila > .lucha-foto {
+  grid-area: foto;
+}
+
+.lucha-fila-texto {
+  grid-area: texto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lucha-fila-texto small {
+  overflow: hidden;
+  font-size: 0.78rem;
+  opacity: 0.7;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lucha-fila-equipos {
+  grid-area: equipos;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lucha-fila-equipos .cara-equipo img {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.lucha-fila .lucha-estado {
+  grid-area: estado;
+  justify-self: end;
+}
+
+.lucha-fila-botones {
+  grid-area: botones;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.lucha-vs {
+  font-family: var(--letra-titulos);
+  font-size: 0.8rem;
+  font-weight: bold;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.lucha-sin-equipo,
+.lucha-vacio {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.lucha-estado {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(var(--t-tinte), 0.08);
+  font-size: 0.75rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.lucha-estado.toca,
+.lucha-estado.reto {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.lucha-estado.gana {
+  background: rgba(var(--t-bien-rgb), 0.2);
+  color: var(--t-bien);
+}
+
+.lucha-estado.pierde {
+  background: rgba(var(--t-mal-rgb, 231, 76, 60), 0.18);
+  color: var(--t-mal, #e74c3c);
+}
+
+/* Fotos de los jugadores (las del perfil) */
+.lucha-foto {
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.lucha-foto.sin-foto {
+  display: inline-grid;
+  place-items: center;
+  background: var(--t-control);
+  font-weight: bold;
+}
+
+/* Sin luchas: el guante grande y una frase */
+.lucha-nada {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 30rem;
+  margin: 3rem auto;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.lucha-nada-icono .icono {
+  width: 3.2rem;
+  height: 3.2rem;
+  color: rgb(var(--color-vista));
+}
+
+/* ---------- Retar / aceptar ---------- */
+
+.dialogo-lucha {
+  width: min(32rem, 94vw);
+}
+
+.dialogo-lucha h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: color-mix(in srgb, rgb(var(--color-vista, 222, 112, 52)) var(--t-vivo), black);
+}
+
+.dialogo-lucha h2 .icono {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.dialogo-lucha select {
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.dialogo-lucha > .lucha-retar-cuerpo > select {
+  width: 100%;
+}
+
+.dialogo-lucha .etiqueta-campo {
+  display: block;
+  margin: 0.85rem 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lucha-retar-rival {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lucha-retar-dato {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0;
+}
+
+/* Nivel: dos botones pegados en una tarjetita */
+.lucha-retar-nivel {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 0.55rem;
+  background: var(--t-control);
+}
+
+.lucha-retar-nivel button {
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.lucha-retar-nivel button.elegido {
+  background: var(--t-panel);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.lucha-retar-equipo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel-3);
+}
+
+.lucha-retar-equipo .boton-gris {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  padding: 0.4rem 0.75rem;
+}
+
+.lucha-retar-problemas {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.82rem;
+  color: var(--t-casi);
+}
+
+/* ---------- El combate ---------- */
+
+.lucha-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0.85rem 0;
+}
+
+.lucha-cabeza-jugadores {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lucha-cabeza-jugadores .lucha-foto {
+  width: 2rem;
+  height: 2rem;
+}
+
+.lucha-cabeza-datos {
+  opacity: 0.7;
+}
+
+.lucha-cabeza .lucha-rendirse {
+  margin-left: auto;
+}
+
+.lucha-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+/* El campo: un cielo del color de la sección que se funde con el panel, y dos «suelos» */
+.lucha-arena {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-height: 26rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 22% 7% at 72% 47%, rgba(var(--t-tinte), 0.14), transparent 70%),
+    radial-gradient(ellipse 26% 8% at 27% 88%, rgba(var(--t-tinte), 0.16), transparent 70%),
+    linear-gradient(180deg, rgba(var(--color-vista), 0.22), var(--t-panel) 75%);
+}
+
+.lucha-turno,
+.lucha-clima {
+  position: absolute;
+  top: 0.6rem;
+  z-index: 2;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(var(--t-oscurecer), 0.35);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.lucha-turno {
+  right: 0.7rem;
+}
+
+.lucha-clima {
+  right: 50%;
+  transform: translateX(50%);
+}
+
+.lucha-lado {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lucha-lado .lucha-ficha-hueco {
+  position: absolute;
+  z-index: 1;
+  width: min(17rem, 46%);
+  pointer-events: auto;
+}
+
+.lucha-lado.suyo .lucha-ficha-hueco {
+  top: 0.6rem;
+  left: 0.6rem;
+}
+
+.lucha-lado.mio .lucha-ficha-hueco {
+  right: 0.6rem;
+  bottom: 0.6rem;
+}
+
+.lucha-sprite {
+  position: absolute;
+  display: grid;
+  place-items: end center;
+}
+
+.lucha-sprite img {
+  image-rendering: pixelated;
+}
+
+.lucha-lado.suyo .lucha-sprite {
+  top: 8%;
+  right: 16%;
+  width: 34%;
+  height: 42%;
+}
+
+.lucha-lado.suyo .lucha-sprite img {
+  height: 85%;
+}
+
+.lucha-lado.mio .lucha-sprite {
+  bottom: 2%;
+  left: 8%;
+  width: 40%;
+  height: 58%;
+}
+
+.lucha-lado.mio .lucha-sprite img {
+  height: 92%;
+}
+
+/* Animaciones: atacar (se lanza hacia el otro), recibir (tiembla y parpadea), salir y caer */
+.lucha-lado.mio .lucha-sprite.ataca { animation: lucha-ataca-mio 0.45s ease-out; }
+.lucha-lado.suyo .lucha-sprite.ataca { animation: lucha-ataca-suyo 0.45s ease-out; }
+.lucha-sprite.golpeado { animation: lucha-golpe 0.45s linear; }
+.lucha-sprite.sale { animation: lucha-sale 0.5s ease-out; }
+
+.lucha-sprite.caido img {
+  opacity: 0;
+  transform: translateY(35%);
+  transition: opacity 0.6s, transform 0.6s ease-in;
+}
+
+@keyframes lucha-ataca-mio {
+  40% { transform: translate(12%, -10%); }
+}
+
+@keyframes lucha-ataca-suyo {
+  40% { transform: translate(-12%, 10%); }
+}
+
+@keyframes lucha-golpe {
+  0%, 100% { transform: none; opacity: 1; }
+  20% { transform: translateX(-5%); opacity: 0.3; }
+  40% { transform: translateX(5%); opacity: 1; }
+  60% { transform: translateX(-3%); opacity: 0.3; }
+  80% { transform: translateX(2%); opacity: 1; }
+}
+
+@keyframes lucha-sale {
+  from { transform: scale(0.3); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lucha-sprite.ataca,
+  .lucha-sprite.golpeado,
+  .lucha-sprite.sale { animation: none; }
+}
+
+/* Las fichas: retrato de Mundo Misterioso, nombre, nivel, PS y lo que tenga encima */
+.lucha-ficha {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--t-panel) 92%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.lucha-ficha.debilitado {
+  opacity: 0.55;
+}
+
+.lucha-retrato {
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: rgba(var(--t-tinte), 0.06);
+  image-rendering: pixelated;
+}
+
+.lucha-ficha-datos {
+  flex: 1;
+  min-width: 0;
+}
+
+.lucha-ficha-nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.lucha-ficha-nombre strong {
+  overflow: hidden;
+  font-family: var(--letra-titulos);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lucha-ficha-nombre small {
+  margin-left: auto;
+  font-size: 0.75rem;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.lucha-genero .icono {
+  width: 0.85em;
+  height: 0.85em;
+}
+
+.lucha-genero.macho { color: #5b9bf0; }
+.lucha-genero.hembra { color: #f07fb0; }
+
+.lucha-ficha-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.lucha-ps-texto {
+  margin-right: auto;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* La barra de PS: verde, amarilla o roja (con los colores del modo daltónico) */
+.lucha-ps {
+  display: block;
+  height: 0.45rem;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(var(--t-tinte), 0.12);
+}
+
+.lucha-ps > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--t-bien);
+  transition: width 0.45s ease-out, background 0.3s;
+}
+
+.lucha-ps.medio > span { background: var(--t-casi); }
+.lucha-ps.bajo > span { background: var(--t-mal, #e74c3c); }
+
+.lucha-chip-estado,
+.lucha-chip-cambio {
+  padding: 0 0.35rem;
+  border-radius: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: bold;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.lucha-chip-estado { color: #fff; }
+.lucha-chip-estado.estado-brn { background: #e4703a; }
+.lucha-chip-estado.estado-par { background: #c9a91a; }
+.lucha-chip-estado.estado-slp { background: #8a8fa8; }
+.lucha-chip-estado.estado-frz { background: #5fb8d6; }
+.lucha-chip-estado.estado-psn,
+.lucha-chip-estado.estado-tox { background: #a04aa6; }
+
+.lucha-chip-cambio.sube { background: rgba(var(--t-bien-rgb), 0.2); color: var(--t-bien); }
+.lucha-chip-cambio.baja { background: rgba(var(--t-mal-rgb, 231, 76, 60), 0.18); color: var(--t-mal, #e74c3c); }
+
+/* Bolitas de cada equipo, bajo su ficha */
+.lucha-bolitas {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.3rem 0 0 0.4rem;
+}
+
+.lucha-lado.mio .lucha-bolitas {
+  justify-content: flex-end;
+  margin: 0 0.4rem 0.3rem 0;
+  order: -1;
+}
+
+.lucha-lado.mio .lucha-ficha-hueco {
+  display: flex;
+  flex-direction: column;
+}
+
+.lucha-bolita {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1px dashed rgba(var(--t-tinte), 0.45);
+  border-radius: 50%;
+}
+
+.lucha-bolita.vivo {
+  border: none;
+  background: rgb(var(--color-vista));
+}
+
+.lucha-bolita.caido {
+  border: none;
+  background: rgba(var(--t-tinte), 0.25);
+}
+
+/* La frase de lo que pasa, bajo el campo */
+.lucha-mensaje {
+  min-height: 1.5em;
+  margin: 0.6rem 0.2rem;
+  font-size: 1.05rem;
+  font-weight: bold;
+}
+
+/* ---------- Elegir ---------- */
+
+.lucha-acciones {
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+}
+
+.lucha-acciones:empty {
+  display: none;
+}
+
+.lucha-pregunta {
+  margin: 0 0 0.55rem;
+  font-weight: bold;
+}
+
+.lucha-espera {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.lucha-acciones .etiqueta-campo {
+  display: block;
+  margin: 0.8rem 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.lucha-ataques {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.lucha-ataque {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icono nombre pp"
+    "icono datos pp";
+  align-items: center;
+  gap: 0.05rem 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  background: var(--tipo);
+  color: #fff;
+  text-align: left;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.lucha-ataque:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.7);
+  transform: translateY(-1px);
+}
+
+.lucha-ataque:disabled {
+  filter: grayscale(0.8);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.lucha-ataque .icono-tipo {
+  grid-area: icono;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.lucha-ataque strong {
+  grid-area: nombre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lucha-ataque small {
+  grid-area: datos;
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+.lucha-pp {
+  grid-area: pp;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lucha-especiales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.lucha-especial {
+  padding: 0.35rem 0.75rem;
+  border: 1px dashed rgba(var(--color-vista), 0.8);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--t-texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.lucha-especial.elegido {
+  border-style: solid;
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.lucha-equipo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.lucha-cambio {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  border-radius: 0.6rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lucha-cambio:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.lucha-cambio:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.lucha-cambio.en-campo {
+  box-shadow: inset 0 0 0 2px rgba(var(--color-vista), 0.7);
+  opacity: 0.8;
+}
+
+.lucha-cambio.caido .lucha-retrato {
+  filter: grayscale(1);
+}
+
+.lucha-cambio .lucha-retrato {
+  width: 2rem;
+  height: 2rem;
+}
+
+.lucha-cambio-datos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lucha-cambio-datos strong {
+  overflow: hidden;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lucha-cambio-datos small {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.lucha-previa p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+}
+
+/* El final */
+.lucha-final {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.lucha-final strong {
+  font-family: var(--letra-titulos);
+  font-size: 1.3rem;
+}
+
+.lucha-final.gana strong { color: var(--t-bien); }
+
+.lucha-final small {
+  flex-basis: 100%;
+  opacity: 0.75;
+}
+
+.lucha-final .lucha-volver {
+  margin-left: auto;
+}
+
+/* ---------- El registro ---------- */
+
+.lucha-registro {
+  display: flex;
+  flex-direction: column;
+  max-height: 40rem;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+}
+
+.lucha-registro h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.lucha-registro-lista {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 0.84rem;
+}
+
+.lucha-registro-lista li {
+  padding: 0.12rem 0;
+}
+
+.lucha-registro-lista li.turno {
+  margin-top: 0.55rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.12);
+  font-weight: bold;
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), var(--t-texto));
+}
+
+.lucha-registro-lista li.aviso {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* ---------- Móvil: uno debajo de otro ---------- */
+
+@media (max-width: 900px) {
+  .lucha-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lucha-registro {
+    max-height: 18rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .lucha-fila {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "foto texto"
+      "equipos equipos"
+      "estado botones";
+  }
+
+  .lucha-fila .lucha-estado {
+    justify-self: start;
+  }
+
+  .lucha-ataques {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lucha-lado .lucha-ficha-hueco {
+    width: 58%;
+  }
+
+  .lucha-ficha .lucha-retrato {
+    display: none;
+  }
+}

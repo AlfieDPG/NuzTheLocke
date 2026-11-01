@@ -12,6 +12,7 @@
 //     tuyo con árbitro (js/partida/arbitro.js). Se quitan con el visto, y se guardan como
 //     vistos en tu cuenta para no volver a salir en otro dispositivo.
 //   · respuestas nuevas a tus hilos del foro (js/comun/avisos-foro.js)
+//   · combates de «Combates» (js/lucha/): retos que te mandan y luchas en las que te toca elegir (js/comun/luchas.js)
 //
 // Las listas están escuchadas en vivo, así que el número sube y baja solo.
 
@@ -27,6 +28,7 @@ import {
 } from "./comun/lockes.js";
 import { chatsSinLeer, alCambiarChats } from "./comun/chat.js";
 import { respuestasNuevas, marcarHiloVisto, alCambiarAvisosForo } from "./comun/avisos-foro.js";
+import { alCambiarLuchas, retosRecibidos, luchasEnLasQueMeToca, borrarLucha, rivalDe } from "./comun/luchas.js";
 import { leer, escribir } from "./comun/almacen.js";
 import { irA, prepararSeccion } from "./navegacion.js";
 
@@ -170,14 +172,44 @@ async function abrirHiloDelForo(id) {
   marcarHiloVisto(id);
 }
 
+// ---------- Luchas ----------
+
+// Un reto que te mandan (aceptar abre «Lucha» para elegir equipo) o una lucha en la que te toca
+function plantillaLucha(lucha) {
+  const uid = usuarioActual().uid;
+  const quien = `<b>${escaparHTML((lucha.nombres || {})[rivalDe(lucha, uid)] || t("Alguien"))}</b>`;
+  const reto = lucha.estado === "reto";
+  return `
+    <div class="aviso" data-tipo="lucha" data-id="${escaparHTML(lucha.id)}">
+      <span class="aviso-icono lucha">${icono("lucha")}</span>
+      <span class="aviso-texto aviso-ir" title="${t("Ir a Combates")}">
+        ${reto ? t("{quien} te reta a un combate", { quien }) : t("Te toca en tu combate contra {quien}", { quien })}
+      </span>
+      ${reto
+        ? `<button class="aviso-si" title="${t("Elegir equipo y aceptar")}">${icono("visto")}</button>
+           <button class="aviso-no" title="${t("Rechazar")}">${icono("aspa")}</button>`
+        : ""}
+    </div>`;
+}
+
+async function abrirLuchaDesdeAviso(id) {
+  dialogo.close();
+  await irA("lucha");
+  const lucha = await prepararSeccion("lucha");
+  lucha.abrirLucha(id);
+}
+
 function pendientes() {
-  if (!hayNube() || !usuarioActual()) return { amistades: [], lockes: [], arbitro: [], foro: [] };
-  return { amistades: solicitudesRecibidas(), lockes: invitacionesALockes(), arbitro: avisosDelArbitro(), foro: respuestasNuevas() };
+  if (!hayNube() || !usuarioActual()) return { amistades: [], lockes: [], arbitro: [], foro: [], luchas: [] };
+  return {
+    amistades: solicitudesRecibidas(), lockes: invitacionesALockes(), arbitro: avisosDelArbitro(), foro: respuestasNuevas(),
+    luchas: [...retosRecibidos(), ...luchasEnLasQueMeToca()]
+  };
 }
 
 function pintar() {
-  const { amistades, lockes, arbitro, foro } = pendientes();
-  const total = amistades.length + lockes.length + arbitro.length + foro.length;
+  const { amistades, lockes, arbitro, foro, luchas } = pendientes();
+  const total = amistades.length + lockes.length + arbitro.length + foro.length + luchas.length;
 
   cuenta.textContent = total;
   cuenta.hidden = total === 0;
@@ -185,7 +217,7 @@ function pintar() {
   boton.title = total === 0 ? t("Notificaciones") : t(total === 1 ? "Tienes {n} notificación" : "Tienes {n} notificaciones", { n: total });
 
   listaDialogo.innerHTML = total
-    ? [...amistades.map(plantillaAmistad), ...lockes.map(plantillaLocke), ...arbitro.map(plantillaArbitro), ...foro.map(plantillaForo)].join("")
+    ? [...amistades.map(plantillaAmistad), ...lockes.map(plantillaLocke), ...luchas.map(plantillaLucha), ...arbitro.map(plantillaArbitro), ...foro.map(plantillaForo)].join("")
     : `<p class="aviso-vacio">${t("No tienes nada pendiente.")}</p>`;
 }
 
@@ -260,6 +292,16 @@ export function iniciarAvisos() {
       else if (e.target.closest(".aviso-ir")) abrirHiloDelForo(aviso.dataset.id).catch((error) => console.error(error));
       return;
     }
+    if (aviso && aviso.dataset.tipo === "lucha") {
+      if (no) {
+        for (const cada of aviso.querySelectorAll("button")) cada.disabled = true;
+        borrarLucha(aviso.dataset.id).catch((error) => {
+          console.error(error);
+          for (const cada of aviso.querySelectorAll("button")) cada.disabled = false;
+        });
+      } else if (si || e.target.closest(".aviso-ir")) abrirLuchaDesdeAviso(aviso.dataset.id).catch((error) => console.error(error));
+      return;
+    }
     if (aviso && aviso.dataset.tipo === "arbitro") {
       if (si) marcarVisto(aviso.dataset.id);
       else if (e.target.closest(".aviso-ir")) {
@@ -285,4 +327,5 @@ export function iniciarAvisos() {
   });
 
   alCambiarAvisosForo(pintar);
+  alCambiarLuchas(pintar);
 }

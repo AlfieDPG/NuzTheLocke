@@ -27,7 +27,8 @@ const SECCIONES = {
   logros: () => import("./logros/index.js"),
   juegos: () => import("./juegos/index.js"),
   randomizer: () => import("./randomizer/index.js"),
-  jugar: () => import("./jugar/index.js")
+  jugar: () => import("./jugar/index.js"),
+  lucha: () => import("./lucha/index.js")
 };
 
 // Vista -> sección que la gestiona
@@ -47,7 +48,8 @@ const VISTAS = {
   logros: "logros",
   juegos: "juegos",
   randomizer: "randomizer",
-  jugar: "jugar"
+  jugar: "jugar",
+  lucha: "lucha"
 };
 
 // Vistas sin botón propio en el menú -> el botón que se marca

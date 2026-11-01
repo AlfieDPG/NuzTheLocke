@@ -2556,7 +2556,8 @@ button.salon-cara:hover {
 }
 
 .combate-elegir-equipo,
-.combate-showdown {
+.combate-showdown,
+.combate-lucha {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -2590,6 +2591,7 @@ button.salon-cara:hover {
 }
 
 .combate-showdown .icono,
+.combate-lucha .icono,
 .combate-elegir-equipo .icono {
   width: 1rem;
   height: 1rem;

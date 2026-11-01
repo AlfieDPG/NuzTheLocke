@@ -43,6 +43,7 @@
   <link rel="stylesheet" href="css/chat.css">
   <link rel="stylesheet" href="css/versus.css">
   <link rel="stylesheet" href="css/jugar.css">
+  <link rel="stylesheet" href="css/lucha.css">
   <link rel="stylesheet" href="css/pokedex.css">
   <link rel="stylesheet" href="css/logros.css">
   <link rel="stylesheet" href="css/juegos.css">
@@ -63,6 +64,8 @@
         <!-- Los grupos del menú: un título pequeño sobre cada uno, sin cajas ni líneas -->
         <span class="menu-titulo">Partida</span>
         <button data-vista="jugar" data-icono="consola" class="boton-seccion">Jugar</button>
+        <!-- En pruebas: la etiqueta avisa de que aún no está terminada (quitarla al darla por buena) -->
+        <button data-vista="lucha" data-icono="lucha" class="boton-seccion">Combates <span class="menu-pruebas">Testing</span></button>
         <button data-vista="rutas" data-icono="mapa" class="boton-seccion">Rutas</button>
         <button data-vista="levelcaps" data-icono="escudo" class="boton-seccion">Level caps</button>
         <button data-vista="normas" data-icono="libro" class="boton-seccion">Normas</button>
@@ -266,6 +269,13 @@
               <section class="jugar-caja jugar-directo" hidden></section>
             </aside>
           </div>
+        </section>
+
+        <!-- «Combates» (código en js/lucha/): combates entre amigos con el motor de Showdown. La lista o, al
+             abrir uno, el combate (se pinta entero desde js/lucha/index.js) -->
+        <section id="vista-lucha" hidden>
+          <div class="lucha-inicio"></div>
+          <div class="lucha-combate" hidden></div>
         </section>
 
         <section id="vista-lockes" hidden>
@@ -834,6 +844,17 @@
       <button type="button" class="boton-gris boton-izquierda combate-borrar">Sin jugar</button>
       <button type="button" class="boton-gris combate-cancelar">Cancelar</button>
       <button type="button" class="boton-rojo combate-ok">Guardar</button>
+    </div>
+  </dialog>
+
+  <!-- Combates: retar a un amigo o aceptar su reto (el contenido lo pinta js/lucha/index.js) -->
+  <dialog id="dialogo-lucha-retar" class="dialogo-sesion dialogo-lucha">
+    <h2></h2>
+    <div class="lucha-retar-cuerpo"></div>
+    <p class="sesion-error lucha-retar-error" role="status"></p>
+    <div class="dialogo-botones">
+      <button type="button" class="boton-gris lucha-retar-cancelar">Cancelar</button>
+      <button type="button" class="boton-seccion lucha-retar-ok">Retar</button>
     </div>
   </dialog>
 

@@ -18,5 +18,6 @@ import foro from "./foro.js";
 import chat from "./chat.js";
 import juegos from "./juegos.js";
 import jugar from "./jugar.js";
+import lucha from "./lucha.js";
 
-export default { ...comun, ...pagina, ...inicio, ...equipos, ...lockes, ...rutas, ...pokedex, ...calculadora, ...normas, ...logros, ...amigos, ...perfil, ...randomizer, ...foro, ...chat, ...juegos, ...jugar };
+export default { ...comun, ...pagina, ...inicio, ...equipos, ...lockes, ...rutas, ...pokedex, ...calculadora, ...normas, ...logros, ...amigos, ...perfil, ...randomizer, ...foro, ...chat, ...juegos, ...jugar, ...lucha };
