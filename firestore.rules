@@ -914,7 +914,7 @@ service cloud.firestore {
     // Combates entre dos amigos (js/comun/luchas.js lo explica todo: cada navegador calcula el combate
     // y aquí solo se guardan las elecciones). Solo los leen y escriben los dos que luchan.
     //
-    //   luchas/{id}             { jugadores: [retador, retado], estado, formato, nivel, motor, semilla,
+    //   luchas/{id}             { jugadores: [retador, retado], estado, formato, nivel, motor, vistaPrevia, escena, semilla,
     //                             equipos, caras, nombres, fotos, locke, espera, ganador, rendido, creado, actualizado }
     //   luchas/{id}/turnos/{n}  { s1, e1 (los de quien reta), s2, e2 (los de quien acepta) }
     //
@@ -951,7 +951,9 @@ service cloud.firestore {
 
       allow create: if identificado()
         && request.resource.data.keys().hasOnly(['jugadores', 'nombres', 'fotos', 'estado', 'formato', 'nivel', 'motor',
-             'semilla', 'equipos', 'caras', 'locke', 'creado', 'actualizado'])
+             'vistaPrevia', 'escena', 'semilla', 'equipos', 'caras', 'locke', 'creado', 'actualizado'])
+        && request.resource.data.get('vistaPrevia', true) is bool
+        && request.resource.data.get('escena', '') in ['', 'pradera', 'atardecer', 'noche', 'nieve', 'playa', 'cueva']
         && request.resource.data.jugadores is list
         && request.resource.data.jugadores.size() == 2
         && request.resource.data.jugadores[0] == request.auth.uid

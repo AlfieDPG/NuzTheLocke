@@ -8,6 +8,8 @@
 //     nombres, fotos: { uid: ... }   // copia para pintar la lista sin leer perfiles
 //     estado: "reto" | "jugando" | "fin"
 //     formato: "gen4customgame@@@Team Preview"..., nivel: "tal" | "50", motor: versión del motor
+//     vistaPrevia: true | false      // si se ven los dos equipos antes de empezar (sin el campo: sí)
+//     escena: "" | "pradera" | ...   // el escenario que eligió quien retó ("": uno al azar)
 //     semilla: { a: [4 números], b: [4 números] }   // a, de quien reta; b, de quien acepta
 //     equipos: { uid: paste }        // el equipo de cada uno, como paste de Showdown
 //     caras: { uid: [Pokémon] }      // lo justo para pintar sus retratos (pokemonParaCopia)
@@ -162,7 +164,7 @@ function miNombreYFoto() {
 }
 
 // equipo: { paste, caras }; locke: { id, combate } o null
-export async function retar({ rival, nombreRival, fotoRival, equipo, formato, nivel, motor, locke = null }) {
+export async function retar({ rival, nombreRival, fotoRival, equipo, formato, nivel, motor, vistaPrevia = true, escena = "", locke = null }) {
   const { bd, fn, usuario } = acceso();
   const yo = miNombreYFoto();
   const ahora = Date.now();
@@ -175,6 +177,8 @@ export async function retar({ rival, nombreRival, fotoRival, equipo, formato, ni
     formato,
     nivel,
     motor,
+    vistaPrevia: Boolean(vistaPrevia),
+    escena: escena || "",
     semilla: { a: mediaSemilla() },
     equipos: { [usuario.uid]: equipo.paste },
     caras: { [usuario.uid]: equipo.caras },

@@ -30,6 +30,8 @@ export default {
   "Aún no tienes combates. Reta a un amigo con uno de tus equipos o, desde «Lockes», en un combate de vuestro locke.":
     "You don't have any battles yet. Challenge a friend with one of your teams or, from “Lockes”, in one of your locke's battles.",
   "Te retan": "Challenges for you",
+  "Retos": "Challenges",
+  "Ver repetición": "Watch replay",
   "Terminadas": "Finished",
 
   // ---------- Retar y aceptar ----------
@@ -254,13 +256,25 @@ export default {
   "Muy eficaz (×{n})": "Super effective (×{n})",
   "Poco eficaz (×{n})": "Not very effective (×{n})",
   "Eficacia normal": "Neutral",
-  "Lo debilita de un golpe si acierta": "Knocks it out in one hit if it lands",
-  "Le quitaría ≈ {min}–{max} % de sus PS": "Would deal ≈ {min}–{max} % of its HP",
   "Contra {nombre}": "Against {nombre}",
-  "Aproximado: sin saber su entrenamiento, ni críticos.": "Approximate: without knowing its training, and without critical hits.",
   "Contacto": "Contact",
   "Sonido": "Sound",
   "Poner el sonido": "Turn sound on",
+
+  // ---------- Vista previa y equipos a la vista ----------
+  "sin vista previa": "no team preview",
+  "Vista previa": "Team preview",
+  "Ver los dos equipos antes de empezar": "See both teams before starting",
+  "Sin vista previa": "No team preview",
+  "Escenario": "Battlefield",
+  "Pradera": "Meadow",
+  "Playa": "Beach",
+  "Cargando el combate...": "Loading the battle...",
+  "Elige con quién empiezas": "Choose your lead",
+  "Equipo de {nombre}": "{nombre}'s team",
+  "Debilitado": "Fainted",
+  "transformado en {especie}": "transformed into {especie}",
+  "Aún no ha salido": "Not seen yet",
 
   // ---------- Repetición ----------
   "Repetición": "Replay",

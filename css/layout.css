@@ -83,7 +83,7 @@ main {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  margin: 0.3rem 0 -0.1rem 0.8rem;
+  margin: 0.3rem 0 0.15rem 0.8rem;
   font-size: 0.62rem;
   font-weight: 800;
   line-height: 1;
@@ -217,12 +217,14 @@ main {
   }
 
   .menu-lateral {
-    gap: clamp(0.06rem, 0.35vh, 0.35rem);
+    gap: clamp(0.06rem, 0.45vh, 0.35rem);
     padding-block: clamp(0.4rem, 1.2vh, 0.85rem);
   }
 
+  /* Más alto de lo justo para la letra: el resaltado (al pasar el ratón, la sección abierta) no
+     se queda pegado a las letras */
   .menu-lateral button {
-    padding-block: clamp(0.25rem, 0.75vh, 0.6rem);
+    padding-block: clamp(0.22rem, 0.95vh, 0.6rem);
     font-size: clamp(0.8rem, 1.6vh, 0.95rem);
   }
 
@@ -231,7 +233,8 @@ main {
   }
 
   .menu-titulo {
-    margin-top: clamp(0.1rem, 0.4vh, 0.3rem);
+    margin-top: clamp(0.15rem, 0.6vh, 0.4rem);
+    margin-bottom: clamp(0.05rem, 0.35vh, 0.25rem);
   }
 }
 

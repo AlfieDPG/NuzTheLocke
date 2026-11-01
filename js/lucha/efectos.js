@@ -366,6 +366,14 @@ export function crearEfectos(arena) {
       }
     },
 
+    // Un escudo en pixel art alrededor de uno (Protección y su familia): aparece, aguanta y se va
+    escudo(lado, url) {
+      const punto = centro(lado);
+      poner("lucha-escudo", {
+        left: `${punto.x}px`, top: `${punto.y}px`, "--tam": `${punto.ancho * 1.35}px`, backgroundImage: `url("${url}")`
+      }, 1300);
+    },
+
     // El nombre del ataque, en una franja de su color que entra y sale
     rotulo(texto, tipo) {
       const el = poner("lucha-rotulo", { "--c": estiloDe(tipo).colores[0] }, 1500);

@@ -10,9 +10,11 @@
 //   combate.peticion("p1")         // lo que puede elegir p1 ahora (la «request» de Showdown)
 //   combate.lineasNuevas()         // lo que ha pasado desde la última vez (protocolo de Showdown)
 //
-// Formato: «Custom Game» de la generación (sin cláusulas: en un locke vale todo) y siempre con
-// vista previa del equipo, que es donde cada uno elige con quién empieza. Nivel 50: se les pone
-// aquí a los equipos (la regla «Adjust Level» del motor no se aplica antes de empezar).
+// Formato: «Custom Game» de la generación (sin cláusulas: en un locke vale todo), con vista previa de
+// los equipos (los 6 contra los 6; ahí cada uno elige con quién empieza) salvo que quien reta la
+// quite: entonces sale el primero de cada equipo y no se ve el del rival hasta que va saliendo.
+// Nivel 50: se les pone aquí a los equipos (la regla «Adjust Level» del motor no se aplica antes de
+// empezar).
 
 import { Battle, Teams, Dex, toID, VERSION } from "./motor.js";
 
@@ -26,10 +28,13 @@ export function semillaDe(lucha) {
 
 export const GENERACIONES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-// "gen4customgame@@@Team Preview": hasta la 4.ª no traen vista previa
-export function formatoDe(gen, variante = "") {
+// "gen4customgame@@@Team Preview": hasta la 4.ª (y en DBPR) no la traen; desde la 5.ª, sí, y para
+// quitarla hay que decirlo ("@@@!Team Preview")
+export function formatoDe(gen, variante = "", vistaPrevia = true) {
   const base = `gen${gen}${variante}customgame`;
-  return gen >= 5 && !variante ? base : `${base}@@@Team Preview`;
+  const deSerie = gen >= 5 && !variante;
+  if (vistaPrevia) return deSerie ? base : `${base}@@@Team Preview`;
+  return deSerie ? `${base}@@@!Team Preview` : base;
 }
 
 export function genDe(formato) {
@@ -37,8 +42,8 @@ export function genDe(formato) {
 }
 
 // El formato de un juego de los lockes (js/comun/juegos.js): DBPR tiene su propio modo
-export function formatoDeJuego(juego, gen) {
-  return juego === "bdsp" ? formatoDe(8, "bdsp") : formatoDe(gen || 9);
+export function formatoDeJuego(juego, gen, vistaPrevia = true) {
+  return juego === "bdsp" ? formatoDe(8, "bdsp", vistaPrevia) : formatoDe(gen || 9, "", vistaPrevia);
 }
 
 function dexDe(formato) {
@@ -91,12 +96,13 @@ export class Combate {
       const lado = `p${i + 1}`;
       const { sets } = revisarEquipo((lucha.equipos || {})[uid], lucha.formato, lucha.nivel);
       this.sets[lado] = sets;
-      this.indices[lado] = {};
-      for (const set of sets) {
-        const nombre = set.name || set.species;
-        if (!(nombre in this.indices[lado])) this.indices[lado][nombre] = set.posicion;
-      }
       motor.setPlayer(lado, { name: lado, team: sets });
+      // Con el nombre que le pone el motor (un «Tyranitar-Mega» sin mote se llama «Tyranitar»), que es
+      // el que sale en lo que cuenta
+      this.indices[lado] = {};
+      for (const pokemon of motor[lado].pokemon) {
+        if (!(pokemon.name in this.indices[lado])) this.indices[lado][pokemon.name] = pokemon.set.posicion;
+      }
     });
     this.motor = motor;
     this.leidas = 0;

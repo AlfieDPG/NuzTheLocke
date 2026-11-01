@@ -106,6 +106,9 @@ function leerEfecto(texto) {
   return m ? { tipo: m[1], nombre: m[2] } : { tipo: "", nombre: texto };
 }
 
+// Los ataques que protegen (la pantalla les pone un escudo, js/lucha/pixeles.js)
+export const PROTECCIONES = ["protect", "detect", "kingsshield", "spikyshield", "banefulbunker", "obstruct", "silktrap", "maxguard", "burningbulwark"];
+
 // Id de un efecto de lado o de campo: «move: Reflect» -> «reflect», «Stealth Rock» -> «stealthrock»
 export function idEfecto(texto) {
   return String(texto || "").replace(/^move: ?/, "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -277,6 +280,8 @@ export function crearLector({ miLado, nombreRival }) {
         const objetivo = quien(args[2]);
         return {
           tipo: "ataque", lado: p.lado, nombre: p.nombre, ataque: args[1], objetivo: objetivo && objetivo.lado,
+          // Los que llama otro ataque (Metrónomo, Danza Caos...) o que siguen solos (Enfado) no gastan PP
+          gastaPP: !kw.from,
           texto: texto("¡{p} usó {ataque}!", p, { ataque: ataqueM(args[1]) })
         };
       }
@@ -414,8 +419,8 @@ export function crearLector({ miLado, nombreRival }) {
         const efecto = leerEfecto(args[1]);
         const cual = efecto ? efecto.nombre : "";
         if (cual === "confusion") return { tipo: "mensaje", texto: texto("¡{p} está confundido!", p) };
-        if (cual === "Protect" || cual === "Detect" || cual === "King's Shield" || cual === "Spiky Shield" || cual === "Baneful Bunker")
-          return { tipo: "mensaje", texto: texto("¡{p} se ha protegido!", p) };
+        if (PROTECCIONES.includes(idEfecto(cual)))
+          return { tipo: "mensaje", proteccion: idEfecto(cual), lado: p.lado, texto: texto("¡{p} se ha protegido!", p) };
         if (cual === "Substitute") return { tipo: "mensaje", texto: texto("¡El sustituto recibe el daño en lugar {de_p}!", p) };
         if (cual === "Endure") return { tipo: "mensaje", texto: texto("¡{p} ha aguantado el golpe!", p) };
         if (cual === "Focus Sash" || cual === "Sturdy") return { tipo: "mensaje", texto: texto("¡{p} ha resistido gracias a {cosa}!", p, { cosa: fuente(efecto) }) };
@@ -425,7 +430,7 @@ export function crearLector({ miLado, nombreRival }) {
         return { tipo: "mensaje", texto: "" };
       }
       case "-singleturn":
-        if (/Protect|Detect/.test(args[1] || "")) return { tipo: "mensaje", texto: texto("¡{p} se está protegiendo!", p) };
+        if (PROTECCIONES.includes(idEfecto(args[1]))) return { tipo: "mensaje", proteccion: idEfecto(args[1]), lado: p.lado, texto: texto("¡{p} se está protegiendo!", p) };
         return null;
       case "-ability":
         if (!p) return null;

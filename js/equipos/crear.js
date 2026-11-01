@@ -542,22 +542,6 @@ function campoAtaque(hueco, poke, i, placeholder) {
 
 // ---------- Fichas al pasar el ratón (stats base y descripción de ataques) ----------
 
-// Rojo (bajo) -> amarillo -> verde (alto). «bueno» es el valor a partir del cual ya es verde del todo.
-function colorStat(valor, malo, bueno) {
-  const proporcion = Math.min(1, Math.max(0, (valor - malo) / (bueno - malo)));
-  return `hsl(${Math.round(proporcion * 120)}, 70%, 45%)`;
-}
-
-function filaStat(nombre, valor, maximo, malo, bueno, clase = "") {
-  const ancho = Math.min(100, (valor / maximo) * 100);
-  return `
-    <div class="stat ${clase}">
-      <span class="stat-nombre">${nombre}</span>
-      <span class="stat-valor">${valor}</span>
-      <span class="stat-barra"><span style="width:${ancho}%;background:${colorStat(valor, malo, bueno)}"></span></span>
-    </div>`;
-}
-
 function fichaStats(poke) {
   const forma = textoForma(poke);
   const titulo = `${escaparHTML(nombre(poke))}${forma ? ` <small>(${escaparHTML(forma)})</small>` : ""}`;
@@ -575,37 +559,6 @@ function fichaStats(poke) {
       ${poke.stats.map((v, i) => filaStat(STATS[i], v, 180, 30, 130)).join("")}
       ${filaStat(t("Total"), total, 720, 250, 600, "stat-total")}
       ${bloqueTipos(tipos)}
-    </div>`;
-}
-
-// Debilidades, resistencias e inmunidades, para la ficha de la foto
-function bloqueTipos(tipos) {
-  if (tipos.length === 0) return "";
-
-  const { debiles, resisten, inmunes } = puntosDe(tipos);
-  const multiplicadores = multiplicadoresDe(tipos);
-
-  const fila = (titulo, lista, clase) =>
-    lista.length
-      ? `<div class="ficha-tipos-fila ${clase}">
-           <span class="ficha-tipos-titulo">${titulo}</span>
-           <span class="ficha-tipos-lista">
-             ${lista
-               .map(
-                 (t) => `<span class="marca-tipo" style="background:${coloresTipo[t]}" title="${tiposEs[t]}">
-                           ${iconoTipo(t)}<small>${textoMultiplicador(multiplicadores[t])}</small>
-                         </span>`
-               )
-               .join("")}
-           </span>
-         </div>`
-      : "";
-
-  return `
-    <div class="ficha-tipos">
-      ${fila(t("Débil"), debiles, "debil")}
-      ${fila(t("Resiste"), resisten, "resiste")}
-      ${fila(t("Inmune"), inmunes, "inmune")}
     </div>`;
 }
 

@@ -18,6 +18,7 @@ import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { t, enIngles } from "../comun/idioma.js";
 import { usuarioActual, hayNube } from "../comun/nube.js";
+import { claseMarcoDe, plantillaTituloDeUid, fondoVisualDe } from "../comun/fichas.js";
 import { amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos } from "../comun/perfiles.js";
 import { lockes, combatesDe, nombreCombate, estadoDe, lockePorId, sumarVictoriaCombate } from "../comun/lockes.js";
 import { generacionDeJuego } from "../comun/juegos.js";
@@ -29,6 +30,8 @@ import { cargarDatos, datos as datosWeb, buscarPorNombreIngles } from "../comun/
 import { coloresTipo, iconoTipo, tiposEs } from "../comun/tipos.js";
 import { imagenConRespaldo } from "../comun/imagenes.js";
 import { pedirVariedad, descripcionAtaque } from "../comun/pokemon.js";
+import { pedirJSON, URL_API } from "../comun/api.js";
+import { filaStat } from "../comun/fichas-pokemon.js";
 import { activarTooltips, actualizarTooltip, ocultarTooltip } from "../comun/tooltip.js";
 import {
   alCambiarLuchas, misLuchas, fallanLasLuchas, luchaPorId, ladoDe, rivalDe, meToca, retar, aceptarReto,
@@ -49,8 +52,8 @@ let modulos = null;
 function cargarMotor() {
   if (!modulos) {
     modulos = Promise.all([
-      import("./combate.js"), import("./textos.js"), import("./efectos.js"), import("./escenario.js"), import("./calculo.js"), cargarDatos()
-    ]).then(([combate, textos, efectos, escenario, calculo]) => ({ ...combate, ...textos, ...efectos, ...escenario, ...calculo }));
+      import("./combate.js"), import("./textos.js"), import("./efectos.js"), import("./escenario.js"), import("./pixeles.js"), cargarDatos()
+    ]).then(([combate, textos, efectos, escenario, pixeles]) => ({ ...combate, ...textos, ...efectos, ...escenario, ...pixeles }));
     modulos.catch(() => (modulos = null));
   }
   return modulos;
@@ -67,12 +70,13 @@ function nombreEn(lucha, uid) {
   return (lucha.nombres || {})[uid] || t("Jugador");
 }
 
+// La foto de un jugador dentro de su círculo, con el marco que lleve (js/comun/fichas.js)
 function fotoEn(lucha, uid, clase = "lucha-foto") {
   const foto = (lucha.fotos || {})[uid] || "";
   const letra = escaparHTML((nombreEn(lucha, uid)[0] || "?").toUpperCase());
-  return foto
-    ? `<img class="${clase}" src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-perfil="${escaparHTML(uid)}">`
-    : `<span class="${clase} sin-foto" data-perfil="${escaparHTML(uid)}">${letra}</span>`;
+  return `<span class="${clase} ${foto ? "" : "sin-foto"} ${claseMarcoDe(uid)}" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">${
+    foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer">` : letra
+  }</span>`;
 }
 
 function carasEn(lucha, uid) {
@@ -108,14 +112,55 @@ function textoLocke(lucha) {
 const esperar = (ms) => new Promise((cumplir) => setTimeout(cumplir, ms));
 
 // ---------- La lista ----------
+//
+// Como «Jugar»: arriba y en grande, los combates en marcha (el primero, el que te toca); debajo, los
+// retos (los que te mandan y los que esperan respuesta) y, al final, los terminados, con su resultado
+// y la repetición. Cada jugador, con su foto y su marco, y su título junto al nombre: son premios de
+// la web y se enseñan donde se pueda.
 
+function nombreConTitulo(lucha, uid) {
+  return `<span class="lucha-nombre">${escaparHTML(nombreEn(lucha, uid))}</span>${plantillaTituloDeUid(uid, "pequeno")}`;
+}
+
+function datosLucha(lucha) {
+  const locke = textoLocke(lucha);
+  return `${escaparHTML(textoFormato(lucha.formato))} · ${escaparHTML(textoNivel(lucha.nivel))}${locke ? ` · ${escaparHTML(locke)}` : ""}`;
+}
+
+// Un combate en marcha, en grande: los dos jugadores frente a frente con sus equipos
+function tarjetaEnMarcha(lucha) {
+  const uid = yo();
+  const rival = rivalDe(lucha, uid);
+  const toca = meToca(lucha);
+  const jugador = (quien, clase) => `
+    <div class="lucha-grande-jugador ${clase} ${fondoVisualDe(quien).clase}" style="${fondoVisualDe(quien).estilo}">
+      ${fotoEn(lucha, quien, "lucha-foto grande")}
+      <div class="lucha-grande-quien">
+        <div class="lucha-grande-nombre">${nombreConTitulo(lucha, quien)}</div>
+        ${carasEn(lucha, quien)}
+      </div>
+    </div>`;
+  return `
+    <article class="lucha-grande ${toca ? "toca" : ""}" data-id="${escaparHTML(lucha.id)}">
+      <span class="lucha-ceja">${toca ? t("Te toca") : t("Le toca a {nombre}", { nombre: escaparHTML(nombreEn(lucha, rival)) })}</span>
+      <div class="lucha-grande-cuerpo">
+        ${jugador(uid, "mio")}
+        <div class="lucha-grande-centro">
+          <span class="lucha-vs">vs</span>
+          <small>${datosLucha(lucha)}</small>
+        </div>
+        ${jugador(rival, "suyo")}
+      </div>
+      <button type="button" class="lucha-boton lucha-abrir">${icono("lucha")} ${toca ? t("Luchar") : t("Ver")}</button>
+    </article>`;
+}
+
+// Un reto o un combate terminado, en una fila
 function filaLucha(lucha) {
   const uid = yo();
   const rival = rivalDe(lucha, uid);
   const recibido = lucha.estado === "reto" && lucha.jugadores[1] === uid;
   const enviado = lucha.estado === "reto" && lucha.jugadores[0] === uid;
-  const toca = meToca(lucha);
-  const locke = textoLocke(lucha);
 
   let estado = "";
   let botones = "";
@@ -127,11 +172,6 @@ function filaLucha(lucha) {
   } else if (enviado) {
     estado = `<span class="lucha-estado">${t("Esperando respuesta")}</span>`;
     botones = `<button type="button" class="boton-gris lucha-retirar">${t("Retirar")}</button>`;
-  } else if (lucha.estado === "jugando") {
-    estado = toca
-      ? `<span class="lucha-estado toca">${t("Te toca")}</span>`
-      : `<span class="lucha-estado">${t("Le toca a {nombre}", { nombre: escaparHTML(nombreEn(lucha, rival)) })}</span>`;
-    botones = `<button type="button" class="lucha-boton lucha-abrir">${icono("lucha")} ${toca ? t("Luchar") : t("Ver")}</button>`;
   } else {
     const gana = lucha.ganador === uid;
     const empate = lucha.ganador === "empate";
@@ -139,7 +179,7 @@ function filaLucha(lucha) {
       empate ? t("Empate") : gana ? t("Ganaste") : t("Perdiste")
     }${lucha.rendido ? ` · ${lucha.rendido === uid ? t("te rendiste") : t("se rindió")}` : ""}</span>`;
     botones = `
-      <button type="button" class="boton-gris lucha-abrir">${t("Ver")}</button>
+      <button type="button" class="boton-gris lucha-abrir">${icono("reanudar")} ${t("Ver repetición")}</button>
       <button type="button" class="boton-gris lucha-quitar" title="${t("Quitar de la lista")}">${icono("papelera")}</button>`;
   }
 
@@ -148,11 +188,11 @@ function filaLucha(lucha) {
   const susCaras = lucha.estado === "reto" ? "" : carasEn(lucha, rival);
 
   return `
-    <article class="lucha-fila ${toca || recibido ? "destacada" : ""}" data-id="${escaparHTML(lucha.id)}">
+    <article class="lucha-fila ${recibido ? "destacada" : ""}" data-id="${escaparHTML(lucha.id)}">
       ${fotoEn(lucha, rival)}
       <div class="lucha-fila-texto">
-        <strong>${escaparHTML(nombreEn(lucha, rival))}</strong>
-        <small>${escaparHTML(textoFormato(lucha.formato))} · ${escaparHTML(textoNivel(lucha.nivel))}${locke ? ` · ${escaparHTML(locke)}` : ""}</small>
+        <div class="lucha-fila-nombre">${nombreConTitulo(lucha, rival)}</div>
+        <small>${datosLucha(lucha)}</small>
       </div>
       <div class="lucha-fila-equipos">
         ${misCaras || `<span class="lucha-sin-equipo">${t("Sin equipo")}</span>`}
@@ -163,12 +203,12 @@ function filaLucha(lucha) {
     </article>`;
 }
 
-function bloque(titulo, luchas, vacio = "") {
-  if (!luchas.length && !vacio) return "";
+function bloque(titulo, contenido, clase = "") {
+  if (!contenido) return "";
   return `
-    <section class="lucha-bloque">
+    <section class="lucha-bloque ${clase}">
       <h3>${titulo}</h3>
-      ${luchas.length ? luchas.map(filaLucha).join("") : `<p class="lucha-vacio">${vacio}</p>`}
+      ${contenido}
     </section>`;
 }
 
@@ -196,8 +236,9 @@ function pintarLista() {
 
   const uid = yo();
   const todas = misLuchas();
-  const recibidos = todas.filter((lucha) => lucha.estado === "reto" && lucha.jugadores[1] === uid);
-  const enviados = todas.filter((lucha) => lucha.estado === "reto" && lucha.jugadores[0] === uid);
+  const retos = todas
+    .filter((lucha) => lucha.estado === "reto")
+    .sort((una, otra) => Number(otra.jugadores[1] === uid) - Number(una.jugadores[1] === uid)); // primero los que te mandan
   const enMarcha = todas
     .filter((lucha) => lucha.estado === "jugando")
     .sort((una, otra) => Number(meToca(otra)) - Number(meToca(una)));
@@ -213,12 +254,9 @@ function pintarLista() {
   }
 
   vistaLista.innerHTML = `${barra}
-    <div class="lucha-bloques">
-      ${bloque(t("Te retan"), recibidos)}
-      ${bloque(t("En marcha"), enMarcha)}
-      ${bloque(t("Esperando respuesta"), enviados)}
-      ${bloque(t("Terminadas"), terminadas)}
-    </div>`;
+    ${bloque(t("En marcha"), enMarcha.map(tarjetaEnMarcha).join(""), "en-marcha")}
+    ${bloque(t("Retos"), retos.map(filaLucha).join(""))}
+    ${bloque(t("Terminadas"), terminadas.map(filaLucha).join(""))}`;
 }
 
 // ---------- Retar y aceptar ----------
@@ -241,7 +279,7 @@ function formatoActual(motor) {
   if (retando.modo === "aceptar") return luchaPorId(retando.id).formato;
   const locke = retando.locke && lockePorId(retando.locke.id);
   const gen = locke && generacionDeJuego(locke.juego);
-  return gen ? motor.formatoDeJuego(locke.juego, gen) : motor.formatoDe(retando.gen);
+  return gen ? motor.formatoDeJuego(locke.juego, gen, retando.vistaPrevia) : motor.formatoDe(retando.gen, "", retando.vistaPrevia);
 }
 
 function textoProblema(problema) {
@@ -302,7 +340,7 @@ async function pintarRetar() {
   const locke = retando.locke && lockePorId(retando.locke.id);
   const genFija = aceptando || (locke && generacionDeJuego(locke.juego));
   const campoReglas = genFija
-    ? `<p class="lucha-retar-dato">${icono("libro")} ${t("Reglas de la {formato}", { formato: escaparHTML(textoFormato(formato)) })} · ${escaparHTML(textoNivel(nivel))}</p>`
+    ? `<p class="lucha-retar-dato">${icono("libro")} ${t("Reglas de la {formato}", { formato: escaparHTML(textoFormato(formato)) })} · ${escaparHTML(textoNivel(nivel))}${aceptando && lucha.vistaPrevia === false ? ` · ${t("sin vista previa")}` : ""}</p>`
     : `
       <label>${t("Reglas")}
         <select class="lucha-retar-gen">
@@ -314,6 +352,23 @@ async function pintarRetar() {
     <div class="lucha-retar-nivel">
       <button type="button" data-nivel="tal" class="${nivel === "tal" ? "elegido" : ""}">${t("Niveles del equipo")}</button>
       <button type="button" data-nivel="50" class="${nivel === "50" ? "elegido" : ""}">${t("Todos al 50")}</button>
+    </div>
+    <span class="etiqueta-campo">${t("Vista previa")}</span>
+    <div class="lucha-retar-nivel">
+      <button type="button" data-previa="si" class="${retando.vistaPrevia ? "elegido" : ""}">${t("Ver los dos equipos antes de empezar")}</button>
+      <button type="button" data-previa="no" class="${retando.vistaPrevia ? "" : "elegido"}">${t("Sin vista previa")}</button>
+    </div>
+    <span class="etiqueta-campo">${t("Escenario")}</span>
+    <div class="lucha-retar-escenas">
+      <button type="button" data-escena="" class="lucha-retar-escena aleatorio ${retando.escena ? "" : "elegido"}">
+        <span class="lucha-retar-escena-muestra">${icono("mezclar")}</span>
+        <span>${t("Aleatorio")}</span>
+      </button>
+      ${motor.NOMBRES_ESCENAS.map((escena) => `
+        <button type="button" data-escena="${escena}" class="lucha-retar-escena ${retando.escena === escena ? "elegido" : ""}">
+          <img class="lucha-retar-escena-muestra" src="${motor.miniaturaEscena(escena)}" alt="">
+          <span>${escaparHTML(NOMBRES_ESCENA()[escena] || escena)}</span>
+        </button>`).join("")}
     </div>`;
 
   // Equipo y lo que el motor le vaya a cambiar
@@ -342,8 +397,13 @@ async function pintarRetar() {
   ok.disabled = !retando.rival || !revision || !revision.vale;
 }
 
+// Los nombres de los escenarios (js/lucha/escenario.js)
+const NOMBRES_ESCENA = () => ({
+  pradera: t("Pradera"), atardecer: t("Atardecer"), noche: t("Noche"), nieve: t("Nieve"), playa: t("Playa"), cueva: t("Cueva")
+});
+
 async function abrirDialogoRetar(datos) {
-  retando = { modo: "retar", id: "", rival: "", locke: null, gen: 9, nivel: "tal", equipo: null, ...datos };
+  retando = { modo: "retar", id: "", rival: "", locke: null, gen: 9, nivel: "tal", vistaPrevia: true, escena: "", equipo: null, ...datos };
   dialogoRetar.querySelector(".lucha-retar-error").textContent = "";
   try {
     await pintarRetar();
@@ -366,9 +426,25 @@ function abrirAceptar(id) {
   abrirDialogoRetar({ modo: "aceptar", id, rival: lucha.jugadores[0], locke: lucha.locke || null });
 }
 
+// Un Pokémon guardado con la imagen de una forma (una Mega, una regional) pero sin el nombre de su forma
+// (equipos de antes, o si falló PokeAPI al crearlo) se exportaría como la forma normal: una Mega
+// entraría sin megaevolucionar y podría hacerlo en el combate. El nombre se saca de su forma en PokeAPI.
+async function conSuForma(p) {
+  if (p.formaSlug || !p.idForma || p.idForma === p.id || p.imagenForma) return p;
+  try {
+    const variedad = await pedirJSON(`${URL_API}pokemon/${p.idForma}`);
+    const especie = (variedad.species && variedad.species.name) || "";
+    const slug = especie && variedad.name.startsWith(`${especie}-`) ? variedad.name.slice(especie.length + 1) : "";
+    return slug ? { ...p, formaSlug: slug } : p;
+  } catch (error) {
+    return p;
+  }
+}
+
 // El equipo elegido, listo para la lucha: { nombre, paste, caras }
 async function equipoParaLucha(elegido) {
-  const pokemon = (elegido.pokemon || []).filter((p) => !p.huevo);
+  let pokemon = (elegido.pokemon || []).filter((p) => !p.huevo);
+  if (!elegido.deLaPartida) pokemon = await Promise.all(pokemon.map(conSuForma));
   let paste;
   if (elegido.deLaPartida) {
     const { pasteDeEquipo, prepararConversion } = await import("../partida/convertir.js");
@@ -419,6 +495,8 @@ async function enviarReto() {
       equipo: retando.equipo,
       formato: formatoActual(motor),
       nivel: retando.nivel,
+      vistaPrevia: retando.vistaPrevia,
+      escena: retando.escena,
       motor: motor.VERSION,
       locke: retando.locke
     });
@@ -473,15 +551,19 @@ function dex() {
 
 function conocidoDe(lado, nombrePokemon) {
   const conocidos = abierto.vista[lado].conocidos;
-  if (!conocidos[nombrePokemon]) conocidos[nombrePokemon] = { ataques: new Set(), habilidad: "", objeto: "" };
+  // ataques: nombre (el del motor, en inglés) -> veces que lo ha usado gastando PP
+  if (!conocidos[nombrePokemon]) conocidos[nombrePokemon] = { ataques: new Map(), habilidad: "", objeto: "" };
   return conocidos[nombrePokemon];
 }
 
 // ---------- Sprites ----------
 //
-// Animados siempre que se pueda: los de Negro/Blanco hasta la 5.ª gen; para los de después y las
-// formas (megas, regionales), los animados de la carpeta «showdown» de PokeAPI; y si no hay, el fijo.
-// De espaldas, el tuyo.
+// Todos con el mismo estilo: los animados en 3D de la carpeta «showdown» de PokeAPI (es el único que
+// hay para todos los Pokémon y sus formas); si alguno falta, el fijo. De espaldas, el tuyo.
+//
+// Se ven a su tamaño, ampliado a saltos de medio en medio según lo ancho que sea el campo (640 px =
+// tamaño real, como en los juegos de DS) y sin suavizar: así no se emborronan. El tuyo, algo más
+// grande (está más cerca).
 
 const URL_SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/";
 const idsDeForma = new Map(); // "lucario-mega" -> id de PokeAPI (o null, si no lo tiene)
@@ -491,7 +573,6 @@ function urlsSprite({ num, idForma, shiny, espalda }) {
   const brillo = shiny ? "shiny/" : "";
   const id = idForma && idForma !== num ? idForma : num;
   const lista = [];
-  if (id === num && num <= 649) lista.push(`${URL_SPRITES}versions/generation-v/black-white/animated/${atras}${brillo}${num}.gif`);
   lista.push(`${URL_SPRITES}other/showdown/${atras}${brillo}${id}.gif`);
   if (brillo) lista.push(`${URL_SPRITES}other/showdown/${atras}${id}.gif`);
   lista.push(`${URL_SPRITES}${atras}${brillo}${id}.png`, `${URL_SPRITES}${atras}${id}.png`, `${URL_SPRITES}${atras}${num}.png`, `${URL_SPRITES}${num}.png`);
@@ -531,6 +612,16 @@ function aspectoDe(activo, lado) {
   return { ...forma, espalda: lado === abierto.lado };
 }
 
+const ANCHO_REAL = 640;
+
+function ajustarSprite(img) {
+  const arena = img.closest(".lucha-arena");
+  if (!arena || !img.naturalWidth) return;
+  const cerca = img.closest(".lucha-lado.mio") ? 1.4 : 1;
+  const escala = Math.max(1, Math.round((arena.clientWidth / ANCHO_REAL) * cerca * 2) / 2);
+  img.style.width = `${img.naturalWidth * escala}px`;
+}
+
 function spriteDe(lado, forzar = false) {
   const caja = vistaCombate.querySelector(`.lucha-sprite[data-lado="${lado}"]`);
   if (!caja) return;
@@ -545,7 +636,9 @@ function spriteDe(lado, forzar = false) {
   caja.classList.toggle("caido", activo.debilitado);
   caja.classList.toggle("tera", Boolean(activo.tera));
   caja.classList.toggle("dinamax", Boolean(activo.dinamax));
-  caja.style.setProperty("--tera", (abierto.modulos.ESTILOS[activo.tera] || {}).colores?.[0] || "#7fd8ff");
+  const colorTera = coloresTipo[activo.tera] || "#7fd8ff";
+  caja.style.setProperty("--tera", colorTera);
+  if (activo.tera) caja.style.setProperty("--joya", `url("${abierto.modulos.urlJoya(colorTera)}")`);
   if (caja.dataset.clave === clave && !forzar) return;
   caja.dataset.clave = clave;
   caja.innerHTML = imagenConRespaldo(urlsSprite(aspecto), `alt="${escaparHTML(activo.nombre)}" draggable="false"`);
@@ -590,6 +683,9 @@ function aplicarSuceso(suceso) {
         activo.transformado = formaDe(objetivo, suceso.objetivo.lado);
         activo.especieTransformado = objetivo.especie;
         activo.cambios = { ...objetivo.cambios };
+        // Hasta que se retire es una copia del otro (habilidad, ataques, estadísticas): su bocadillo lo enseña
+        activo.transformadoDe = { lado: suceso.objetivo.lado, posicion: objetivo.posicion };
+        activo.usosTransformado = {};
       }
       break;
     }
@@ -607,9 +703,16 @@ function aplicarSuceso(suceso) {
       if (suceso.activo) lado.usados.add("dinamax");
       if (activo) activo.dinamax = suceso.activo;
       break;
-    case "ataque":
-      conocidoDe(suceso.lado, suceso.nombre).ataques.add(suceso.ataque);
+    case "ataque": {
+      // Transformado, usa los ataques copiados: no son suyos (no se apuntan como «vistos»)
+      if (activo && activo.transformadoDe) {
+        activo.usosTransformado[suceso.ataque] = (activo.usosTransformado[suceso.ataque] || 0) + (suceso.gastaPP === false ? 0 : 1);
+        break;
+      }
+      const ataques = conocidoDe(suceso.lado, suceso.nombre).ataques;
+      ataques.set(suceso.ataque, (ataques.get(suceso.ataque) || 0) + (suceso.gastaPP === false ? 0 : 1));
       break;
+    }
     case "revela": {
       const conocido = conocidoDe(suceso.lado, suceso.nombre);
       if (suceso.habilidad) conocido.habilidad = suceso.habilidad;
@@ -758,7 +861,7 @@ function pintarFicha(lado) {
   const clave = activo ? `${activo.nombre}|${activo.posicion}` : "";
   if (hueco.dataset.clave !== clave) {
     hueco.dataset.clave = clave;
-    hueco.innerHTML = activo ? `${fichaVacia(lado)}<div class="lucha-bolitas"></div>` : "";
+    hueco.innerHTML = activo ? fichaVacia(lado) : "";
   }
   if (!activo) return;
   const ficha = hueco.querySelector(".lucha-ficha");
@@ -769,25 +872,17 @@ function pintarFicha(lado) {
     .map(([stat, valor]) => `<span class="lucha-chip-cambio ${valor > 0 ? "sube" : "baja"}">${escaparHTML(abierto.modulos.ESTADISTICAS_CORTAS[stat] || stat)} ${valor > 0 ? "+" : ""}${valor}</span>`)
     .join("");
   if (ficha.dataset.ps === undefined || !abierto.animandoPS) ponerPS(lado, false);
-  hueco.querySelector(".lucha-bolitas").innerHTML = bolitasDe(lado);
-}
-
-// Las bolitas de cada equipo: vivo, debilitado o sin ver todavía (los tuyos que no han salido: vivos)
-function bolitasDe(lado) {
-  const total = abierto.combate.sets[lado].length;
-  const vistos = Object.values(abierto.vista[lado].vistos);
-  const mio = lado === abierto.lado;
-  const bolitas = [];
-  for (let i = 0; i < total; i++) {
-    const visto = vistos[i];
-    const clase = visto ? (visto.debilitado ? "caido" : "vivo") : mio ? "vivo" : "";
-    bolitas.push(`<span class="lucha-bolita ${clase}"></span>`);
-  }
-  return bolitas.join("");
 }
 
 // Lo que hay en el lado de cada uno: púas, rocas, telaraña, pantallas, viento afín...
 const TRAMPAS = ["spikes", "toxicspikes", "stealthrock", "stickyweb", "gmaxsteelsurge"];
+const COLORES_PANTALLA = { reflect: "#ff8ad8", lightscreen: "#ffe066", auroraveil: "#7ff0ff", safeguard: "#7be495", mist: "#ffffff", luckychant: "#ffd166" };
+
+// El color del escudo de cada ataque que protege
+const COLORES_ESCUDO = {
+  protect: "#7fe0ff", detect: "#ffe066", kingsshield: "#d7dce8", spikyshield: "#7bd36b", banefulbunker: "#b35ad6",
+  obstruct: "#6a5a7a", silktrap: "#e8e0c0", maxguard: "#ff6b8a", burningbulwark: "#ff8a3d"
+};
 
 function pintarTrampas(lado) {
   const capa = vistaCombate.querySelector(`.lucha-lado[data-lado="${lado}"] .lucha-trampas`);
@@ -803,8 +898,8 @@ function pintarTrampas(lado) {
     for (let i = 0; i < 4; i++) piezas.push(`<span class="lucha-roca ${condiciones.gmaxsteelsurge ? "acero" : ""}" style="--i: ${i}; --fila: ${i % 2}"></span>`);
   }
   if (condiciones.stickyweb) piezas.push(`<span class="lucha-telarana"></span>`);
-  for (const pantalla of ["reflect", "lightscreen", "auroraveil", "safeguard", "mist", "luckychant"]) {
-    if (condiciones[pantalla]) piezas.push(`<span class="lucha-pantalla pantalla-${pantalla}"></span>`);
+  for (const [pantalla, color] of Object.entries(COLORES_PANTALLA)) {
+    if (condiciones[pantalla]) piezas.push(`<span class="lucha-pantalla pantalla-${pantalla}" style="--c: ${color}; --trama: url('${abierto.modulos.urlTrama(color)}')"></span>`);
   }
   if (condiciones.tailwind) piezas.push(`<span class="lucha-viento"></span><span class="lucha-viento otra"></span>`);
   const clave = JSON.stringify(condiciones);
@@ -827,6 +922,7 @@ function pintarCampo({ sprites = false } = {}) {
     spriteDe(lado, sprites);
     pintarTrampas(lado);
   }
+  pintarEquipos();
   const arena = vistaCombate.querySelector(".lucha-arena");
   arena.dataset.clima = abierto.vista.clima || "";
   arena.dataset.campo = [...abierto.vista.campo].join(" ");
@@ -913,6 +1009,15 @@ async function animarSuceso(suceso, antes) {
   const lado = suceso.lado;
   const activo = lado && abierto.vista[lado].activo;
 
+  // Protección y su familia: un escudo en pixel art, del color del ataque que lo ha puesto
+  if (suceso.proteccion && lado) {
+    const ultimo = modulos.idEfecto((abierto.ultimoAtaque || {})[lado] || "");
+    const color = COLORES_ESCUDO[ultimo] || COLORES_ESCUDO[suceso.proteccion] || COLORES_ESCUDO.protect;
+    efectos.escudo(lado, modulos.urlEscudo(color));
+    sonidos.brillo();
+    return esperar(950);
+  }
+
   switch (suceso.tipo) {
     case "cambio": {
       pintarCampo();
@@ -922,6 +1027,7 @@ async function animarSuceso(suceso, antes) {
     }
     case "ataque": {
       abierto.fuerza = "normal";
+      abierto.ultimoAtaque = { ...(abierto.ultimoAtaque || {}), [lado]: suceso.ataque };
       const ataque = dex().moves.get(suceso.ataque);
       const tipo = (ataque.type || "Normal").toLowerCase();
       efectos.rotulo(modulos.nombreAtaque(suceso.ataque), tipo);
@@ -1081,14 +1187,16 @@ async function reproducir() {
 // ir atrás o saltar a uno vuelve a empezar desde cero y aplica de golpe hasta ahí; ir adelante anima
 // el trozo siguiente.
 
+// Se prepara con el combate ya entero; si la historia ha crecido desde entonces (al abrir uno terminado,
+// los turnos llegan después), se vuelve a partir.
 function prepararRepeticion() {
-  if (abierto.repeticion) return abierto.repeticion;
+  if (abierto.repeticion && abierto.repeticion.largo === abierto.historia.length) return abierto.repeticion;
   const segmentos = [[]];
   for (const suceso of abierto.historia) {
     if (suceso.tipo === "turno") segmentos.push([suceso]);
     else segmentos[segmentos.length - 1].push(suceso);
   }
-  abierto.repeticion = { segmentos, actual: segmentos.length, auto: false };
+  abierto.repeticion = { segmentos, actual: segmentos.length, auto: false, largo: abierto.historia.length };
   pintarRegistro();
   return abierto.repeticion;
 }
@@ -1315,12 +1423,14 @@ function botonesEquipo(peticion, { vistaPrevia = false, atrapado = false } = {})
       const parte = psMax ? ps / psMax : 0;
       return `
         <button type="button" class="lucha-cambio ${pokemon.active && !vistaPrevia ? "en-campo" : ""} ${caido ? "caido" : ""}"
-          data-${vistaPrevia ? "primero" : "eleccion"}="${vistaPrevia ? i + 1 : `switch ${i + 1}`}" data-bocadillo="equipo:${i}" ${desactivado ? "disabled" : ""}>
+          data-${vistaPrevia ? "primero" : "eleccion"}="${vistaPrevia ? i + 1 : `switch ${i + 1}`}" data-bocadillo="hueco:${abierto.lado}:${posicion}" ${desactivado ? "disabled" : ""}>
           ${retratoDe(abierto.lado, posicion)}
           <span class="lucha-cambio-datos">
             <strong>${escaparHTML(nombrePokemon)}</strong>
             <small>${t("Nv.")} ${nivel}${estado && estado !== "fnt" ? ` · ${escaparHTML((abierto.modulos.ESTADOS[estado] || {}).corto || estado)}` : ""}</small>
-            ${vistaPrevia ? "" : `<span class="lucha-ps ${claseBarra(parte)}"><span style="width: ${(parte * 100).toFixed(1)}%"></span></span>`}
+            ${vistaPrevia
+              ? `<span class="lucha-previa-tipos">${(dex().species.get(pokemon.details.split(",")[0]).types || []).map((tipo) => iconoTipo(tipo.toLowerCase())).join("")}</span>`
+              : `<span class="lucha-ps ${claseBarra(parte)}"><span style="width: ${(parte * 100).toFixed(1)}%"></span></span>`}
           </span>
         </button>`;
     })
@@ -1363,6 +1473,12 @@ function pintarAcciones() {
   }
   if (abierto.reproduciendo && !abierto.repeticion) {
     caja.innerHTML = `<p class="lucha-espera"><button type="button" class="boton-gris lucha-saltar">${t("Saltar")}</button></p>`;
+    return;
+  }
+
+  // Abriendo uno: hasta que llegan los turnos, nada (si no, la repetición saldría sin ellos)
+  if (abierto.primeraVez) {
+    caja.innerHTML = `<p class="lucha-espera">${t("Cargando el combate...")}</p>`;
     return;
   }
 
@@ -1409,13 +1525,30 @@ function pintarAcciones() {
     return;
   }
 
-  // Antes de empezar: con quién sales
+  // Antes de empezar: los dos equipos enteros y con quién sales
   if (peticion.teamPreview) {
-    const uidRival = rivalDe(lucha, yo());
+    const ladoRival = otroLado(lado);
+    const suyos = abierto.combate.sets[ladoRival].map((set) => {
+      const especie = dex().species.get(set.species);
+      return `
+        <div class="lucha-previa-pokemon" data-bocadillo="hueco:${ladoRival}:${set.posicion}">
+          ${retratoDe(ladoRival, set.posicion)}
+          <strong>${escaparHTML(especie.name)}</strong>
+          <small>${t("Nv.")} ${set.level || 100}</small>
+          <span class="lucha-previa-tipos">${(especie.types || []).map((tipo) => iconoTipo(tipo.toLowerCase())).join("")}</span>
+        </div>`;
+    }).join("");
     caja.innerHTML = `
       <div class="lucha-previa">
-        <p>${t("Elige con quién empiezas. El equipo de {nombre}:", { nombre: escaparHTML(rival) })} ${carasEn(lucha, uidRival)}</p>
-        <div class="lucha-equipo">${botonesEquipo(peticion, { vistaPrevia: true })}</div>
+        <section class="lucha-previa-lado mio">
+          <h4>${t("Tu equipo")} · <span>${t("Elige con quién empiezas")}</span></h4>
+          <div class="lucha-previa-fila">${botonesEquipo(peticion, { vistaPrevia: true })}</div>
+        </section>
+        <span class="lucha-vs lucha-previa-vs">vs</span>
+        <section class="lucha-previa-lado suyo">
+          <h4>${t("Equipo de {nombre}", { nombre: escaparHTML(rival) })}</h4>
+          <div class="lucha-previa-fila">${suyos}</div>
+        </section>
       </div>`;
     return;
   }
@@ -1439,6 +1572,15 @@ function pintarAcciones() {
 }
 
 // ---------- Bocadillos: lo que sale al poner el ratón encima ----------
+//
+// Con las mismas fichas que «Crear equipo» (css/equipos.css: .ficha-stats con sus barras, .ataque del
+// color de su tipo, .ficha-ataque, las debilidades de js/comun/fichas-pokemon.js):
+//   · Un Pokémon tuyo: sus estadísticas de verdad, habilidad, objeto y sus ataques con los PP.
+//   · Uno del rival: lo que se sabe (como en el juego): sus PS en %, su estado, entre qué valores puede
+//     estar su velocidad, la habilidad y el objeto si se han visto, y los ataques que ha usado con los PP
+//     que le quedarían (contando cuántas veces los ha usado). Sin stats base ni debilidades: era demasiado.
+//   · Un ataque tuyo: tipo, categoría, potencia, precisión, PP, descripción y si es eficaz contra el
+//     que tienes delante (sin decir cuánto le quitaría: eso es demasiada pista).
 
 const descripciones = new Map(); // id de PokeAPI del ataque -> descripción (o promesa)
 
@@ -1452,52 +1594,22 @@ function nombreObjetoDe(id) {
   return objeto.exists ? abierto.modulos.nombreObjeto(objeto.name) : "";
 }
 
-function tiposVisibles(activo) {
-  if (activo && activo.tera) return [activo.tera.charAt(0).toUpperCase() + activo.tera.slice(1)];
-  const especie = dex().species.get((activo && (activo.especieTransformado || activo.especie)) || "");
-  return especie.types || [];
+// Los tipos que tiene ahora (teracristalizado, transformado...), en minúsculas («fire»)
+function tiposVisibles(activo, especieNombre) {
+  if (activo && activo.tera) return [activo.tera];
+  const especie = dex().species.get((activo && (activo.especieTransformado || activo.especie)) || especieNombre || "");
+  return (especie.types || []).map((tipo) => tipo.toLowerCase());
 }
 
 function chipsTipos(tipos) {
-  return tipos.map((tipo) => {
-    const id = tipo.toLowerCase();
-    return `<span class="lucha-bocadillo-tipo" style="--c: ${coloresTipo[id] || "#888"}">${iconoTipo(id)} ${escaparHTML(tiposEs[id] || tipo)}</span>`;
-  }).join("");
+  return tipos.map((tipo) => `<span class="lucha-bocadillo-tipo" style="--c: ${coloresTipo[tipo] || "#888"}">${iconoTipo(tipo)} ${escaparHTML(tiposEs[tipo] || tipo)}</span>`).join("");
 }
 
-const NOMBRES_STATS = () => ({ atk: t("Ataque"), def: t("Defensa"), spa: t("At. Esp."), spd: t("Def. Esp."), spe: t("Velocidad") });
-
-// Uno de mis Pokémon: sus estadísticas de verdad, habilidad, objeto y ataques
-function bocadilloMio(indice) {
-  const peticion = abierto.combate.peticion(abierto.lado);
-  const pokemon = peticion && peticion.side && peticion.side.pokemon[indice];
-  if (!pokemon) return "";
-  const nombrePokemon = pokemon.ident.replace(/^p[12]: /, "");
-  const especie = dex().species.get(pokemon.details.split(",")[0]);
-  const activo = pokemon.active ? abierto.vista[abierto.lado].activo : null;
-  const [ps, psMax] = String(pokemon.condition).split(" ")[0].split("/").map(Number);
-  const cambios = (activo && activo.cambios) || {};
-  const stats = Object.entries(NOMBRES_STATS())
-    .map(([stat, nombreStat]) => {
-      const etapa = cambios[stat] || 0;
-      return `<span>${escaparHTML(nombreStat)}</span><b>${pokemon.stats[stat]}${etapa ? ` <em class="${etapa > 0 ? "sube" : "baja"}">${etapa > 0 ? "+" : ""}${etapa}</em>` : ""}</b>`;
-    })
-    .join("");
-  const ataques = pokemon.moves.map((id) => {
-    const ataque = dex().moves.get(id);
-    const tipo = (ataque.type || "Normal").toLowerCase();
-    return `<li style="--c: ${coloresTipo[tipo] || "#888"}">${escaparHTML(abierto.modulos.nombreAtaque(ataque.name))}</li>`;
-  }).join("");
-  return `
-    <div class="ficha lucha-bocadillo">
-      <strong class="lucha-bocadillo-titulo">${escaparHTML(nombrePokemon)}${nombrePokemon !== especie.name ? ` <small>(${escaparHTML(especie.name)})</small>` : ""}</strong>
-      <div class="lucha-bocadillo-tipos">${chipsTipos(tiposVisibles(activo || { especie: especie.name }))}</div>
-      <p>${t("PS")}: <b>${ps || 0}/${psMax || 0}</b></p>
-      <div class="lucha-bocadillo-stats">${stats}</div>
-      <p>${t("Habilidad")}: <b>${escaparHTML(nombreHabilidadDe(pokemon.ability || pokemon.baseAbility) || "—")}</b></p>
-      <p>${t("Objeto")}: <b>${escaparHTML(nombreObjetoDe(pokemon.item) || t("ninguno"))}</b></p>
-      <ul class="lucha-bocadillo-ataques">${ataques}</ul>
-    </div>`;
+// La eficacia de un tipo de ataque contra unos tipos (0, 0.25, 0.5, 1, 2, 4)
+function eficaciaContra(tipoAtaque, tipos) {
+  const nombres = tipos.map((tipo) => tipo.charAt(0).toUpperCase() + tipo.slice(1));
+  if (!dex().getImmunity(tipoAtaque, nombres)) return 0;
+  return 2 ** dex().getEffectiveness(tipoAtaque, nombres);
 }
 
 // La velocidad que puede tener alguien sin saber su entrenamiento: de la peor a la mejor
@@ -1506,35 +1618,162 @@ function velocidadPosible(base, nivel) {
   return [stat(0, 0, 0.9), stat(31, 252, 1.1)];
 }
 
-// El del rival que está en el campo: lo que se sabe y lo que puede ser
-function bocadilloRival(lado) {
-  const { activo } = abierto.vista[lado];
-  if (!activo) return "";
-  const especie = dex().species.get(activo.especieTransformado || activo.especie);
-  const conocido = conocidoDe(lado, activo.nombre);
+// Lo que se sabe en este momento de un Pokémon de un equipo (por su posición en el equipo):
+// { set, nombre (el del combate), visto, activo, conocido }
+function datosDeHueco(lado, posicion) {
+  const set = abierto.combate.sets[lado].find((cada) => cada.posicion === posicion);
+  if (!set) return null;
+  // El nombre con el que sale en el combate (el del motor: un «Tyranitar-Mega» sin mote es «Tyranitar»)
+  const delMotor = pokemonDelMotor(lado, posicion);
+  const nombre = delMotor ? delMotor.name : set.name || set.species;
+  const vista = abierto.vista[lado];
+  const activo = vista.activo && vista.activo.posicion === posicion ? vista.activo : null;
+  return { set, nombre, visto: vista.vistos[nombre] || null, activo, conocido: conocidoDe(lado, nombre) };
+}
+
+// ¿Se puede saber qué Pokémon es? Los tuyos, siempre; los del rival, con vista previa o si ya han salido
+function seConoce(lado, datos) {
+  return lado === abierto.lado || abierto.lucha.vistaPrevia !== false || Boolean(datos.visto);
+}
+
+// El Pokémon del motor (el tuyo): sus estadísticas y sus PP de verdad
+function pokemonDelMotor(lado, posicion) {
+  return abierto.combate.motor[lado].pokemon.find((pokemon) => pokemon.set && pokemon.set.posicion === posicion) || null;
+}
+
+const STATS_ORDEN = ["hp", "atk", "def", "spa", "spd", "spe"];
+const NOMBRES_STATS = () => [t("stat|PS"), t("stat|Ataque"), t("stat|Defensa"), t("stat|At. Esp."), t("stat|Def. Esp."), t("stat|Velocidad")];
+
+function tarjetasAtaques(lista) {
+  if (!lista.length) return "";
+  return `<div class="ataques lucha-bocadillo-ataques">${lista.map(({ nombre: nombreAtaque, tipo, pp }) => `
+    <div class="ataque" style="background:${coloresTipo[tipo] || "#888"}">
+      ${iconoTipo(tipo)}
+      <span class="ataque-nombre">${escaparHTML(nombreAtaque)}</span>
+      ${pp ? `<span class="lucha-bocadillo-pp">${escaparHTML(pp)}</span>` : ""}
+    </div>`).join("")}</div>`;
+}
+
+function bocadilloPokemon(lado, posicion) {
+  const datos = datosDeHueco(lado, posicion);
+  if (!datos || !seConoce(lado, datos)) return "";
+  const { set, nombre, visto, activo, conocido } = datos;
+  const mio = lado === abierto.lado;
+  const especie = dex().species.get(activo && activo.especie ? activo.especie : set.species);
+  const tipos = tiposVisibles(activo, especie.name);
+  const nivel = set.level || 100;
+  // Del rival, el mote solo si ya ha salido
+  const titulo = mio || visto ? nombre : especie.name;
+  const cabecera = `
+    <div class="ficha-titulo">${escaparHTML(titulo)}${titulo !== especie.name ? ` <small>(${escaparHTML(especie.name)})</small>` : ""}<small class="lucha-bocadillo-nivel">${t("Nv.")} ${nivel}</small></div>
+    <div class="lucha-bocadillo-tipos">${chipsTipos(tipos)}</div>`;
+
+  const estado = (visto && visto.estado) || (activo && activo.estado) || "";
+  const caido = Boolean(visto && visto.debilitado);
+
+  if (activo && activo.transformadoDe) return bocadilloTransformado(lado, datos, estado);
+
+  if (mio) {
+    const motor = pokemonDelMotor(lado, posicion);
+    const psMax = (visto && visto.psMax) || (motor && motor.maxhp) || 0;
+    const ps = visto ? visto.ps : psMax;
+    const stats = motor ? { hp: motor.maxhp, ...motor.storedStats } : null;
+    const cambios = (activo && activo.cambios) || {};
+    const filas = stats
+      ? STATS_ORDEN.map((stat, i) => {
+        const etapa = cambios[stat] || 0;
+        const nombreStat = etapa ? `${NOMBRES_STATS()[i]} <em class="${etapa > 0 ? "sube" : "baja"}">${etapa > 0 ? "+" : ""}${etapa}</em>` : NOMBRES_STATS()[i];
+        return filaStat(nombreStat, stats[stat], stat === "hp" ? 400 : 300, 40, 180);
+      }).join("")
+      : "";
+    // PP: en la repetición, contados con lo visto; jugando, los del motor
+    const enRepeticion = Boolean(abierto.repeticion);
+    const ataques = (set.moves || []).map((nombreAtaque) => {
+      const ataque = dex().moves.get(nombreAtaque);
+      const hueco = motor && motor.baseMoveSlots ? motor.baseMoveSlots.find((cada) => cada.id === ataque.id) : null;
+      const maximo = hueco ? hueco.maxpp : Math.floor((ataque.pp || 0) * 1.6);
+      const usados = conocido.ataques.get(ataque.name) || 0;
+      const quedan = enRepeticion || !hueco ? Math.max(0, maximo - usados) : hueco.pp;
+      return { nombre: abierto.modulos.nombreAtaque(ataque.name), tipo: (ataque.type || "Normal").toLowerCase(), pp: `${quedan}/${maximo}` };
+    });
+    return `
+      <div class="ficha ficha-stats lucha-bocadillo">
+        ${cabecera}
+        <p class="lucha-bocadillo-ps">${t("PS")}: <b>${caido ? t("Debilitado") : `${ps}/${psMax}`}</b> ${chipEstado(estado)}</p>
+        ${filas}
+        <p>${t("Habilidad")}: <b>${escaparHTML(nombreHabilidadDe(set.ability) || "—")}</b></p>
+        <p>${t("Objeto")}: <b>${escaparHTML(nombreObjetoDe(set.item) || t("ninguno"))}</b></p>
+        ${tarjetasAtaques(ataques)}
+      </div>`;
+  }
+
+  // Del rival: lo que se ve
+  const porcentaje = visto ? Math.round(visto.psMax ? (visto.ps / visto.psMax) * 100 : 0) : 100;
+  const [lenta, rapida] = velocidadPosible(especie.baseStats.spe, nivel);
   const posibles = Object.values(especie.abilities || {}).map((habilidad) => abierto.modulos.nombreHabilidad(habilidad));
-  const [lenta, rapida] = velocidadPosible(especie.baseStats.spe, activo.nivel);
-  const base = Object.entries({ hp: t("PS"), ...NOMBRES_STATS() }).map(([stat, nombreStat]) => `<span>${escaparHTML(nombreStat)}</span><b>${especie.baseStats[stat]}</b>`).join("");
-  const ataques = [...conocido.ataques].map((nombreAtaque) => {
+  const ataques = [...conocido.ataques.entries()].map(([nombreAtaque, usos]) => {
     const ataque = dex().moves.get(nombreAtaque);
-    const tipo = (ataque.type || "Normal").toLowerCase();
-    return `<li style="--c: ${coloresTipo[tipo] || "#888"}">${escaparHTML(abierto.modulos.nombreAtaque(ataque.name))}</li>`;
-  }).join("");
+    const maximo = ataque.noPPBoosts ? ataque.pp : Math.floor((ataque.pp || 0) * 1.6);
+    return { nombre: abierto.modulos.nombreAtaque(ataque.name), tipo: (ataque.type || "Normal").toLowerCase(), pp: `${Math.max(0, maximo - usos)}/${maximo}` };
+  });
   return `
-    <div class="ficha lucha-bocadillo">
-      <strong class="lucha-bocadillo-titulo">${escaparHTML(activo.nombre)}${activo.nombre !== especie.name ? ` <small>(${escaparHTML(especie.name)})</small>` : ""}</strong>
-      <div class="lucha-bocadillo-tipos">${chipsTipos(tiposVisibles(activo))}</div>
-      <p>${t("PS")}: <b>${Math.round(activo.psMax ? (activo.ps / activo.psMax) * 100 : 0)} %</b> · ${t("Nv.")} ${activo.nivel}</p>
+    <div class="ficha ficha-stats lucha-bocadillo">
+      ${cabecera}
+      <p class="lucha-bocadillo-ps">${t("PS")}: <b>${caido ? t("Debilitado") : `${porcentaje} %`}</b> ${chipEstado(estado)}</p>
+      <p>${t("Velocidad: entre {min} y {max}", { min: lenta, max: rapida })}</p>
       <p>${t("Habilidad")}: <b>${escaparHTML(conocido.habilidad ? abierto.modulos.nombreHabilidad(conocido.habilidad) : posibles.join(" / "))}</b>${conocido.habilidad ? "" : ` <small>(${t("sin ver")})</small>`}</p>
       <p>${t("Objeto")}: <b>${escaparHTML(conocido.objeto ? abierto.modulos.nombreObjeto(conocido.objeto) : t("sin ver"))}</b></p>
-      <p>${t("Velocidad: entre {min} y {max}", { min: lenta, max: rapida })}</p>
-      <span class="lucha-bocadillo-etiqueta">${t("Estadísticas base")}</span>
-      <div class="lucha-bocadillo-stats">${base}</div>
-      ${ataques ? `<span class="lucha-bocadillo-etiqueta">${t("Ataques vistos")}</span><ul class="lucha-bocadillo-ataques">${ataques}</ul>` : ""}
+      ${ataques.length ? `<span class="lucha-bocadillo-etiqueta">${t("Ataques vistos")}</span>${tarjetasAtaques(ataques)}` : ""}
     </div>`;
 }
 
-// Un ataque mío: tipo, categoría, potencia, precisión, descripción y cuánto le quitaría al rival
+// Transformado (Transformación, Impostor): hasta que se retire es una copia del otro. Se enseña lo copiado:
+// sus tipos, su habilidad, sus estadísticas (menos los PS, que son los suyos) y sus ataques, con 5 PP cada
+// uno, como en los juegos. Al saber cómo es el copiado, del rival también se sabe todo eso.
+function bocadilloTransformado(lado, datos, estado) {
+  const { set, nombre, visto, activo, conocido } = datos;
+  const mio = lado === abierto.lado;
+  const { lado: suLado, posicion: suPosicion } = activo.transformadoDe;
+  const copiado = abierto.combate.sets[suLado].find((cada) => cada.posicion === suPosicion);
+  const motorCopiado = pokemonDelMotor(suLado, suPosicion);
+  const especieCopiada = dex().species.get(activo.especieTransformado || (copiado && copiado.species) || "");
+  const tipos = tiposVisibles(activo, especieCopiada.name);
+  const caido = Boolean(visto && visto.debilitado);
+  const titulo = mio || visto ? nombre : dex().species.get(set.species).name;
+
+  const ps = mio
+    ? (visto ? `${visto.ps}/${visto.psMax}` : "—")
+    : `${visto && visto.psMax ? Math.round((visto.ps / visto.psMax) * 100) : 100} %`;
+  const cambios = activo.cambios || {};
+  const filas = motorCopiado
+    ? STATS_ORDEN.slice(1).map((stat, i) => {
+      const etapa = cambios[stat] || 0;
+      const nombreStat = etapa ? `${NOMBRES_STATS()[i + 1]} <em class="${etapa > 0 ? "sube" : "baja"}">${etapa > 0 ? "+" : ""}${etapa}</em>` : NOMBRES_STATS()[i + 1];
+      return filaStat(nombreStat, motorCopiado.storedStats[stat], 300, 40, 180);
+    }).join("")
+    : "";
+  const ataques = ((copiado && copiado.moves) || []).map((nombreAtaque) => {
+    const ataque = dex().moves.get(nombreAtaque);
+    const usados = activo.usosTransformado[ataque.name] || 0;
+    return { nombre: abierto.modulos.nombreAtaque(ataque.name), tipo: (ataque.type || "Normal").toLowerCase(), pp: `${Math.max(0, 5 - usados)}/5` };
+  });
+  const objeto = mio
+    ? nombreObjetoDe(set.item) || t("ninguno")
+    : conocido.objeto ? abierto.modulos.nombreObjeto(conocido.objeto) : t("sin ver");
+
+  return `
+    <div class="ficha ficha-stats lucha-bocadillo">
+      <div class="ficha-titulo">${escaparHTML(titulo)} <small>(${escaparHTML(t("transformado en {especie}", { especie: especieCopiada.name }))})</small><small class="lucha-bocadillo-nivel">${t("Nv.")} ${set.level || 100}</small></div>
+      <div class="lucha-bocadillo-tipos">${chipsTipos(tipos)}</div>
+      <p class="lucha-bocadillo-ps">${t("PS")}: <b>${caido ? t("Debilitado") : ps}</b> ${chipEstado(estado)}</p>
+      ${filas}
+      <p>${t("Habilidad")}: <b>${escaparHTML((copiado && nombreHabilidadDe(copiado.ability)) || "—")}</b></p>
+      <p>${t("Objeto")}: <b>${escaparHTML(objeto)}</b></p>
+      ${tarjetasAtaques(ataques)}
+    </div>`;
+}
+
+// Un ataque tuyo, con la ficha de ataque de «Crear equipo» (del color de su tipo)
 function bocadilloAtaque(indice, elemento) {
   const peticion = abierto.combate.peticion(abierto.lado);
   const activa = peticion && (peticion.active || [])[0];
@@ -1560,64 +1799,47 @@ function bocadilloAtaque(indice, elemento) {
     }
   }
 
-  // Contra el que tiene delante
-  const rival = otroLado(abierto.lado);
-  const suyo = abierto.vista[rival].activo;
-  const mioActivo = abierto.vista[abierto.lado].activo;
-  const mio = peticion.side.pokemon.find((pokemon) => pokemon.active);
+  // Si es eficaz contra el que tienes delante (no cuánto le quitaría)
+  const suyo = abierto.vista[otroLado(abierto.lado)].activo;
   let contra = "";
-  if (suyo && mio && mioActivo) {
-    const gen = abierto.modulos.genDe(abierto.combate.formato);
-    const estimado = abierto.modulos.estimarDanio(dex(), ataque, {
-      nivel: mioActivo.nivel, stats: mio.stats, tipos: tiposVisibles(mioActivo), habilidad: mio.ability || mio.baseAbility,
-      objeto: mio.item, estado: mioActivo.estado, cambios: mioActivo.cambios
-    }, {
-      especie: dex().species.get(suyo.especieTransformado || suyo.especie), nivel: suyo.nivel, tipos: tiposVisibles(suyo),
-      cambios: suyo.cambios, psMax: gen >= 4 ? suyo.psMax : 0
-    }, abierto.vista.clima);
-    if (estimado) {
-      const efi = estimado.eficacia;
-      const textoEfi = efi === 0 ? t("No le afecta") : efi > 1 ? t("Muy eficaz (×{n})", { n: efi }) : efi < 1 ? t("Poco eficaz (×{n})", { n: String(efi).replace(".", enIngles ? "." : ",") }) : t("Eficacia normal");
-      const cuanto = estimado.ohko
-        ? t("Lo debilita de un golpe si acierta")
-        : estimado.variable
-          ? t("Potencia variable")
-          : efi === 0 ? "" : t("Le quitaría ≈ {min}–{max} % de sus PS", { min: Math.floor(estimado.min), max: Math.ceil(estimado.max) });
-      contra = `
-        <span class="lucha-bocadillo-etiqueta">${t("Contra {nombre}", { nombre: escaparHTML(suyo.nombre) })}</span>
-        <p class="lucha-bocadillo-efi ${efi === 0 ? "nada" : efi > 1 ? "muy" : efi < 1 ? "poco" : ""}"><b>${textoEfi}</b>${cuanto ? ` · ${escaparHTML(cuanto)}` : ""}</p>
-        <small class="lucha-bocadillo-nota">${t("Aproximado: sin saber su entrenamiento, ni críticos.")}</small>`;
-    }
+  if (suyo && ataque.category !== "Status") {
+    const efi = eficaciaContra(ataque.type, tiposVisibles(suyo));
+    const textoEfi = efi === 0
+      ? t("No le afecta")
+      : efi > 1 ? t("Muy eficaz (×{n})", { n: efi }) : efi < 1 ? t("Poco eficaz (×{n})", { n: String(efi).replace(".", enIngles ? "." : ",") }) : t("Eficacia normal");
+    contra = `<p class="lucha-bocadillo-contra">${t("Contra {nombre}", { nombre: escaparHTML(suyo.nombre) })}: <b>${textoEfi}</b></p>`;
   }
 
-  const precision = ataque.accuracy === true ? "—" : `${ataque.accuracy} %`;
   return `
-    <div class="ficha lucha-bocadillo">
-      <strong class="lucha-bocadillo-titulo">${escaparHTML(abierto.modulos.nombreAtaque(ataque.name))}</strong>
-      <div class="lucha-bocadillo-tipos">${chipsTipos([ataque.type || "Normal"])}<span class="lucha-bocadillo-cat">${escaparHTML(categoria)}</span></div>
-      <div class="lucha-bocadillo-stats">
-        <span>${t("Potencia")}</span><b>${ataque.basePower > 1 ? ataque.basePower : "—"}</b>
-        <span>${t("Precisión")}</span><b>${precision}</b>
-        <span>PP</span><b>${datos.pp ?? "-"}/${datos.maxpp ?? "-"}</b>
-        ${ataque.priority ? `<span>${t("Prioridad")}</span><b>${ataque.priority > 0 ? "+" : ""}${ataque.priority}</b>` : ""}
-        ${ataque.flags && ataque.flags.contact ? `<span>${t("Contacto")}</span><b>${t("Sí")}</b>` : ""}
+    <div class="ficha ficha-ataque lucha-bocadillo-ataque" style="background:${coloresTipo[tipo] || "#888"}">
+      <div class="ficha-titulo">
+        ${iconoTipo(tipo)}
+        <span>${escaparHTML(abierto.modulos.nombreAtaque(ataque.name))}</span>
+        <span class="ficha-tipo">${escaparHTML(tiposEs[tipo] || tipo)}</span>
       </div>
-      ${descripcion ? `<p class="lucha-bocadillo-desc">${escaparHTML(descripcion)}</p>` : ""}
+      ${descripcion ? `<p>${escaparHTML(descripcion)}</p>` : ""}
+      <div class="ficha-datos">
+        <span>${escaparHTML(categoria)}</span>
+        <span>${t("Potencia")}: ${ataque.basePower > 1 ? ataque.basePower : "—"}</span>
+        <span>${t("Precisión")}: ${ataque.accuracy === true ? "—" : `${ataque.accuracy}%`}</span>
+        <span>PP: ${datos.pp ?? "-"}/${datos.maxpp ?? "-"}</span>
+        ${ataque.priority ? `<span>${t("Prioridad")}: ${ataque.priority > 0 ? "+" : ""}${ataque.priority}</span>` : ""}
+        ${ataque.flags && ataque.flags.contact ? `<span>${t("Contacto")}</span>` : ""}
+      </div>
       ${contra}
     </div>`;
 }
 
 function contenidoBocadillo(elemento) {
   if (!abierto) return "";
-  const [que, valor] = String(elemento.dataset.bocadillo || "").split(":");
+  const [que, lado, valor] = String(elemento.dataset.bocadillo || "").split(":");
   try {
-    if (que === "ataque") return bocadilloAtaque(Number(valor), elemento);
-    if (que === "equipo") return bocadilloMio(Number(valor));
+    if (que === "ataque") return bocadilloAtaque(Number(lado), elemento);
+    if (que === "hueco") return bocadilloPokemon(lado, Number(valor));
+    // El que está en el campo (su ficha o su sprite)
     if (que === "pokemon") {
-      if (valor !== abierto.lado) return bocadilloRival(valor);
-      const peticion = abierto.combate.peticion(abierto.lado);
-      const indice = peticion && peticion.side ? peticion.side.pokemon.findIndex((pokemon) => pokemon.active) : -1;
-      return indice >= 0 ? bocadilloMio(indice) : "";
+      const { activo } = abierto.vista[lado];
+      return activo ? bocadilloPokemon(lado, activo.posicion) : "";
     }
   } catch (error) {
     console.error("No se ha podido pintar el bocadillo", error);
@@ -1625,17 +1847,55 @@ function contenidoBocadillo(elemento) {
   return "";
 }
 
+// ---------- Los dos equipos, siempre a la vista ----------
+//
+// Encima del campo: tus seis y los seis del rival, con su retrato, su vida y su estado. Los
+// debilitados, en gris; el que está en el campo, con un aro. Los del rival que aún no se conocen
+// (sin vista previa), con «?». Cada uno tiene su bocadillo.
+
+function huecoDeEquipo(lado, posicion) {
+  const datos = datosDeHueco(lado, posicion);
+  if (!datos) return "";
+  if (!seConoce(lado, datos)) return `<span class="lucha-hueco desconocido" title="${t("Aún no ha salido")}">?</span>`;
+  const { visto, activo } = datos;
+  const psMax = visto ? visto.psMax : 1;
+  const parte = visto ? (visto.debilitado ? 0 : visto.ps / (psMax || 1)) : 1;
+  const estado = visto && visto.estado;
+  const clases = ["lucha-hueco", visto && visto.debilitado ? "caido" : "", activo ? "en-campo" : ""].join(" ");
+  return `
+    <span class="${clases}" data-bocadillo="hueco:${lado}:${posicion}">
+      ${retratoDe(lado, posicion)}
+      <span class="lucha-ps ${claseBarra(parte)}"><span style="width: ${(parte * 100).toFixed(1)}%"></span></span>
+      ${estado ? `<span class="lucha-hueco-estado estado-${estado}">${escaparHTML((abierto.modulos.ESTADOS[estado] || {}).corto || "")}</span>` : ""}
+    </span>`;
+}
+
+function pintarEquipos() {
+  for (const lado of ["p1", "p2"]) {
+    const caja = vistaCombate.querySelector(`.lucha-equipo-fila[data-lado="${lado}"] .lucha-huecos`);
+    if (!caja) continue;
+    const posiciones = abierto.combate.sets[lado].map((set) => set.posicion);
+    const html = posiciones.map((posicion) => huecoDeEquipo(lado, posicion)).join("");
+    if (caja.dataset.html === html) continue;
+    caja.dataset.html = html;
+    caja.innerHTML = html;
+  }
+}
+
 // ---------- Abrir y cerrar un combate ----------
 
+// Los pies del Pokémon y sus trampas, en su plataforma del escenario (PUESTOS, js/lucha/escenario.js)
 function ladoHTML(lado, clase) {
+  const p = abierto.modulos.PUESTOS[clase];
+  const porciento = (n) => `${(n * 100).toFixed(2)}%`;
   return `
     <div class="lucha-lado ${clase}" data-lado="${lado}">
       <div class="lucha-ficha-columna">
         <div class="lucha-ficha-hueco"></div>
         <div class="lucha-condiciones"></div>
       </div>
-      <div class="lucha-trampas"></div>
-      <div class="lucha-sprite" data-lado="${lado}" data-bocadillo="pokemon:${lado}"></div>
+      <div class="lucha-trampas" style="left: ${porciento(p.x - p.rx)}; width: ${porciento(2 * p.rx)}; top: ${porciento(p.y - p.ry)}; height: ${porciento(2 * p.ry)}"></div>
+      <div class="lucha-sprite" data-lado="${lado}" data-bocadillo="pokemon:${lado}" style="left: ${porciento(p.x)}; top: ${porciento(p.pies)}"></div>
     </div>`;
 }
 
@@ -1657,8 +1917,19 @@ function esqueletoCombate(lucha) {
     </div>
     <div class="lucha-cuerpo">
       <div class="lucha-principal">
+        <div class="lucha-equipos-barra">
+          <div class="lucha-equipo-fila mio" data-lado="${miLado}">
+            <span class="lucha-equipo-nombre">${escaparHTML(nombreEn(lucha, yo()))}</span>
+            <div class="lucha-huecos"></div>
+          </div>
+          <div class="lucha-equipo-fila suyo" data-lado="${otroLado(miLado)}">
+            <div class="lucha-huecos"></div>
+            <span class="lucha-equipo-nombre">${escaparHTML(nombreEn(lucha, rival))}</span>
+          </div>
+        </div>
         <div class="lucha-arena">
-          ${abierto.modulos.dibujarEscena(lucha.id)}
+          <canvas class="lucha-escena" aria-hidden="true"></canvas>
+          <canvas class="lucha-nubes" aria-hidden="true"></canvas>
           <div class="lucha-campo-capa"></div>
           <div class="lucha-tiempo"></div>
           <span class="lucha-turno"></span>
@@ -1677,6 +1948,20 @@ function esqueletoCombate(lucha) {
     </div>`;
 }
 
+// Los dibujitos en pixel art (js/lucha/pixeles.js) van como variables del campo, y --px es el tamaño de un
+// píxel del escenario (180 de alto): con él, las púas, las rocas o la joya tera tienen píxeles del mismo
+// tamaño que el paisaje
+function ponerPixeles(arena, motor) {
+  arena.style.setProperty("--px", String(Math.max(1, arena.clientHeight / 180)));
+  if (arena.dataset.pixeles) return;
+  arena.dataset.pixeles = "1";
+  arena.style.setProperty("--px-pua", `url("${motor.urlPua(false)}")`);
+  arena.style.setProperty("--px-pua-toxica", `url("${motor.urlPua(true)}")`);
+  arena.style.setProperty("--px-roca", `url("${motor.urlRoca(false)}")`);
+  arena.style.setProperty("--px-roca-acero", `url("${motor.urlRoca(true)}")`);
+  arena.style.setProperty("--px-telarana", `url("${motor.urlTelarana()}")`);
+}
+
 function pintarBotonSonido() {
   const boton = vistaCombate.querySelector(".lucha-sonido");
   if (!boton || !abierto) return;
@@ -1688,6 +1973,7 @@ function pintarBotonSonido() {
 // También sin combate abierto (si no se pudo preparar): vuelve a la lista
 function cerrarCombate() {
   if (abierto && abierto.dejar) abierto.dejar();
+  if (abierto && abierto.observador) abierto.observador.disconnect();
   abierto = null;
   ocultarTooltip();
   vistaCombate.hidden = true;
@@ -1733,7 +2019,22 @@ async function abrirCombate(id) {
     primeraVez: true, rapido: false, reproduciendo: false, avanzando: false, enviando: false, especial: "", fuerza: "normal"
   };
   vistaCombate.innerHTML = esqueletoCombate(actual);
-  abierto.efectos = motor.crearEfectos(vistaCombate.querySelector(".lucha-arena"));
+  const arena = vistaCombate.querySelector(".lucha-arena");
+  motor.pintarEscena(arena, actual.id, actual.escena);
+  ponerPixeles(arena, motor);
+  abierto.efectos = motor.crearEfectos(arena);
+  // Si cambia el tamaño del campo, el escenario se vuelve a pintar con su forma y los sprites se ajustan
+  let cuadro = 0;
+  const observador = new ResizeObserver(() => {
+    cancelAnimationFrame(cuadro);
+    cuadro = requestAnimationFrame(() => {
+      motor.pintarEscena(arena, actual.id, actual.escena);
+      ponerPixeles(arena, motor);
+      for (const img of arena.querySelectorAll(".lucha-sprite img")) ajustarSprite(img);
+    });
+  });
+  observador.observe(arena);
+  abierto.observador = observador;
   pintarBotonSonido();
   if (actual.motor && actual.motor !== motor.VERSION) {
     ponerMensaje(t("Este combate empezó con otra versión del motor: puede que no se pueda seguir."));
@@ -1772,7 +2073,7 @@ function alCambiarLaAbierta() {
 // ---------- Botones ----------
 
 async function alPulsarLista(e) {
-  const fila = e.target.closest(".lucha-fila");
+  const fila = e.target.closest(".lucha-fila, .lucha-grande");
   const id = fila && fila.dataset.id;
   if (e.target.closest(".lucha-retar")) return abrirDialogoRetar({});
   if (!id) return;
@@ -1874,6 +2175,16 @@ function alPulsarRetar(e) {
     retando.nivel = nivel.dataset.nivel;
     return pintarRetar();
   }
+  const previa = e.target.closest("[data-previa]");
+  if (previa) {
+    retando.vistaPrevia = previa.dataset.previa === "si";
+    return pintarRetar();
+  }
+  const escena = e.target.closest("[data-escena]");
+  if (escena) {
+    retando.escena = escena.dataset.escena;
+    return pintarRetar();
+  }
   return undefined;
 }
 
@@ -1914,6 +2225,10 @@ export function iniciar() {
     alPulsarCombate(e).catch((error) => console.error(error));
   });
   activarTooltips(vistaCombate, "[data-bocadillo]", contenidoBocadillo, () => 250);
+  // Cada sprite, a su tamaño en cuanto carga
+  vistaCombate.addEventListener("load", (e) => {
+    if (e.target instanceof HTMLImageElement && e.target.closest(".lucha-sprite")) ajustarSprite(e.target);
+  }, true);
   vistaCombate.addEventListener("input", (e) => {
     if (!e.target.matches(".lucha-rep-barra") || !abierto || !abierto.repeticion) return;
     abierto.repeticion.auto = false;
