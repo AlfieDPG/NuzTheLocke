@@ -7,10 +7,15 @@
 // el cambio (los PS, el estado).
 //
 //   const lector = crearLector({ miLado: "p1", nombreRival: "Ana" });
-//   lector.leer(lineas)   // [{ tipo: "ataque", lado, nombre, ataque, texto }, ...]
+//   lector.leer(lineas)   // [{ tipo: "ataque", lado, nombre, ataque, texto, marcas }, ...]
+//
+// «marcas»: los trozos de la frase que son un ataque, una habilidad, un objeto o un Pokémon (de cada
+// lado), para resaltarlos en el registro: [{ texto: "Terremoto", clase: "ataque", en: "Earthquake" }].
 //
 // Tipos de suceso: cambio (sale un Pokémon), ataque, ps, debilitado, estado, cambios (de
-// estadísticas), forma (megaevolución...), turno, fin, y «mensaje» (solo texto).
+// estadísticas), forma (megaevolución...), eficacia, critico, mega, tera, zeta, dinamax,
+// transforma, lado (púas, pantallas... de un lado), campo (Espacio Raro, campos...), clima, turno,
+// fin, revela (habilidad u objeto que se ha visto, sin texto) y «mensaje» (solo texto).
 //
 // Las líneas «|split|p1» van seguidas de dos versiones de la siguiente: la de ese jugador (con sus
 // PS exactos) y la de todos (en la 1.ª-3.ª gen, en porcentaje). Se coge la propia para mi lado.
@@ -101,6 +106,11 @@ function leerEfecto(texto) {
   return m ? { tipo: m[1], nombre: m[2] } : { tipo: "", nombre: texto };
 }
 
+// Id de un efecto de lado o de campo: «move: Reflect» -> «reflect», «Stealth Rock» -> «stealthrock»
+export function idEfecto(texto) {
+  return String(texto || "").replace(/^move: ?/, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function partir(linea) {
   const trozos = linea.split("|").slice(1);
   const args = [];
@@ -119,11 +129,22 @@ function capital(texto) {
 }
 
 export function crearLector({ miLado, nombreRival }) {
+  // Lo que se va a resaltar de la línea que se está leyendo (se vacía al empezar cada una)
+  let marcas = [];
+  const marcar = (texto, clase, en = "") => {
+    if (texto && !marcas.some((marca) => marca.texto === texto && marca.clase === clase)) marcas.push({ texto, clase, en });
+    return texto;
+  };
+  const ataqueM = (en) => marcar(nombreAtaque(en), "ataque", en);
+  const habilidadM = (en) => marcar(nombreHabilidad(en), "habilidad", en);
+  const objetoM = (en) => marcar(nombreObjeto(en), "objeto", en);
+  const pokemonM = (p) => marcar(p.nombre, p.lado === miLado ? "mio" : "suyo");
+
   // Nombre de un Pokémon en una frase: el tuyo, tal cual; el del rival, «el Gyarados rival»
-  const nombre = (p) => (p.lado === miLado ? p.nombre : enIngles ? `the opposing ${p.nombre}` : `el ${p.nombre} rival`);
+  const nombre = (p) => (pokemonM(p), p.lado === miLado ? p.nombre : enIngles ? `the opposing ${p.nombre}` : `el ${p.nombre} rival`);
   // «de» y «a» con su contracción («del Gyarados rival», «al Gyarados rival»)
-  const de = (p) => (p.lado !== miLado && !enIngles ? `del ${p.nombre} rival` : `${enIngles ? "" : "de "}${nombre(p)}`);
-  const a = (p) => (p.lado !== miLado && !enIngles ? `al ${p.nombre} rival` : `${enIngles ? "" : "a "}${nombre(p)}`);
+  const de = (p) => (p.lado !== miLado && !enIngles ? `del ${pokemonM(p)} rival` : `${enIngles ? "" : "de "}${nombre(p)}`);
+  const a = (p) => (p.lado !== miLado && !enIngles ? `al ${pokemonM(p)} rival` : `${enIngles ? "" : "a "}${nombre(p)}`);
   const jugador = (lado) => (lado === miLado ? t("Tú") : nombreRival || t("El rival"));
   const huecos = (p, extra = {}) => ({ p: nombre(p), de_p: de(p), a_p: a(p), ...extra });
 
@@ -134,10 +155,10 @@ export function crearLector({ miLado, nombreRival }) {
   // De dónde viene un daño o una cura con su nombre («los Restos», «Piel Tosca»)
   function fuente(efecto) {
     if (!efecto) return "";
-    if (efecto.tipo === "item") return nombreObjeto(efecto.nombre);
-    if (efecto.tipo === "ability") return nombreHabilidad(efecto.nombre);
-    if (efecto.tipo === "move") return nombreAtaque(efecto.nombre);
-    return nombreAtaque(efecto.nombre);
+    if (efecto.tipo === "item") return objetoM(efecto.nombre);
+    if (efecto.tipo === "ability") return habilidadM(efecto.nombre);
+    if (efecto.tipo === "move") return ataqueM(efecto.nombre);
+    return ataqueM(efecto.nombre);
   }
 
   function textoDanio(p, efecto, de2) {
@@ -212,12 +233,28 @@ export function crearLector({ miLado, nombreRival }) {
     }
   }
 
-  // Un efecto de un lado del campo (Reflejo, Trampa Rocas...), con su nombre traducido
+// Un efecto de un lado del campo (Reflejo, Trampa Rocas...), con su nombre traducido
   function efectoDeLado(texto2) {
-    return nombreAtaque(String(texto2 || "").replace(/^move: ?/, ""));
+    return ataqueM(String(texto2 || "").replace(/^move: ?/, ""));
   }
 
   let ultimoClima = "";
+
+  // La habilidad o el objeto que una línea deja ver: «-ability|p2a: X|Intimidate», «[from] item:
+  // Leftovers», «[from] ability: Rough Skin|[of] p1a: Garchomp» (la habilidad es del [of])
+  function revelado(linea) {
+    const { tipo, args, kw } = partir(linea);
+    const p = quien(args[0]);
+    if (tipo === "-ability" && p) return { tipo: "revela", lado: p.lado, nombre: p.nombre, habilidad: args[1] };
+    if (tipo === "-item" && p) return { tipo: "revela", lado: p.lado, nombre: p.nombre, objeto: args[1] };
+    if (tipo === "-enditem" && p) return { tipo: "revela", lado: p.lado, nombre: p.nombre, objeto: "", usado: args[1] };
+    const efecto = leerEfecto(kw.from);
+    if (!efecto || !p) return null;
+    const de = kw.of ? quien(kw.of) : p;
+    if (efecto.tipo === "ability" && de) return { tipo: "revela", lado: de.lado, nombre: de.nombre, habilidad: efecto.nombre };
+    if (efecto.tipo === "item") return { tipo: "revela", lado: p.lado, nombre: p.nombre, objeto: efecto.nombre };
+    return null;
+  }
 
   // Una línea -> un suceso (o null)
   function leerLinea(linea) {
@@ -232,15 +269,15 @@ export function crearLector({ miLado, nombreRival }) {
         const textoSale = tipo === "drag"
           ? texto("¡{p} fue arrastrado al combate!", p)
           : p.lado === miLado
-            ? capital(t("¡Adelante, {nombre}!", { nombre: p.nombre }))
-            : capital(t("{jugador} sacó a {nombre}.", { jugador: jugador(p.lado), nombre: p.nombre }));
+            ? capital(t("¡Adelante, {nombre}!", { nombre: pokemonM(p) }))
+            : capital(t("{jugador} sacó a {nombre}.", { jugador: jugador(p.lado), nombre: pokemonM(p) }));
         return { tipo: "cambio", lado: p.lado, nombre: p.nombre, ...detalles, ...ps, texto: textoSale };
       }
       case "move": {
         const objetivo = quien(args[2]);
         return {
           tipo: "ataque", lado: p.lado, nombre: p.nombre, ataque: args[1], objetivo: objetivo && objetivo.lado,
-          texto: texto("¡{p} usó {ataque}!", p, { ataque: nombreAtaque(args[1]) })
+          texto: texto("¡{p} usó {ataque}!", p, { ataque: ataqueM(args[1]) })
         };
       }
       case "-damage":
@@ -280,13 +317,13 @@ export function crearLector({ miLado, nombreRival }) {
       case "-clearallboost":
         return { tipo: "cambios", lado: p && p.lado, nombre: p && p.nombre, limpiar: true, todos: tipo === "-clearallboost", texto: tipo === "-clearallboost" ? t("¡Se han anulado todos los cambios de estadísticas!") : "" };
       case "-supereffective":
-        return { tipo: "mensaje", texto: t("¡Es muy eficaz!") };
+        return { tipo: "eficacia", lado: p && p.lado, valor: 2, texto: t("¡Es muy eficaz!") };
       case "-resisted":
-        return { tipo: "mensaje", texto: t("No es muy eficaz...") };
+        return { tipo: "eficacia", lado: p && p.lado, valor: 0.5, texto: t("No es muy eficaz...") };
       case "-immune":
-        return { tipo: "mensaje", texto: texto("No afecta {a_p}...", p) };
+        return { tipo: "eficacia", lado: p && p.lado, valor: 0, texto: texto("No afecta {a_p}...", p) };
       case "-crit":
-        return { tipo: "mensaje", texto: t("¡Un golpe crítico!") };
+        return { tipo: "critico", lado: p && p.lado, texto: t("¡Un golpe crítico!") };
       case "-miss":
         return { tipo: "mensaje", texto: quien(args[1]) ? texto("¡{p} ha evitado el ataque!", quien(args[1])) : t("¡Pero falló!") };
       case "-fail":
@@ -312,25 +349,56 @@ export function crearLector({ miLado, nombreRival }) {
         return { tipo: "clima", clima, texto: datosClima ? (sigue ? datosClima.sigue : datosClima.empieza) : "" };
       }
       case "-fieldstart":
-        return { tipo: "mensaje", texto: texto("¡{efecto} afecta al campo de combate!", null, { efecto: efectoDeLado(args[0]) }) };
+        return { tipo: "campo", efecto: idEfecto(args[0]), activo: true, texto: texto("¡{efecto} afecta al campo de combate!", null, { efecto: efectoDeLado(args[0]) }) };
       case "-fieldend":
-        return { tipo: "mensaje", texto: texto("{efecto} ha dejado de afectar al campo.", null, { efecto: efectoDeLado(args[0]) }) };
+        return { tipo: "campo", efecto: idEfecto(args[0]), activo: false, texto: texto("{efecto} ha dejado de afectar al campo.", null, { efecto: efectoDeLado(args[0]) }) };
       case "-sidestart": {
         const lado = (/^(p[12])/.exec(args[0]) || [])[1];
         const efecto = efectoDeLado(args[1]);
-        return { tipo: "mensaje", texto: lado === miLado ? t("¡{efecto} afecta a tu equipo!", { efecto }) : t("¡{efecto} afecta al equipo de {jugador}!", { efecto, jugador: jugador(lado) }) };
+        return {
+          tipo: "lado", lado, efecto: idEfecto(args[1]), activo: true,
+          texto: lado === miLado ? t("¡{efecto} afecta a tu equipo!", { efecto }) : t("¡{efecto} afecta al equipo de {jugador}!", { efecto, jugador: jugador(lado) })
+        };
       }
       case "-sideend": {
         const lado = (/^(p[12])/.exec(args[0]) || [])[1];
         const efecto = efectoDeLado(args[1]);
-        return { tipo: "mensaje", texto: lado === miLado ? t("{efecto} ya no afecta a tu equipo.", { efecto }) : t("{efecto} ya no afecta al equipo de {jugador}.", { efecto, jugador: jugador(lado) }) };
+        return {
+          tipo: "lado", lado, efecto: idEfecto(args[1]), activo: false,
+          texto: lado === miLado ? t("{efecto} ya no afecta a tu equipo.", { efecto }) : t("{efecto} ya no afecta al equipo de {jugador}.", { efecto, jugador: jugador(lado) })
+        };
       }
+      case "-swapsideconditions":
+        return { tipo: "lado", cambiarLados: true, texto: t("¡Los dos equipos han intercambiado los efectos de su lado del campo!") };
+      // Cambios de estadísticas entre dos (Cambiaalmas, Más Psique...) o del revés (Reversión)
+      case "-swapboost": {
+        const otro = quien(args[1]);
+        const stats = (args[2] || "").split(/, ?/).filter(Boolean);
+        return { tipo: "cambios", intercambio: { a: p, b: otro, stats }, texto: texto("¡{p} ha intercambiado los cambios de estadísticas con {q}!", p, { q: otro ? nombre(otro) : "" }) };
+      }
+      case "-copyboost": {
+        const otro = quien(args[1]);
+        return { tipo: "cambios", copia: { a: p, de: otro }, texto: texto("¡{p} ha copiado los cambios de estadísticas de {q}!", p, { q: otro ? nombre(otro) : "" }) };
+      }
+      case "-invertboost":
+        return { tipo: "cambios", lado: p.lado, nombre: p.nombre, invertir: true, texto: texto("¡Se han invertido los cambios de estadísticas {de_p}!", p) };
+      case "-clearnegativeboost":
+        return { tipo: "cambios", lado: p.lado, nombre: p.nombre, quitarNegativos: true, texto: texto("¡{p} ha vuelto a la normalidad sus estadísticas bajadas!", p) };
+      case "-clearpositiveboost":
+        return { tipo: "cambios", lado: p.lado, nombre: p.nombre, quitarPositivos: true, texto: texto("¡Se han anulado las mejoras de estadísticas {de_p}!", p) };
       case "-start": {
         const efecto = leerEfecto(args[1]);
         const cual = efecto ? efecto.nombre : "";
         if (cual === "confusion") return { tipo: "mensaje", texto: texto("¡{p} se ha confundido!", p) };
         if (cual === "Substitute") return { tipo: "mensaje", texto: texto("¡{p} creó un sustituto!", p) };
         if (cual === "Leech Seed") return { tipo: "mensaje", texto: texto("¡{p} ha sido infectado!", p) };
+        if (cual === "Dynamax") return { tipo: "dinamax", lado: p.lado, nombre: p.nombre, activo: true, texto: texto("¡{p} se ha dinamaximizado!", p) };
+        if (cual === "Taunt") return { tipo: "mensaje", texto: texto("¡{p} se ha dejado engañar por la Mofa!", p) };
+        if (cual === "Encore") return { tipo: "mensaje", texto: texto("¡{p} tiene que repetir su ataque!", p) };
+        if (cual === "Yawn") return { tipo: "mensaje", texto: texto("¡{p} empieza a tener sueño!", p) };
+        if (cual === "Attract") return { tipo: "mensaje", texto: texto("¡{p} se ha enamorado!", p) };
+        if (cual === "Focus Energy") return { tipo: "mensaje", texto: texto("¡{p} se está concentrando!", p) };
+        if (cual === "Disable") return { tipo: "mensaje", texto: texto("¡Se ha anulado {ataque} {de_p}!", p, { ataque: ataqueM(args[2]) }) };
         if (cual === "typechange") return { tipo: "mensaje", texto: texto("¡{p} ahora es de tipo {tipo}!", p, { tipo: (args[2] || "").split("/").map((tipo2) => tiposEs[tipo2.toLowerCase()] || tipo2).join("/") }) };
         return { tipo: "mensaje", texto: "" };
       }
@@ -339,6 +407,7 @@ export function crearLector({ miLado, nombreRival }) {
         const cual = efecto ? efecto.nombre : "";
         if (cual === "confusion") return { tipo: "mensaje", texto: texto("¡{p} ya no está confundido!", p) };
         if (cual === "Substitute") return { tipo: "mensaje", texto: texto("¡El sustituto {de_p} se ha debilitado!", p) };
+        if (cual === "Dynamax") return { tipo: "dinamax", lado: p.lado, nombre: p.nombre, activo: false, texto: texto("¡{p} ha vuelto a su tamaño normal!", p) };
         return { tipo: "mensaje", texto: "" };
       }
       case "-activate": {
@@ -350,6 +419,9 @@ export function crearLector({ miLado, nombreRival }) {
         if (cual === "Substitute") return { tipo: "mensaje", texto: texto("¡El sustituto recibe el daño en lugar {de_p}!", p) };
         if (cual === "Endure") return { tipo: "mensaje", texto: texto("¡{p} ha aguantado el golpe!", p) };
         if (cual === "Focus Sash" || cual === "Sturdy") return { tipo: "mensaje", texto: texto("¡{p} ha resistido gracias a {cosa}!", p, { cosa: fuente(efecto) }) };
+        if (cual === "Skill Swap") return { tipo: "mensaje", texto: texto("¡{p} ha intercambiado su habilidad con la del rival!", p) };
+        if (cual === "Trick" || cual === "Switcheroo") return { tipo: "mensaje", texto: texto("¡{p} ha intercambiado los objetos!", p) };
+        if (cual === "Spite") return { tipo: "mensaje", texto: texto("¡{p} ha perdido PP de su ataque!", p) };
         return { tipo: "mensaje", texto: "" };
       }
       case "-singleturn":
@@ -357,13 +429,13 @@ export function crearLector({ miLado, nombreRival }) {
         return null;
       case "-ability":
         if (!p) return null;
-        return { tipo: "mensaje", aviso: true, texto: texto("{habilidad} {de_p}", p, { habilidad: nombreHabilidad(args[1]) }) };
+        return { tipo: "mensaje", aviso: true, texto: texto("{habilidad} {de_p}", p, { habilidad: habilidadM(args[1]) }) };
       case "-item":
         if (!p) return null;
-        return { tipo: "mensaje", texto: texto("{p} lleva {objeto}.", p, { objeto: nombreObjeto(args[1]) }) };
+        return { tipo: "mensaje", texto: texto("{p} lleva {objeto}.", p, { objeto: objetoM(args[1]) }) };
       case "-enditem": {
         if (!p) return null;
-        const objeto = nombreObjeto(args[1]);
+        const objeto = objetoM(args[1]);
         if (kw.eat !== undefined) return { tipo: "mensaje", texto: texto("¡{p} se ha comido su {objeto}!", p, { objeto }) };
         if (kw.from && /stealeat|move: (Knock Off|Thief|Covet|Trick|Switcheroo)/.test(kw.from)) return { tipo: "mensaje", texto: texto("¡{p} ha perdido su {objeto}!", p, { objeto }) };
         return { tipo: "mensaje", texto: texto("¡{p} ha usado su {objeto}!", p, { objeto }) };
@@ -374,15 +446,19 @@ export function crearLector({ miLado, nombreRival }) {
         return { tipo: "forma", lado: p.lado, nombre: p.nombre, ...detalles, texto: "" };
       }
       case "-mega":
-        return { tipo: "mensaje", texto: texto("¡{p} ha megaevolucionado!", p) };
+        return { tipo: "mega", lado: p.lado, nombre: p.nombre, usa: "mega", texto: texto("¡{p} ha megaevolucionado!", p) };
+      case "-burst":
+        return { tipo: "mega", lado: p.lado, nombre: p.nombre, usa: "ultra", texto: texto("¡{p} ha liberado su Ultraexplosión!", p) };
       case "-primal":
-        return { tipo: "mensaje", texto: texto("¡{p} ha vuelto a su estado primigenio!", p) };
+        return { tipo: "mega", lado: p.lado, nombre: p.nombre, texto: texto("¡{p} ha vuelto a su estado primigenio!", p) };
       case "-terastallize":
-        return { tipo: "mensaje", texto: texto("¡{p} se ha teracristalizado en tipo {tipo}!", p, { tipo: tiposEs[(args[1] || "").toLowerCase()] || args[1] }) };
+        return { tipo: "tera", lado: p.lado, nombre: p.nombre, tera: (args[1] || "").toLowerCase(), texto: texto("¡{p} se ha teracristalizado en tipo {tipo}!", p, { tipo: tiposEs[(args[1] || "").toLowerCase()] || args[1] }) };
       case "-zpower":
-        return { tipo: "mensaje", texto: texto("¡{p} libera todo su poder Z!", p) };
-      case "-transform":
-        return { tipo: "mensaje", texto: texto("¡{p} se ha transformado en {q}!", p, { q: quien(args[1]) ? quien(args[1]).nombre : "" }) };
+        return { tipo: "zeta", lado: p.lado, nombre: p.nombre, texto: texto("¡{p} libera todo su poder Z!", p) };
+      case "-transform": {
+        const otro = quien(args[1]);
+        return { tipo: "transforma", lado: p.lado, nombre: p.nombre, objetivo: otro, texto: texto("¡{p} se ha transformado en {q}!", p, { q: otro ? otro.nombre : "" }) };
+      }
       case "-prepare":
         return { tipo: "mensaje", texto: texto("{p} está cogiendo fuerzas.", p) };
       case "-mustrecharge":
@@ -411,8 +487,12 @@ export function crearLector({ miLado, nombreRival }) {
         }
         if (!linea || !linea.startsWith("|")) continue;
         try {
+          marcas = [];
           const suceso = leerLinea(linea);
+          if (suceso && suceso.texto && marcas.length) suceso.marcas = marcas;
           if (suceso) sucesos.push(suceso);
+          const revela = revelado(linea);
+          if (revela) sucesos.push(revela);
         } catch (error) {
           console.error("Línea del combate sin leer", linea, error);
         }

@@ -382,28 +382,71 @@
   align-items: start;
 }
 
-/* El campo: un cielo del color de la sección que se funde con el panel, y dos «suelos» */
+/* El campo: el escenario dibujado (js/lucha/escenario.js) y, encima, por capas: el campo (Espacio Raro,
+   campos de tipo), el tiempo (lluvia, sol...), los dos lados con su Pokémon, y los efectos de los ataques */
 .lucha-arena {
   position: relative;
   aspect-ratio: 16 / 9;
-  max-height: 26rem;
+  max-height: 28rem;
   width: 100%;
   overflow: hidden;
   border-radius: 14px;
-  background:
-    radial-gradient(ellipse 22% 7% at 72% 47%, rgba(var(--t-tinte), 0.14), transparent 70%),
-    radial-gradient(ellipse 26% 8% at 27% 88%, rgba(var(--t-tinte), 0.16), transparent 70%),
-    linear-gradient(180deg, rgba(var(--color-vista), 0.22), var(--t-panel) 75%);
+  background: linear-gradient(180deg, #6fb7e8, #8cc46a 46%, #5f9a48);
+  isolation: isolate;
+}
+
+.lucha-arena.tiembla {
+  animation: lucha-tiembla 0.35s linear;
+}
+
+@keyframes lucha-tiembla {
+  20% { transform: translate(-6px, 3px); }
+  40% { transform: translate(5px, -3px); }
+  60% { transform: translate(-4px, 2px); }
+  80% { transform: translate(3px, -1px); }
+}
+
+.lucha-escena {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.lucha-escena .nube {
+  animation: lucha-nube var(--viaje, 80s) linear infinite alternate;
+}
+
+@keyframes lucha-nube {
+  to { translate: 120px 0; }
+}
+
+.lucha-escena .estrella {
+  animation: lucha-titila var(--brillo, 3s) ease-in-out infinite alternate;
+}
+
+@keyframes lucha-titila {
+  to { opacity: 0.25; }
+}
+
+.lucha-escena .ola {
+  animation: lucha-ola 3.5s ease-in-out infinite alternate;
+}
+
+@keyframes lucha-ola {
+  to { translate: 18px 3px; }
 }
 
 .lucha-turno,
 .lucha-clima {
   position: absolute;
   top: 0.6rem;
-  z-index: 2;
+  z-index: 7;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
-  background: rgba(var(--t-oscurecer), 0.35);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
   font-size: 0.75rem;
   font-weight: bold;
 }
@@ -417,37 +460,69 @@
   transform: translateX(50%);
 }
 
+/* ---------- Los dos lados ---------- */
+
 .lucha-lado {
   position: absolute;
   inset: 0;
+  z-index: 3;
   pointer-events: none;
 }
 
-.lucha-lado .lucha-ficha-hueco {
+.lucha-ficha-columna {
   position: absolute;
-  z-index: 1;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   width: min(17rem, 46%);
   pointer-events: auto;
 }
 
-.lucha-lado.suyo .lucha-ficha-hueco {
+.lucha-lado.suyo .lucha-ficha-columna {
   top: 0.6rem;
   left: 0.6rem;
 }
 
-.lucha-lado.mio .lucha-ficha-hueco {
+.lucha-lado.mio .lucha-ficha-columna {
   right: 0.6rem;
   bottom: 0.6rem;
+  flex-direction: column-reverse;
+}
+
+.lucha-lado.mio .lucha-ficha-hueco {
+  display: flex;
+  flex-direction: column;
 }
 
 .lucha-sprite {
   position: absolute;
   display: grid;
   place-items: end center;
+  pointer-events: auto;
+}
+
+/* La plataforma bajo cada uno: una mancha clara con su sombra */
+.lucha-sprite::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5%;
+  width: 92%;
+  height: 20%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1) 55%, transparent 58%),
+    radial-gradient(ellipse, rgba(0, 0, 0, 0.3) 0 58%, transparent 70%);
 }
 
 .lucha-sprite img {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
   image-rendering: pixelated;
+  transition: transform 0.4s, filter 0.4s;
 }
 
 .lucha-lado.suyo .lucha-sprite {
@@ -475,8 +550,8 @@
 /* Animaciones: atacar (se lanza hacia el otro), recibir (tiembla y parpadea), salir y caer */
 .lucha-lado.mio .lucha-sprite.ataca { animation: lucha-ataca-mio 0.45s ease-out; }
 .lucha-lado.suyo .lucha-sprite.ataca { animation: lucha-ataca-suyo 0.45s ease-out; }
-.lucha-sprite.golpeado { animation: lucha-golpe 0.45s linear; }
-.lucha-sprite.sale { animation: lucha-sale 0.5s ease-out; }
+.lucha-sprite.golpeado img { animation: lucha-golpe 0.45s linear; }
+.lucha-sprite.sale img { animation: lucha-sale 0.5s ease-out; }
 
 .lucha-sprite.caido img {
   opacity: 0;
@@ -485,32 +560,533 @@
 }
 
 @keyframes lucha-ataca-mio {
-  40% { transform: translate(12%, -10%); }
+  40% { transform: translate(14%, -12%); }
 }
 
 @keyframes lucha-ataca-suyo {
-  40% { transform: translate(-12%, 10%); }
+  40% { transform: translate(-14%, 12%); }
 }
 
 @keyframes lucha-golpe {
-  0%, 100% { transform: none; opacity: 1; }
-  20% { transform: translateX(-5%); opacity: 0.3; }
-  40% { transform: translateX(5%); opacity: 1; }
-  60% { transform: translateX(-3%); opacity: 0.3; }
-  80% { transform: translateX(2%); opacity: 1; }
+  0%, 100% { translate: 0; opacity: 1; filter: none; }
+  20% { translate: -6%; opacity: 0.3; filter: brightness(2.5); }
+  40% { translate: 6%; opacity: 1; }
+  60% { translate: -3%; opacity: 0.3; filter: brightness(2.5); }
+  80% { translate: 2%; opacity: 1; }
 }
 
 @keyframes lucha-sale {
-  from { transform: scale(0.3); opacity: 0; }
+  from { transform: scale(0.2); opacity: 0; filter: brightness(3); }
+  60% { filter: brightness(1.6); }
+}
+
+/* Teracristalizado: brillo del color de su teratipo y una joya encima */
+.lucha-sprite.tera img {
+  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 8px var(--tera)) saturate(1.3);
+}
+
+.lucha-sprite.tera::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -6%;
+  left: 50%;
+  width: 1.6rem;
+  height: 1.9rem;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 100% 30%, 100% 70%, 50% 100%, 0 70%, 0 30%);
+  background: conic-gradient(from 30deg, #fff, var(--tera), #fff 30%, var(--tera) 55%, #ffffffaa 75%, var(--tera));
+  animation: lucha-joya 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes lucha-joya {
+  to { translate: 0 -6px; filter: brightness(1.3); }
+}
+
+/* Dinamax: más grande y con un brillo rojo */
+.lucha-sprite.dinamax img {
+  transform: scale(1.45);
+  transform-origin: bottom center;
+  filter: drop-shadow(0 0 10px #ff3355) drop-shadow(0 0 3px #ff99aa);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lucha-sprite.ataca,
-  .lucha-sprite.golpeado,
-  .lucha-sprite.sale { animation: none; }
+  .lucha-sprite.golpeado img,
+  .lucha-sprite.sale img,
+  .lucha-arena.tiembla,
+  .lucha-escena * { animation: none; }
 }
 
-/* Las fichas: retrato de Mundo Misterioso, nombre, nivel, PS y lo que tenga encima */
+/* ---------- Lo que hay en el lado de cada uno: púas, rocas, telaraña, pantallas, viento ---------- */
+
+.lucha-trampas {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.lucha-lado.suyo .lucha-trampas {
+  top: 40%;
+  right: 16%;
+  width: 34%;
+  height: 16%;
+}
+
+.lucha-lado.mio .lucha-trampas {
+  bottom: 0;
+  left: 8%;
+  width: 40%;
+  height: 18%;
+}
+
+/* Púas: triangulitos repartidos por la plataforma, en dos filas */
+.lucha-pua {
+  position: absolute;
+  left: calc((var(--i) + 0.5) / var(--n) * 80% + 10%);
+  bottom: calc(20% + var(--fila) * 22%);
+  width: 0.7rem;
+  height: 0.7rem;
+  translate: -50% 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: linear-gradient(160deg, #e5e5ea, #6d6f7a 60%, #3d3e46);
+  animation: lucha-aparece 0.4s ease-out both;
+  animation-delay: calc(var(--i) * 40ms);
+}
+
+.lucha-pua.toxicas {
+  background: linear-gradient(160deg, #f1c4ff, #9b3fc0 60%, #5a1d75);
+}
+
+@keyframes lucha-aparece {
+  from { opacity: 0; transform: translateY(-60%) scale(0.4); }
+}
+
+/* Trampa Rocas: piedras que flotan sobre la plataforma */
+.lucha-roca {
+  position: absolute;
+  left: calc(14% + var(--i) * 22%);
+  bottom: calc(110% + var(--fila) * 30%);
+  width: 1rem;
+  height: 0.95rem;
+  clip-path: polygon(20% 0, 75% 8%, 100% 45%, 80% 100%, 25% 92%, 0 50%);
+  background: linear-gradient(150deg, #e2c58a, #8d6b3d 60%, #5b4426);
+  animation: lucha-flota 2.6s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * -0.6s);
+}
+
+.lucha-roca.acero {
+  background: linear-gradient(150deg, #f3f5fb, #9aa0b8 60%, #5e6378);
+}
+
+@keyframes lucha-flota {
+  from { translate: 0 0; rotate: -8deg; }
+  to { translate: 0 -8px; rotate: 8deg; }
+}
+
+/* Red Viscosa: una telaraña en el suelo */
+.lucha-telarana {
+  position: absolute;
+  inset: 0 6%;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(ellipse, transparent 0 9px, rgba(255, 255, 255, 0.55) 9px 10px),
+    repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.6) 0 2deg, transparent 2deg 30deg);
+  mask: radial-gradient(ellipse, #000 55%, transparent 72%);
+  animation: lucha-aparece 0.5s ease-out both;
+}
+
+/* Pantallas: un panel de luz delante del Pokémon (Reflejo, Pantalla de Luz, Velo Aurora...) */
+.lucha-pantalla {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 20%;
+  height: 330%;
+  border-radius: 1rem 1rem 40% 40%;
+  border: 2px solid var(--c);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 30%, transparent), color-mix(in srgb, var(--c) 8%, transparent));
+  box-shadow: 0 0 16px var(--c), inset 0 0 14px color-mix(in srgb, var(--c) 50%, transparent);
+  opacity: 0.55;
+  animation: lucha-pantalla 3s ease-in-out infinite alternate;
+}
+
+.pantalla-reflect { --c: #ff8ad8; }
+.pantalla-lightscreen { --c: #ffe066; inset-inline: 12%; }
+.pantalla-auroraveil { --c: #7ff0ff; background: linear-gradient(135deg, #7ff0ff55, #c49bff44, #ffb3e655); }
+.pantalla-safeguard { --c: #7be495; border-radius: 50% 50% 40% 40%; }
+.pantalla-mist { --c: #ffffff; border-style: dashed; filter: blur(1px); }
+.pantalla-luckychant { --c: #ffd166; inset-inline: 18%; }
+
+@keyframes lucha-pantalla {
+  to { opacity: 0.35; }
+}
+
+/* Viento Afín: rayas que pasan por detrás */
+.lucha-viento {
+  position: absolute;
+  left: -10%;
+  bottom: 80%;
+  width: 40%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  animation: lucha-viento 1.4s linear infinite;
+}
+
+.lucha-viento.otra {
+  bottom: 160%;
+  animation-delay: -0.7s;
+}
+
+@keyframes lucha-viento {
+  to { translate: 300% 0; }
+}
+
+/* Sus nombres, en chapitas bajo la ficha */
+.lucha-condiciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.lucha-condiciones:empty {
+  display: none;
+}
+
+.lucha-chip-lado {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: bold;
+}
+
+.lucha-chip-lado.trampa {
+  background: rgba(120, 70, 20, 0.75);
+}
+
+/* ---------- El tiempo y el campo (encima del escenario, debajo de los Pokémon) ---------- */
+
+.lucha-campo-capa,
+.lucha-tiempo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lucha-campo-capa { z-index: 1; }
+.lucha-tiempo { z-index: 4; }
+
+.lucha-arena:is([data-clima="RainDance"], [data-clima="PrimordialSea"]) .lucha-tiempo {
+  background:
+    repeating-linear-gradient(105deg, transparent 0 14px, rgba(190, 215, 255, 0.5) 14px 15px),
+    linear-gradient(rgba(40, 60, 110, 0.25), rgba(40, 60, 110, 0.15));
+  background-size: 140px 140px, auto;
+  animation: lucha-lluvia 0.45s linear infinite;
+}
+
+@keyframes lucha-lluvia {
+  to { background-position: -40px 140px, 0 0; }
+}
+
+.lucha-arena:is([data-clima="SunnyDay"], [data-clima="DesolateLand"]) .lucha-tiempo {
+  background:
+    radial-gradient(circle at 85% 5%, rgba(255, 240, 160, 0.75), transparent 45%),
+    linear-gradient(rgba(255, 190, 90, 0.15), rgba(255, 160, 60, 0.12));
+  animation: lucha-sol 3s ease-in-out infinite alternate;
+}
+
+@keyframes lucha-sol {
+  to { opacity: 0.7; }
+}
+
+.lucha-arena[data-clima="Sandstorm"] .lucha-tiempo {
+  background:
+    radial-gradient(circle, rgba(230, 200, 140, 0.9) 0 1.5px, transparent 2px),
+    linear-gradient(rgba(200, 160, 90, 0.35), rgba(170, 130, 70, 0.3));
+  background-size: 23px 17px, auto;
+  animation: lucha-arena-viento 0.6s linear infinite;
+}
+
+@keyframes lucha-arena-viento {
+  to { background-position: 46px 8px, 0 0; }
+}
+
+.lucha-arena:is([data-clima="Hail"], [data-clima="Snowscape"]) .lucha-tiempo {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 2px, transparent 2.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 2px),
+    linear-gradient(rgba(200, 225, 255, 0.2), rgba(200, 225, 255, 0.1));
+  background-size: 60px 60px, 37px 41px, auto;
+  animation: lucha-nieve 2.4s linear infinite;
+}
+
+@keyframes lucha-nieve {
+  to { background-position: 20px 60px, -10px 82px, 0 0; }
+}
+
+.lucha-arena[data-clima="DeltaStream"] .lucha-tiempo {
+  background: repeating-linear-gradient(170deg, transparent 0 40px, rgba(255, 255, 255, 0.25) 40px 42px);
+  background-size: 200px 200px;
+  animation: lucha-lluvia 1.2s linear infinite;
+}
+
+/* Campos de tipo: el suelo se tiñe y brilla un poco */
+.lucha-arena[data-campo] .lucha-campo-capa {
+  --suelo: transparent;
+  background: linear-gradient(180deg, transparent 44%, var(--suelo) 60%, var(--suelo));
+}
+
+.lucha-arena[data-campo~="electricterrain"] .lucha-campo-capa { --suelo: rgba(255, 225, 60, 0.35); animation: lucha-sol 0.8s steps(2) infinite alternate; }
+.lucha-arena[data-campo~="grassyterrain"] .lucha-campo-capa { --suelo: rgba(90, 210, 90, 0.35); }
+.lucha-arena[data-campo~="mistyterrain"] .lucha-campo-capa { --suelo: rgba(255, 170, 225, 0.4); }
+.lucha-arena[data-campo~="psychicterrain"] .lucha-campo-capa { --suelo: rgba(190, 110, 255, 0.35); }
+
+/* Espacio Raro: una rejilla morada por todo el campo */
+.lucha-arena[data-campo~="trickroom"] .lucha-campo-capa {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 38px, rgba(210, 120, 255, 0.35) 38px 40px),
+    repeating-linear-gradient(90deg, transparent 0 38px, rgba(210, 120, 255, 0.35) 38px 40px),
+    rgba(120, 40, 170, 0.15);
+}
+
+.lucha-arena:is([data-campo~="gravity"], [data-campo~="wonderroom"], [data-campo~="magicroom"]) .lucha-campo-capa {
+  box-shadow: inset 0 0 60px rgba(60, 20, 120, 0.55);
+}
+
+/* ---------- Los efectos de los ataques (js/lucha/efectos.js) ---------- */
+
+.lucha-efectos {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.lucha-particula {
+  position: absolute;
+  width: var(--s, 10px);
+  height: var(--s, 10px);
+  margin: calc(var(--s, 10px) / -2) 0 0 calc(var(--s, 10px) / -2);
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 6px var(--c);
+}
+
+.lucha-particula.estalla {
+  animation: lucha-estalla 0.65s ease-out both;
+}
+
+.lucha-particula.estela {
+  opacity: 0;
+  animation: lucha-estela 0.7s ease-out both;
+}
+
+@keyframes lucha-estalla {
+  from { transform: translate(0, 0) rotate(0) scale(0.4); opacity: 1; }
+  to { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1); opacity: 0; }
+}
+
+@keyframes lucha-estela {
+  0% { opacity: 0; transform: scale(0.3); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1.1); }
+}
+
+/* La forma de cada tipo */
+.forma-llama { border-radius: 50% 50% 50% 0 / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 65%, #fff8, var(--c) 60%); }
+.forma-burbuja { background: radial-gradient(circle at 35% 35%, #fff 0 15%, transparent 25%), color-mix(in srgb, var(--c) 35%, transparent); border: 2px solid var(--c); }
+.forma-chispa { border-radius: 0; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.forma-hoja { border-radius: 0 100% 0 100%; }
+.forma-cristal { border-radius: 0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: none; }
+.forma-estrella { border-radius: 0; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.forma-roca { border-radius: 0; clip-path: polygon(20% 0, 75% 8%, 100% 45%, 80% 100%, 25% 92%, 0 50%); box-shadow: none; }
+.forma-viento { width: calc(var(--s, 10px) * 3); height: 3px; border-radius: 3px; }
+.forma-anillo { background: transparent; border: 3px solid var(--c); }
+.forma-punto { width: calc(var(--s, 10px) * 0.6); height: calc(var(--s, 10px) * 0.6); }
+.forma-humo { filter: blur(3px); opacity: 0.85; }
+
+/* El fogonazo del golpe */
+.lucha-fogonazo {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 18%, var(--c) 42%, transparent 70%);
+  animation: lucha-fogonazo 0.45s ease-out both;
+}
+
+@keyframes lucha-fogonazo {
+  from { transform: scale(0.2); opacity: 1; }
+  to { transform: scale(1.4); opacity: 0; }
+}
+
+/* Lo que vuela hacia el rival en un ataque especial */
+.lucha-proyectil {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #fff, var(--c) 45%, var(--c2) 70%, transparent 72%);
+  box-shadow: 0 0 18px var(--c);
+  animation: lucha-vuela 0.42s ease-in both;
+}
+
+@keyframes lucha-vuela {
+  from { transform: translate(0, 0) scale(0.5); }
+  to { transform: translate(var(--dx), var(--dy)) scale(1.3); }
+}
+
+/* El rayo de los ataques eléctricos */
+.lucha-rayo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 6px #ffe14d);
+  animation: lucha-rayo 0.5s steps(5) both;
+}
+
+.lucha-rayo polyline {
+  fill: none;
+  stroke-width: 7;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.lucha-rayo polyline.nucleo {
+  stroke-width: 2.5;
+}
+
+@keyframes lucha-rayo {
+  0%, 40%, 80% { opacity: 1; }
+  20%, 60% { opacity: 0.3; }
+  100% { opacity: 0; }
+}
+
+/* Anillos de un aura (estado, subidas y bajadas, curas) */
+.lucha-anillo {
+  position: absolute;
+  width: var(--tam);
+  height: calc(var(--tam) * 0.42);
+  margin: calc(var(--tam) * -0.21) 0 0 calc(var(--tam) / -2);
+  border: 3px solid var(--c);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--c);
+  animation: lucha-anillo 0.9s ease-out both;
+}
+
+@keyframes lucha-anillo {
+  from { transform: translateY(40%) scale(0.5); opacity: 0.9; }
+  to { transform: translateY(-80%) scale(1.15); opacity: 0; }
+}
+
+.lucha-chispita {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 8px var(--c);
+  opacity: 0;
+}
+
+.lucha-chispita.sube { animation: lucha-chispa-sube 0.9s ease-out both; }
+.lucha-chispita.baja { animation: lucha-chispa-baja 0.9s ease-in both; }
+
+@keyframes lucha-chispa-sube {
+  15% { opacity: 1; }
+  to { transform: translateY(-70px); opacity: 0; }
+}
+
+@keyframes lucha-chispa-baja {
+  from { transform: translateY(-60px); }
+  15% { opacity: 1; }
+  to { transform: translateY(10px); opacity: 0; }
+}
+
+/* El daño o la cura que flota sobre el Pokémon */
+.lucha-numero {
+  position: absolute;
+  z-index: 8;
+  translate: -50% -50%;
+  font-family: var(--letra-titulos);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #000, 0 2px 4px rgba(0, 0, 0, 0.6);
+  animation: lucha-numero 1.3s ease-out both;
+}
+
+.lucha-numero.danio { color: #ffd2cc; -webkit-text-stroke: 1px #c0392b; }
+.lucha-numero.cura { color: #c9ffd7; -webkit-text-stroke: 1px #1e8449; }
+.lucha-numero.critico { color: #ffe066; font-size: 1.15rem; -webkit-text-stroke: 1px #9a6b00; }
+.lucha-numero.nada { color: #e0e0e0; font-size: 1rem; }
+
+@keyframes lucha-numero {
+  from { transform: translateY(10px) scale(0.6); opacity: 0; }
+  15% { transform: translateY(0) scale(1.15); opacity: 1; }
+  30% { transform: scale(1); }
+  to { transform: translateY(-46px); opacity: 0; }
+}
+
+/* El destello grande (megaevolución, tera, transformación) */
+.lucha-destello {
+  position: absolute;
+  width: var(--tam);
+  height: var(--tam);
+  margin: calc(var(--tam) / -2) 0 0 calc(var(--tam) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 15%, var(--c) 35%, transparent 68%);
+  animation: lucha-destello 1s ease-out both;
+}
+
+@keyframes lucha-destello {
+  from { transform: scale(0.1) rotate(0); opacity: 1; }
+  50% { opacity: 0.9; }
+  to { transform: scale(1.3) rotate(90deg); opacity: 0; }
+}
+
+/* El nombre del ataque, en una franja de su color */
+.lucha-rotulo {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  z-index: 8;
+  padding: 0.3rem 1.1rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--c) 15%, var(--c) 85%, transparent);
+  color: #fff;
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+  font-weight: 800;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  translate: -50% 0;
+  animation: lucha-rotulo 1.4s ease-out both;
+}
+
+@keyframes lucha-rotulo {
+  from { opacity: 0; transform: translateX(-30px); }
+  15% { opacity: 1; transform: none; }
+  80% { opacity: 1; }
+  to { opacity: 0; transform: translateX(20px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lucha-efectos > * { animation-duration: 0.01s !important; }
+}
+
+/* ---------- Las fichas: retrato de Mundo Misterioso, nombre, nivel, PS y lo que tenga encima ---------- */
+
 .lucha-ficha {
   display: flex;
   align-items: center;
@@ -519,6 +1095,7 @@
   border-radius: 12px;
   background: color-mix(in srgb, var(--t-panel) 92%, transparent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: help;
 }
 
 .lucha-ficha.debilitado {
@@ -560,6 +1137,11 @@
   white-space: nowrap;
 }
 
+.lucha-ficha-estado {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
 .lucha-genero .icono {
   width: 0.85em;
   height: 0.85em;
@@ -576,6 +1158,12 @@
   margin-top: 0.2rem;
 }
 
+.lucha-ficha-cambios {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
 .lucha-ps-texto {
   margin-right: auto;
   font-size: 0.75rem;
@@ -583,7 +1171,8 @@
   opacity: 0.8;
 }
 
-/* La barra de PS: verde, amarilla o roja (con los colores del modo daltónico) */
+/* La barra de PS: verde, amarilla o roja (con los colores del modo daltónico). Baja poco a poco: la
+   anima js/lucha/index.js (ponerPS) */
 .lucha-ps {
   display: block;
   height: 0.45rem;
@@ -598,14 +1187,15 @@
   height: 100%;
   border-radius: inherit;
   background: var(--t-bien);
-  transition: width 0.45s ease-out, background 0.3s;
+  transition: background 0.3s;
 }
 
 .lucha-ps.medio > span { background: var(--t-casi); }
 .lucha-ps.bajo > span { background: var(--t-mal, #e74c3c); }
 
 .lucha-chip-estado,
-.lucha-chip-cambio {
+.lucha-chip-cambio,
+.lucha-chip-tera {
   padding: 0 0.35rem;
   border-radius: 0.3rem;
   font-size: 0.68rem;
@@ -621,6 +1211,21 @@
 .lucha-chip-estado.estado-frz { background: #5fb8d6; }
 .lucha-chip-estado.estado-psn,
 .lucha-chip-estado.estado-tox { background: #a04aa6; }
+
+.lucha-chip-tera {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--c);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 6px var(--c);
+}
+
+.lucha-chip-tera .icono-tipo {
+  width: 0.7rem;
+  height: 0.7rem;
+}
 
 .lucha-chip-cambio.sube { background: rgba(var(--t-bien-rgb), 0.2); color: var(--t-bien); }
 .lucha-chip-cambio.baja { background: rgba(var(--t-mal-rgb, 231, 76, 60), 0.18); color: var(--t-mal, #e74c3c); }
@@ -638,26 +1243,22 @@
   order: -1;
 }
 
-.lucha-lado.mio .lucha-ficha-hueco {
-  display: flex;
-  flex-direction: column;
-}
-
 .lucha-bolita {
   width: 0.6rem;
   height: 0.6rem;
-  border: 1px dashed rgba(var(--t-tinte), 0.45);
+  border: 1px dashed rgba(255, 255, 255, 0.7);
   border-radius: 50%;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
 }
 
 .lucha-bolita.vivo {
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.35);
   background: rgb(var(--color-vista));
 }
 
 .lucha-bolita.caido {
   border: none;
-  background: rgba(var(--t-tinte), 0.25);
+  background: rgba(60, 60, 60, 0.75);
 }
 
 /* La frase de lo que pasa, bajo el campo */
@@ -666,6 +1267,119 @@
   margin: 0.6rem 0.2rem;
   font-size: 1.05rem;
   font-weight: bold;
+}
+
+/* ---------- Bocadillos (al pasar el ratón por un Pokémon o un ataque) ---------- */
+
+.lucha-bocadillo {
+  width: 17.5rem;
+}
+
+.lucha-bocadillo p {
+  margin: 0.3rem 0 0;
+}
+
+.lucha-bocadillo-titulo {
+  display: block;
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+}
+
+.lucha-bocadillo-titulo small {
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+.lucha-bocadillo-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.lucha-bocadillo-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--c);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.lucha-bocadillo-cat {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.lucha-bocadillo-stats {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 0.1rem 0.5rem;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.lucha-bocadillo-stats span {
+  opacity: 0.75;
+}
+
+.lucha-bocadillo-stats em {
+  font-style: normal;
+  font-size: 0.72rem;
+}
+
+.lucha-bocadillo-stats em.sube { color: var(--t-bien); }
+.lucha-bocadillo-stats em.baja { color: var(--t-mal, #e74c3c); }
+
+.lucha-bocadillo-etiqueta {
+  display: block;
+  margin-top: 0.55rem;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.lucha-bocadillo-ataques {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.15rem 0.6rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+}
+
+.lucha-bocadillo-ataques li::before {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.3rem;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+.lucha-bocadillo-desc {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.lucha-bocadillo-efi.muy b { color: var(--t-bien); }
+.lucha-bocadillo-efi.poco b { color: var(--t-casi); }
+.lucha-bocadillo-efi.nada b { color: var(--t-mal, #e74c3c); }
+
+.lucha-bocadillo-nota {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  opacity: 0.6;
 }
 
 /* ---------- Elegir ---------- */
@@ -917,7 +1631,9 @@
   color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), var(--t-texto));
 }
 
-.lucha-registro-lista li.aviso {
+/* Las habilidades que saltan («[Intimidación del Gyarados rival]»). No «.aviso»: esa clase es la de
+   las tarjetas de la campana (layout.css) y les pondría su raya encima de la primera letra */
+.lucha-registro-lista li.lucha-linea-habilidad {
   font-style: italic;
   opacity: 0.75;
 }
@@ -951,11 +1667,113 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .lucha-lado .lucha-ficha-hueco {
+  .lucha-ficha-columna {
     width: 58%;
   }
 
   .lucha-ficha .lucha-retrato {
     display: none;
   }
+}
+
+/* ---------- Lo resaltado en el registro y en la frase de abajo ----------
+   Cada ataque del color de su tipo (en una pastilla suave), las habilidades en violeta y en cursiva,
+   los objetos en ámbar, y los Pokémon de cada uno en su color: los tuyos azulados y los del rival rojizos. */
+
+.lucha-r-ataque {
+  padding: 0 0.3rem;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--c) 28%, transparent);
+  box-shadow: inset 2px 0 0 var(--c);
+  color: color-mix(in srgb, var(--c) 55%, var(--t-texto));
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.lucha-r-habilidad {
+  color: color-mix(in srgb, #b48cff 75%, var(--t-texto));
+  font-style: italic;
+  font-weight: 700;
+}
+
+.lucha-r-objeto {
+  color: color-mix(in srgb, #f0b429 75%, var(--t-texto));
+  font-weight: 700;
+}
+
+.lucha-r-objeto::before {
+  content: "◆ ";
+  font-size: 0.7em;
+  vertical-align: 0.1em;
+}
+
+.lucha-r-mio {
+  color: color-mix(in srgb, #5fa8ff 70%, var(--t-texto));
+  font-weight: 700;
+}
+
+.lucha-r-suyo {
+  color: color-mix(in srgb, #ff7a6b 70%, var(--t-texto));
+  font-weight: 700;
+}
+
+/* En el registro, la cabecera de cada turno se puede pulsar en la repetición */
+.lucha-ir-turno {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lucha-ir-turno:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Repetición ---------- */
+
+.lucha-repeticion {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.12);
+}
+
+.lucha-repeticion .etiqueta-campo {
+  margin-top: 0;
+}
+
+.lucha-rep-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+#vista-lucha .lucha-rep-boton {
+  padding: 0.45rem 0.6rem;
+}
+
+#vista-lucha .lucha-rep-boton[data-rep="auto"] {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+#vista-lucha .lucha-rep-boton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.lucha-rep-barra {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+  accent-color: rgb(var(--color-vista));
+}
+
+.lucha-rep-turno {
+  min-width: 7.5rem;
+  font-size: 0.85rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }

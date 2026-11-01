@@ -134,6 +134,15 @@ export class Combate {
     this.decisiones++;
   }
 
+  // ¿El motor aceptaría esta elección ahora? Se prueba en el lado sin cerrar el turno y se deshace:
+  // así nunca se manda una que luego se cambiaría en silencio por «default».
+  valida(lado, eleccion) {
+    const lado2 = this.motor[lado];
+    const vale = lado2.choose(eleccion);
+    lado2.clearChoice();
+    return vale;
+  }
+
   lineasNuevas() {
     const lineas = this.motor.log.slice(this.leidas);
     this.leidas = this.motor.log.length;

@@ -64,6 +64,10 @@ const DIBUJOS = {
   lucha: `<path d="M7 13V8a5 5 0 0 1 5-5h1a5 5 0 0 1 5 5v5a5 5 0 0 1-5 5h-3a3 3 0 0 1-3-3z"/>
           <path d="M7 11H5.5a2.5 2.5 0 0 0 0 5H8"/><path d="M9 18v3h7v-3"/>`,
   atras: `<path d="m15 18-6-6 6-6"/>`,
+  adelante: `<path d="m9 18 6-6-6-6"/>`,
+  // Repetición de «Combates»: al principio y al final (flecha contra una raya)
+  principio: `<path d="m17 18-6-6 6-6"/><path d="M7 6v12"/>`,
+  final: `<path d="m7 18 6-6-6-6"/><path d="M17 6v12"/>`,
   pokeball: `<circle cx="12" cy="12" r="10"/><path d="M2 12h7"/><path d="M15 12h7"/><circle cx="12" cy="12" r="3"/>`,
   pokedex: `<rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="9" cy="7" r="2"/><path d="M8 13h8"/><path d="M8 17h5"/>`,
   amigos: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
