@@ -77,14 +77,15 @@ async function abrirAnalisis() {
 }
 
 // La ventana con unos Pokémon ya analizados (analizarPokemon). mochila: { objetos, nombre } de
-// la partida de la que salen, para sugerir objetos que tienes (null: los habituales)
-export function mostrarAnalisis(miembros, mochila = null) {
+// la partida de la que salen, para sugerir objetos que tienes (null: los habituales).
+// opciones: { clausulaObjetos } (no sugerir objetos repetidos)
+export function mostrarAnalisis(miembros, mochila = null, opciones = {}) {
   if (!dialogo.open) dialogo.showModal();
-  mostrado = { miembros, mochila };
+  mostrado = { miembros, mochila, opciones };
   cuerpo.innerHTML = pintar(analizarEquipo(miembros));
   cuerpo.scrollTop = 0;
   // Las mejoras tardan un poco más: se buscan con la ventana ya pintada
-  setTimeout(() => pintarMejoras(miembros, mochila), 30);
+  setTimeout(() => pintarMejoras(miembros, mochila, opciones), 30);
 }
 
 // ---------- Para mejorarlo ----------
@@ -129,11 +130,11 @@ function filaMejora(s) {
     </li>`;
 }
 
-async function pintarMejoras(miembros, mochila) {
+async function pintarMejoras(miembros, mochila, opciones = {}) {
   const caja = cuerpo.querySelector(".analisis-mejoras");
   if (!caja || !mostrado || mostrado.miembros !== miembros) return;
   try {
-    const lista = sugerirMejoras(miembros, await cargarContexto(), mochila ? mochila.objetos : objetosHabituales()).slice(0, MAX_MEJORAS);
+    const lista = sugerirMejoras(miembros, await cargarContexto(), mochila ? mochila.objetos : objetosHabituales(), opciones).slice(0, MAX_MEJORAS);
     if (!mostrado || mostrado.miembros !== miembros) return; // mientras, se ha abierto otro
     const deDonde = mochila
       ? t("Los objetos, de la mochila de «{locke}».", { locke: escaparHTML(mochila.nombre) })

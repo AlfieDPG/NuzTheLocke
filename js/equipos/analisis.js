@@ -57,8 +57,15 @@ export const PESOS = {
   // Lo que se resta de 100 en equilibrio
   todosIguales: 30, // todos atacan solo con físicos (o solo con especiales)
   nadieRapido: 30, // nadie es más rápido que un normalito
+  nadieAguanta: 20, // nadie aguanta bien los golpes (todos atacantes frágiles)
+  nadiePega: 20, // nadie pega fuerte (todos defensivos)
   tipoRepetido: 20 // por cada tipo que comparten 3 o más
 };
+
+// Quién cuenta como «aguanta bien» o «pega fuerte» para el equilibrio (su nota de Aguante o de
+// Ataque, de 0 a 100: el normalito saca 50)
+const DURO = 60;
+const PEGADOR = 60;
 
 // Cobertura: frente a un tipo, el mejor ataque del equipo es «fuerte» si quita al menos 1,5
 // veces lo que el normalito le quita a otro normalito, y «flojo» si no llega a 0,9 veces
@@ -241,10 +248,130 @@ const DE_DOS_A_CINCO = [
   "doubleslap", "spikecannon", "barrage", "tailslap", "watershuriken", "scaleshot", "bonerush"
 ];
 
+// ---------- El clima ----------
+
+// Las habilidades que ponen un clima al salir y los ataques que lo ponen
+const PONEN_CLIMA = {
+  drought: "sol", desolateland: "sol", orichalcumpulse: "sol",
+  drizzle: "lluvia", primordialsea: "lluvia", sandstream: "arena", snowwarning: "nieve"
+};
+const ATAQUES_DE_CLIMA = { sunnyday: "sol", raindance: "lluvia", sandstorm: "arena", hail: "nieve", snowscape: "nieve" };
+// Las que solo sirven con un clima (puntos: lo que suman, en el equipo, si alguien lo pone)
+const USAN_CLIMA = {
+  swiftswim: { clima: "lluvia", puntos: 6 }, chlorophyll: { clima: "sol", puntos: 6 },
+  sandrush: { clima: "arena", puntos: 6 }, slushrush: { clima: "nieve", puntos: 6 },
+  solarpower: { clima: "sol", puntos: 4 }, protosynthesis: { clima: "sol", puntos: 3 },
+  sandforce: { clima: "arena", puntos: 3 }, flowergift: { clima: "sol", puntos: 2 },
+  raindish: { clima: "lluvia", puntos: 2 }, hydration: { clima: "lluvia", puntos: 2 },
+  icebody: { clima: "nieve", puntos: 2 }, snowcloak: { clima: "nieve", puntos: 2 },
+  sandveil: { clima: "arena", puntos: 2 }, leafguard: { clima: "sol", puntos: 1 }
+};
+const NOMBRES_CLIMA = { sol: "clima|sol", lluvia: "clima|lluvia", arena: "clima|arena", nieve: "clima|granizo o nieve" };
+// Los que no fallan con lluvia (o con nieve, Ventisca)
+const NO_FALLAN = { lluvia: ["thunder", "hurricane", "bleakwindstorm", "wildboltstorm", "sandsearstorm"], nieve: ["blizzard"] };
+const CURAN_CON_SOL = ["synthesis", "morningsun", "moonlight"];
+const SIN_DANIO_ARENA = ["rock", "ground", "steel"];
+
+// Con su clima, lo que le sirve (razones) y lo que le perjudica (contra: un texto o "")
+//   gen: la del juego (null si no se sabe)
+function suClima(clima, { tipos, danio, claves, gen }) {
+  const razones = [];
+  let contra = "";
+  const conTipo = (tipo) => danio.some((g) => g.datos.tipo === tipo && g.factor > 0);
+  const suyos = (lista) => (lista || []).filter((k) => claves.has(k));
+  const conNombre = (k) => nombre(danio.find((g) => clave(g.ataque && g.ataque.en) === k)?.ataque || { es: k, en: k });
+  if (claves.has("weatherball")) razones.push(t("Meteorobola cambia de tipo y dobla su potencia"));
+  if (clima === "sol") {
+    if (conTipo("fire")) razones.push(t("sus ataques de Fuego hacen ×1,5"));
+    for (const k of suyos(["solarbeam", "solarblade"])) razones.push(t("{ataque} sale sin cargar", { ataque: conNombre(k) }));
+    if (suyos(CURAN_CON_SOL).length) razones.push(t("se cura más"));
+    if (claves.has("growth")) razones.push(t("Desarrollo sube el doble"));
+    if (conTipo("water")) contra = t("sus ataques de Agua hacen la mitad");
+  } else if (clima === "lluvia") {
+    if (conTipo("water")) razones.push(t("sus ataques de Agua hacen ×1,5"));
+    for (const k of suyos(NO_FALLAN.lluvia)) razones.push(t("{ataque} no falla", { ataque: conNombre(k) }));
+    if (conTipo("fire")) contra = t("sus ataques de Fuego hacen la mitad");
+  } else if (clima === "arena") {
+    if (tipos.some((tipo) => SIN_DANIO_ARENA.includes(tipo))) razones.push(t("la arena daña al rival y a él no"));
+    if (tipos.includes("rock") && !(gen && gen < 4)) razones.push(t("Def. Esp. ×1,5 por ser de tipo Roca"));
+    if (claves.has("shoreup")) razones.push(t("se cura más"));
+    if (!razones.length) contra = t("la arena le quita PS cada turno");
+  } else if (clima === "nieve") {
+    // Hasta la 8.ª generación es granizo (daña a los que no son de tipo Hielo); desde la 9.ª,
+    // nieve (no daña, y los de tipo Hielo tienen Defensa ×1,5)
+    const granizo = !gen || gen <= 8;
+    if (tipos.includes("ice")) razones.push(gen >= 9 ? t("Defensa ×1,5 por ser de tipo Hielo") : t("el granizo daña al rival y a él no"));
+    for (const k of suyos(NO_FALLAN.nieve)) razones.push(t("{ataque} no falla", { ataque: conNombre(k) }));
+    if (claves.has("auroraveil") && !(gen && gen < 7)) razones.push(t("puede usar Velo Aurora"));
+    if (!razones.length && granizo) contra = gen ? t("el granizo le quita PS cada turno") : t("el granizo le quita PS cada turno (hasta la 8.ª generación)");
+  }
+  return { razones, contra };
+}
+
+// ---------- Habilidades que solo sirven con algo ----------
+
+const RETROCESO = [
+  "doubleedge", "bravebird", "flareblitz", "woodhammer", "headsmash", "wildcharge", "volttackle", "takedown",
+  "submission", "headcharge", "wavecrash", "lightofruin", "struggle"
+];
+const BAYAS_O_GASTABLES = ["whiteherb", "powerherb", "mentalherb", "focussash", "airballoon", "electricseed", "grassyseed", "mistyseed", "psychicseed"];
+const esBaya = (objeto) => /berry$/i.test((objeto && objeto.en) || "");
+const ORBES = ["flameorb", "toxicorb"];
+
+// cumple({ claves (sus ataques), ko (su objeto), danio, deEstado (cuántos de estado), poke }): si le sirve; texto: si no
+const NECESITAN = {
+  rockhead: { cumple: (c) => RETROCESO.some((k) => c.claves.has(k)), texto: "solo sirve con ataques que le dañan a él (Doble Filo, Pájaro Osado...)" },
+  reckless: { cumple: (c) => [...RETROCESO, "highjumpkick", "jumpkick", "axekick", "supercellslam"].some((k) => c.claves.has(k)), texto: "solo sirve con ataques que le dañan a él (Doble Filo, Patada Salto Alta...)" },
+  skilllink: { cumple: (c) => [...DE_DOS_A_CINCO, "tripleaxel", "triplekick", "populationbomb"].some((k) => c.claves.has(k)), texto: "solo sirve con ataques de varios golpes (Semilladora, Pedrada...)" },
+  prankster: { cumple: (c) => c.deEstado > 0, texto: "solo sirve con ataques de estado" },
+  unburden: { cumple: (c) => esBaya(c.poke.objeto) || /gem$/i.test((c.poke.objeto && c.poke.objeto.en) || "") || BAYAS_O_GASTABLES.includes(c.ko), texto: "solo sirve si gasta su objeto (una baya, una hierba...)" },
+  poisonheal: { cumple: (c) => c.ko === "toxicorb", texto: "solo sirve envenenado: con Toxisfera" },
+  guts: { cumple: (c) => ORBES.includes(c.ko), texto: "solo sirve con un problema de estado: con Llamasfera o Toxisfera" },
+  quickfeet: { cumple: (c) => ORBES.includes(c.ko), texto: "solo sirve con un problema de estado: con Llamasfera o Toxisfera" },
+  marvelscale: { cumple: (c) => ORBES.includes(c.ko), texto: "solo sirve con un problema de estado: con Llamasfera o Toxisfera" },
+  flareboost: { cumple: (c) => c.ko === "flameorb", texto: "solo sirve quemado: con Llamasfera" },
+  toxicboost: { cumple: (c) => c.ko === "toxicorb", texto: "solo sirve envenenado: con Toxisfera" },
+  harvest: { cumple: (c) => esBaya(c.poke.objeto), texto: "solo sirve si lleva una baya" },
+  gluttony: { cumple: (c) => esBaya(c.poke.objeto), texto: "solo sirve si lleva una baya" },
+  ripen: { cumple: (c) => esBaya(c.poke.objeto), texto: "solo sirve si lleva una baya" },
+  cheekpouch: { cumple: (c) => esBaya(c.poke.objeto), texto: "solo sirve si lleva una baya" },
+  blaze: { cumple: (c) => c.danio.some((g) => g.datos.tipo === "fire"), texto: "solo sirve con ataques de tipo Fuego" },
+  overgrow: { cumple: (c) => c.danio.some((g) => g.datos.tipo === "grass"), texto: "solo sirve con ataques de tipo Planta" },
+  torrent: { cumple: (c) => c.danio.some((g) => g.datos.tipo === "water"), texto: "solo sirve con ataques de tipo Agua" },
+  swarm: { cumple: (c) => c.danio.some((g) => g.datos.tipo === "bug"), texto: "solo sirve con ataques de tipo Bicho" }
+};
+// De las que tiene en cuenta la fórmula, las que sirven aunque contra el normalito no se vean
+const SIEMPRE_SIRVEN = ["moldbreaker", "teravolt", "turboblaze", "sniper", "rivalry"];
+
 // Potencia que se le supone a los de potencia variable (Patada Baja, Movimiento Sísmico...)
 const POTENCIA_VARIABLE = 60;
 
 const CLASES = { Físico: "fisico", Especial: "especial" };
+
+// Los de potencia variable no están en datos/ataques.json y los de la caja de la partida llegan
+// sin tipo ni categoría: aquí, para que no pasen por ataques de estado. Fuera los que devuelven
+// el golpe (Contraataque, Manto Espejo...) y los fulminantes (Guillotina, Fisura...).
+const VARIABLES = {
+  gyroball: ["steel", "fisico"], electroball: ["electric", "especial"], lowkick: ["fighting", "fisico"],
+  grassknot: ["grass", "especial"], heavyslam: ["steel", "fisico"], heatcrash: ["fire", "fisico"],
+  seismictoss: ["fighting", "fisico"], nightshade: ["ghost", "especial"], return: ["normal", "fisico"],
+  frustration: ["normal", "fisico"], flail: ["normal", "fisico"], reversal: ["fighting", "fisico"],
+  crushgrip: ["normal", "fisico"], wringout: ["normal", "especial"], punishment: ["dark", "fisico"],
+  magnitude: ["ground", "fisico"], present: ["normal", "fisico"], naturalgift: ["normal", "fisico"],
+  fling: ["dark", "fisico"], trumpcard: ["normal", "especial"], beatup: ["dark", "fisico"],
+  psywave: ["psychic", "especial"], superfang: ["normal", "fisico"], naturesmadness: ["fairy", "especial"],
+  spitup: ["normal", "especial"], dragonrage: ["dragon", "especial"], sonicboom: ["normal", "especial"],
+  hardpress: ["steel", "fisico"]
+};
+
+// Giro Bola y Bola Voltio dependen de su velocidad frente a la del rival (aquí, el normalito)
+function potenciaPorVelocidad(k, yo) {
+  const suya = velocidad(yo);
+  const rival = velocidad(normalito(yo.nivel, []));
+  if (k === "gyroball") return Math.min(150, Math.floor((25 * rival) / suya) + 1);
+  const veces = suya / rival;
+  return veces >= 4 ? 150 : veces >= 3 ? 120 : veces >= 2 ? 80 : veces >= 1 ? 60 : 40;
+}
 
 function puedeEvolucionar(especie, familias) {
   return Object.values(familias).includes(especie);
@@ -290,6 +417,11 @@ function repartirAtaques(poke, ataques, yo, gen) {
       falla = seguro;
     }
     let datos = ataques.get(a.id);
+    if (!datos && VARIABLES[k]) {
+      const [tipo, clase] = VARIABLES[k];
+      const potencia = k === "gyroball" || k === "electroball" ? potenciaPorVelocidad(k, yo) : POTENCIA_VARIABLE;
+      datos = { tipo, potencia, clase };
+    }
     if (!datos && CLASES[a.categoria]) datos = { tipo: a.tipo, potencia: a.potencia || POTENCIA_VARIABLE, clase: CLASES[a.categoria] };
     if (!datos) {
       if (ESTADO[k] && !falla) estado.push({ ataque: a, ...ESTADO[k] });
@@ -331,6 +463,12 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
   const nivel = yo.nivel;
   const ref = referencia(nivel);
   const { danio, estado, fallan, supuestos } = repartirAtaques(poke, ataques, yo, gen);
+  // Si la fórmula ha usado su habilidad en alguna cuenta (Puño Férreo sin puñetazos, no)
+  const marcaHabilidad = poke.habilidad ? `${nombre(poke.habilidad)} (` : null;
+  let habilidadCuenta = false;
+  const mirarHabilidad = ({ extras }) => {
+    if (marcaHabilidad && !habilidadCuenta) habilidadCuenta = extras.some((e) => e.startsWith(marcaHabilidad));
+  };
 
   // Ataque: su mejor golpe contra cada tipo
   const cobertura = {};
@@ -341,6 +479,7 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
     for (const golpe of danio) {
       const resultado = calcularDanio(yo, rival, golpe.datos);
       if (resultado.stab) conStab = true;
+      mirarHabilidad(resultado);
       const quita = Math.min(100, porcentaje(resultado, rival) * golpe.golpes) * golpe.factor;
       if (quita > mejor.porcentaje) mejor = { porcentaje: quita, veces: quita / ref, golpe };
     }
@@ -356,6 +495,7 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
     for (const clase of ["fisico", "especial"]) {
       const resultado = calcularDanio(rival, yo, ataqueNormal(tipo, clase));
       recibido += porcentaje(resultado, yo);
+      mirarHabilidad(resultado);
       efectividad[tipo] = resultado.efectividad;
     }
   }
@@ -380,17 +520,48 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
   const habilidad = poke.habilidad;
   const k = clave(habilidad && habilidad.en);
   let extra = 0;
+  const claves = new Set((poke.ataques || []).filter(Boolean).map((a) => clave(a.en)));
+  const ko = clave(poke.objeto && poke.objeto.en);
+  // Los climas que pone él (con la habilidad o con un ataque) y el que necesita su habilidad:
+  // lo que vale eso se cuenta en el equipo (cuentasEquipo)
+  const pone = [...new Set([PONEN_CLIMA[k], ...[...claves].map((a) => ATAQUES_DE_CLIMA[a])].filter(Boolean))];
+  const usa = USAN_CLIMA[k] || null;
   if (habilidad) {
+    const datosHabilidad = { habilidad: nombre(habilidad) };
     let notaShowdown = notasHabilidad[habilidad.id] ?? 2;
     // Simple dobla lo que se suba: sin ataques para subirse, no hace nada
     if (k === "simple" && !suben.length) notaShowdown = 0;
+    const necesita = NECESITAN[k];
+    const deEstado = (poke.ataques || []).filter((a) => a && !danio.some((g) => g.ataque === a)).length;
     if (LASTRAN[k]) {
       vecesAtaque *= LASTRAN[k].ataque || 1;
       vecesVelocidad *= LASTRAN[k].velocidad || 1;
       apuntar(`${nombre(habilidad)}: ${t(LASTRAN[k].texto)}`, false);
+    } else if (PONEN_CLIMA[k]) {
+      // Sequía, Llovizna, Chorro Arena, Nevada: buenas solo si a él le sirve el clima (a sus
+      // compañeros con Nado Rápido, Clorofila... se les cuenta en el equipo)
+      const { razones, contra } = suClima(PONEN_CLIMA[k], { tipos: yo.tipos, danio, claves, gen });
+      const datos = { ...datosHabilidad, clima: t(NOMBRES_CLIMA[PONEN_CLIMA[k]]), razones: razones.join(", "), contra };
+      if (razones.length) {
+        extra += (notaShowdown - 2) * PESOS.habilidad;
+        apuntar(t("{habilidad}: pone {clima} y le sirve ({razones})", datos), true);
+      } else if (contra) {
+        extra -= PESOS.habilidad;
+        apuntar(t("{habilidad}: pone {clima}, pero no lo aprovecha y además {contra}", datos), false);
+      } else {
+        apuntar(t("{habilidad}: pone {clima}, pero no lo aprovecha", datos), null);
+      }
+    } else if (usa) {
+      const datos = { ...datosHabilidad, clima: t(NOMBRES_CLIMA[usa.clima]) };
+      apuntar(pone.includes(usa.clima)
+        ? t("{habilidad}: solo sirve con {clima}, y él mismo puede ponerlo", datos)
+        : t("{habilidad}: solo sirve con {clima}; hace falta que alguien del equipo lo ponga", datos), null);
+    } else if (necesita && !necesita.cumple({ claves, ko, danio, deEstado, poke })) {
+      apuntar(`${nombre(habilidad)}: ${t(necesita.texto)}`, null);
     } else if (textoHabilidad(habilidad)) {
-      // La fórmula ya la ha tenido en cuenta: solo se dice
-      apuntar(`${nombre(habilidad)}: ${textoHabilidad(habilidad)}`, notaShowdown >= 2);
+      // La fórmula ya la ha tenido en cuenta: solo se dice (y si con sus ataques no hace nada, también)
+      if (necesita || habilidadCuenta || SIEMPRE_SIRVEN.includes(k)) apuntar(`${nombre(habilidad)}: ${textoHabilidad(habilidad)}`, notaShowdown >= 2);
+      else apuntar(t("{habilidad} ({texto}): con sus ataques no le sirve", { ...datosHabilidad, texto: textoHabilidad(habilidad) }), null);
     } else {
       extra += (notaShowdown - 2) * PESOS.habilidad;
       if (notaShowdown >= 3.5) apuntar(t("{habilidad}: de las mejores habilidades", { habilidad: nombre(habilidad) }), true);
@@ -414,7 +585,6 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
     if (sirve) apuntar(`${nombre(objeto)}: ${efecto.texto}`, !empeora);
     else apuntar(t("{objeto} no le sirve con sus ataques", { objeto: nombre(objeto) }), false);
   }
-  const ko = clave(objeto && objeto.en);
   if (estado.length && ["choiceband", "choicespecs", "choicescarf"].includes(ko)) {
     extra -= CHOCA_CON_ESTADO;
     apuntar(t("Con {objeto} se queda atascado en un ataque: le sobran los de estado", { objeto: nombre(objeto) }), false);
@@ -518,6 +688,7 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
     poke, nivel, ataque, aguante, velocidad: veloz, nota, clase,
     rapido: vecesVelocidad >= RAPIDO,
     frena: frenan.length > 0,
+    clima: { pone, habilidad: PONEN_CLIMA[k] || null, usa },
     cobertura, efectividad, notas,
     // Lo mismo en listas por tipo (en el orden de TIPOS), para las cuentas rápidas del equipo
     veces: TIPOS.map((tipo) => cobertura[tipo].veces),
@@ -530,7 +701,8 @@ export function analizarPokemon(poke, { ataques, notas: notasHabilidad, familias
 // Las cuentas de la nota del equipo, sin textos (buscarEquipos las hace miles de veces):
 //   { mejores: [por tipo, el miembro que más le quita o null], debiles: [por tipo],
 //     aguantan: [por tipo], todosFisicos, todosEspeciales, nadieRapido,
-//     repetidos: [{ tipo, cuantos }], partes, nota }
+//     nadieAguanta, nadiePega, repetidos: [{ tipo, cuantos }], sinSuClima: [miembros con
+//     Nado Rápido, Clorofila... sin nadie que ponga su clima], partes, nota }
 function cuentasEquipo(miembros) {
   const n = miembros.length;
   const mejores = [];
@@ -565,8 +737,19 @@ function cuentasEquipo(miembros) {
   let fisicos = 0;
   let especiales = 0;
   let rapido = false;
+  let duro = false;
+  let pegador = false;
+  // El clima: los que lo necesitan suman si alguien del equipo lo pone (o él mismo con un ataque)
+  const climas = new Set();
+  for (const m of miembros) for (const clima of m.clima.pone) climas.add(clima);
+  const sinSuClima = [];
   for (const m of miembros) {
     suma += m.nota;
+    const usa = m.clima.usa;
+    if (usa && climas.has(usa.clima)) suma += usa.puntos;
+    else if (usa) sinSuClima.push(m);
+    if (m.aguante >= DURO) duro = true;
+    if (m.ataque >= PEGADOR) pegador = true;
     // Quien frena al rival (Red Viscosa, Viento Afín, Espacio Raro...) también vale
     if (m.rapido || m.frena) rapido = true;
     if (m.clase) atacantes++;
@@ -576,6 +759,8 @@ function cuentasEquipo(miembros) {
   const todosFisicos = atacantes >= 3 && fisicos === atacantes;
   const todosEspeciales = atacantes >= 3 && especiales === atacantes;
   const nadieRapido = n >= 3 && !rapido;
+  const nadieAguanta = n >= 3 && !duro;
+  const nadiePega = n >= 3 && !pegador;
   const repetidos = [];
   for (const tipo of TIPOS) {
     let cuantos = 0;
@@ -585,6 +770,8 @@ function cuentasEquipo(miembros) {
   let equilibrio = 100 - PESOS.tipoRepetido * repetidos.length;
   if (todosFisicos || todosEspeciales) equilibrio -= PESOS.todosIguales;
   if (nadieRapido) equilibrio -= PESOS.nadieRapido;
+  if (nadieAguanta) equilibrio -= PESOS.nadieAguanta;
+  if (nadiePega) equilibrio -= PESOS.nadiePega;
 
   const partes = {
     miembros: n ? suma / n : 0,
@@ -598,7 +785,7 @@ function cuentasEquipo(miembros) {
         PESOS.defensa * partes.defensa + PESOS.equilibrio * partes.equilibrio
       )
     : 0;
-  return { mejores, debiles, aguantan, todosFisicos, todosEspeciales, nadieRapido, repetidos, partes, nota };
+  return { mejores, debiles, aguantan, todosFisicos, todosEspeciales, nadieRapido, nadieAguanta, nadiePega, repetidos, sinSuClima, partes, nota };
 }
 
 // { miembros, cobertura: [{ tipo, porcentaje, veces, quien, golpe, nivel: "fuerte" | "normal" |
@@ -645,6 +832,20 @@ export function analizarEquipo(miembros) {
     avisar(t("Todos atacan con ataques especiales: un rival con mucha Def. Esp. os frena a todos"), false);
   }
   if (cuentas.nadieRapido) avisar(t("Nadie es rápido ni puede frenar al rival: casi todos los rivales atacarán antes"), false);
+  if (cuentas.nadieAguanta) avisar(t("Nadie aguanta bien los golpes: falta alguno más defensivo"), false);
+  if (cuentas.nadiePega) avisar(t("Nadie pega fuerte: falta alguno más atacante"), false);
+  for (const m of cuentas.sinSuClima) {
+    avisar(t("{nombre} tiene {habilidad}, pero nadie del equipo pone {clima}", {
+      nombre: nombreDe(m), habilidad: nombre(m.poke.habilidad), clima: t(NOMBRES_CLIMA[m.clima.usa.clima])
+    }), false);
+  }
+  // Dos habilidades que ponen climas distintos se pisan: vale el del último que sale
+  const climasDeHabilidad = new Set(miembros.map((m) => m.clima.habilidad).filter(Boolean));
+  if (climasDeHabilidad.size > 1) {
+    avisar(t("Hay habilidades que ponen climas distintos ({climas}): se quitan el uno al otro", {
+      climas: [...climasDeHabilidad].map((c) => t(NOMBRES_CLIMA[c])).join(", ")
+    }), false);
+  }
   for (const { tipo, cuantos } of cuentas.repetidos) {
     avisar(t("{n} comparten el tipo {tipo}", { n: cuantos, tipo: tiposEs[tipo] }), false);
   }
@@ -666,6 +867,31 @@ export function analizarEquipo(miembros) {
 const LIMITE_COMBINACIONES = 150000;
 const GUARDADOS = 12;
 
+// La cláusula de objetos: dos del equipo no pueden llevar el mismo. Lo lleva aquel al que más
+// le sube la nota y los demás van sin él (su análisis sin objeto, que va en m.sinObjeto; sin
+// él, se queda como está)
+const loQueLeDa = (m) => m.nota - (m.sinObjeto ? m.sinObjeto.nota : m.nota);
+
+export function conClausulaDeObjetos(miembros) {
+  const porObjeto = new Map();
+  let repetido = false;
+  for (const m of miembros) {
+    const k = clave(m.poke.objeto && m.poke.objeto.en);
+    if (!k) continue;
+    if (porObjeto.has(k)) repetido = true;
+    else porObjeto.set(k, []);
+    porObjeto.get(k).push(m);
+  }
+  if (!repetido) return miembros;
+  const sinEl = new Set();
+  for (const lista of porObjeto.values()) {
+    if (lista.length < 2) continue;
+    const loLleva = lista.reduce((a, b) => (loQueLeDa(b) > loQueLeDa(a) ? b : a));
+    for (const m of lista) if (m !== loLleva) sinEl.add(m);
+  }
+  return miembros.map((m) => (sinEl.has(m) ? m.sinObjeto || m : m));
+}
+
 function combinaciones(n, k) {
   let total = 1;
   for (let i = 0; i < k; i++) total = (total * (n - i)) / (i + 1);
@@ -679,8 +905,11 @@ function combinaciones(n, k) {
 // candidato mientras suba la nota: así entra también el de poca nota que tapa un hueco. Si todos
 // acaban en el mismo equipo, las alternativas son ese equipo con uno cambiado por el mejor
 // sustituto. No se repite especie (dos Garchomp) salvo que no haya otra forma de completarlo.
+// Con clausulaObjetos, si dos llevan el mismo objeto, uno va sin él (conClausulaDeObjetos): en
+// los miembros que salen, ese es su análisis sin objeto.
 //   -> [{ miembros, nota }], de mejor a peor (cuantos como mucho, sin repetir)
-export function buscarEquipos(fijos, candidatos, { tamano = 6, cuantos = 3, repetirEspecie = false } = {}) {
+export function buscarEquipos(fijos, candidatos, { tamano = 6, cuantos = 3, repetirEspecie = false, clausulaObjetos = false } = {}) {
+  const equipo = (miembros) => (clausulaObjetos ? conClausulaDeObjetos(miembros) : miembros);
   const libres = Math.max(0, Math.min(tamano - fijos.length, candidatos.length));
   const especiesFijas = new Set(fijos.map((m) => m.poke.id));
   // Cuántos repiten especie (con los fijos o entre ellos)
@@ -695,8 +924,8 @@ export function buscarEquipos(fijos, candidatos, { tamano = 6, cuantos = 3, repe
     return cuantos;
   };
   // Cada repetido resta 100: así, cambiando de uno en uno, se van quitando
-  const nota = (elegidos) => cuentasEquipo([...fijos, ...elegidos]).nota - 100 * repetidos(elegidos);
-  if (!libres) return fijos.length ? [{ miembros: [...fijos], nota: cuentasEquipo(fijos).nota }] : [];
+  const nota = (elegidos) => cuentasEquipo(equipo([...fijos, ...elegidos])).nota - 100 * repetidos(elegidos);
+  if (!libres) return fijos.length ? [{ miembros: equipo([...fijos]), nota: cuentasEquipo(equipo(fijos)).nota }] : [];
 
   // De más a menos nota, pero primero el mejor de cada especie (si no, entre los que se prueban
   // podría haber ocho Garchomp)
@@ -764,7 +993,7 @@ export function buscarEquipos(fijos, candidatos, { tamano = 6, cuantos = 3, repe
       return true;
     });
   // Sin forma de completarlo sin repetir especie: repitiendo
-  if (!distintos.length) return repetirEspecie ? [] : buscarEquipos(fijos, candidatos, { tamano, cuantos, repetirEspecie: true });
+  if (!distintos.length) return repetirEspecie ? [] : buscarEquipos(fijos, candidatos, { tamano, cuantos, repetirEspecie: true, clausulaObjetos });
 
   // Alternativas: el mejor con uno cambiado por su mejor sustituto (las que más nota dejan)
   if (distintos.length < cuantos) {
@@ -791,7 +1020,7 @@ export function buscarEquipos(fijos, candidatos, { tamano = 6, cuantos = 3, repe
 
   return distintos
     .slice(0, cuantos)
-    .map(({ elegidos, nota: suya }) => ({ miembros: [...fijos, ...[...elegidos].sort((a, b) => b.nota - a.nota)], nota: suya }));
+    .map(({ elegidos, nota: suya }) => ({ miembros: equipo([...fijos, ...[...elegidos].sort((a, b) => b.nota - a.nota)]), nota: suya }));
 }
 
 // ---------- Para mejorarlo ----------
@@ -807,11 +1036,12 @@ const MINIMO_MEJORA = 0.2;
 //   · un ataque: uno de potencia 80 de cada tipo (físico o especial, según su mejor estadística)
 //     en cada hueco, en lugar del que haya (los de estado que valen no se tocan). En un
 //     randomlocke no se sabe qué puede aprender: se dice el tipo que le falta.
-//   miembros: lo que da analizarPokemon de cada uno; contexto: el mismo
+//   miembros: lo que da analizarPokemon de cada uno; contexto: el mismo; clausulaObjetos: no
+//   sugerir uno que ya lleva otro del equipo, ni el mismo a dos
 //   -> [{ poke, que: "objeto" | "ataque", objeto?, mochila?, tipo?, clase?, quita? (el ataque que
 //        sale; null: va a un hueco libre), sube (la nota del equipo), subeEl (la suya) }], de lo
 //        que más sube a lo que menos
-export function sugerirMejoras(miembros, contexto, objetos) {
+export function sugerirMejoras(miembros, contexto, objetos, { clausulaObjetos = false } = {}) {
   const base = cuentasEquipo(miembros).nota;
   const sube = (i, poke) => {
     const otro = analizarPokemon(poke, contexto);
@@ -825,7 +1055,8 @@ export function sugerirMejoras(miembros, contexto, objetos) {
   miembros.forEach((m, i) => {
     for (const o of objetos) {
       const k = clave(o.objeto.en);
-      if (llevan.has(k) && !o.mochila) continue; // sin mochila: el que ya lleva otro no está libre
+      // Sin mochila (o con la cláusula), el que ya lleva otro no está libre
+      if (llevan.has(k) && (!o.mochila || clausulaObjetos)) continue;
       if (k === clave(m.poke.objeto && m.poke.objeto.en)) continue;
       if (!efectoObjeto(o.objeto, m.poke.id) && !UTILES[k]) continue;
       const cuanto = sube(i, { ...m.poke, objeto: o.objeto });
@@ -837,7 +1068,7 @@ export function sugerirMejoras(miembros, contexto, objetos) {
   const conObjeto = new Set();
   for (const { i, o, cuanto } of posibles) {
     const k = clave(o.objeto.en);
-    if (conObjeto.has(i) || (usados.get(k) || 0) >= (o.cantidad || 1)) continue;
+    if (conObjeto.has(i) || (usados.get(k) || 0) >= (clausulaObjetos ? 1 : o.cantidad || 1)) continue;
     conObjeto.add(i);
     usados.set(k, (usados.get(k) || 0) + 1);
     sugerencias.push({ poke: miembros[i].poke, que: "objeto", objeto: o.objeto, mochila: Boolean(o.mochila), sube: cuanto.equipo, subeEl: cuanto.el });

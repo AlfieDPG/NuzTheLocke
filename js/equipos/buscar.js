@@ -33,7 +33,8 @@ const CLAVE_AJUSTES = "poketeams-buscar-ajustes-v1";
 const AJUSTES = [
   ["sinEvs", "Sin EVs", "Como si nadie tuviera EVs: para cuando las normas no los cuentan o se ponen luego"],
   ["ivsPerfectos", "IVs perfectos", "Como si todos tuvieran 31 en todo"],
-  ["sinNaturaleza", "Naturaleza neutra", "Como si todos tuvieran una neutra: por las mentas, o si no cuenta"]
+  ["sinNaturaleza", "Naturaleza neutra", "Como si todos tuvieran una neutra: por las mentas, o si no cuenta"],
+  ["clausulaObjetos", "Cláusula de objetos", "Sin repetir objeto en el equipo: si dos llevan el mismo, lo lleva al que más le sirve y el otro va sin objeto"]
 ];
 
 const dialogo = document.getElementById("dialogo-buscar-equipo");
@@ -132,7 +133,16 @@ function conAjustes(p) {
 // siéndolo; los equipos buscados ya no valen.
 function analizarCaja() {
   const antes = new Map(actual.candidatos.map((m) => [m.original, m]));
-  const candidatos = actual.caja.map((p) => ({ ...analizarPokemon(conAjustes(p), actual.contexto), original: p }));
+  const candidatos = actual.caja.map((p) => {
+    const m = { ...analizarPokemon(conAjustes(p), actual.contexto), original: p };
+    // Con la cláusula de objetos, también cómo es sin su objeto (por si otro del equipo lleva el
+    // mismo); para «Usar este equipo», sin él también en lo de la partida
+    if (actual.ajustes.clausulaObjetos && p.objeto) {
+      const sinObjeto = { ...conAjustes(p), objeto: null, partida: { ...p.partida, objeto: 0 } };
+      m.sinObjeto = { ...analizarPokemon(sinObjeto, actual.contexto), original: p, conObjeto: m };
+    }
+    return m;
+  });
   const nuevo = new Map(candidatos.map((m) => [m.original, m]));
   const estados = new Map();
   for (const [m, estado] of actual.estados) estados.set(nuevo.get(m.original), estado);
@@ -181,16 +191,23 @@ function ficha(m, i) {
 }
 
 // Uno de un equipo propuesto: también abre su ficha
+// m: uno de los candidatos o, con la cláusula de objetos, su análisis sin objeto (m.conObjeto: el
+// candidato)
 function miniatura(m, fijos) {
-  const i = actual.candidatos.indexOf(m);
+  const suyo = m.conObjeto || m;
+  const i = actual.candidatos.indexOf(suyo);
+  const sinObjeto = m.conObjeto
+    ? `<span class="buscar-ficha-datos" title="${escaparHTML(t("Otro del equipo lleva {objeto}: con la cláusula de objetos, este va sin él", { objeto: nombre(suyo.poke.objeto) }))}">${t("Sin {objeto}", { objeto: escaparHTML(nombre(suyo.poke.objeto)) })}</span>`
+    : "";
   return `
     <li>
-      <button type="button" class="buscar-mini ${m === actual.elegido ? "elegida" : ""}" data-ficha="${i}"
+      <button type="button" class="buscar-mini ${suyo === actual.elegido ? "elegida" : ""}" data-ficha="${i}"
         title="${escaparHTML(t("{nombre}: ver su ficha", { nombre: nombreDe(m.poke) }))}">
         ${imagenConRespaldo(urlsRetrato(m.poke), `class="buscar-retrato" alt="" draggable="false"`)}
         <span class="buscar-ficha-nombre">${escaparHTML(nombreDe(m.poke))}</span>
         <span class="buscar-ficha-datos">${t("Nv. {nivel}", { nivel: m.poke.entreno.nivel })}</span>
-        ${fijos.has(m) ? `<span class="buscar-marca">${icono("candado")}</span>` : ""}
+        ${sinObjeto}
+        ${fijos.has(suyo) ? `<span class="buscar-marca">${icono("candado")}</span>` : ""}
       </button>
     </li>`;
 }
@@ -431,7 +448,7 @@ async function buscar(boton) {
   await new Promise((resolver) => setTimeout(resolver, 30));
   const fijos = actual.candidatos.filter((m) => actual.estados.get(m) === "fijo");
   const libres = actual.candidatos.filter((m) => !actual.estados.get(m));
-  actual.resultados = buscarEquipos(fijos, libres);
+  actual.resultados = buscarEquipos(fijos, libres, { clausulaObjetos: Boolean(actual.ajustes.clausulaObjetos) });
   pintar();
   cuerpo.querySelector(".buscar-resultados").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -501,7 +518,9 @@ export function iniciarBuscar(alAlUsar) {
       });
     } else if (boton.dataset.ver !== undefined) {
       const r = actual.resultados[Number(boton.dataset.ver)];
-      mostrarAnalisis(r.miembros, actual.mochila ? { objetos: actual.mochila, nombre: actual.locke.nombre } : null);
+      mostrarAnalisis(r.miembros, actual.mochila ? { objetos: actual.mochila, nombre: actual.locke.nombre } : null, {
+        clausulaObjetos: Boolean(actual.ajustes.clausulaObjetos)
+      });
     } else if (boton.dataset.usar !== undefined) usar(actual.resultados[Number(boton.dataset.usar)], boton);
   });
 
