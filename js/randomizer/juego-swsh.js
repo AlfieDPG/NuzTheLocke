@@ -154,7 +154,10 @@ export function perfilDe(sesion) {
     tutores: true, tutorInfo: { cuantos: TUTORES.length, bytes: Math.ceil(TUTORES.length / 8), fijos: [] }, tutoresFijos: true,
     claros: false, iniciales: true,
     lideres: LIDERES, rivales: RIVALES, grupos: GRUPOS, importantes: new Set([...LIDERES, ...RIVALES]),
-    sinDobles: [],
+    // Los de los entrenadores que se gigamaxizan se cambian por otros que también puedan
+    gigamax: GIGAMAX,
+    // El primer combate con Paul (uno por inicial): solo llevas un Pokémon
+    sinDobles: PAUL.slice(0, 3),
     preciosEnDecenas: false
   };
 }
@@ -276,7 +279,7 @@ function leerEntrenadores(sesion, perfil) {
       const o = k * TAM_ENTRENADOR;
       pokemon.push({
         habilidad: (p[o] >> 4) & 3, nivel: u16(p, o + 0x0a), especie: u16(p, o + 0x0c), forma: u16(p, o + 0x0e),
-        objeto: u16(p, o + 0x10), ataques: [0, 1, 2, 3].map((m) => u16(p, o + 0x12 + m * 2))
+        objeto: u16(p, o + 0x10), ataques: [0, 1, 2, 3].map((m) => u16(p, o + 0x12 + m * 2)), gigamax: Boolean(p[o + 9])
       });
     }
     if (!pokemon.length) continue;
@@ -572,7 +575,13 @@ function escribirEntrenadores(sesion, datos) {
       const o = k * TAM_ENTRENADOR;
       // Lo que no se toca (naturaleza, EVs, IVs...), como estaba; si es nuevo, como el último
       if (original.length >= o + TAM_ENTRENADOR) p.set(original.subarray(o, o + TAM_ENTRENADOR), o);
-      else if (k) p.set(p.subarray(o - TAM_ENTRENADOR, o), o);
+      else if (k) {
+        p.set(p.subarray(o - TAM_ENTRENADOR, o), o);
+        // (sin el Dinamax del que se copia: solo se dinamaxiza uno por equipo)
+        p[o + 8] = 0;
+        p[o + 9] = 0;
+        p[o + 0x1f] &= 0x7f;
+      }
       const especieAntes = u16(p, o + 0x0c);
       if (poke.especie !== especieAntes || o >= original.length) {
         p[o] &= 0xfc; // género al azar
@@ -586,6 +595,13 @@ function escribirEntrenadores(sesion, datos) {
       poner16(p, o + 0x10, poke.objeto || 0);
       (poke.ataques || [0, 0, 0, 0]).forEach((m, j) => poner16(p, o + 0x12 + j * 2, m));
     });
+    // El que se dinamaxiza (el as), detrás de los Pokémon añadidos, que se habían puesto después de él
+    const as = t.pokemon.findIndex((_, k) => p[k * TAM_ENTRENADOR + 0x1f] & 0x80);
+    if (as >= 0 && as < t.pokemon.length - 1 && (as + 1) * TAM_ENTRENADOR >= original.length) {
+      const suyo = p.slice(as * TAM_ENTRENADOR, (as + 1) * TAM_ENTRENADOR);
+      p.copyWithin(as * TAM_ENTRENADOR, (as + 1) * TAM_ENTRENADOR);
+      p.set(suyo, p.length - TAM_ENTRENADOR);
+    }
     if (!igual(td, tdAntes)) sesion.cambiar(rutaT, td);
     if (!igual(p, original)) sesion.cambiar(rutaP, p);
   }

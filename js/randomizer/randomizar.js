@@ -653,6 +653,16 @@ function randomizarEntrenadores(datos, reglas, azar, lineas, objetos, azarJefes)
     }
   }
   const delTipo = new Map((datos.perfil.tipos || TIPOS).filter(Boolean).map((tipo) => [tipo, lista.filter((e) => e.tipos.includes(tipo))]));
+  // Espada y Escudo: el que se gigamaxiza, por otro que también pueda (del tipo del gimnasio si hay alguno; si no, de
+  // cualquiera)
+  const gigamax = datos.perfil.gigamax;
+  const conGigamax = (especies) => (gigamax ? especies.filter((e) => gigamax.has(e.id)) : []);
+  const gigamaxTodos = conGigamax(lista);
+  const candidatasDe = (poke, suyos) => {
+    if (!poke.gigamax || !gigamax) return suyos;
+    const delGimnasio = conGigamax(suyos);
+    return delGimnasio.length ? delGimnasio : gigamaxTodos.length ? gigamaxTodos : suyos;
+  };
 
   for (const t of datos.entrenadores) {
     const suyos = tipoDe.has(t.indice) ? delTipo.get(tipoDe.get(t.indice)) : lista;
@@ -665,7 +675,7 @@ function randomizarEntrenadores(datos, reglas, azar, lineas, objetos, azarJefes)
         poke.forma = 0;
         poke.cambiado = true;
       } else if (r.modo !== "no" && datos.especies[poke.especie]) {
-        poke.especie = sustituta(azar, datos.especies[poke.especie], suyos, r.modo).id;
+        poke.especie = sustituta(azar, datos.especies[poke.especie], candidatasDe(poke, suyos), r.modo).id;
         poke.forma = 0;
         poke.cambiado = true;
       }
@@ -675,7 +685,7 @@ function randomizarEntrenadores(datos, reglas, azar, lineas, objetos, azarJefes)
     const anadir = () => {
       const ultimo = t.pokemon[t.pokemon.length - 1];
       const nuevo = sustituta(azar, datos.especies[ultimo.especie], suyos, modoExtra);
-      t.pokemon.push({ ...ultimo, especie: nuevo.id, forma: 0, habilidad: 0, objeto: 0, ataques: [0, 0, 0, 0], cambiado: true });
+      t.pokemon.push({ ...ultimo, especie: nuevo.id, forma: 0, habilidad: 0, objeto: 0, ataques: [0, 0, 0, 0], gigamax: false, cambiado: true });
     };
 
     // Pokémon extra (hasta seis en total), con el nivel del último. El primer combate contra el
@@ -694,8 +704,12 @@ function randomizarEntrenadores(datos, reglas, azar, lineas, objetos, azarJefes)
     if (r.evolucionados) {
       for (const poke of t.pokemon) {
         const e = datos.especies[poke.especie];
-        if (poke.nivel >= r.nivelEvolucionados && e && e.evoluciones.length) {
+        // (el que se gigamaxiza no: Pikachu, Meowth o Eevee lo hacen sin evolucionar)
+        const sigueGigamax = poke.gigamax && gigamax && gigamax.has(poke.especie);
+        if (poke.nivel >= r.nivelEvolucionados && e && e.evoluciones.length && !sigueGigamax) {
           poke.especie = finalDe(azar, datos, poke.especie).id;
+          // (la forma de antes, de una regional por ejemplo, puede no existir en la nueva)
+          poke.forma = 0;
           poke.cambiado = true;
         }
       }
