@@ -97,6 +97,20 @@ const NOVEDADES_A_LA_VISTA = 3;
 
 const NOVEDADES = [
   {
+    fecha: "2026-11-02", vista: "lucha", icono: "lucha", color: "222, 112, 52",
+    es: `Nueva sección <b>Combates</b> (en pruebas): reta a un amigo y combatid sin salir de la web,
+      también en los combates de tus lockes.`,
+    en: `New <b>Battles</b> section (in testing): challenge a friend and battle without leaving the
+      site, also in your lockes' battles.`
+  },
+  {
+    fecha: "2026-11-02", vista: "lockes", icono: "enlace", color: "214, 88, 76",
+    es: `Nuevo juego: <b>Pokémon GS Vitro</b>. Vincula y edita tu partida, con sus rutas y sus
+      level caps.`,
+    en: `New game: <b>Pokémon GS Vitro</b>. Link and edit your save, with its routes and level
+      caps.`
+  },
+  {
     fecha: "2026-10-29", vista: "jugar", icono: "consola", color: "186, 62, 102",
     es: `Nueva sección <b>Jugar</b>: juega a Rojo Fuego, Verde Hoja y los Pokémon de DS desde la web.
       Tu equipo y tus capturas se apuntan solos en el locke.`,
