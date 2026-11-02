@@ -145,6 +145,9 @@ export default {
   "Todavía no ha pasado nada.": "Nothing has happened yet.",
   "Todavía no ha hecho nada.": "Hasn't done anything yet.",
   "Ver su actividad": "View their activity",
+  "Resumir": "Collapse",
+  "Ver entero": "Expand",
+  "Resumen": "Summary",
 
   // ---------- Notificaciones ----------
   "{nombre} quiere ser tu amigo": "{nombre} wants to be your friend",

@@ -1141,8 +1141,9 @@
   right: auto;
 }
 
-/* Ver en tarjetas o en lista: dos iconos en una tarjetita, a la derecha (también en «Amigos») */
-:is(.vista-equipos, .amigos-vista) {
+/* Ver en tarjetas o en lista: dos iconos en una tarjetita, a la derecha (también en «Amigos» y,
+   detallados o resumidos, en «Lockes») */
+:is(.vista-equipos, .amigos-vista, .lockes-vista) {
   position: relative;
   display: inline-flex;
   gap: 0.15rem;
@@ -1154,7 +1155,7 @@
 }
 
 /* La sombra del elegido: una sola, que se desliza al otro botón al cambiar */
-:is(.vista-equipos, .amigos-vista)::before {
+:is(.vista-equipos, .amigos-vista, .lockes-vista)::before {
   content: "";
   position: absolute;
   top: 0.2rem;
@@ -1166,17 +1167,17 @@
   transition: transform 0.25s ease;
 }
 
-:is(.vista-equipos, .amigos-vista).en-lista::before {
+:is(.vista-equipos.en-lista, .amigos-vista.en-lista, .lockes-vista.resumidos)::before {
   transform: translateX(calc(2.2rem + 0.15rem));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :is(.vista-equipos, .amigos-vista)::before {
+  :is(.vista-equipos, .amigos-vista, .lockes-vista)::before {
     transition: none;
   }
 }
 
-:is(.vista-equipos, .amigos-vista) button {
+:is(.vista-equipos, .amigos-vista, .lockes-vista) button {
   position: relative;
   display: grid;
   place-items: center;
@@ -1190,16 +1191,16 @@
   cursor: pointer;
 }
 
-:is(.vista-equipos, .amigos-vista) button:hover {
+:is(.vista-equipos, .amigos-vista, .lockes-vista) button:hover {
   color: var(--t-texto);
 }
 
-:is(.vista-equipos, .amigos-vista) button.elegido {
+:is(.vista-equipos, .amigos-vista, .lockes-vista) button.elegido {
   color: var(--t-texto);
   transition: color 0.25s;
 }
 
-:is(.vista-equipos, .amigos-vista) .icono {
+:is(.vista-equipos, .amigos-vista, .lockes-vista) .icono {
   width: 1.1rem;
   height: 1.1rem;
 }

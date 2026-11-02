@@ -183,6 +183,174 @@
   background: currentColor;
 }
 
+/* En la tarjeta, esa rayita es el «−» que resume el locke; resumido, le sale el palo y es un «+» */
+.locke-tipo:has(.locke-plegar)::before {
+  content: none;
+}
+
+.locke-plegar {
+  position: relative;
+  flex: none;
+  width: 0.8rem;
+  height: 2.5px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: currentColor;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Lo que se puede pulsar es más grande que la raya */
+.locke-plegar::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+  border-radius: 0.4rem;
+  transition: background 0.15s;
+}
+
+.locke-plegar:hover::before,
+.locke-plegar:focus-visible::before {
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.locke-plegar::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 1.25px);
+  top: calc(50% - 0.4rem);
+  width: 2.5px;
+  height: 0.8rem;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleY(0);
+  transition: transform 0.26s ease-in-out;
+}
+
+:is(.locke.plegado, .locke.cerrando) .locke-plegar::after {
+  transform: scaleY(1);
+}
+
+/* Resumido: la franja de color se queda sola, más baja, y a su derecha lo básico de cada jugador */
+.locke .locke-titulo {
+  transition: font-size 0.26s ease-in-out;
+}
+
+:is(.locke.plegado, .locke.cerrando) .locke-titulo {
+  font-size: 1.35rem;
+}
+
+:is(.locke.plegado, .locke.cerrando) .locke-cabecera {
+  align-items: center;
+  border-bottom-color: transparent;
+}
+
+.locke-resumen {
+  display: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:is(.locke.plegado, .locke.cerrando) .locke-resumen {
+  display: flex;
+  animation: locke-resumen-entra 0.26s ease-out;
+}
+
+@keyframes locke-resumen-entra {
+  from { opacity: 0; transform: translateX(0.5rem); }
+}
+
+.locke-resumen-uno {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.25rem 0.65rem 0.25rem 0.25rem;
+  border-radius: 2rem;
+  background: rgba(var(--t-oscurecer), 0.18);
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.locke-resumen-uno.eliminado {
+  opacity: 0.55;
+}
+
+/* Con el marco que lleve, como las fotos de «Combates» */
+.locke-resumen-cara {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  box-sizing: border-box;
+  border: 0.12rem solid rgba(var(--t-tinte), 0.25);
+  border-radius: 50%;
+  background: var(--t-control);
+  overflow: hidden;
+}
+
+.locke-resumen-cara.con-marco {
+  --g: 0.6px;
+}
+
+.locke-resumen-cara img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.locke-resumen-corona .icono {
+  width: 1rem;
+  height: 1rem;
+  color: color-mix(in srgb, #f1c40f var(--t-vivo), black);
+}
+
+.locke-resumen-dato {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.locke-resumen-dato .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+  opacity: 0.7;
+}
+
+.locke.plegado > .locke-cuerpo {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locke-plegar::after,
+  .locke .locke-titulo {
+    transition: none;
+  }
+
+  :is(.locke.plegado, .locke.cerrando) .locke-resumen {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  :is(.locke.plegado, .locke.cerrando) .locke-cabecera {
+    flex-wrap: wrap;
+  }
+
+  .locke-resumen {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .locke-titulo {
   margin: 0;
   font-size: 1.85rem;
