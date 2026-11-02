@@ -16,7 +16,7 @@ import { activarRespaldoImagenes } from "./comun/imagenes.js";
 import { icono } from "./comun/iconos.js";
 import { escaparHTML, fechaLarga } from "./comun/utilidades.js";
 import { estadoDe, muertosDe, victoriasDe, seHaPasadoLaRom, medallasDe, estaEliminado } from "./comun/lockes.js";
-import { medallasDelJuego } from "./comun/medallas.js";
+import { medallasDelLocke } from "./comun/medallas.js";
 import { nombreJuego } from "./comun/campo-juego.js";
 import { colorDeTipo } from "./comun/perfiles.js";
 import { caraDePokemon } from "./comun/elegir-equipo.js";
@@ -55,7 +55,7 @@ function plantillaJugador(uid) {
     [t("ROM"), seHaPasadoLaRom(locke, uid) ? t("Pasada") : t("Sin pasar")]
   ];
 
-  const medallas = medallasDelJuego(locke.juego, medallasDe(locke, uid).version);
+  const medallas = medallasDelLocke(locke, medallasDe(locke, uid).version);
   const tiene = new Set(medallasDe(locke, uid).tiene);
   const salon = (locke.salon || {})[uid];
 

@@ -51,18 +51,32 @@ main {
   color: var(--t-texto-fuerte);
 }
 
-.logo img {
+/* El cuaderno lleva aire arriba para que suban los marcapáginas: es más grande que la letra,
+   pero el margen negativo hace que la fila no crezca (el menú tiene que caber sin scroll).
+   Por ese aire, el dibujo queda por debajo del centro de su caja: se sube para que la tapa
+   quede a la altura del texto. */
+.logo svg {
   flex: none;
-  transition: transform 0.3s;
+  position: relative;
+  top: -0.2rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-block: -0.12rem;
 }
 
-.logo a:hover img {
-  transform: rotate(-20deg);
+/* Al pasar el ratón asoma un marcapáginas, cada vez el otro (js/main.js) */
+.logo .marca {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.logo img {
-  width: 1.6rem;
-  height: 1.6rem;
+.logo .marca.fuera {
+  transform: translateY(-44px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo .marca {
+    transition: none;
+  }
 }
 
 /* flex: 1 hace que el menú se coma el hueco libre, y así el buzón y la sesión se quedan

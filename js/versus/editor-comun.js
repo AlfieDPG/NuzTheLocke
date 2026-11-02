@@ -25,6 +25,10 @@ import { LUGARES_GEN8, LUGARES_BDSP, LUGARES_BDSP_OTROS } from "../partida/datos
 import { bolsilloSwSh } from "../partida/mochilaswitch.js";
 import { bolsilloBDSP } from "../partida/bdsp.js";
 import { cargarDatosEditor, GRUPOS } from "../partida/datos-editor.js";
+import { lugarVitro } from "../partida/vitro.js";
+import {
+  existeEnVitro, bolsilloVitro, habilidadesVitro, lugaresVitro, aprendeVitro, LUGAR_INTERCAMBIO_VITRO
+} from "../partida/escribirvitro.js";
 
 // Cada juego que se edita: su generación y lo último que existe en él (números de especie,
 // objeto, ataque, habilidad y ball). lugares: hasta qué número de lugar es suyo (gen 4 y 5).
@@ -43,11 +47,16 @@ export const LIMITES = {
   swsh: { gen: 8, especies: 898, objetos: 1607, ataques: 826, habilidades: 267, balls: 26 },
   // Las 493 de Sinnoh, con los ataques y habilidades de gen 8. Los objetos, como en Espada / Escudo:
   // solo los que tienen bolsillo (partida/bdsp.js)
-  bdsp: { gen: 8, especies: 493, objetos: 1822, ataques: 826, habilidades: 267, balls: 26 }
+  bdsp: { gen: 8, especies: 493, objetos: 1822, ataques: 826, habilidades: 267, balls: 26 },
+  // GS Vitro (fangame): lo que tiene sale de sus datos (../partida/escribirvitro.js). Sin juego de
+  // origen ni formas que elegir, con sus propios lugares, bolsillos y habilidades de cada especie
+  vitro: { gen: 8, especies: 1025, objetos: OBJETOS_EN.length - 1, ataques: 919, habilidades: 310, balls: 26 }
 };
 
 // Los dos de Switch numeran los lugares y guardan la bolsa cada uno a su manera
 const BOLSILLO_SWITCH = { swsh: bolsilloSwSh, bdsp: bolsilloBDSP };
+
+const esVitro = (juego) => juego === "vitro";
 
 function genDe(juego) {
   return (LIMITES[juego] || {}).gen || 6;
@@ -111,7 +120,9 @@ export function objetosDe(juego) {
     const vistos = new Set();
     const lista = [];
     // En Espada / Escudo no están todos los de antes (los cristales Z, por ejemplo)
-    const existe = BOLSILLO_SWITCH[juego] ? (id) => Boolean(BOLSILLO_SWITCH[juego](id)) : () => true;
+    const existe = BOLSILLO_SWITCH[juego]
+      ? (id) => Boolean(BOLSILLO_SWITCH[juego](id))
+      : esVitro(juego) ? (id) => existeEnVitro("objetos", id) : () => true;
     OBJETOS_EN.slice(0, LIMITES[juego].objetos + 1).forEach((en, id) => {
       if (!id || !en || vistos.has(en) || !existe(id)) return;
       vistos.add(en);
@@ -129,7 +140,9 @@ export function hastaLimite(nombre, juego) {
     // Las especies que hay en el juego, si no están todas (Espada / Escudo)
     const disponibles = nombre === "pokemon" && delEditor && delEditor.disponibles && delEditor.disponibles[juego];
     const hay = disponibles ? new Set(disponibles) : null;
-    listas.set(clave, datos[nombre].filter((entrada) => entrada.id <= LIMITES[juego][nombre === "pokemon" ? "especies" : nombre] && (!hay || hay.has(entrada.id))));
+    // En Vitro, solo los ataques que tiene el juego
+    const enVitro = esVitro(juego) && nombre === "ataques" ? (id) => existeEnVitro("ataques", id) : () => true;
+    listas.set(clave, datos[nombre].filter((entrada) => entrada.id <= LIMITES[juego][nombre === "pokemon" ? "especies" : nombre] && (!hay || hay.has(entrada.id)) && enVitro(entrada.id)));
   }
   return listas.get(clave);
 }
@@ -170,19 +183,29 @@ export const VERSIONES = [
   [2, "Rubí", "Ruby", 3], [1, "Zafiro", "Sapphire", 3], [3, "Esmeralda", "Emerald", 3], [4, "Rojo Fuego", "FireRed", 3], [5, "Verde Hoja", "LeafGreen", 3], [15, "Colosseum / XD", "Colosseum / XD", 3]
 ].map(([id, es, en, gen]) => ({ id, es, en, nombre: enIngles ? en : es, gen }));
 
-// Los que caben en una partida de ese juego (los de su generación o de antes)
+// Los que caben en una partida de ese juego (los de su generación o de antes). En Vitro no hay
+// juego de origen: todos son suyos
 export function versionesDe(juego) {
+  if (esVitro(juego)) return [{ id: 0, es: "GS Vitro", en: "GS Vitro", nombre: "GS Vitro", gen: 8 }];
   return VERSIONES.filter((v) => v.gen <= genDe(juego));
 }
 
 export function lugarIntercambio(juego) {
-  return INTERCAMBIO[genDe(juego)];
+  return esVitro(juego) ? LUGAR_INTERCAMBIO_VITRO : INTERCAMBIO[genDe(juego)];
 }
 
 // Los lugares del juego, sin repetir nombre. En 3DS, el N está en la posición N / 2; en gen 4
 // y 5, en la N (y los especiales, aparte).
 export function lugaresDe(juego) {
   const clave = `lugares-${juego}`;
+  if (!listas.has(clave) && esVitro(juego)) {
+    const lista = lugaresVitro().map(({ id, es }) => {
+      const en = lugarEnIngles(es, juego);
+      return { id, es, en, buscar: quitarAcentos(`${es} ${en}`) };
+    });
+    lista.push({ id: LUGAR_INTERCAMBIO_VITRO, es: "Intercambio", en: "Link Trade", buscar: "intercambio link trade" });
+    listas.set(clave, lista);
+  }
   if (!listas.has(clave)) {
     const gen = genDe(juego);
     const tabla = juego === "bdsp" ? LUGARES_BDSP : { 4: LUGARES_GEN4, 5: LUGARES_GEN5, 6: LUGARES_GEN6, 7: LUGARES_GEN7, 8: LUGARES_GEN8 }[gen];
@@ -210,6 +233,10 @@ export function nombreLugar(numero, creado = false, juego = "xy") {
 }
 
 function nombreLugarEs(numero, creado = false, juego = "xy") {
+  if (esVitro(juego)) {
+    if (numero === LUGAR_INTERCAMBIO_VITRO) return creado ? "NuzTheLocke" : "Intercambio";
+    return lugarVitro(numero) || `Lugar ${numero}`;
+  }
   const gen = genDe(juego);
   if (creado && numero === INTERCAMBIO[gen]) return "NuzTheLocke";
   if (gen === 4) return LUGARES_GEN4[numero] || LUGARES_GEN4_OTROS[numero] || (numero ? `Lugar ${numero}` : "");
@@ -239,6 +266,7 @@ const BOLSILLO_GEN4 = { 3: "balls", 6: "cartas", 7: "combate" };
 const BOLSILLO_EN_GEN6 = { 216: "clave", 504: "medicinas" };
 
 export function bolsilloDe(objetoId, juego = "xy") {
+  if (esVitro(juego)) return bolsilloVitro(objetoId) || "objetos";
   const gen = genDe(juego);
   if (BOLSILLO_SWITCH[juego]) return BOLSILLO_SWITCH[juego](objetoId) || "objetos";
   const dePokeAPI = ((delEditor && delEditor.bolsillos) || {})[objetoId];
@@ -324,6 +352,8 @@ function nombreDeForma(fila) {
 // juego: el de la partida (sin él, todas: para las estadísticas de lo que ya está en ella)
 export function formasDe(especie, juego) {
   const lista = [{ forma: 0, texto: "Normal" }];
+  // Vitro numera las formas a su manera: no se eligen (se queda la que tenga)
+  if (esVitro(juego)) return lista;
   if (especie === 493) {
     lista[0].texto = t("Tipo {tipo}", { tipo: tiposEs.normal });
     formasDeTipoDe(493).forEach((f, i) =>
@@ -353,6 +383,18 @@ export async function datosEspecie(especie, forma, juego) {
   const opcion = formasDe(especie).find((f) => f.forma === forma) || {};
   const id = opcion.idForma || especie;
   const numero = { 1: 1, 2: 2, 3: 4 };
+
+  // Vitro: sus habilidades y los ataques que aprende en su juego; lo demás, como siempre
+  if (esVitro(juego)) {
+    const general = await datosEspecie(especie, 0, "swsh").catch(() => ({ generoRatio: 4, difGenero: false, felicidad: 70, ciclos: 20 }));
+    return {
+      ...general,
+      opcion,
+      bases: basesDe(especie, forma),
+      habilidades: habilidadesVitro(especie).map(({ id, num }) => ({ num, ...habilidad(id) })),
+      aprende: await aprendeVitro(especie)
+    };
+  }
 
   // Lo normal: de datos/partida-3ds.json, al momento
   const local = delEditor && delEditor.especies[especie] && (delEditor.habilidades[id] || delEditor.habilidades[especie]);
@@ -531,10 +573,13 @@ export async function bytesComoSeVen(idLocke) {
   return hayCambios(idLocke) ? borrador.bytes : leerArchivo(idLocke);
 }
 
-// La partida sobre la que se trabaja: la del borrador o, sin cambios, la del disco
+// La partida sobre la que se trabaja: la del borrador o, sin cambios, la del disco. Con lo que
+// haga falta para leerla ya cargado (los datos de GS Vitro)
 export async function partidaDeTrabajo(idLocke) {
   if (hayCambios(idLocke)) return borrador.bytes;
   const bytes = await leerArchivo(idLocke);
+  const formato = formatoDeSeguro(bytes);
+  if (formato.preparar) await formato.preparar();
   borrador = { idLocke, base: bytes, bytes, vista: null, metidos: [], creados: [], noCreados: [], detalles: [] };
   return bytes;
 }

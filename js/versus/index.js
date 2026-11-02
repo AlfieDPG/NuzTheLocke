@@ -39,9 +39,10 @@ import {
   crearLocke, editarLocke, invitarALocke, quitarDeLocke, sePuedenCambiarVidas,
   cambiarNumero, borrarLocke, enlaceParaSeguir, lockePorId, nuevoIdCadena, vidasDeLaSiguienteEtapa, pokemonQuePasan,
   hayEtapaSiguiente, crearSiguienteEtapa, siguenEnLaCadena, estaEliminado, combatesDe, victoriasDe, medallasDe, cambiarMedallas,
-  muertosDe
+  muertosDe, conKanto
 } from "../comun/lockes.js";
-import { medallasDelJuego, marcarGimnasios } from "../comun/medallas.js";
+import { kantoEnCaps, cambiarKantoEnCaps } from "../levelcaps/datos.js";
+import { medallasDelLocke, marcarGimnasios } from "../comun/medallas.js";
 import { partidaDe, sePuedeLeer } from "../partida/partidas.js";
 import {
   iniciarCombates, plantillaCombates, plantillaRom, plantillaSalon, abrirCombate, abrirTerminar, abrirSalon,
@@ -135,7 +136,7 @@ function versionDeMedallas(locke, uid) {
 }
 
 function plantillaMedallas(locke, uid, editable) {
-  const lista = medallasDelJuego(locke.juego, versionDeMedallas(locke, uid));
+  const lista = medallasDelLocke(locke, versionDeMedallas(locke, uid));
   if (!lista.length) return "";
   const tiene = new Set(medallasDe(locke, uid).tiene);
   const etiqueta = editable ? "button" : "span";
@@ -551,6 +552,12 @@ function campo(selector) {
   const elemento = dialogo.querySelector(selector);
   if (!elemento) throw new Error(`Falta ${selector} en index.html. Recarga con Ctrl+F5.`);
   return elemento;
+}
+
+// La casilla de Kanto solo sale con HeartGold / SoulSilver
+function mostrarKanto() {
+  const select = dialogo.querySelector(".locke-campo-juego .juego-select");
+  campo(".locke-kanto").hidden = !select || select.value !== "hgss";
 }
 
 // ---------- Integrantes ----------
@@ -1007,6 +1014,10 @@ async function abrirDialogo(locke = null) {
   campo("#locke-nombre").value = locke ? locke.nombre : "";
   campo("#locke-descripcion").value = locke ? locke.descripcion || "" : "";
   campo(".locke-campo-juego").innerHTML = plantillaCampoJuego(locke || {});
+  // Kanto en HeartGold / SoulSilver: al crear, como esté en «Level caps»
+  campo("#locke-kanto").checked = locke ? conKanto(locke) : kantoEnCaps();
+  campo("#locke-kanto").disabled = !creador;
+  mostrarKanto();
   campo("#locke-infinitas").checked = Boolean(locke && locke.vidasIlimitadas);
   campo("#locke-vidas").value = locke && !locke.vidasIlimitadas ? locke.vidasIniciales : VIDAS_POR_DEFECTO;
 
@@ -1072,6 +1083,7 @@ async function guardar() {
   const publico = campo("#locke-publico").checked;
   const cadena = cadenaElegida(locke);
   const combates = nombresCombatesDelDialogo();
+  const kanto = juego === "hgss" && campo("#locke-kanto").checked;
 
   // Lo único imprescindible es el nombre: un locke para ti solo también vale
   if (!nombre) {
@@ -1092,8 +1104,10 @@ async function guardar() {
 
     await crearLocke({
       nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
-      arbitro, publico, cadena, combates, invitados: nuevos.map((perfil) => perfil.uid), nombres, fotos
+      arbitro, publico, cadena, combates, invitados: nuevos.map((perfil) => perfil.uid), nombres, fotos, kanto
     });
+    // «Level caps» de HGSS, con Kanto o sin él como este locke
+    if (juego === "hgss") cambiarKantoEnCaps(kanto);
   } else {
     // Si se acaban de cambiar las vidas de partida, los invitados entran ya con las nuevas
     const vidasNuevas = soyCreador(locke) && sePuedenCambiarVidas(locke) ? (vidasIlimitadas ? 0 : vidas) : undefined;
@@ -1101,8 +1115,9 @@ async function guardar() {
     if (soyCreador(locke)) {
       await editarLocke(locke.id, {
         nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
-        arbitro, publico, cadena, combates
+        arbitro, publico, cadena, combates, kanto
       });
+      if (juego === "hgss" && kanto !== conKanto(locke)) cambiarKantoEnCaps(kanto);
     }
     // Invitar va aparte: lo puede hacer cualquiera de dentro, no solo el creador
     if (nuevos.length) await invitarALocke(locke.id, nuevos, vidasNuevas);
@@ -1189,6 +1204,7 @@ export function iniciar() {
 
   dialogo.querySelector("#locke-cancelar").addEventListener("click", () => dialogo.close());
   activarCamposJuego(dialogo);
+  dialogo.querySelector(".locke-campo-juego").addEventListener("change", mostrarKanto);
 
   // Randomizer: el resumen sigue a lo elegido; «Preparar normas» lleva a la sección para
   // montarlas y guardarlas con nombre (luego salen aquí)

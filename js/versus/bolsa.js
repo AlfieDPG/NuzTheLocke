@@ -17,14 +17,16 @@ import { t } from "../comun/idioma.js";
 
 const NOMBRES = {
   objetos: t("Objetos"), medicinas: t("Medicinas"), balls: "Balls", mt: t("MT y MO"), bayas: t("Bayas"), cartas: t("Cartas"), combate: t("bolsillo|Combate"),
-  cristales: t("Cristales Z"), roto: t("Rotoprodigios"), tesoros: t("Tesoros"), ingredientes: t("Ingredientes"), clave: t("Objetos clave")
+  cristales: t("Cristales Z"), roto: t("Rotoprodigios"), tesoros: t("Tesoros"), ingredientes: t("Ingredientes"), clave: t("Objetos clave"),
+  megapiedras: t("Megapiedras")
 };
 const ICONOS = {
   objetos: "objeto", medicinas: "pocion", balls: "pokeball", mt: "disco", bayas: "baya", cartas: "etiqueta", combate: "espadas",
-  cristales: "rayo", roto: "estrella", tesoros: "corona", ingredientes: "caramelo", clave: "llave"
+  cristales: "rayo", roto: "estrella", tesoros: "corona", ingredientes: "caramelo", clave: "llave", megapiedras: "mega"
 };
 // En los de Switch ya no hay MO: en Espada / Escudo son MT y DT; en Perla Reluciente, solo MT
-const NOMBRES_DE = { swsh: { mt: t("MT y DT") }, bdsp: { mt: t("MT") } };
+// En GS Vitro, el de los objetos de combate se llama «Mejoras» (como en el juego)
+const NOMBRES_DE = { swsh: { mt: t("MT y DT") }, bdsp: { mt: t("MT") }, vitro: { mt: t("MT"), combate: t("Mejoras") } };
 
 let elegido = "objetos"; // el bolsillo que se ve
 

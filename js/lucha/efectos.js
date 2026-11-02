@@ -211,10 +211,15 @@ export function crearEfectos(arena) {
     return { x: r.left - base.left + r.width / 2, y: r.top - base.top + r.height * 0.55, ancho: Math.max(40, r.width) };
   }
 
+  // OJO: las variables CSS («--c», «--tam»...) hay que ponerlas con setProperty: Object.assign las
+  // ignora sin avisar (y entonces las partículas salían sin color, sin tamaño y sin moverse)
   function poner(clase, estilo, vida = 1200) {
     const el = document.createElement("span");
     el.className = clase;
-    Object.assign(el.style, estilo);
+    for (const [clave, valor] of Object.entries(estilo)) {
+      if (clave.startsWith("--")) el.style.setProperty(clave, valor);
+      else el.style[clave] = valor;
+    }
     capa.appendChild(el);
     setTimeout(() => el.remove(), vida);
     return el;
@@ -363,6 +368,18 @@ export function crearEfectos(arena) {
           "--dx": `${Math.cos(angulo) * punto.ancho * 0.9}px`, "--dy": `${Math.sin(angulo) * punto.ancho * 0.9}px`,
           "--c": i % 2 ? "#ffffff" : color, "--s": `${azar(12, 20)}px`, "--r": `${azar(0, 360)}deg`
         });
+      }
+    },
+
+    // Flechas en pixel art que suben (azules) o bajan (rojas) por delante del Pokémon: subidas y bajadas
+    // de estadísticas
+    flechas(lado, sube, url) {
+      const punto = centro(lado);
+      for (let i = 0; i < 7; i++) {
+        poner(`lucha-flecha ${sube ? "sube" : "baja"}`, {
+          left: `${punto.x + (i / 6 - 0.5) * punto.ancho * 0.9}px`, top: `${punto.y + (sube ? punto.ancho * 0.25 : -punto.ancho * 0.45)}px`,
+          backgroundImage: `url("${url}")`, animationDelay: `${(i % 3) * 120 + Math.floor(i / 3) * 60}ms`
+        }, 1400);
       }
     },
 

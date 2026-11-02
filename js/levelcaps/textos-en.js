@@ -1,6 +1,11 @@
 // Los combates de js/levelcaps/datos.js en inglés (nombres, lugares, etiquetas y apartados):
 // { "en español": "English" }. Lugares de PKHeX (github.com/kwsch/PKHeX); lo demás, a mano.
 export const TEXTOS_EN = {
+  "Gimnasio":"Gym",
+  "Gimnasio 9":"Gym 9", "Gimnasio 10":"Gym 10", "Gimnasio 11":"Gym 11", "Gimnasio 12":"Gym 12",
+  "Gimnasio 13":"Gym 13", "Gimnasio 14":"Gym 14", "Gimnasio 15":"Gym 15", "Gimnasio 16":"Gym 16",
+  "Sachiko":"Janine",
+  "Rojo":"Red",
   "Ciudad Plateada":"Pewter City",
   "Gimnasio 1":"Gym 1",
   "Ciudad Celeste":"Cerulean City",

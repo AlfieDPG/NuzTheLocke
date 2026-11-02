@@ -77,6 +77,8 @@ export default {
   "Tipo": "Type",
   "Juego": "Game",
   "Vidas ilimitadas": "Unlimited lives",
+  "También Kanto (16 medallas)": "Kanto too (16 badges)",
+  "En <b>Pokémon GS Vitro</b> (el fangame de PC), el archivo <b>Game.rxdata</b> de la carpeta de partidas guardadas de Windows: <b>C:\\Users\\(tu usuario)\\Saved Games\\Pokemon GS Vitro</b>. Para editarla, cierra antes el juego.":"In <b>Pokémon GS Vitro</b> (the PC fangame), the <b>Game.rxdata</b> file in the Windows saved games folder: <b>C:\\Users\\(your user)\\Saved Games\\Pokemon GS Vitro</b>. To edit it, close the game first.",
   "Combates": "Battles",
   "Integrantes": "Members",
   "Descripción (opcional)": "Description (optional)",

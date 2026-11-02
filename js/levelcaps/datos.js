@@ -5,10 +5,18 @@
 //
 // Tipos: gimnasio, prueba (las de Alola, en lugar de gimnasios), alto-mando, campeon, historia (rival, jefes...),
 // extra (después de la Liga)
+//
+// Dos marcas más (ver combatesDelJuego, al final):
+//   opcional: "kanto" -> solo si se juega esa parte (Kanto en HeartGold / SoulSilver: es elección de cada uno)
+//   libre: true       -> gimnasio que se puede hacer en cualquier orden (GS Vitro): su nivel no es suyo, sino el
+//                        tope de cuántas medallas llevas (TOPES_LIBRES)
+// tramo: "..."        -> título que sale en la lista antes de ese combate (como «Alto Mando»)
 
 import { TEXTOS_EN } from "./textos-en.js";
 import { LUGARES_EN } from "../rutas/lugares-en.js";
 import { enIngles } from "../comun/idioma.js";
+import { leer, escribir } from "../comun/almacen.js";
+import { CLAVE_AJUSTES } from "../comun/claves-ajustes.js";
 
 // Un nombre, lugar, etiqueta o apartado de un combate en el idioma de la web. Se guarda y se
 // compara en español (las marcas, los retratos). Los escritos a mano salen tal cual.
@@ -29,6 +37,12 @@ const campeon = (nombre, nivel, extra = {}) => ({ tipo: "campeon", etiqueta: "Ca
 const historia = (etiqueta, nombre, nivel, extra = {}) => ({ tipo: "historia", etiqueta, nombre, nivel, ...extra });
 const prueba = (etiqueta, nombre, nivel) => ({ tipo: "prueba", etiqueta, nombre, nivel });
 const extra = (etiqueta, nombre, nivel, lugar) => ({ tipo: "extra", etiqueta, nombre, nivel, lugar });
+// Un gimnasio en cualquier orden: su nivel lo pone combatesDelJuego
+const libre = (nombre, lugar) => ({ tipo: "gimnasio", etiqueta: "Gimnasio", nombre, lugar, nivel: 0, libre: true });
+
+// Los topes de los gimnasios en cualquier orden: el de la 1.ª medalla, la 2.ª... (los de HeartGold / SoulSilver,
+// tal cual: Fredo, el 7.º, por debajo de Yasmina)
+const TOPES_LIBRES = { vitro: [13, 17, 19, 25, 31, 35, 34, 41] };
 
 // Diamante / Perla (en este orden de gimnasios: Brega y Mananti antes que Fantina)
 const COMBATES_DP = [
@@ -100,6 +114,37 @@ const DATOS = [
       gim(6, "Yasmina", "Ciudad Olivo", 35),
       gim(7, "Fredo", "Pueblo Caoba", 34),
       gim(8, "Débora", "Ciudad Endrino", 41),
+      am("Mento", 42), am("Koga", 44), am("Bruno", 46), am("Karen", 47),
+      campeon("Lance", 50),
+      // Kanto, después de la Liga (opcional: cada uno elige si lo juega). Los siete primeros en cualquier
+      // orden en el juego; aquí, en el más habitual. Blaine está en las Islas Espuma (el volcán explotó)
+      ...[
+        { ...gim(9, "Teniente Surge", "Ciudad Carmín", 53), tramo: "Kanto" },
+        gim(10, "Sabrina", "Ciudad Azafrán", 55),
+        gim(11, "Misty", "Ciudad Celeste", 54),
+        gim(12, "Erika", "Ciudad Azulona", 56),
+        gim(13, "Sachiko", "Ciudad Fucsia", 50),
+        gim(14, "Brock", "Ciudad Plateada", 54),
+        gim(15, "Blaine", "Islas Espuma", 59),
+        gim(16, "Azul", "Ciudad Verde", 60),
+        extra("Monte Plateado", "Rojo", 88, "Monte Plateado")
+      ].map((c) => ({ ...c, opcional: "kanto" }))
+    ]
+  },
+  {
+    // Pokémon GS Vitro (fangame de PC). Los rivales se ajustan a tu equipo (salen al nivel de la media del tuyo y
+    // su as, hasta 2 por encima de tu Pokémon más alto), así que aquí van los topes de HeartGold / SoulSilver
+    // por cuántas medallas llevas: los gimnasios se hacen en cualquier orden (TOPES_LIBRES)
+    id: "vitro",
+    combates: [
+      libre("Pegaso", "Ciudad Malva"),
+      libre("Antón", "Pueblo Azalea"),
+      libre("Blanca", "Ciudad Trigal"),
+      libre("Morti", "Ciudad Iris"),
+      libre("Aníbal", "Ciudad Orquídea"),
+      libre("Yasmina", "Ciudad Olivo"),
+      libre("Fredo", "Pueblo Caoba"),
+      libre("Débora", "Ciudad Endrino"),
       am("Mento", 42), am("Koga", 44), am("Bruno", 46), am("Karen", 47),
       campeon("Lance", 50)
     ]
@@ -246,5 +291,35 @@ const DATOS = [
   }
 ];
 
-// Combates de cada juego por id (el mismo de js/comun/juegos.js)
+// Combates de cada juego por id (el mismo de js/comun/juegos.js), tal cual: las medallas
+// (js/comun/medallas.js) van por su posición aquí
 export const COMBATES = Object.fromEntries(DATOS.map((j) => [j.id, j.combates]));
+
+// Si en «Level caps» sale Kanto en HeartGold / SoulSilver. Va con los ajustes (se guarda en la cuenta); al
+// crear un locke de HGSS se pone como se elija en él
+export function kantoEnCaps() {
+  return Boolean((leer(CLAVE_AJUSTES, {}) || {}).kantoHgss);
+}
+
+export function cambiarKantoEnCaps(si) {
+  escribir(CLAVE_AJUSTES, { ...(leer(CLAVE_AJUSTES, {}) || {}), kantoHgss: Boolean(si) });
+}
+
+// Los combates de un juego tal y como cuentan ahora, para saber el próximo y su tope:
+//   · sin conKanto, fuera los de Kanto de HeartGold / SoulSilver
+//   · los gimnasios en cualquier orden (libre): primero los ya superados, cada uno con el tope de su
+//     medalla (el 1.º, 13; el 2.º, 17...), y después los que faltan, todos con el de la siguiente
+//     medalla: vayas al que vayas, ese es tu tope
+// superados: claves (claveCombate) de los combates superados
+export function combatesDelJuego(idJuego, superados = new Set(), { conKanto = false } = {}) {
+  const lista = (COMBATES[idJuego] || []).filter((c) => conKanto || c.opcional !== "kanto");
+  const topes = TOPES_LIBRES[idJuego];
+  if (!topes) return lista;
+  const libres = lista.filter((c) => c.libre);
+  const hechos = libres.filter((c) => superados.has(claveCombate(c)));
+  const faltan = libres.filter((c) => !superados.has(claveCombate(c)));
+  const tope = (i) => topes[Math.min(i, topes.length - 1)];
+  const enOrden = [...hechos.map((c, i) => ({ ...c, nivel: tope(i) })), ...faltan.map((c) => ({ ...c, nivel: tope(hechos.length) }))];
+  let i = 0;
+  return lista.map((c) => (c.libre ? enOrden[i++] : c));
+}

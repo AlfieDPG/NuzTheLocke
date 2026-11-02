@@ -23,6 +23,12 @@ const KANTO = {
   "Lance": "lance", "Azul": "blue"
 };
 
+const JOHTO = {
+  "Pegaso": "falkner", "Antón": "bugsy", "Blanca": "whitney", "Morti": "morty",
+  "Aníbal": "chuck", "Yasmina": "jasmine", "Fredo": "pryce", "Débora": "clair",
+  "Mento": "will", "Koga": "koga", "Bruno": "bruno", "Karen": "karen", "Lance": "lance"
+};
+
 const SINNOH = {
   "Roco": "roark", "Gardenia": "gardenia", "Brega": "maylene", "Mananti": "crasherwake",
   "Fantina": "fantina", "Acerón": "byron", "Inverna": "candice", "Lectro": "volkner",
@@ -63,11 +69,15 @@ const RETRATOS = {
     "Petra": "roxanne", "Marcial": "brawly", "Plubio": "wallace", "Vito y Leti": "tateandliza-gen6"
   },
 
+  // Kanto (opcional, después de la Liga) y Rojo en el Monte Plateado
   hgss: {
-    "Pegaso": "falkner", "Antón": "bugsy", "Blanca": "whitney", "Morti": "morty",
-    "Aníbal": "chuck", "Yasmina": "jasmine", "Fredo": "pryce", "Débora": "clair",
-    "Mento": "will", "Koga": "koga", "Bruno": "bruno", "Karen": "karen", "Lance": "lance"
+    ...JOHTO,
+    "Teniente Surge": "ltsurge", "Sabrina": "sabrina", "Misty": "misty", "Erika": "erika",
+    "Sachiko": "janine", "Brock": "brock", "Blaine": "blaine", "Azul": "blue", "Rojo": "red"
   },
+
+  // Fangame de Johto: los mismos líderes que HeartGold / SoulSilver
+  vitro: JOHTO,
 
   oras: {
     "Petra": "roxanne", "Marcial": "brawly", "Erico": "wattson", "Candela": "flannery",

@@ -301,6 +301,16 @@ export async function apuntarEnTurno(id, n, campo, valor) {
   await fn.setDoc(fn.doc(bd, "luchas", id, "turnos", idTurno(n)), { [campo]: valor }, { merge: true });
 }
 
+// Quita mi sello del turno n (cancelar la elección): solo mientras el otro no haya sellado la suya (lo
+// comprueban las reglas)
+export async function cancelarEleccion(id, n, campo) {
+  const { bd, fn } = acceso();
+  await fn.updateDoc(fn.doc(bd, "luchas", id, "turnos", idTurno(n)), { [campo]: fn.deleteField() });
+  const pendientes = leerPendientes();
+  delete pendientes[`${id}/${n}`];
+  escribirPendientes(pendientes);
+}
+
 // ---------- Elecciones selladas que aún no se han destapado ----------
 
 function leerPendientes() {

@@ -30,11 +30,15 @@ export const GENERACIONES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // "gen4customgame@@@Team Preview": hasta la 4.ª (y en DBPR) no la traen; desde la 5.ª, sí, y para
 // quitarla hay que decirlo ("@@@!Team Preview")
-export function formatoDe(gen, variante = "", vistaPrevia = true) {
+// Sin tera (solo cuenta en la 9.ª): la regla «Terastal Clause» del motor
+export function formatoDe(gen, variante = "", vistaPrevia = true, tera = true) {
   const base = `gen${gen}${variante}customgame`;
   const deSerie = gen >= 5 && !variante;
-  if (vistaPrevia) return deSerie ? base : `${base}@@@Team Preview`;
-  return deSerie ? `${base}@@@!Team Preview` : base;
+  const reglas = [];
+  if (vistaPrevia && !deSerie) reglas.push("Team Preview");
+  if (!vistaPrevia && deSerie) reglas.push("!Team Preview");
+  if (!tera && gen === 9) reglas.push("Terastal Clause");
+  return reglas.length ? `${base}@@@${reglas.join(",")}` : base;
 }
 
 export function genDe(formato) {

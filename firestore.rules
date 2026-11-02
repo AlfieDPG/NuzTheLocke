@@ -518,8 +518,8 @@ service cloud.firestore {
     //     a alguien de uno en uno, nombrado en «quitado»: a un invitado que aún no ha
     //     contestado cualquiera de dentro; a cualquiera (menos a sí mismo) quien lo creó.
     //   · contado: cada uno solo se apunta a sí mismo (lo usa el ganador).
-    //   · nombre, tipo, juego, normas, rutas y level caps propios, ganador, cerrar...: solo
-    //     quien lo creó.
+    //   · nombre, tipo, juego, normas, rutas y level caps propios, si se juega Kanto (HGSS), ganador,
+    //     cerrar...: solo quien lo creó.
     //   · borrarlo: solo quien lo creó.
     //   · publico (solo quien lo creó): cualquiera que sepa el id lo lee de uno en uno, sin sesión.
     //     El id es un código largo al azar: sin el enlace no hay forma de encontrarlo (no se
@@ -619,7 +619,7 @@ service cloud.firestore {
           || !despues().diff(antes()).affectedKeys().hasAny([
             'nombre', 'descripcion', 'tipo', 'juego', 'juegoOtro', 'juegoPropio', 'estado', 'ganador',
             'fechaFin', 'creador', 'vidasIniciales', 'vidasIlimitadas', 'creado', 'normas',
-            'rutasPropias', 'capsPropios', 'randomizer', 'arbitro', 'publico', 'cadena', 'combates'
+            'rutasPropias', 'capsPropios', 'randomizer', 'arbitro', 'publico', 'cadena', 'combates', 'kanto'
           ]);
       }
 
@@ -925,6 +925,8 @@ service cloud.firestore {
     //     (y entonces gana el otro).
     //   · Borrar (rechazar, retirar, quitar de la lista): cualquiera de los dos, salvo mientras se juega.
     //   · Turnos: cada uno solo sus dos campos, mientras se juega, y sin cambiar lo ya escrito (solo añadir).
+    //     Quien ha sellado su elección puede quitar el sello (cancelarla) mientras el otro no haya sellado la
+    //     suya; y una elección sellada solo se destapa (e1/e2) cuando ya está el sello del otro.
 
     function idPar(uno, otro) {
       return uno < otro ? uno + '_' + otro : otro + '_' + uno;
@@ -1022,6 +1024,10 @@ service cloud.firestore {
         return lucha().jugadores[0] == request.auth.uid ? '1' : '2';
       }
 
+      function suyo() {
+        return mio() == '1' ? '2' : '1';
+      }
+
       function valorBien(campo) {
         return !(campo in request.resource.data)
           || (request.resource.data[campo] is string && request.resource.data[campo].size() <= 100);
@@ -1043,7 +1049,18 @@ service cloud.firestore {
       allow update: if puedoEscribir()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['s' + mio(), 'e' + mio()])
         && request.resource.data.diff(resource.data).changedKeys().size() == 0
-        && request.resource.data.diff(resource.data).removedKeys().size() == 0;
+        && (
+          // Añadir lo mío. Si mi elección iba sellada, solo se destapa con el sello del otro ya puesto.
+          (request.resource.data.diff(resource.data).removedKeys().size() == 0
+            && (!(('e' + mio()) in request.resource.data.diff(resource.data).addedKeys())
+              || !(('s' + mio()) in request.resource.data)
+              || (('s' + suyo()) in resource.data)))
+          // Cancelar: quitar mi sello mientras el otro no ha sellado (y sin haber destapado la mía)
+          || (request.resource.data.diff(resource.data).removedKeys().hasOnly(['s' + mio()])
+            && request.resource.data.diff(resource.data).addedKeys().size() == 0
+            && !(('s' + suyo()) in resource.data)
+            && !(('e' + mio()) in resource.data))
+        );
 
       allow delete: if identificado() && request.auth.uid in lucha().jugadores && lucha().estado != 'jugando';
     }

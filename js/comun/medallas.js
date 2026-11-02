@@ -11,7 +11,7 @@
 
 import { COMBATES, claveCombate } from "../levelcaps/datos.js";
 import { leer, escribir } from "./almacen.js";
-import { apuntarEnLockesDelJuego } from "./lockes.js";
+import { apuntarEnLockesDelJuego, conKanto } from "./lockes.js";
 import { enIngles } from "./idioma.js";
 
 const URL_MEDALLAS = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/";
@@ -56,7 +56,11 @@ const GALAR = [
 const JUEGOS = {
   frlg: { medallas: KANTO },
   anil: { medallas: KANTO },
-  hgss: { medallas: [...JOHTO, ...KANTO], gimnasios: [0, 1, 2, 3, 4, 5, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1] },
+  // Los gimnasios de Kanto van en «Level caps» en otro orden (Surge, Sabrina, Misty, Erika, Janine,
+  // Brock, Blaine y Azul) que sus medallas (Roca, Cascada, Trueno...)
+  hgss: { medallas: [...JOHTO, ...KANTO], gimnasios: [0, 1, 2, 3, 4, 5, 6, 7, 13, 10, 8, 11, 12, 9, 14, 15] },
+  // Gimnasios en cualquier orden, pero cada medalla es de su líder, como en HGSS
+  vitro: { medallas: JOHTO },
   oras: { medallas: HOENN },
   dp: { medallas: SINNOH },
   // En Platino, Fantina es el 3.er gimnasio, pero su medalla sigue siendo la 5.ª
@@ -67,6 +71,12 @@ const JUEGOS = {
   xy: { medallas: KALOS },
   swsh: { medallas: GALAR }
 };
+
+// Las de un locke: las de su juego, salvo HeartGold / SoulSilver sin Kanto (las 8 de Johto)
+export function medallasDelLocke(locke, version = "") {
+  const lista = medallasDelJuego(locke.juego, version);
+  return locke.juego === "hgss" && !conKanto(locke) ? lista.slice(0, 8) : lista;
+}
 
 export function tieneMedallas(idJuego) {
   return Boolean(JUEGOS[idJuego]);

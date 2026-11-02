@@ -31,23 +31,34 @@
   padding: 0.6rem 0.2rem 0;
 }
 
-/* El candado del saludo se balancea colgado del arco (el retraso lo pone el JS para que no
-   salte al repintar) */
+/* El cuaderno del saludo: sus dos marcapáginas asoman por turnos, cada 4 s uno (la fase la pone
+   el JS para que no salte al repintar). Como en el logo del menú, el dibujo queda por debajo
+   del centro de su caja (lleva aire arriba para que suban los marcapáginas): se sube para que la
+   libreta quede a la altura del saludo. */
 .inicio-logo {
   flex: none;
-  width: 4.2rem;
-  height: 4.2rem;
-  transform-origin: 50% 5%;
-  animation: inicio-balancear 6s ease-in-out infinite;
+  position: relative;
+  top: -0.5rem;
+  width: 4.6rem;
+  height: 4.6rem;
 }
 
-@keyframes inicio-balancear {
-  0%, 100% { transform: rotate(-8deg); }
-  50% { transform: rotate(8deg); }
+.inicio-logo .marca {
+  animation: inicio-marca 8s ease-in-out infinite;
+  animation-delay: var(--fase, 0s);
+}
+
+.inicio-logo .marca + .marca {
+  animation-delay: calc(var(--fase, 0s) - 4s);
+}
+
+@keyframes inicio-marca {
+  0%, 30%, 56%, 100% { transform: translateY(0); }
+  40%, 46% { transform: translateY(-40px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .inicio-logo {
+  .inicio-logo .marca {
     animation: none;
   }
 }
@@ -162,6 +173,20 @@
   align-items: start;
 }
 
+/* Fondo de las tarjetas de dentro de los bloques (lockes, equipos, secciones, avisos, novedades):
+   más claro que el bloque para que se vea dónde empieza cada una. En claro, blancas (con la sombra
+   ya se distinguen; más oscuras que el bloque se verían grises). */
+:root {
+  --inicio-tarjeta: var(--t-panel-5);
+  --inicio-tarjeta-encima: var(--t-control);
+  --inicio-tarjeta-sombra: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-tema="claro"] {
+  --inicio-tarjeta: var(--t-panel);
+  --inicio-tarjeta-encima: var(--t-panel-3);
+}
+
 .inicio-bloque {
   display: flex;
   flex-direction: column;
@@ -229,8 +254,8 @@
   border: none;
   border-radius: 0.8rem;
   /* La capa del color del locke a la izquierda, difuminada hacia dentro */
-  background: linear-gradient(100deg, color-mix(in srgb, var(--color-locke, #3498db) 16%, transparent), transparent 70%), var(--t-panel);
-  box-shadow: inset 5px 0 0 var(--color-locke, #3498db), 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--color-locke, #3498db) 16%, transparent), transparent 70%), var(--inicio-tarjeta);
+  box-shadow: inset 5px 0 0 var(--color-locke, #3498db), var(--inicio-tarjeta-sombra);
   text-align: left;
   transition: transform 0.15s;
 }
@@ -304,7 +329,8 @@
   width: 1.9rem;
   height: 1.9rem;
   overflow: hidden;
-  border: 2px solid var(--t-panel);
+  /* Del color de la tarjeta: separa las caras que se montan unas sobre otras */
+  border: 2px solid var(--inicio-tarjeta);
   border-radius: 50%;
   background: var(--t-control);
   box-sizing: border-box;
@@ -427,13 +453,13 @@
   padding: 0.6rem 0.8rem 0.6rem 0.9rem;
   border: none;
   border-radius: 0.7rem;
-  background: var(--t-panel);
-  box-shadow: inset 4px 0 0 rgb(var(--color-bloque)), 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: var(--inicio-tarjeta);
+  box-shadow: inset 4px 0 0 rgb(var(--color-bloque)), var(--inicio-tarjeta-sombra);
   text-align: left;
 }
 
 .inicio-equipo:hover {
-  background: var(--t-panel-3);
+  background: var(--inicio-tarjeta-encima);
 }
 
 .inicio-equipo strong {
@@ -566,14 +592,15 @@
   padding: 0.65rem 0.75rem;
   border: none;
   border-radius: 0.55rem;
-  background: var(--t-panel);
+  background: var(--inicio-tarjeta);
+  box-shadow: var(--inicio-tarjeta-sombra);
   text-align: left;
   transition: background 0.15s, box-shadow 0.15s;
 }
 
 .inicio-seccion:hover {
-  background: var(--t-panel-3);
-  box-shadow: inset 0 0 0 1px rgba(var(--color-seccion), 0.55);
+  background: var(--inicio-tarjeta-encima);
+  box-shadow: inset 0 0 0 1px rgba(var(--color-seccion), 0.55), var(--inicio-tarjeta-sombra);
 }
 
 .inicio-seccion-icono {
@@ -633,8 +660,8 @@
   gap: 0.75rem;
   padding: 0.6rem 0.75rem;
   border-radius: 0.55rem;
-  background: var(--t-panel);
-  box-shadow: inset 3px 0 0 rgb(var(--color-aviso));
+  background: var(--inicio-tarjeta);
+  box-shadow: inset 3px 0 0 rgb(var(--color-aviso)), var(--inicio-tarjeta-sombra);
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -682,8 +709,8 @@
   padding: 0.55rem 0.7rem;
   border: none;
   border-radius: 0.55rem;
-  background: var(--t-panel);
-  box-shadow: inset 3px 0 0 rgb(var(--color-aviso));
+  background: var(--inicio-tarjeta);
+  box-shadow: inset 3px 0 0 rgb(var(--color-aviso)), var(--inicio-tarjeta-sombra);
   color: inherit;
   font-family: inherit;
   font-size: 0.85rem;
@@ -693,7 +720,7 @@
 }
 
 .inicio-novedad:hover {
-  background: var(--t-panel-3);
+  background: var(--inicio-tarjeta-encima);
 }
 
 .inicio-novedad b {

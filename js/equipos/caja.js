@@ -106,6 +106,7 @@ export async function cajaDeLaPartida(idLocke, bytes) {
   let mochila = null;
   if (bytes) {
     const formato = formatoDeSeguro(bytes);
+    if (formato.preparar) await formato.preparar();
     ({ equipo, cajas } = await todoConDetalle(formato.leer(bytes)));
     try {
       mochila = objetosDeLaMochila(formato.mochila.leerMochila(bytes));

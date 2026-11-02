@@ -28,7 +28,7 @@ import {
   alCambiarLockes, misLockes, invitacionesALockes, estadoDe, estaEliminado, victoriasDe
 } from "../comun/lockes.js";
 import { irA } from "../navegacion.js";
-import { medallasDelJuego } from "../comun/medallas.js";
+import { medallasDelLocke } from "../comun/medallas.js";
 
 let seccion = null;
 
@@ -304,6 +304,16 @@ function cara(nombre, foto, clase = "inicio-cara") {
     : `<span class="${clase} sin-foto">${inicial}</span>`;
 }
 
+// El cuaderno del logo del menú (index.html), con los marcapáginas asomando por turnos. La fase
+// sigue el reloj para que la animación no vuelva a empezar cada vez que se repinta Inicio.
+function cuadernoDelSaludo() {
+  const dibujo = document.querySelector(".logo svg").cloneNode(true);
+  dibujo.setAttribute("class", "inicio-logo");
+  dibujo.style.setProperty("--fase", `-${(performance.now() % 8000) / 1000}s`);
+  for (const marca of dibujo.querySelectorAll(".fuera")) marca.classList.remove("fuera");
+  return dibujo.outerHTML;
+}
+
 function plantillaCabecera() {
   const perfil = miPerfil();
   const nombre = conSesion() ? (perfil && perfil.nombre) || "" : "";
@@ -331,7 +341,7 @@ function plantillaCabecera() {
 
   return `
     <header class="inicio-cabecera">
-      <img class="inicio-logo" src="img/icono.svg" alt="" style="animation-delay: -${(performance.now() % 6000) / 1000}s">
+      ${cuadernoDelSaludo()}
       <div class="inicio-saludo">
         <h1>${nombre ? t("Hola, {nombre}", { nombre: escaparHTML(nombre) }) : `NuzThe<span class="logo-locke">Locke</span>`}</h1>
         ${vistazo}
@@ -354,7 +364,7 @@ function plantillaLocke(locke) {
   const vidas = locke.vidasIlimitadas ? "∞" : (locke.vidas || {})[uid] || 0;
   const fuera = estaEliminado(locke, uid);
   const medallas = (locke.medallas || {})[uid] || {};
-  const delJuego = medallasDelJuego(locke.juego, medallas.version).length;
+  const delJuego = medallasDelLocke(locke, medallas.version).length;
   const conseguidas = (medallas.tiene || []).filter((i) => i < delJuego).length;
 
   return `

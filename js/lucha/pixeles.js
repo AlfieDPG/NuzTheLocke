@@ -157,6 +157,28 @@ export function urlEscudo(color) {
   });
 }
 
+// ---------- Las flechas de las subidas (azul, hacia arriba) y bajadas (roja, hacia abajo) ----------
+
+const FLECHA = [
+  "...o...",
+  "..olo..",
+  ".ollbo.",
+  "ollbbbo",
+  "oolbboo",
+  "..lbo..",
+  "..lbo..",
+  "..lbo..",
+  "..ooo.."
+];
+
+export function urlFlecha(sube) {
+  const mapa = sube ? FLECHA : [...FLECHA].reverse();
+  const paleta = sube
+    ? { o: "#1d4f8a", l: "#cfeaff", b: "#4aa3ff" }
+    : { o: "#8a1d1d", l: "#ffd0d0", b: "#ff5a5a" };
+  return deMapa(`flecha-${sube}`, mapa, paleta);
+}
+
 // ---------- La trama de las pantallas (Reflejo, Pantalla de Luz...) ----------
 
 export function urlTrama(color) {

@@ -521,7 +521,9 @@ async function exportarCaja(boton) {
     if (estadoVinculo(id) === "vigilando") {
       try {
         const bytes = await bytesComoSeVen(id);
-        pokemon = await cajaConDetalle(formatoDeSeguro(bytes).leer(bytes), posicion);
+        const formato = formatoDeSeguro(bytes);
+        if (formato.preparar) await formato.preparar();
+        pokemon = await cajaConDetalle(formato.leer(bytes), posicion);
         completa = true;
       } catch (error) {
         console.error(error); // el emulador a mitad de guardar, por ejemplo: con lo que hay

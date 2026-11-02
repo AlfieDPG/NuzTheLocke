@@ -1325,6 +1325,27 @@
   opacity: 0.35;
 }
 
+/* Una parte opcional (Kanto en HeartGold / SoulSilver): su título con la casilla para sacarla */
+.caps-tramo.caps-opcional {
+  --color-tramo: #2e86c1;
+}
+
+.caps-opcional label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+/* Aviso de los gimnasios en cualquier orden (GS Vitro) */
+.caps-nota {
+  margin: 0.6rem 0 0.2rem;
+  font-size: 0.88rem;
+  opacity: 0.75;
+}
+
 /* Título de una sección aparte dentro de la lista (p. ej. «Líderes de otras regiones») */
 .caps-seccion h3 {
   display: flex;

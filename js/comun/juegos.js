@@ -15,12 +15,13 @@ export const REGIONES = conNombre([
   { id: "kalos", es: "Kalos", en: "Kalos" },
   { id: "alola", es: "Alola", en: "Alola" },
   { id: "galar", es: "Galar", en: "Galar" },
-  { id: "paldea", es: "Paldea", en: "Paldea" }
+  { id: "paldea", es: "Paldea", en: "Paldea" },
+  // Juegos hechos por fans (ROM hacks y juegos de PC), aparte de las regiones
+  { id: "fangames", es: "Fangames", en: "Fangames" }
 ]);
 
 export const JUEGOS = conNombre([
   { id: "frlg", es: "Rojo Fuego / Verde Hoja", en: "FireRed / LeafGreen", region: "kanto" },
-  { id: "anil", es: "Pokémon Añil", en: "Pokémon Añil", region: "kanto" },
   { id: "hgss", es: "HeartGold / SoulSilver", en: "HeartGold / SoulSilver", region: "johto" },
   { id: "oras", es: "Rubí Omega / Zafiro Alfa", en: "Omega Ruby / Alpha Sapphire", region: "hoenn" },
   { id: "dp", es: "Diamante / Perla", en: "Diamond / Pearl", region: "sinnoh" },
@@ -31,11 +32,13 @@ export const JUEGOS = conNombre([
   { id: "xy", es: "X / Y", en: "X / Y", region: "kalos" },
   { id: "sm", es: "Sol / Luna", en: "Sun / Moon", region: "alola" },
   { id: "usum", es: "Ultrasol / Ultraluna", en: "Ultra Sun / Ultra Moon", region: "alola" },
-  { id: "swsh", es: "Espada / Escudo", en: "Sword / Shield", region: "galar" }
+  { id: "swsh", es: "Espada / Escudo", en: "Sword / Shield", region: "galar" },
+  { id: "anil", es: "Pokémon Añil", en: "Pokémon Añil", region: "fangames" },
+  { id: "vitro", es: "Pokémon GS Vitro", en: "Pokémon GS Vitro", region: "fangames" }
 ]);
 
 // La generación de cada juego, para lo que cambia de una a otra (Brecha Negra en el análisis).
-// Añil, que no es oficial, sin generación.
+// Los fangames (Añil, GS Vitro), sin generación.
 const GENERACIONES = {
   frlg: 3, hgss: 4, dp: 4, platino: 4, bw: 5, b2w2: 5, xy: 6, oras: 6, sm: 7, usum: 7, swsh: 8, bdsp: 8
 };

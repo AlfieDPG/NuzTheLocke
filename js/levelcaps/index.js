@@ -5,7 +5,7 @@
 // la misma lista pasa a tener casillas: título, nombre, lugar, nivel e imagen (un personaje
 // de la web o una subida), y botones para moverlos, quitarlos y añadir más.
 
-import { COMBATES, textoDeCombate, claveCombate } from "./datos.js";
+import { COMBATES, textoDeCombate, claveCombate, combatesDelJuego, kantoEnCaps, cambiarKantoEnCaps } from "./datos.js";
 import { retratoDeLaWeb } from "./retratos.js";
 import { abrirElegirImagen } from "./elegir-imagen.js";
 import { crearSelectorJuego, CLAVE_MULTIPLICADOR_CAPS } from "../comun/selector-juego.js";
@@ -97,9 +97,12 @@ let medallaDe = new Map(); // claveCombate -> { imagen, nombre }
 function calcularMedallas() {
   medallaDe = new Map();
   if (!juego || juego.propio) return [];
-  const gimnasios = combates.filter((c) => c.tipo === "gimnasio" && !c.seccion);
+  // La posición de cada medalla es la de su gimnasio en la lista tal cual (los de cualquier orden se mueven al
+  // marcarlos) y solo cuentan los gimnasios que salen (sin Kanto, las de Kanto no)
+  const gimnasios = (COMBATES[juego.id] || []).filter((c) => c.tipo === "gimnasio" && !c.seccion);
+  const salen = new Map(combates.map((c) => [claveCombate(c), c]));
   return medallasDelJuego(juego.id).map((medalla) => {
-    const combate = gimnasios[medalla.gimnasio];
+    const combate = gimnasios[medalla.gimnasio] && salen.get(claveCombate(gimnasios[medalla.gimnasio]));
     if (combate) medallaDe.set(claveCombate(combate), medalla);
     return { ...medalla, combate };
   });
@@ -142,7 +145,7 @@ function filaCombate(c, siguiente, techo) {
         <input type="checkbox" data-clave="${escaparHTML(clave)}" ${hecho ? "checked" : ""}>
         ${retrato(c) || `<span class="cap-retrato"></span>`}
         <span class="cap-textos">
-          ${siguiente ? `<span class="cap-chapa">${t("Próximo combate")}</span>` : ""}
+          ${siguiente ? `<span class="cap-chapa">${c.libre ? t("Próximo gimnasio: el que elijas") : t("Próximo combate")}</span>` : ""}
           <span class="cap-etiqueta">${escaparHTML(textoDeCombate(c.etiqueta))}${lugar}</span>
           <span class="cap-nombre">${escaparHTML(textoDeCombate(c.nombre))}</span>
         </span>
@@ -157,6 +160,16 @@ function filaCombate(c, siguiente, techo) {
 
 // Tramos que llevan su propio título dentro de la lista, al llegar el primer combate de ese tipo
 const TRAMOS = { "alto-mando": t("Alto Mando"), campeon: t("Campeón") };
+
+// El título de un tramo propio («Kanto»). El de Kanto lleva la casilla para sacarlo o quitarlo (es opcional)
+function plantillaTramo(tramo) {
+  if (tramo !== "Kanto") return `<li class="caps-tramo"><h3>${escaparHTML(textoDeCombate(tramo))}</h3></li>`;
+  return `
+    <li class="caps-tramo caps-opcional">
+      <h3>${escaparHTML(textoDeCombate(tramo))}</h3>
+      <label><input type="checkbox" data-opcional="kanto" ${kantoEnCaps() ? "checked" : ""}> ${t("Lo juego (opcional, después de la Liga)")}</label>
+    </li>`;
+}
 
 function pintarLista() {
   // Fuera del editor, la ruta
@@ -173,6 +186,7 @@ function pintarLista() {
     return;
   }
 
+  combates = visibles(); // los de cualquier orden cambian de sitio y de tope al marcarlos
   calcularMedallas(); // la de cada gimnasio, para el resumen de arriba
 
   // El que toca ahora y el nivel más alto (el 100 % de las barras)
@@ -183,13 +197,21 @@ function pintarLista() {
   let html = "";
   let tipoAnterior = null;
 
+  let libresAvisados = false;
   for (const c of combates.filter((c) => !c.seccion)) {
-    if (TRAMOS[c.tipo] && c.tipo !== tipoAnterior) {
+    if (c.tramo) html += plantillaTramo(c.tramo);
+    else if (TRAMOS[c.tipo] && c.tipo !== tipoAnterior) {
       html += `<li class="caps-tramo ${c.tipo}"><h3>${TRAMOS[c.tipo]}</h3></li>`;
+    }
+    if (c.libre && !libresAvisados) {
+      libresAvisados = true;
+      html += `<li class="caps-nota">${t("Los gimnasios van en cualquier orden: tu tope depende de cuántas medallas llevas, no de qué líder elijas.")}</li>`;
     }
     tipoAnterior = c.tipo;
     html += filaCombate(c, c === siguiente, techo);
   }
+  // HeartGold / SoulSilver sin Kanto: su título, para poder ponerlo
+  if (!juego.propio && juego.id === "hgss" && !kantoEnCaps()) html += plantillaTramo("Kanto");
 
   const secciones = [...new Set(combates.filter((c) => c.seccion).map((c) => c.seccion))];
   for (const seccion of secciones) {
@@ -452,6 +474,11 @@ function animarCambio(antes) {
 export function iniciar() {
   // Un solo oyente para todas las casillas
   lista.addEventListener("change", (e) => {
+    if (e.target.matches("input[data-opcional='kanto']")) {
+      cambiarKantoEnCaps(e.target.checked);
+      pintarLista();
+      return;
+    }
     const casilla = e.target.closest("input[data-clave]");
     if (!casilla) return;
     if (casilla.checked) superados.add(casilla.dataset.clave);
@@ -514,7 +541,7 @@ let selectorJuego = null;
 // Los personalizados sin título ni nombre (recién añadidos) no salen fuera del editor
 function visibles() {
   if (!juego) return [];
-  if (!juego.propio) return COMBATES[juego.id] || [];
+  if (!juego.propio) return combatesDelJuego(juego.id, superados, { conKanto: kantoEnCaps() });
   return (juego.combates || []).filter((c) => c.etiqueta || c.nombre);
 }
 

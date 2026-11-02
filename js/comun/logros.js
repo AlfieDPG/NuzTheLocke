@@ -788,7 +788,7 @@ async function contexto() {
     juegos: { racha: 0, ganadas: 0, primeroDeLaSemana: false }, tienda: {}, coleccion: { genesCompletas: [] }
   };
   const yo = usuario ? usuario.uid : null;
-  const [{ LUGARES }, { COMBATES }] = await Promise.all([import("../rutas/datos.js"), import("../levelcaps/datos.js")]);
+  const [{ LUGARES }, datosCaps] = await Promise.all([import("../rutas/datos.js"), import("../levelcaps/datos.js")]);
 
   const lockes = yo ? misLockes() : [];
   const terminados = lockes.filter((locke) => locke.estado === "cerrado");
@@ -879,7 +879,7 @@ async function contexto() {
     ajustes: leer(CLAVE_AJUSTES, {}) || {},
     contadores: contadores(),
     ...progresoRutas(LUGARES, rutasTodas),
-    ...progresoCaps(COMBATES, capsTodos)
+    ...progresoCaps(datosCaps, capsTodos)
   };
 }
 
@@ -925,7 +925,7 @@ function progresoRutas(LUGARES, rutasTodas) {
 
 // Combates superados en total, campeones superados y juegos con todos superados (de 8
 // combates para arriba). Las claves son las de js/levelcaps/index.js (claveCombate).
-function progresoCaps(COMBATES, capsTodos) {
+function progresoCaps({ combatesDelJuego, kantoEnCaps }, capsTodos) {
   const superados = leer("poketeams-levelcaps-v2", {}) || {};
   let combatesSuperados = 0;
   let campeonesSuperados = 0;
@@ -936,7 +936,7 @@ function progresoCaps(COMBATES, capsTodos) {
     combatesSuperados += hechos.size;
 
     const propio = capsTodos.find((lista) => lista.id === idJuego);
-    const combates = (propio ? propio.combates : COMBATES[idJuego]) || [];
+    const combates = (propio ? propio.combates : combatesDelJuego(idJuego, hechos, { conKanto: kantoEnCaps() })) || [];
     const clave = (c) => c.id || `${c.etiqueta}|${c.nombre}|${c.lugar || ""}`;
 
     if (combates.some((c) => c.tipo === "campeon" && hechos.has(clave(c)))) campeonesSuperados++;

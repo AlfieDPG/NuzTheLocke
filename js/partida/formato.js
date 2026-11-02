@@ -7,6 +7,8 @@
 //     cuantosEquipo, entrenadorDe, pokemon: { leerEditable, aplicarEditable, crearPokemon, conLlaveNueva,
 //     paraEquipo, paraCaja, esHuevo, especieDe, formaDe, lugarIntercambio, maxMote,
 //     maxEntrenador }, mochila: { bolsillosDe, leerMochila, escribirMochila } }
+//
+// preparar (solo algunos): lo que hay que cargar antes de leer (await formato.preparar())
 
 import { JUEGOS, leerPartida3DS, posicionCuantos, entrenadorDe, cajasAbiertas } from "./tresds.js";
 import { JUEGOS_EDITABLES, sePuedeEditar, leerHueco, huecoVacio, editarHuecos } from "./escribir3ds.js";
@@ -14,6 +16,11 @@ import * as pk3ds from "./pokemon3ds.js";
 import { bolsillosDe, leerMochila, escribirMochila } from "./mochila3ds.js";
 import { mapaDS, leerPartidaDS, entrenadorDS } from "./nds.js";
 import { esPartidaGBA, leerPartidaGBA, CAJAS_GBA } from "./gba.js";
+import { esPartidaVitro, leerPartidaVitro, prepararVitro, CAJAS_VITRO } from "./vitro.js";
+import {
+  POKEMON_VITRO, leerHuecoVitro, huecoVacioVitro, editarHuecosVitro, cuantosEquipoVitro, entrenadorVitro, sePuedeEditarVitro,
+  bolsillosVitro, leerMochilaEditableVitro, escribirMochilaVitro
+} from "./escribirvitro.js";
 import { JUEGOS_EDITABLES_DS, sePuedeEditarDS, leerHuecoDS, huecoVacioDS, editarHuecosDS, cuantosEquipoDS } from "./escribirds.js";
 import { pokemonDS } from "./pokemonds.js";
 import { bolsillosDS, leerMochilaDS, escribirMochilaDS } from "./mochilads.js";
@@ -29,7 +36,7 @@ import {
 } from "./bdsp.js";
 
 // Los juegos en los que se puede editar la partida (ids de js/comun/juegos.js)
-export const EDITABLES = [...JUEGOS_EDITABLES, ...JUEGOS_EDITABLES_DS, ...JUEGOS_EDITABLES_SWITCH, "bdsp"];
+export const EDITABLES = [...JUEGOS_EDITABLES, ...JUEGOS_EDITABLES_DS, ...JUEGOS_EDITABLES_SWITCH, "bdsp", "vitro"];
 
 export const CARAMELO_RARO = 50;
 
@@ -104,6 +111,25 @@ export function formatoDe(bytes) {
   // GBA: solo leer (la ventana «Partida» exporta las cajas desde aquí)
   if (esPartidaGBA(bytes)) {
     return { id: "frlg", gen: 3, cajas: CAJAS_GBA, cajasAbiertas: () => CAJAS_GBA, leer: leerPartidaGBA, sePuedeEditar: () => false };
+  }
+  // GS Vitro (fangame de PC, ver ./vitro.js y ./escribirvitro.js). Antes de leer, await preparar()
+  if (esPartidaVitro(bytes)) {
+    return {
+      id: "vitro",
+      preparar: prepararVitro,
+      gen: 8,
+      cajas: CAJAS_VITRO,
+      cajasAbiertas: () => CAJAS_VITRO,
+      leer: leerPartidaVitro,
+      sePuedeEditar: sePuedeEditarVitro,
+      leerHueco: leerHuecoVitro,
+      huecoVacio: huecoVacioVitro,
+      editarHuecos: editarHuecosVitro,
+      cuantosEquipo: cuantosEquipoVitro,
+      entrenadorDe: entrenadorVitro,
+      pokemon: POKEMON_VITRO,
+      mochila: { bolsillosDe: bolsillosVitro, leerMochila: leerMochilaEditableVitro, escribirMochila: escribirMochilaVitro }
+    };
   }
   const mapa = mapaDS(bytes);
   if (!mapa) return null;

@@ -22,6 +22,7 @@
 //     reacciones: {idMuerto: {uid: emoji}},
 //     combates, resultados, rom, salon,  // ver «Combates, ROM y salón de la fama»
 //     arbitro,                     // qué normas vigila la web (js/partida/arbitro.js)
+//     kanto,                       // HeartGold / SoulSilver: si se juega también Kanto (ver conKanto)
 //     publico,                     // true: cualquiera con el enlace (seguir.html) lo mira, sin sesión
 //     cadena,                      // si es una etapa de una cadena de lockes (ver Cadenas de lockes)
 //     estado: "abierto"|"cerrado", ganador, fechaFin: "2025-06-01",
@@ -47,10 +48,10 @@ import { leer, escribir } from "./almacen.js";
 import { JUEGOS } from "./juegos.js";
 import { t } from "./idioma.js";
 
-// «usum» -> «alola» ("" si no es un juego de la web)
+// «usum» -> «alola» ("" si no es un juego de la web o es un fangame: cada uno va por su lado)
 function regionDe(idJuego) {
   const juego = JUEGOS.find((cada) => cada.id === idJuego);
-  return juego ? juego.region : "";
+  return juego && juego.region !== "fangames" ? juego.region : "";
 }
 
 let todos = [];
@@ -307,7 +308,7 @@ function combatesNuevos(nombres, anteriores = []) {
 
 export async function crearLocke({
   nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
-  arbitro, publico, cadena, combates, invitados, nombres, fotos,
+  arbitro, publico, cadena, combates, invitados, nombres, fotos, kanto = false,
   vidasPorJugador, aceptados = []
 }) {
   const usuario = usuarioActual();
@@ -346,6 +347,7 @@ export async function crearLocke({
     capsPropios: capsPropios || null,
     randomizer: randomizer || null,
     arbitro: arbitro || null,
+    kanto: juego === "hgss" && Boolean(kanto),
     publico: Boolean(publico),
     cadena: cadena || null,
     combates: combatesNuevos(combates),
@@ -536,6 +538,15 @@ export function seHaPasadoLaRom(locke, uid) {
 export function medallasDe(locke, uid) {
   const m = (locke.medallas || {})[uid];
   return { tiene: (m && m.tiene) || [], version: (m && m.version) || "" };
+}
+
+// HeartGold / SoulSilver: si en este locke se juega también Kanto (16 medallas y sus gimnasios en el
+// tope de nivel). Lo elige quien lo crea («kanto»); en los de antes de poder elegirlo, sí si alguien
+// tiene ya alguna medalla de Kanto
+export function conKanto(locke) {
+  if (!locke || locke.juego !== "hgss") return false;
+  if (typeof locke.kanto === "boolean") return locke.kanto;
+  return Object.values(locke.medallas || {}).some((m) => ((m && m.tiene) || []).some((i) => i >= 8));
 }
 
 // { ganadores: [uid] } (uno, varios si empatan o ninguno)
@@ -1055,6 +1066,7 @@ export async function editarLocke(id, datos) {
     capsPropios: datos.capsPropios || null,
     randomizer: datos.randomizer || null,
     arbitro: datos.arbitro || null,
+    kanto: datos.juego === "hgss" && Boolean(datos.kanto),
     publico: Boolean(datos.publico),
     cadena: datos.cadena || null,
     actualizado: Date.now()

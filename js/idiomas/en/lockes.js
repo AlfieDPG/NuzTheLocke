@@ -229,6 +229,8 @@ export default {
   "Cristales Z": "Z-Crystals",
   "Rotoprodigios": "Rotom Powers",
   "Tesoros": "Treasures",
+  "Megapiedras": "Mega Stones",
+  "Mejoras": "Battle Items",
   "Ingredientes": "Ingredients",
   "Objetos clave": "Key items",
   "Cantidad": "Quantity",

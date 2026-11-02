@@ -56,7 +56,18 @@
 <body>
   <div class="app">
     <aside class="barra-lateral">
-      <h1 class="logo"><a href="#inicio" title="Inicio"><img src="img/icono.svg" alt=""><span>NuzThe<span class="logo-locke">Locke</span></span></a></h1>
+      <!-- El cuaderno es el de img/icono.svg, dibujado aquí para poder mover los marcapáginas
+           (.marca): al pasar el ratón asoma uno (js/main.js). Inicio copia este mismo dibujo. -->
+      <h1 class="logo"><a href="#inicio" title="Inicio"><svg viewBox="0 0 512 512" aria-hidden="true">
+        <g class="marca"><rect x="146" y="80" width="74" height="120" rx="12" fill="#f0c43c"/></g>
+        <g class="marca"><rect x="238" y="106" width="56" height="94" rx="12" fill="#6a9fe0"/></g>
+        <rect x="88" y="140" width="336" height="352" rx="34" fill="#f4ead6"/>
+        <rect x="88" y="140" width="310" height="352" rx="34" fill="#e74c3c"/>
+        <path d="M122 140H130V492H122A34 34 0 0 1 88 458V174A34 34 0 0 1 122 140Z" fill="#c0392b"/>
+        <rect x="340" y="140" width="24" height="352" fill="#9b2c22"/>
+        <rect x="164" y="210" width="136" height="82" rx="14" fill="#f4ead6"/>
+        <path d="M188 241H276M188 263H246" stroke="#e3a196" stroke-width="10" stroke-linecap="round"/>
+      </svg><span>NuzThe<span class="logo-locke">Locke</span></span></a></h1>
       <nav class="menu-lateral">
         <!-- data-icono: el icono que se le pone delante (js/navegacion.js) -->
         <button data-vista="lockes" data-icono="espadas" class="boton-destacado">Lockes</button>
@@ -726,6 +737,11 @@
             <span>Juego</span>
             <span class="locke-campo-juego"></span>
           </div>
+          <!-- Solo con HeartGold / SoulSilver: si se juega también Kanto (16 medallas o 8) -->
+          <label class="campo-casilla locke-kanto" hidden>
+            <input id="locke-kanto" type="checkbox">
+            <span>También Kanto (16 medallas)</span>
+          </label>
         </div>
       </section>
 
@@ -994,6 +1010,7 @@
     <div class="ayuda-partida">
       <h3>Vincular</h3>
       <p>En X / Y, Rubí Omega / Zafiro Alfa, Sol / Luna y Ultrasol / Ultraluna eliges el archivo «main» de la partida del emulador (Citra o Lime3DS). En Rojo Fuego / Verde Hoja, la .sav del emulador (mGBA, VisualBoyAdvance...), o juega desde la sección «Jugar» y no hace falta vincular nada. En Diamante / Perla, Platino, HeartGold / SoulSilver, Negro / Blanco y Negro 2 / Blanco 2, el archivo de guardado (.dsv de DeSmuME o .sav). En Espada / Escudo, el archivo «main» de la partida, y en Diamante Brillante / Perla Reluciente, el «SaveData.bin» (de Eden, Ryujinx o yuzu, o los que saca JKSV de la consola). La web lo vuelve a leer cada vez que guardas en el juego. Solo en Chrome o Edge de ordenador; en otros navegadores se lee a mano.</p>
+      <p data-t>En <b>Pokémon GS Vitro</b> (el fangame de PC), el archivo <b>Game.rxdata</b> de la carpeta de partidas guardadas de Windows: <b>C:\Users\(tu usuario)\Saved Games\Pokemon GS Vitro</b>. Para editarla, cierra antes el juego.</p>
       <h3>No me deja elegir el archivo</h3>
       <p data-t>Chrome y Edge no dejan elegir nada de dentro de las carpetas del sistema, como <b>AppData</b>, y muchos emuladores guardan ahí las partidas. Como la web tiene que leer la partida de verdad (no una copia), hay que decirle al emulador que la guarde en una carpeta normal, como Documentos:</p>
       <p data-t><b>Citra, Lime3DS o Azahar:</b> Configurar → Almacenamiento → cambia la carpeta de la tarjeta SD.<br><b>Eden, yuzu o Sudachi:</b> Emulación → Configurar → Sistema de archivos → cambia la carpeta de la NAND.<br>Antes de cambiarla, copia lo que había en la carpeta de antes a la nueva, o el emulador no verá tus partidas.</p>

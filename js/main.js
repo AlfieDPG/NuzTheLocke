@@ -16,6 +16,18 @@ activarPestanasDeslizantes(); // antes de pintar nada, para ver ya las primeras 
 iniciarNavegacion();
 irA(vistaInicial()); // la que hubiera al recargar, o Inicio si se entra de nuevas
 
+// El logo: al pasar el ratón asoma uno de los marcapáginas del cuaderno, cada vez el otro
+const enlaceLogo = document.querySelector(".logo a");
+const marcasLogo = enlaceLogo.querySelectorAll(".marca");
+let turnoMarca = -1;
+enlaceLogo.addEventListener("mouseenter", () => {
+  turnoMarca = (turnoMarca + 1) % marcasLogo.length;
+  marcasLogo[turnoMarca].classList.add("fuera");
+});
+enlaceLogo.addEventListener("mouseleave", () => {
+  for (const marca of marcasLogo) marca.classList.remove("fuera");
+});
+
 // Ajustes (la rueda de abajo del panel): el tema y el idioma
 document.querySelector(".boton-ajustes").innerHTML = icono("ajustes");
 for (const boton of document.querySelectorAll("#dialogo-ajustes [data-icono]")) {

@@ -35,7 +35,7 @@ import { filaStat } from "../comun/fichas-pokemon.js";
 import { activarTooltips, actualizarTooltip, ocultarTooltip } from "../comun/tooltip.js";
 import {
   alCambiarLuchas, misLuchas, fallanLasLuchas, luchaPorId, ladoDe, rivalDe, meToca, retar, aceptarReto,
-  borrarLucha, terminar, rendirse, escucharTurnos, apuntarEnTurno, sello, conSal, sinSal, pendienteDe,
+  borrarLucha, terminar, rendirse, escucharTurnos, apuntarEnTurno, sello, conSal, sinSal, pendienteDe, cancelarEleccion,
   guardarPendiente, ponerEspera, MAX_PASTE
 } from "../comun/luchas.js";
 
@@ -96,7 +96,8 @@ const JUEGOS_GEN = {
 function textoFormato(formato) {
   const gen = Number((/^gen(\d)/.exec(formato || "") || [])[1]) || 9;
   const variante = /bdsp/.test(formato || "") ? ` · ${t("DBPR")}` : "";
-  return `${t("{n} gen", { n: GEN_ORDINAL[gen] })}${variante}`;
+  const sinTera = /Terastal Clause/.test(formato || "") ? ` · ${t("sin tera")}` : "";
+  return `${t("{n} gen", { n: GEN_ORDINAL[gen] })}${variante}${sinTera}`;
 }
 
 function textoNivel(nivel) {
@@ -164,6 +165,8 @@ function filaLucha(lucha) {
 
   let estado = "";
   let botones = "";
+  // La capa de color: la de la sección en los retos que te llegan; verde o roja en las terminadas
+  let clase = recibido ? "destacada" : "";
   if (recibido) {
     estado = `<span class="lucha-estado reto">${t("Te reta")}</span>`;
     botones = `
@@ -175,7 +178,8 @@ function filaLucha(lucha) {
   } else {
     const gana = lucha.ganador === uid;
     const empate = lucha.ganador === "empate";
-    estado = `<span class="lucha-estado ${empate ? "" : gana ? "gana" : "pierde"}">${
+    clase = empate ? "" : gana ? "gana" : "pierde";
+    estado =`<span class="lucha-estado ${empate ? "" : gana ? "gana" : "pierde"}">${
       empate ? t("Empate") : gana ? t("Ganaste") : t("Perdiste")
     }${lucha.rendido ? ` · ${lucha.rendido === uid ? t("te rendiste") : t("se rindió")}` : ""}</span>`;
     botones = `
@@ -188,7 +192,7 @@ function filaLucha(lucha) {
   const susCaras = lucha.estado === "reto" ? "" : carasEn(lucha, rival);
 
   return `
-    <article class="lucha-fila ${recibido ? "destacada" : ""}" data-id="${escaparHTML(lucha.id)}">
+    <article class="lucha-fila ${clase}" data-id="${escaparHTML(lucha.id)}">
       ${fotoEn(lucha, rival)}
       <div class="lucha-fila-texto">
         <div class="lucha-fila-nombre">${nombreConTitulo(lucha, rival)}</div>
@@ -279,7 +283,7 @@ function formatoActual(motor) {
   if (retando.modo === "aceptar") return luchaPorId(retando.id).formato;
   const locke = retando.locke && lockePorId(retando.locke.id);
   const gen = locke && generacionDeJuego(locke.juego);
-  return gen ? motor.formatoDeJuego(locke.juego, gen, retando.vistaPrevia) : motor.formatoDe(retando.gen, "", retando.vistaPrevia);
+  return gen ? motor.formatoDeJuego(locke.juego, gen, retando.vistaPrevia) : motor.formatoDe(retando.gen, "", retando.vistaPrevia, retando.tera);
 }
 
 function textoProblema(problema) {
@@ -358,6 +362,12 @@ async function pintarRetar() {
       <button type="button" data-previa="si" class="${retando.vistaPrevia ? "elegido" : ""}">${t("Ver los dos equipos antes de empezar")}</button>
       <button type="button" data-previa="no" class="${retando.vistaPrevia ? "" : "elegido"}">${t("Sin vista previa")}</button>
     </div>
+    ${!genFija && retando.gen === 9 ? `
+      <span class="etiqueta-campo">${t("Teracristalización")}</span>
+      <div class="lucha-retar-nivel">
+        <button type="button" data-tera="si" class="${retando.tera ? "elegido" : ""}">${t("Se puede teracristalizar")}</button>
+        <button type="button" data-tera="no" class="${retando.tera ? "" : "elegido"}">${t("Sin tera")}</button>
+      </div>` : ""}
     <span class="etiqueta-campo">${t("Escenario")}</span>
     <div class="lucha-retar-escenas">
       <button type="button" data-escena="" class="lucha-retar-escena aleatorio ${retando.escena ? "" : "elegido"}">
@@ -403,7 +413,7 @@ const NOMBRES_ESCENA = () => ({
 });
 
 async function abrirDialogoRetar(datos) {
-  retando = { modo: "retar", id: "", rival: "", locke: null, gen: 9, nivel: "tal", vistaPrevia: true, escena: "", equipo: null, ...datos };
+  retando = { modo: "retar", id: "", rival: "", locke: null, gen: 9, nivel: "tal", vistaPrevia: true, tera: true, escena: "", equipo: null, ...datos };
   dialogoRetar.querySelector(".lucha-retar-error").textContent = "";
   try {
     await pintarRetar();
@@ -617,7 +627,8 @@ const ANCHO_REAL = 640;
 function ajustarSprite(img) {
   const arena = img.closest(".lucha-arena");
   if (!arena || !img.naturalWidth) return;
-  const cerca = img.closest(".lucha-lado.mio") ? 1.4 : 1;
+  const enPrevia = Boolean(img.closest(".lucha-previa-sprite"));
+  const cerca = enPrevia ? (img.closest(".mio") ? 1 : 0.75) : img.closest(".lucha-lado.mio") ? 1.4 : 1;
   const escala = Math.max(1, Math.round((arena.clientWidth / ANCHO_REAL) * cerca * 2) / 2);
   img.style.width = `${img.naturalWidth * escala}px`;
 }
@@ -915,6 +926,41 @@ function pintarTrampas(lado) {
   vistaCombate.querySelector(`.lucha-lado[data-lado="${lado}"] .lucha-condiciones`).innerHTML = nombres.join("");
 }
 
+// ---------- La vista previa, en el campo ----------
+//
+// Antes de que salga nadie (con vista previa): los seis de cada uno en el campo, más pequeños y frente a
+// frente. Los del rival, de cara, en fila junto a su plataforma; los tuyos, de espaldas, abajo. Cada uno
+// con su bocadillo. Se quitan en cuanto sale el primero.
+function pintarPrevia() {
+  const capa = vistaCombate.querySelector(".lucha-previa-campo");
+  if (!capa) return;
+  const vista = abierto.vista;
+  const toca = abierto.lucha.vistaPrevia !== false && !vista.p1.activo && !vista.p2.activo && !vista.turno;
+  if (!toca) {
+    if (capa.innerHTML) capa.innerHTML = "";
+    return;
+  }
+  if (capa.innerHTML) return;
+  const filas = [[otroLado(abierto.lado), "suyo"], [abierto.lado, "mio"]];
+  capa.innerHTML = filas.map(([lado, clase]) => {
+    const sets = abierto.combate.sets[lado];
+    return sets.map((set, i) => {
+      const especie = dex().species.get(set.species);
+      const cara = carasDe(lado)[set.posicion] || {};
+      const idForma = cara.id === especie.num ? cara.idForma : null;
+      const urls = urlsSprite({ num: especie.num, idForma, shiny: Boolean(cara.shiny), espalda: lado === abierto.lado });
+      // El rival, repartido por la mitad derecha a la altura de su plataforma; tú, por la izquierda, abajo.
+      // En zigzag (uno más atrás, otro más delante) para que se vean todos.
+      const x = clase === "suyo" ? 0.5 + ((i + 0.5) * 0.46) / sets.length : 0.03 + ((i + 0.5) * 0.52) / sets.length;
+      const y = clase === "suyo" ? 0.53 - (i % 2) * 0.05 : 0.95 - (i % 2) * 0.07;
+      return `<span class="lucha-previa-sprite ${clase}" data-bocadillo="hueco:${lado}:${set.posicion}"
+        style="left: ${(x * 100).toFixed(2)}%; top: ${(y * 100).toFixed(2)}%; z-index: ${Math.round(y * 100)}; animation-delay: ${i * 80}ms">${
+          imagenConRespaldo(urls, `alt="${escaparHTML(especie.name)}" draggable="false"`)
+        }</span>`;
+    }).join("");
+  }).join("");
+}
+
 function pintarCampo({ sprites = false } = {}) {
   if (!abierto) return;
   for (const lado of ["p1", "p2"]) {
@@ -923,6 +969,7 @@ function pintarCampo({ sprites = false } = {}) {
     pintarTrampas(lado);
   }
   pintarEquipos();
+  pintarPrevia();
   const arena = vistaCombate.querySelector(".lucha-arena");
   arena.dataset.clima = abierto.vista.clima || "";
   arena.dataset.campo = [...abierto.vista.campo].join(" ");
@@ -1086,7 +1133,7 @@ async function animarSuceso(suceso, antes) {
         if (sube) sonidos.sube();
         else sonidos.baja();
         const quien = lado || (suceso.intercambio && suceso.intercambio.a.lado) || (suceso.copia && suceso.copia.a.lado);
-        if (quien) efectos.aura(quien, sube ? "#6ab8ff" : "#ff6b6b", { anillos: 2, sube });
+        if (quien) efectos.flechas(quien, sube, modulos.urlFlecha(sube));
       }
       return esperar(suceso.texto ? 850 : 200);
     }
@@ -1391,6 +1438,29 @@ async function elegir(eleccion) {
   }
 }
 
+// Lo que he elegido, en palabras («move 2 terastallize» -> «Terremoto + Tera»), y el texto de su botón
+// de cancelar. null si no se entiende (no debería pasar).
+function textoEleccion(eleccion) {
+  const peticion = abierto.combate.peticion(abierto.lado);
+  if (!peticion) return null;
+  const [accion, numero = "", especial] = eleccion.split(" ");
+  const n = Number(numero) - 1;
+  if (accion === "move") {
+    const activa = (peticion.active || [])[0] || {};
+    const ataque = (activa.moves || [])[n];
+    if (!ataque) return null;
+    const zeta = especial === "zmove" ? (activa.canZMove || [])[n] : null;
+    const nombre = abierto.modulos.nombreAtaque(zeta ? zeta.move : ataque.move);
+    const extra = { mega: "Mega", ultra: t("Ultraexplosión"), dynamax: t("Dinamax"), terastallize: "Tera" }[especial];
+    return { texto: extra ? `${nombre} + ${extra}` : nombre, cancelar: t("Cancelar ataque") };
+  }
+  const nombrePokemon = (i) => String((((peticion.side || {}).pokemon || [])[i] || {}).ident || "").replace(/^p[12]: /, "");
+  if (accion === "switch") return { texto: t("cambiar a {nombre}", { nombre: nombrePokemon(n) }), cancelar: t("Cancelar cambio") };
+  // «team 312456»: el primero es con quién empiezas
+  if (accion === "team") return { texto: t("empezar con {nombre}", { nombre: nombrePokemon(Number(numero[0]) - 1) }), cancelar: t("Cancelar mi elección") };
+  return null;
+}
+
 function botonAtaque(ataque, i, peticionActiva) {
   const motor = abierto.modulos;
   const datos = dex().moves.get(ataque.id);
@@ -1437,29 +1507,48 @@ function botonesEquipo(peticion, { vistaPrevia = false, atrapado = false } = {})
     .join("");
 }
 
-// Megaevolucionar, Z, Dinamax, Tera: solo lo que el motor ofrece y no se ha usado ya en el combate
+// Megaevolucionar, Z, Dinamax y Tera: siempre los cuatro, en columna a la derecha de los ataques. Encendido
+// el que se puede usar ahora (lo ofrece el motor y no se ha usado ya en el combate); los demás, apagados.
+// La Ultraexplosión (Necrozma) va en el botón de la Mega.
 function botonesEspeciales(activa) {
   const { usados, activo } = abierto.vista[abierto.lado];
   const yaMega = activo && dex().species.get(activo.especie).isMega;
+  const tipoTera = String(activa.canTerastallize || "").toLowerCase();
+  const ultra = Boolean(activa.canUltraBurst && !usados.has("ultra"));
   const opciones = [
-    activa.canMegaEvo && !usados.has("mega") && !yaMega && { valor: "mega", texto: t("Megaevolucionar") },
-    activa.canUltraBurst && !usados.has("ultra") && { valor: "ultra", texto: t("Ultraexplosión") },
-    activa.canZMove && !usados.has("zeta") && { valor: "zmove", texto: t("Movimiento Z") },
-    activa.canDynamax && !usados.has("dinamax") && { valor: "dynamax", texto: t("Dinamax") },
-    activa.canTerastallize && !usados.has("tera") && !(activo && activo.tera) && {
-      valor: "terastallize", texto: t("Teracristalizar ({tipo})", { tipo: tiposEs[String(activa.canTerastallize).toLowerCase()] || activa.canTerastallize })
-    }
-  ].filter(Boolean);
-  if (abierto.especial && !opciones.some((opcion) => opcion.valor === abierto.especial)) abierto.especial = "";
-  if (!opciones.length) return "";
+    { valor: ultra ? "ultra" : "mega", texto: ultra ? t("Ultraexplosión") : t("Megaevolucionar"), corto: "Mega",
+      puede: ultra || Boolean(activa.canMegaEvo && !usados.has("mega") && !yaMega) },
+    { valor: "zmove", texto: t("Movimiento Z"), corto: "Z", puede: Boolean(activa.canZMove && !usados.has("zeta")) },
+    { valor: "dynamax", texto: t("Dinamax"), corto: t("Dinamax"), puede: Boolean(activa.canDynamax && !usados.has("dinamax")) },
+    { valor: "terastallize", texto: tipoTera ? t("Teracristalizar ({tipo})", { tipo: tiposEs[tipoTera] || tipoTera }) : t("Teracristalizar"),
+      corto: "Tera", tipo: tipoTera, puede: Boolean(activa.canTerastallize && !usados.has("tera") && !(activo && activo.tera)) }
+  ];
+  if (abierto.especial && !opciones.some((opcion) => opcion.puede && opcion.valor === abierto.especial)) abierto.especial = "";
   return `<div class="lucha-especiales">${opciones
-    .map((opcion) => `<button type="button" class="lucha-especial ${abierto.especial === opcion.valor ? "elegido" : ""}" data-especial="${opcion.valor}">${escaparHTML(opcion.texto)}</button>`)
+    .map((opcion) => `
+      <button type="button" class="lucha-especial ${opcion.puede ? "" : "apagado"} ${abierto.especial === opcion.valor ? "elegido" : ""}"
+        data-especial="${opcion.valor}" title="${escaparHTML(opcion.texto)}" ${opcion.puede ? "" : "disabled"}>
+        ${opcion.tipo ? iconoTipo(opcion.tipo) : ""}<span>${escaparHTML(opcion.corto)}</span>
+      </button>`)
     .join("")}</div>`;
+}
+
+// El panel «Cambiar» (bajo el registro): tu equipo en iconos para cambiar. Solo cuando toca elegir;
+// «destacado» cuando cambiar es lo único que se puede hacer (tras un debilitado).
+function pintarCambios(peticion, { atrapado = false, destacado = false } = {}) {
+  const panel = vistaCombate.querySelector(".lucha-cambios");
+  if (!panel) return;
+  panel.hidden = !peticion;
+  panel.classList.toggle("destacado", destacado);
+  if (!peticion) return;
+  panel.querySelector("h3").innerHTML = `${icono("intercambiar")} ${atrapado ? t("No puede huir ni cambiar") : t("lucha|Cambiar")}`;
+  panel.querySelector(".lucha-cambios-mini").innerHTML = botonesCambioMini(peticion, { atrapado });
 }
 
 function pintarAcciones() {
   if (!abierto) return;
   const caja = vistaCombate.querySelector(".lucha-acciones");
+  pintarCambios(null);
   const { combate, lado, lucha } = abierto;
   const rival = nombreEn(lucha, rivalDe(lucha, yo()));
   const boton = vistaCombate.querySelector(".lucha-rendirse");
@@ -1515,6 +1604,21 @@ function pintarAcciones() {
         : yaElegi && necesitan.length === 2
           ? t("Elección sellada. Esperando a {nombre}...", { nombre: escaparHTML(rival) })
           : t("Esperando a {nombre}...", { nombre: escaparHTML(rival) });
+    // Sellada y el otro aún sin sellar: se puede cancelar. Se dice qué elegiste y el botón va bien a la vista.
+    const suyo = mio === 1 ? 2 : 1;
+    const cancelable = !abierto.enviando && necesitan.length === 2 && turno[`s${mio}`] && !turno[`e${mio}`] && !turno[`s${suyo}`];
+    if (cancelable) {
+      const pendiente = pendienteDe(abierto.id, combate.decisiones);
+      const cual = pendiente ? textoEleccion(sinSal(pendiente)) : null;
+      caja.innerHTML = `
+        <div class="lucha-elegida">
+          <p>${cual
+            ? `${t("Has elegido {eleccion}.", { eleccion: `<strong>${escaparHTML(cual.texto)}</strong>` })} ${t("Esperando a {nombre}...", { nombre: escaparHTML(rival) })}`
+            : texto}</p>
+          <button type="button" class="boton-gris lucha-cancelar-eleccion">${icono("deshacer")} ${cual ? cual.cancelar : t("Cancelar mi elección")}</button>
+        </div>`;
+      return;
+    }
     caja.innerHTML = `<p class="lucha-espera">${texto}</p>`;
     return;
   }
@@ -1525,50 +1629,55 @@ function pintarAcciones() {
     return;
   }
 
-  // Antes de empezar: los dos equipos enteros y con quién sales
+  // Antes de empezar: los dos equipos se ven en el campo (pintarPrevia); aquí, con quién sales
   if (peticion.teamPreview) {
-    const ladoRival = otroLado(lado);
-    const suyos = abierto.combate.sets[ladoRival].map((set) => {
-      const especie = dex().species.get(set.species);
-      return `
-        <div class="lucha-previa-pokemon" data-bocadillo="hueco:${ladoRival}:${set.posicion}">
-          ${retratoDe(ladoRival, set.posicion)}
-          <strong>${escaparHTML(especie.name)}</strong>
-          <small>${t("Nv.")} ${set.level || 100}</small>
-          <span class="lucha-previa-tipos">${(especie.types || []).map((tipo) => iconoTipo(tipo.toLowerCase())).join("")}</span>
-        </div>`;
-    }).join("");
     caja.innerHTML = `
-      <div class="lucha-previa">
-        <section class="lucha-previa-lado mio">
-          <h4>${t("Tu equipo")} · <span>${t("Elige con quién empiezas")}</span></h4>
-          <div class="lucha-previa-fila">${botonesEquipo(peticion, { vistaPrevia: true })}</div>
-        </section>
-        <span class="lucha-vs lucha-previa-vs">vs</span>
-        <section class="lucha-previa-lado suyo">
-          <h4>${t("Equipo de {nombre}", { nombre: escaparHTML(rival) })}</h4>
-          <div class="lucha-previa-fila">${suyos}</div>
-        </section>
-      </div>`;
+      <p class="lucha-pregunta">${t("Elige con quién empiezas")}</p>
+      <div class="lucha-equipo">${botonesEquipo(peticion, { vistaPrevia: true })}</div>`;
     return;
   }
 
-  // Tras un debilitado: solo cambiar
+  // Tras un debilitado: solo cambiar (en el panel de la derecha, que se destaca)
   if (peticion.forceSwitch) {
-    caja.innerHTML = `
-      <p class="lucha-pregunta">${t("¿A quién sacas?")}</p>
-      <div class="lucha-equipo">${botonesEquipo(peticion)}</div>`;
+    caja.innerHTML = `<p class="lucha-pregunta">${t("¿A quién sacas? Elígelo en «Cambiar».")}</p>`;
+    pintarCambios(peticion, { destacado: true });
     return;
   }
 
+  // Los ataques, con Mega, Z, Dinamax y Tera en columna a su derecha; cambiar va en su panel, bajo el registro
   const activa = (peticion.active || [])[0] || { moves: [] };
   const atrapado = Boolean(activa.trapped);
   caja.innerHTML = `
     <p class="lucha-pregunta">${t("¿Qué hará {nombre}?", { nombre: escaparHTML((abierto.vista[lado].activo || {}).nombre || "") })}</p>
-    <div class="lucha-ataques">${activa.moves.map((ataque, i) => botonAtaque(ataque, i, activa)).join("")}</div>
-    ${botonesEspeciales(activa)}
-    <span class="etiqueta-campo">${atrapado ? t("No puede huir ni cambiar") : t("lucha|Cambiar")}</span>
-    <div class="lucha-equipo">${botonesEquipo(peticion, { atrapado })}</div>`;
+    <div class="lucha-elegir">
+      <div class="lucha-ataques">${activa.moves.map((ataque, i) => botonAtaque(ataque, i, activa)).join("")}</div>
+      ${botonesEspeciales(activa)}
+    </div>`;
+  pintarCambios(peticion, { atrapado });
+}
+
+// Tus Pokémon para cambiar, en pequeño (su retrato, su vida y su estado; el resto, en su bocadillo).
+// Sin «disabled» (los botones desactivados no avisan al pasar el ratón y no saldría el bocadillo):
+// aria-disabled, y el clic lo mira.
+function botonesCambioMini(peticion, { atrapado = false } = {}) {
+  return peticion.side.pokemon
+    .map((pokemon, i) => {
+      const nombrePokemon = pokemon.ident.replace(/^p[12]: /, "");
+      const posicion = abierto.combate.posicionDe(abierto.lado, nombrePokemon);
+      const [ps, psMax] = String(pokemon.condition).split(" ")[0].split("/").map(Number);
+      const estado = String(pokemon.condition).split(" ")[1] || "";
+      const caido = estado === "fnt" || !ps;
+      const parte = psMax ? ps / psMax : 0;
+      const desactivado = pokemon.active || caido || atrapado;
+      return `
+        <button type="button" class="lucha-cambio-mini ${pokemon.active ? "en-campo" : ""} ${caido ? "caido" : ""}"
+          data-eleccion="switch ${i + 1}" data-bocadillo="hueco:${abierto.lado}:${posicion}" aria-disabled="${desactivado}">
+          ${retratoDe(abierto.lado, posicion)}
+          <span class="lucha-ps ${claseBarra(parte)}"><span style="width: ${(parte * 100).toFixed(1)}%"></span></span>
+          ${estado && estado !== "fnt" ? `<span class="lucha-hueco-estado estado-${estado}">${escaparHTML((abierto.modulos.ESTADOS[estado] || {}).corto || "")}</span>` : ""}
+        </button>`;
+    })
+    .join("");
 }
 
 // ---------- Bocadillos: lo que sale al poner el ratón encima ----------
@@ -1936,14 +2045,20 @@ function esqueletoCombate(lucha) {
           <span class="lucha-clima" hidden></span>
           ${ladoHTML(otroLado(miLado), "suyo")}
           ${ladoHTML(miLado, "mio")}
+          <div class="lucha-previa-campo"></div>
           <div class="lucha-efectos"></div>
         </div>
-        <p class="lucha-mensaje" role="status"></p>
         <div class="lucha-acciones"></div>
       </div>
-      <aside class="lucha-registro">
-        <h3>${icono("lista")} ${t("Registro")}</h3>
-        <ol class="lucha-registro-lista"></ol>
+      <aside class="lucha-lateral">
+        <div class="lucha-registro">
+          <h3>${icono("lista")} ${t("Registro")}</h3>
+          <ol class="lucha-registro-lista"></ol>
+        </div>
+        <section class="lucha-cambios" hidden>
+          <h3></h3>
+          <div class="lucha-cambios-mini"></div>
+        </section>
       </aside>
     </div>`;
 }
@@ -2030,14 +2145,14 @@ async function abrirCombate(id) {
     cuadro = requestAnimationFrame(() => {
       motor.pintarEscena(arena, actual.id, actual.escena);
       ponerPixeles(arena, motor);
-      for (const img of arena.querySelectorAll(".lucha-sprite img")) ajustarSprite(img);
+      for (const img of arena.querySelectorAll(".lucha-sprite img, .lucha-previa-sprite img")) ajustarSprite(img);
     });
   });
   observador.observe(arena);
   abierto.observador = observador;
   pintarBotonSonido();
   if (actual.motor && actual.motor !== motor.VERSION) {
-    ponerMensaje(t("Este combate empezó con otra versión del motor: puede que no se pueda seguir."));
+    avisar(t("Este combate empezó con otra versión del motor: puede que no se pueda seguir."));
   }
   encolar(abierto.lector.leer(combate.lineasNuevas()));
   pintarCampo();
@@ -2053,7 +2168,7 @@ async function abrirCombate(id) {
     },
     (error) => {
       console.error("No se pueden leer los turnos", error);
-      if (esta === abierto) ponerMensaje(t("No se pueden leer los turnos de este combate."));
+      if (esta === abierto) avisar(t("No se pueden leer los turnos de este combate."));
     }
   );
 }
@@ -2129,6 +2244,17 @@ async function alPulsarCombate(e) {
     pintarBotonSonido();
     return undefined;
   }
+  if (e.target.closest(".lucha-cancelar-eleccion")) {
+    const { id, combate, lado } = abierto;
+    try {
+      await cancelarEleccion(id, combate.decisiones, `s${numeroDe(lado)}`);
+    } catch (error) {
+      console.error(error);
+      // Lo normal: el rival acababa de elegir y ya no se puede
+      avisar(t("Ya no se puede cancelar: tu rival acaba de elegir."));
+    }
+    return undefined;
+  }
   if (e.target.closest(".lucha-rendirse")) {
     const { id, lucha } = abierto;
     if (!(await confirmar(t("¿Rendirte? El combate lo gana tu rival."), { aceptar: t("Rendirse"), peligro: true }))) return undefined;
@@ -2156,7 +2282,7 @@ async function alPulsarCombate(e) {
     return elegir(`team ${orden.join("")}`);
   }
   const opcion = e.target.closest("[data-eleccion]");
-  if (opcion && !opcion.disabled) {
+  if (opcion && !opcion.disabled && opcion.getAttribute("aria-disabled") !== "true") {
     ocultarTooltip();
     let eleccion = opcion.dataset.eleccion;
     if (eleccion.startsWith("move") && abierto.especial) eleccion += ` ${abierto.especial}`;
@@ -2178,6 +2304,11 @@ function alPulsarRetar(e) {
   const previa = e.target.closest("[data-previa]");
   if (previa) {
     retando.vistaPrevia = previa.dataset.previa === "si";
+    return pintarRetar();
+  }
+  const tera = e.target.closest("[data-tera]");
+  if (tera) {
+    retando.tera = tera.dataset.tera === "si";
     return pintarRetar();
   }
   const escena = e.target.closest("[data-escena]");
@@ -2227,7 +2358,7 @@ export function iniciar() {
   activarTooltips(vistaCombate, "[data-bocadillo]", contenidoBocadillo, () => 250);
   // Cada sprite, a su tamaño en cuanto carga
   vistaCombate.addEventListener("load", (e) => {
-    if (e.target instanceof HTMLImageElement && e.target.closest(".lucha-sprite")) ajustarSprite(e.target);
+    if (e.target instanceof HTMLImageElement && e.target.closest(".lucha-sprite, .lucha-previa-sprite")) ajustarSprite(e.target);
   }, true);
   vistaCombate.addEventListener("input", (e) => {
     if (!e.target.matches(".lucha-rep-barra") || !abierto || !abierto.repeticion) return;

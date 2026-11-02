@@ -385,12 +385,15 @@ button.locke-anadir .icono {
   height: 0.8rem;
 }
 
-/* Lo que no se puede cambiar (no eres quien lo creó, o ya ha empezado) */
-/* Oscuros y con el texto claro: se leen bien, pero se nota que no se pueden tocar */
+/* Lo que no se puede cambiar (no eres quien lo creó, o ya ha empezado). Sin relleno y con el borde
+   discontinuo: el fondo de los bloques es el mismo --t-fondo-2, así que con relleno no se veían. Se
+   leen bien, pero se nota que no se pueden tocar */
 #dialogo-nuevo-locke input:disabled,
 #dialogo-nuevo-locke select:disabled,
 #dialogo-nuevo-locke textarea:disabled {
-  background: var(--t-fondo-2);
+  background: transparent;
+  outline: 1px dashed rgba(var(--t-tinte), 0.45);
+  outline-offset: -1px;
   color: rgba(var(--t-texto-rgb), 0.75);
   opacity: 1;
   cursor: not-allowed;
@@ -1323,10 +1326,6 @@ button.salon-cara:hover {
   width: 5rem;
 }
 
-.campos-locke .campo-vidas input:disabled {
-  opacity: 0.4;
-}
-
 /* La casilla de ilimitadas va en fila, no en columna como los demás campos */
 .campos-locke .campo-casilla {
   flex-direction: row;
@@ -1348,6 +1347,20 @@ button.salon-cara:hover {
   padding: 0;
   accent-color: rgb(var(--color-vista));
   cursor: pointer;
+}
+
+/* La casilla que no se puede tocar (vidas ilimitadas con el locke ya empezado), como los campos de arriba */
+#dialogo-nuevo-locke .campos-locke .campo-casilla:has(input:disabled) {
+  background: transparent;
+  outline: 1px dashed rgba(var(--t-tinte), 0.45);
+  outline-offset: -1px;
+  color: rgba(var(--t-texto-rgb), 0.75);
+  cursor: not-allowed;
+}
+
+#dialogo-nuevo-locke .campos-locke .campo-casilla:has(input:disabled) input {
+  outline: none;
+  cursor: not-allowed;
 }
 
 /* ---------- Descripción ---------- */

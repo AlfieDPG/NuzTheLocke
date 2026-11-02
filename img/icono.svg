@@ -1,16 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Icono de NuzTheLocke: un candado con el cuerpo de Poké Ball y el ojo de la cerradura de botón -->
-  <!-- Arco del candado (el borde oscuro y la línea de metal de dentro) -->
-  <path d="M152 240V150a104 104 0 0 1 208 0v90" fill="none" stroke="#1b1c24" stroke-width="60"/>
-  <path d="M152 240V150a104 104 0 0 1 208 0v90" fill="none" stroke="#8d93a3" stroke-width="22"/>
-  <!-- Cuerpo: borde, mitad roja, mitad blanca y la franja -->
-  <circle cx="256" cy="304" r="190" fill="#1b1c24"/>
-  <path d="M92 304a164 164 0 0 1 328 0z" fill="#c0392b"/>
-  <path d="M92 304a164 164 0 0 0 328 0z" fill="#f0f0f0"/>
-  <rect x="70" y="282" width="372" height="44" fill="#1b1c24"/>
-  <!-- Botón con el ojo de la cerradura -->
-  <circle cx="256" cy="304" r="68" fill="#1b1c24"/>
-  <circle cx="256" cy="304" r="44" fill="#f0f0f0"/>
-  <circle cx="256" cy="293" r="13" fill="#1b1c24"/>
-  <path d="M249 298l-6 29h26l-6-29z" fill="#1b1c24"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="40 70 432 432">
+  <!-- Icono de NuzTheLocke: un cuaderno rojo con dos marcapáginas arriba y la goma burdeos.
+       Sin borde negro, para que se vea igual sobre fondos oscuros y claros. El mismo dibujo va
+       dentro de index.html (el logo del menú, con viewBox de 512 para que los marcapáginas
+       puedan subir al pasar el ratón): si cambia uno, cambiar el otro. -->
+  <!-- Marcapáginas (por abajo quedan detrás de la tapa) -->
+  <rect x="146" y="80" width="74" height="120" rx="12" fill="#f0c43c"/>
+  <rect x="238" y="106" width="56" height="94" rx="12" fill="#6a9fe0"/>
+  <!-- Hojas, tapa y lomo -->
+  <rect x="88" y="140" width="336" height="352" rx="34" fill="#f4ead6"/>
+  <rect x="88" y="140" width="310" height="352" rx="34" fill="#e74c3c"/>
+  <path d="M122 140H130V492H122A34 34 0 0 1 88 458V174A34 34 0 0 1 122 140Z" fill="#c0392b"/>
+  <!-- Goma -->
+  <rect x="340" y="140" width="24" height="352" fill="#9b2c22"/>
+  <!-- Etiqueta -->
+  <rect x="164" y="210" width="136" height="82" rx="14" fill="#f4ead6"/>
+  <path d="M188 241H276M188 263H246" stroke="#e3a196" stroke-width="10" stroke-linecap="round"/>
 </svg>

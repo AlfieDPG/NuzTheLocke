@@ -178,6 +178,57 @@ export const LUGARES = {
     eventos: EVENTOS_KANTO
   },
 
+  // Pokémon GS Vitro (fangame de PC). Sacado de sus archivos (versión 1.0): los mapas con encuentros
+  // y los regalos y estáticos de sus eventos. Cada mapa del juego va a uno de estos lugares en
+  // datos/partida-vitro.json (si se cambia un nombre aquí, hay que cambiarlo allí también).
+  // En el Modo Random del juego, lo salvaje sale al azar en cada encuentro.
+  vitro: {
+    rutas: [
+      "Ruta 29", "Ruta 46", "Ruta 30", "Ruta 31", "Cueva Oscura", "Torre Bellsprout", "Ruta 32", "Ruinas Alfa",
+      "Cueva Unión", "Ruta 33", "Pozo Slowpoke", "Encinar", "Ruta 34", "Ruta 35", "Parque Nacional", "Ruta 36",
+      "Ruta 37", "Torre Quemada", "Torre Campana", "Ruta 38", "Ruta 39", "Ruta 40", "Ruta 41", "Islas Remolino",
+      "Ruta 50", "Ruta 42", "Monte Mortero", "Ruta 43", "Lago de la Furia", "Ruta 44", "Ruta Helada",
+      "Guarida Dragón", "Ruta 45", "Ruta 47", "Gruta Acantilado", "Ruta 48", "Entrada Safari", "Zona Safari",
+      "Ruta 49", "Ruinas Sinjoh", "Ruta 27", "Ruta 26", "Ruta 23", "Calle Victoria"
+    ],
+    ciudades: [
+      "Pueblo Primavera", "Ciudad Cerezo", "Ciudad Malva", "Pueblo Azalea", "Ciudad Trigal", "Ciudad Iris",
+      "Ciudad Olivo", "Ciudad Orquídea", "Ciudad Endrino"
+    ],
+    eventos: [
+      "Pueblo Primavera: Pokémon inicial",
+      "Pueblo Primavera: Huevo de Togepi (Laboratorio de Elm)",
+      "Ciudad Malva: Huevo de un Pokémon bebé",
+      "Ciudad Malva: Spearow «Quintín» (regalo)",
+      "Pueblo Azalea: Farfetch'd (regalo)",
+      "Encinar: Pichu oreja picuda",
+      "Encinar: Celebi (estático)",
+      "Ruta 36: Sudowoodo (estático)",
+      "Cueva Unión: Lapras (estático)",
+      "Ciudad Trigal: Eevee (regalo de Bill)",
+      "Ciudad Trigal: Meganium / Typhlosion / Feraligatr (estático)",
+      "Ciudad Trigal: Malamar (Centro Comercial)",
+      "Ciudad Trigal: Ariados (Túnel Trigal)",
+      "Ciudad Iris: Exeggcute (regalo)",
+      "Ciudad Iris: Suicune (estático)",
+      "Torre Campana: Ho-Oh (estático)",
+      "Lago de la Furia: Gyarados rojo (estático)",
+      "Pueblo Caoba: Voltorb / Koffing / Geodude (Escondite Rocket)",
+      "Monte Mortero: Kubfu (regalo del Karateka)",
+      "Guarida Dragón: Dratini (regalo)",
+      "Ciudad Orquídea: Shuckle (regalo)",
+      "Ciudad Orquídea: Cloyster (misión)",
+      "Ciudad Orquídea: Pokémon de agua (regalo en el Centro Pokémon)",
+      "Islas Remolino: Lugia (estático)",
+      "Ruta 47: Spiritomb (estático)",
+      "Ruta 48: Shaymin (estático)",
+      "Torre Oculta: Kyogre / Groudon / Rayquaza (estático)",
+      "Isla Origen: Deoxys (estático)",
+      "Ruinas Sinjoh: Dialga / Palkia / Giratina (regalo)",
+      "Sala del Origen: Arceus (estático)"
+    ]
+  },
+
   hgss: {
     rutas: [
       "Ruta 29", "Ruta 30", "Ruta 31", "Cueva Oscura", "Torre Bellsprout", "Ruta 32", "Cueva Unión",

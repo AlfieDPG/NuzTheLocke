@@ -12,6 +12,8 @@ import { LUGARES_GEN4, LUGARES_GEN4_OTROS, LUGARES_GEN5, LUGARES_GEN5_OTROS } fr
 import { LUGARES_GEN8, LUGARES_BDSP, LUGARES_BDSP_OTROS } from "./datos-switch.js";
 import { LUGARES_GEN3, LUGARES_GEN3_EN } from "./datos-gba.js";
 import { LUGARES_EN } from "./lugares-en.js";
+import { LUGARES_EN as LUGARES_RUTAS_EN } from "../rutas/lugares-en.js";
+import { lugarVitro } from "./vitro.js";
 
 // Formas que importan (las que cambian el aspecto o los tipos), por el número que les da el
 // juego: [id de PokeAPI, nombre en Showdown]. Las que no están (Vivillon, Pikachu con gorra,
@@ -120,11 +122,13 @@ const GEN_DE = { frlg: 3, dp: 4, platino: 4, hgss: 4, bw: 5, b2w2: 5, xy: 6, ora
 
 export function lugarEnIngles(nombre, juego) {
   if (nombre === "Intercambio") return "Link Trade";
+  if (juego === "vitro") return LUGARES_RUTAS_EN[nombre] || nombre;
   const tabla = GEN_DE[juego] === 3 ? LUGARES_GEN3_EN : LUGARES_EN[juego === "bdsp" ? "bdsp" : `gen${GEN_DE[juego] || 6}`] || {};
   return tabla[nombre] || nombre;
 }
 
 function nombreLugar(gen, numero, juego) {
+  if (juego === "vitro") return lugarVitro(numero);
   if (juego === "bdsp") return numero === 65535 ? "" : LUGARES_BDSP[numero] || LUGARES_BDSP_OTROS[numero] || "";
   if (gen === 3) return LUGARES_GEN3[numero] || "";
   if (gen === 4) return LUGARES_GEN4[numero] || LUGARES_GEN4_OTROS[numero] || "";

@@ -130,6 +130,16 @@
   background: linear-gradient(90deg, rgba(var(--color-vista), 0.12), var(--t-panel) 45%);
 }
 
+/* Las terminadas: verde claro si ganaste, rojo claro si perdiste (claros para no confundirse con la chapita de «Ganaste» o «Perdiste») (con el modo daltónico, azul y naranja). El
+   color, a la derecha (junto a «Ganaste» o «Perdiste»), y se difumina hacia la izquierda hasta el 90 % del ancho. */
+.lucha-fila.gana {
+  background: linear-gradient(to left, color-mix(in srgb, color-mix(in srgb, var(--t-bien) 55%, #fff) 20%, var(--t-panel)), var(--t-panel) 90%);
+}
+
+.lucha-fila.pierde {
+  background: linear-gradient(to left, color-mix(in srgb, color-mix(in srgb, var(--t-mal) 55%, #fff) 20%, var(--t-panel)), var(--t-panel) 90%);
+}
+
 .lucha-fila > .lucha-foto {
   grid-area: foto;
 }
@@ -301,14 +311,17 @@
   gap: 1rem;
 }
 
+/* Cada jugador en su recuadro, con su fondo (si lo lleva) y una sombra: así se separa de la tarjeta */
 .lucha-grande-jugador {
   position: relative;
   display: flex;
   align-items: center;
   gap: 0.8rem;
   min-width: 0;
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 0.75rem;
   border-radius: 0.7rem;
+  background-color: var(--t-panel-3);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(var(--t-tinte), 0.1);
 }
 
 /* El rival, al revés: su foto a la derecha */
@@ -555,7 +568,8 @@
   position: relative;
   aspect-ratio: 16 / 9;
   width: 100%;
-  max-height: min(42rem, 66vh);
+  /* Lo que deja libre la ventana tras la cabecera, los equipos y el panel de elegir: así se ve todo sin bajar */
+  max-height: max(16rem, min(42rem, calc(100vh - 22rem)));
   overflow: hidden;
   border-radius: 14px;
   background: linear-gradient(180deg, #6fb7e8, #8cc46a 46%, #5f9a48);
@@ -889,14 +903,15 @@
 .lucha-chip-lado {
   padding: 0.05rem 0.45rem;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
+  background: #26262c;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   color: #fff;
   font-size: 0.68rem;
   font-weight: bold;
 }
 
 .lucha-chip-lado.trampa {
-  background: rgba(120, 70, 20, 0.75);
+  background: #6b4423;
 }
 
 /* ---------- El tiempo y el campo (el tiempo, encima de los Pokémon y debajo de las fichas) ---------- */
@@ -1187,6 +1202,34 @@
   to { transform: scale(1.3) rotate(90deg); opacity: 0; }
 }
 
+/* Las flechas de las subidas (suben) y bajadas (bajan) de estadísticas, en pixel art */
+.lucha-flecha {
+  position: absolute;
+  width: calc(7px * var(--px, 3));
+  height: calc(9px * var(--px, 3));
+  translate: -50% -50%;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  opacity: 0;
+}
+
+.lucha-flecha.sube { animation: lucha-flecha-sube 0.9s steps(6) both; }
+.lucha-flecha.baja { animation: lucha-flecha-baja 0.9s steps(6) both; }
+
+@keyframes lucha-flecha-sube {
+  0% { opacity: 0; transform: translateY(0); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(calc(-26px * var(--px, 3))); }
+}
+
+@keyframes lucha-flecha-baja {
+  0% { opacity: 0; transform: translateY(0); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(calc(26px * var(--px, 3))); }
+}
+
 /* El escudo de Protección (y su familia), en pixel art: aparece, aguanta y se va */
 .lucha-escudo {
   position: absolute;
@@ -1213,7 +1256,8 @@
   z-index: 8;
   padding: 0.3rem 1.1rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, var(--c) 15%, var(--c) 85%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 20, 24, 0.85);
   color: #fff;
   font-family: var(--letra-titulos);
   font-size: 1.05rem;
@@ -1391,6 +1435,7 @@
 /* ---------- Elegir ---------- */
 
 .lucha-acciones {
+  margin-top: 0.9rem;
   padding: 0.75rem;
   border-radius: 14px;
   background: var(--t-panel);
@@ -1482,26 +1527,48 @@
 }
 
 .lucha-especiales {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.55rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  width: 9.5rem;
 }
 
+/* Encendido (se puede), apagado (no) y elegido (irá con el ataque que pulses) */
 .lucha-especial {
-  padding: 0.35rem 0.75rem;
-  border: 1px dashed rgba(var(--color-vista), 0.8);
-  border-radius: 999px;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.4rem;
+  border: 1px solid rgba(var(--color-vista), 0.7);
+  border-radius: 0.55rem;
+  background: rgba(var(--color-vista), 0.14);
   color: var(--t-texto);
   font-weight: bold;
   cursor: pointer;
 }
 
+.lucha-especial:hover:not(:disabled) {
+  background: rgba(var(--color-vista), 0.28);
+}
+
 .lucha-especial.elegido {
-  border-style: solid;
   background: rgb(var(--color-vista));
   color: var(--t-tinta);
+  box-shadow: 0 0 10px rgba(var(--color-vista), 0.6);
+}
+
+.lucha-especial.apagado {
+  border-color: rgba(var(--t-tinte), 0.12);
+  background: transparent;
+  color: rgba(var(--t-texto-rgb), 0.35);
+  cursor: default;
+}
+
+.lucha-especial .icono-tipo {
+  width: 0.9rem;
+  height: 0.9rem;
+  background: currentColor;
 }
 
 .lucha-equipo {
@@ -1544,6 +1611,121 @@
 .lucha-cambio .lucha-retrato {
   width: 2rem;
   height: 2rem;
+}
+
+/* Elegir: los ataques y, a su derecha, Mega / Z / Dinamax / Tera */
+.lucha-elegir {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem 0.8rem;
+  align-items: stretch;
+}
+
+/* La columna de la derecha: el registro y, debajo (a la altura del panel de ataques), cambiar */
+.lucha-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.lucha-cambios {
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+}
+
+.lucha-cambios.destacado {
+  box-shadow: inset 0 0 0 2px rgb(var(--color-vista));
+}
+
+.lucha-cambios h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.lucha-cambios-mini {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 3.3rem);
+  gap: 0.35rem;
+}
+
+.lucha-cambio-mini {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: 3.3rem;
+  padding: 0.25rem;
+  border: none;
+  border-radius: 0.6rem;
+  background: var(--t-control);
+  cursor: pointer;
+}
+
+.lucha-cambio-mini:hover:not([aria-disabled="true"]) {
+  background: var(--t-control-2);
+}
+
+.lucha-cambio-mini .lucha-retrato {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.lucha-cambio-mini .lucha-ps {
+  width: 100%;
+  height: 0.3rem;
+  margin: 0;
+}
+
+.lucha-cambio-mini[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lucha-cambio-mini.en-campo {
+  box-shadow: inset 0 0 0 2px rgb(var(--color-vista));
+  opacity: 0.85;
+}
+
+.lucha-cambio-mini.caido .lucha-retrato {
+  filter: grayscale(1);
+}
+
+.lucha-cambio-mini .lucha-hueco-estado {
+  bottom: 0.6rem;
+}
+
+/* Elección sellada y el rival aún sin elegir: qué elegiste y el botón para cancelarla, bien a la vista */
+.lucha-elegida {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+
+.lucha-elegida p {
+  margin: 0;
+}
+
+.lucha-elegida .lucha-cancelar-eleccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+@media (max-width: 700px) {
+  .lucha-elegir {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .lucha-cambio-datos {
@@ -1594,7 +1776,8 @@
 .lucha-registro {
   display: flex;
   flex-direction: column;
-  max-height: 40rem;
+  height: calc(max(16rem, min(42rem, calc(100vh - 22rem))) + 3.4rem);
+  box-sizing: border-box;
   padding: 0.75rem;
   border-radius: 14px;
   background: var(--t-panel);
@@ -1844,63 +2027,33 @@
 
 /* ---------- La vista previa: los 6 contra los 6 ---------- */
 
-.lucha-previa {
-  display: grid;
-  gap: 0.6rem;
+/* Los seis de cada uno en el campo antes de empezar (js/lucha/index.js, pintarPrevia): colgados de sus
+   pies como los del combate, más pequeños y en zigzag */
+.lucha-previa-campo {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
 }
 
-.lucha-previa h4 {
-  margin: 0 0 0.45rem;
-  font-size: 0.95rem;
-}
-
-.lucha-previa h4 span {
-  font-weight: normal;
-  opacity: 0.75;
-}
-
-.lucha-previa-lado.mio h4 { color: color-mix(in srgb, #5fa8ff 70%, var(--t-texto)); }
-.lucha-previa-lado.suyo h4 { color: color-mix(in srgb, #ff7a6b 70%, var(--t-texto)); }
-
-.lucha-previa-vs {
-  justify-self: center;
-  font-size: 1.1rem;
-}
-
-.lucha-previa-fila {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
-  gap: 0.4rem;
-}
-
-.lucha-previa-pokemon {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-items: center;
-  gap: 0 0.45rem;
-  padding: 0.35rem 0.5rem;
-  border-radius: 0.6rem;
-  background: var(--t-control);
+.lucha-previa-sprite {
+  position: absolute;
+  translate: -50% -100%;
+  line-height: 0;
+  pointer-events: auto;
   cursor: help;
+  animation: lucha-previa-entra 0.45s ease-out both;
 }
 
-.lucha-previa-pokemon .lucha-retrato {
-  grid-row: span 2;
-  width: 2.4rem;
-  height: 2.4rem;
+.lucha-previa-sprite img {
+  display: block;
+  max-width: none;
+  height: auto;
+  image-rendering: pixelated;
 }
 
-.lucha-previa-pokemon strong {
-  overflow: hidden;
-  font-size: 0.88rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.lucha-previa-pokemon small {
-  font-size: 0.72rem;
-  opacity: 0.75;
+@keyframes lucha-previa-entra {
+  from { opacity: 0; transform: translateY(12%); }
 }
 
 .lucha-previa-tipos {
@@ -1914,22 +2067,14 @@
   background: var(--t-texto);
 }
 
-.lucha-previa-pokemon .lucha-previa-tipos {
-  grid-column: 2;
-}
 
 /* ---------- Lo resaltado en el registro y en la frase de abajo ----------
    Cada ataque del color de su tipo (en una pastilla suave), las habilidades en violeta y en cursiva,
    los objetos en ámbar, y los Pokémon de cada uno en su color: los tuyos azulados y los del rival rojizos. */
 
 .lucha-r-ataque {
-  padding: 0 0.3rem;
-  border-radius: 0.3rem;
-  background: color-mix(in srgb, var(--c) 28%, transparent);
-  box-shadow: inset 2px 0 0 var(--c);
-  color: color-mix(in srgb, var(--c) 55%, var(--t-texto));
+  color: color-mix(in srgb, var(--c) 72%, var(--t-texto));
   font-weight: 800;
-  white-space: nowrap;
 }
 
 .lucha-r-habilidad {
@@ -2028,7 +2173,7 @@
   }
 
   .lucha-registro {
-    max-height: 18rem;
+    height: 18rem;
   }
 }
 
