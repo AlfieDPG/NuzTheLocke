@@ -489,11 +489,6 @@ function randomizarAtaques(datos, reglas, azar) {
       usados.add(a.id);
       return { id: a.id, nivel, potencia: a.potencia };
     });
-    // Siempre algo con lo que pegar entre los primeros
-    if (nuevos.length && !nuevos.slice(0, 4).some((a) => a.potencia > 1)) {
-      const danino = azar.elegir(pos.sueltos.filter((a) => a.potencia > 1 && (!tipo || e.tipos.includes(a.tipo))));
-      if (danino) nuevos[0] = { id: danino.id, nivel: nuevos[0].nivel, potencia: danino.potencia };
-    }
     // Que empiecen con al menos «inicio» ataques: los que falten, nuevos a nivel 1. Los niveles de
     // la lista no se tocan: sigue aprendiendo en los mismos niveles que en el juego. Sin pasar de
     // MAX_APRENDE en total (o de los que ya tenía, si eran más), por si el juego tiene tope
@@ -507,17 +502,23 @@ function randomizarAtaques(datos, reglas, azar) {
       }
     }
     nuevos.sort((a, b) => a.nivel - b.nivel);
-    // Los que hacen daño, de más flojo a más fuerte (en los mismos niveles)
+    // Siempre algo con lo que pegar: a cualquier nivel sabe los cuatro últimos que ha aprendido
+    // (salvajes, regalos, fijos...), así que en cada cuatro seguidos de la lista, uno que haga daño.
+    // Si no lo hay, el último de esos cuatro sale por otro que sí (y sirve también a los siguientes)
+    for (let i = Math.min(3, nuevos.length - 1); i < nuevos.length; i++) {
+      if (nuevos.slice(Math.max(0, i - 3), i + 1).some((a) => a.potencia > 1)) continue;
+      const ya = new Set(nuevos.map((a) => a.id));
+      const daninos = pos.sueltos.filter((a) => a.potencia > 1 && !ya.has(a.id));
+      const danino = azar.elegir(daninos.filter((a) => !tipo || e.tipos.includes(a.tipo))) || azar.elegir(daninos);
+      if (danino) nuevos[i] = { id: danino.id, nivel: nuevos[i].nivel, potencia: danino.potencia };
+    }
+    // Los que hacen daño, de más flojo a más fuerte (en los mismos niveles; los huecos de los que
+    // hacen daño no se mueven, así que lo de arriba se sigue cumpliendo)
     if (reglas.ataques.orden) {
       const sitios = nuevos.map((a, i) => (a.potencia > 1 ? i : -1)).filter((i) => i >= 0);
       const niveles = sitios.map((i) => nuevos[i].nivel);
       const ordenados = sitios.map((i) => nuevos[i]).sort((a, b) => a.potencia - b.potencia);
       sitios.forEach((i, k) => (nuevos[i] = { ...ordenados[k], nivel: niveles[k] }));
-    }
-    // Y, ya ordenados, que entre los primeros (los que sabe de salida) haya alguno que haga daño
-    if (nuevos.length && !nuevos.slice(0, 4).some((a) => a.potencia > 1)) {
-      const danino = azar.elegir(pos.sueltos.filter((a) => a.potencia > 1 && (!tipo || e.tipos.includes(a.tipo))));
-      if (danino) nuevos[0] = { id: danino.id, nivel: nuevos[0].nivel, potencia: danino.potencia };
     }
     datos.aprende[e.id] = nuevos.map((a) => [a.id, a.nivel]);
   }
