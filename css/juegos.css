@@ -21,6 +21,48 @@
   height: 2.4rem;
 }
 
+/* ---------- Ventana de un regalo (js/comun/regalos.js) ---------- */
+
+.regalo-ventana {
+  --color-vista: 76, 182, 92;
+  width: min(28rem, 92vw);
+}
+
+.regalo-ventana .regalo-titulo {
+  font-size: 1.25rem;
+}
+
+.regalo-cantidad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0.9rem 0 0.5rem;
+  padding: 0.7rem;
+  border-radius: 0.6rem;
+  background: rgba(76, 182, 92, 0.12);
+}
+
+.regalo-cantidad strong {
+  font-size: 2rem;
+  color: rgb(76, 182, 92);
+}
+
+.regalo-despues {
+  margin-bottom: 0.9rem;
+}
+
+/* Solo el título va en negrita (.ventana-texto pone en negrita el primer párrafo) */
+.regalo-despues p:first-child {
+  font-weight: normal;
+}
+
+.regalo-despues .regalo-firma {
+  text-align: right;
+  font-style: italic;
+  opacity: 0.8;
+}
+
 /* Los iconos de dentro de los botones y textos de «Juegos», del tamaño de la letra (si no,
    el SVG sale a su tamaño y se come el botón) */
 #vista-juegos .icono {

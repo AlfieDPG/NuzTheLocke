@@ -34,6 +34,7 @@ import { iniciarAvisosForo } from "./comun/avisos-foro.js";
 import { iniciarAvisos } from "./avisos.js";
 import { iniciarPresencia, borrarMiPresencia } from "./comun/presencia.js";
 import { iniciarLogros } from "./comun/logros.js";
+import { iniciarRegalos } from "./comun/regalos.js";
 
 const cajon = document.querySelector(".sesion");
 const datosUsuario = cajon.querySelector(".sesion-usuario");
@@ -437,6 +438,7 @@ export async function iniciarSesionUI() {
   iniciarAvisos();
   iniciarPresencia();
   iniciarLogros();
+  iniciarRegalos();
   alCambiarMiPerfil(() => {
     pintarNombre();
     revisarMote();

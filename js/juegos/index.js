@@ -22,6 +22,7 @@ import {
   saldo, rachaDe, bonoRacha, fichasDeLogros, fichasDeJuegos, FICHAS_POR_NIVEL, MARCOS, TITULOS, loTiene, tieneMarco, porPrecio,
   marcoDe, claseMarco, claseTitulo, plantillaTituloDe, comprar, hoy, fichasDeLaSemana, jugoHoy
 } from "../comun/fichas.js";
+import { fichasDeRegalos } from "../comun/regalos.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
 import { NIVELES, LOGROS } from "../comun/logros.js";
 import { copiarAlPortapapeles } from "../equipos/exportar.js";
@@ -77,7 +78,7 @@ function pintarCabecera() {
       <span class="ficha-moneda grande"></span>
       <div>
         <strong>${numero(saldo(perfil))}</strong> <span>${t("Pokédólares")}</span>
-        <small>${t("{logros} de logros · {juegos} de retos", { logros: numero(fichasDeLogros(perfil)), juegos: numero(fichasDeJuegos(perfil)) })}</small>
+        <small>${t("{logros} de logros · {juegos} de retos", { logros: numero(fichasDeLogros(perfil)), juegos: numero(fichasDeJuegos(perfil)) })}${fichasDeRegalos() ? ` · ${t("{n} de regalos", { n: numero(fichasDeRegalos()) })}` : ""}</small>
       </div>
     </div>
     <div class="juegos-racha ${racha ? "activa" : ""}">

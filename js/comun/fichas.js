@@ -5,7 +5,8 @@
 // para la foto y títulos. Nada que cambie los lockes.
 //
 // El saldo no se guarda: se calcula.
-//   saldo = Pokédólares de tus logros + perfil.juegos.ganadas − lo pagado (perfil.compras)
+//   saldo = Pokédólares de tus logros + perfil.juegos.ganadas + los regalos (regalos.js)
+//           − lo pagado (perfil.compras)
 //           − lo gastado en huevos + lo devuelto por repetidos (perfil.huevos, ver coleccion.js)
 // Así cada logro da sus Pokédólares (también los conseguidos antes de que hubiera Pokédólares) sin
 // apuntar nada más.
@@ -30,6 +31,7 @@ import { usuarioActual, baseDeDatos } from "./nube.js";
 import { miPerfil, guardarMiPerfil, perfilesDeAmigos } from "./perfiles.js";
 import { LOGROS } from "./logros.js";
 import { FONDOS_TIENDA, fondoDe, claseFondo, estiloFondo } from "./fondos.js";
+import { fichasDeRegalos } from "./regalos.js";
 import { tiposEs } from "./tipos.js";
 import { t } from "./idioma.js";
 
@@ -132,7 +134,7 @@ export function balanceHuevos(perfil) {
 }
 
 export function saldo(perfil) {
-  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) - gastadas(perfil) + balanceHuevos(perfil));
+  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) + fichasDeRegalos() - gastadas(perfil) + balanceHuevos(perfil));
 }
 
 // ---------- Jugadas ----------

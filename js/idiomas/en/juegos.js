@@ -8,6 +8,16 @@ export default {
   "Tienda": "Shop",
   "Pokédólares": "Pokédollars",
   "{logros} de logros · {juegos} de retos": "{logros} from achievements · {juegos} from challenges",
+  "{n} de regalos": "{n} from gifts",
+
+  // Regalos (js/comun/regalos.js)
+  "¡Ya somos más de 100!": "We're over 100!",
+  "¡Hola! Solo quería contaros que NuzTheLocke ya ha pasado de los 100 usuarios. ¡Gracias por usar la web!\n\nPara celebrarlo, os dejo un regalo a todos:":
+    "Hi! Just wanted to let you know that NuzTheLocke has passed 100 users. Thanks for using the site!\n\nTo celebrate, here's a gift for everyone:",
+  "Ya los tenéis en vuestro saldo: gastadlos en la Tienda o en huevos de la Colección, dentro de «Juegos».\n\nY una cosa más: si os gusta la web, pasádsela a vuestros amigos, a vuestro grupo de lockes o a quien sepáis que está jugando uno. Cuantos más seamos, más cosas podré ir añadiendo. ¡A por los 200!":
+    "They're already in your balance: spend them in the Shop or on Collection eggs, under “Games”.\n\nAnd one more thing: if you like the site, share it with your friends, your locke group or anyone you know who's playing one. The more of us there are, the more I'll be able to add. On to 200!",
+  "¡Gracias!": "Thanks!",
+
   "{n} día seguido": "{n}-day streak",
   "{n} días seguidos": "{n}-day streak",
   "Hoy, +{n} Pokédólares extra por reto": "Today, +{n} bonus Pokédollars per challenge",
