@@ -24,7 +24,7 @@ import {
 } from "../comun/fichas.js";
 import { fichasDeRegalos } from "../comun/regalos.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
-import { NIVELES, LOGROS } from "../comun/logros.js";
+import { NIVELES } from "../comun/logros.js";
 import { copiarAlPortapapeles } from "../equipos/exportar.js";
 import { t, LOCALE } from "../comun/idioma.js";
 import { coloresParaDaltonicos } from "../comun/ajustes.js";
@@ -302,16 +302,12 @@ const TIPOS_ARTICULO = {
   titulo: { campo: "titulo", quitar: null }
 };
 
-// Los marcos de metal no se compran: salen con su logro (y si no lo tienes, lo que pide)
 function plantillaArticulo(articulo, tipo, muestra, perfil) {
   const tuyo = tipo === "marco" ? tieneMarco(perfil, articulo) : loTiene(perfil, articulo.id);
   const puesto = tuyo && perfil && perfil[TIPOS_ARTICULO[tipo].campo] === articulo.id;
   const llega = saldo(perfil) >= articulo.precio;
-  const logro = articulo.logro && LOGROS.find((cada) => cada.id === articulo.logro);
   let accion;
-  if (!tuyo && logro) {
-    accion = `<small class="tienda-logro" title="${escaparHTML(logro.descripcion)}">${icono("trofeo")} ${t("Logro «{nombre}»", { nombre: escaparHTML(logro.nombre) })}</small>`;
-  } else if (!tuyo) {
+  if (!tuyo) {
     accion = `<button class="tienda-comprar" data-comprar="${articulo.id}" ${perfil && llega ? "" : "disabled"}
                       title="${llega ? t("Comprar") : t("Te faltan {n} Pokédólares", { n: numero(articulo.precio - saldo(perfil)) })}">
                 ${moneda(articulo.precio)}
@@ -356,7 +352,8 @@ function pintarTienda() {
   const fondos = porPrecio(FONDOS_TIENDA).map((fondo) =>
     plantillaArticulo(fondo, "fondo", `<span class="tienda-muestra ${claseFondo(fondo.id)}" style="${estiloFondo(fondo.id)}"></span>`, perfil)
   ).join("");
-  const marcos = porPrecio(MARCOS).map((marco) =>
+  // Solo los que se compran: los de metal (plata, oro y platino) vienen con sus logros
+  const marcos = porPrecio(MARCOS.filter((marco) => marco.precio)).map((marco) =>
     plantillaArticulo(marco, "marco", `<span class="tienda-muestra tienda-muestra-marco"><span class="tienda-foto ${claseMarco(marco.id)}">${fotoDeMuestra(perfil)}</span></span>`, perfil)
   ).join("");
   const titulos = porPrecio(TITULOS).map((titulo) =>
@@ -381,7 +378,7 @@ function pintarTienda() {
       ${perfil ? "" : `<p>${t("Inicia sesión para comprar.")}</p>`}
     </aside>
     ${apartado(t("Fondos"), t("Para tu tarjeta de «Amigos» y la cabecera de tu perfil."), fondos)}
-    ${apartado(t("Marcos"), t("Alrededor de tu foto, en tu perfil y en «Amigos». Los de plata, oro y platino no se compran: vienen con los logros de 25, 50 y todos los logros."), marcos)}
+    ${apartado(t("Marcos"), t("Alrededor de tu foto, en tu perfil y en «Amigos». Los de un solo color vienen con los logros de cada tipo."), marcos)}
     ${apartado(t("Títulos"), t("Una plaquita debajo de tu nombre, en tu perfil."), titulos, "tienda-titulos")}`;
 }
 

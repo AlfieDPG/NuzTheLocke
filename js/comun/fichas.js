@@ -118,9 +118,10 @@ export function fichasDeJuegos(perfil) {
 }
 
 // Solo lo que sigue a la venta: si algo deja de venderse (los marcos de metal pasaron a ser
-// de logros), lo pagado vuelve al saldo
+// de logros), lo pagado vuelve al saldo. Salvo los marcos de tipo lisos, que también pasaron a ser
+// de logros pero quien los compró se los queda (y por eso no se le devuelve lo que pagó).
 export function gastadas(perfil) {
-  const aLaVenta = new Set(ARTICULOS.map((articulo) => articulo.id));
+  const aLaVenta = new Set([...ARTICULOS, ...MARCOS.filter((marco) => marco.liso)].map((articulo) => articulo.id));
   return Object.entries((perfil && perfil.compras) || {})
     .filter(([id]) => aLaVenta.has(id))
     .reduce((suma, [, precio]) => suma + (Number(precio) || 0), 0);
@@ -200,10 +201,15 @@ export async function borrarMisJugadas() {
 // El precio va por lo elaborado que es, no por gustos: lo que es igual de trabajado cuesta
 // lo mismo. La Tienda los enseña siempre del más barato al más caro.
 
-// Marcos: uno por tipo, todos con el mismo diseño (borde y aro del color del tipo, con un
-// brillo suave: css/juegos.css, .marco-de-tipo) y el mismo precio; los animados (con
-// movimiento), todos al mismo precio, más caro; y los de metal, que no se compran.
-const PRECIO_MARCO_TIPO = 200;
+// Marcos:
+//   · De tipo con dibujo: uno por tipo, cada uno con lo suyo alrededor (burbujas, llamas, una
+//     telaraña...) y sin movimiento: css/marcos-dibujo.css, de herramientas/generar-marcos.mjs.
+//     Todos al mismo precio.
+//   · Los animados (con movimiento), todos al mismo precio, más caro.
+//   · No se compran (ni salen en la Tienda): los de tipo lisos (borde y aro del color del tipo con un
+//     brillo suave: css/juegos.css, .marco-de-tipo), que vienen con el logro de ese tipo (como su
+//     fondo), y los de metal. Los lisos se vendían antes: quien compró alguno lo conserva.
+const PRECIO_MARCO_DIBUJO = 300;
 const PRECIO_MARCO_ANIMADO = 800;
 
 const MARCO_DE_TIPO = {
@@ -214,14 +220,26 @@ const MARCO_DE_TIPO = {
   steel: "marco-acero", fairy: "marco-hada"
 };
 
+// Los de tipo con dibujo: id marco-tipo-<tipo> y su nombre
+const MARCO_DIBUJO = {
+  normal: "Estrellas", fire: "Hoguera", water: "Gran burbuja", electric: "Voltio", grass: "Flores",
+  ice: "Carámbanos", fighting: "Cinta de combate", poison: "Gotas de veneno", ground: "Tierra firme",
+  flying: "Entre nubes", psychic: "Ondas psíquicas", bug: "Telaraña", rock: "Pedregal", ghost: "Sábana",
+  dragon: "Cuernos de dragón", dark: "Luna negra", steel: "Engranaje", fairy: "Alas de mariposa"
+};
+
 export const MARCOS = [
-  ...Object.entries(MARCO_DE_TIPO).map(([tipo, id]) => ({ id, nombre: tiposEs[tipo], tipo, precio: PRECIO_MARCO_TIPO })),
+  ...Object.entries(MARCO_DIBUJO).map(([tipo, nombre]) => ({ id: `marco-tipo-${tipo}`, nombre: t(nombre), tipo, dibujo: true, precio: PRECIO_MARCO_DIBUJO })),
+  ...Object.entries(MARCO_DE_TIPO).map(([tipo, id]) => ({ id, nombre: tiposEs[tipo], tipo, liso: true, logro: `t-${tipo}` })),
   { id: "marco-arcoiris", nombre: t("Arcoíris"), precio: PRECIO_MARCO_ANIMADO },
   { id: "marco-estelar", nombre: t("Estelar"), precio: PRECIO_MARCO_ANIMADO },
   { id: "marco-aura", nombre: t("Aura"), precio: PRECIO_MARCO_ANIMADO },
   { id: "marco-llamarada", nombre: t("Llamarada"), precio: PRECIO_MARCO_ANIMADO },
   { id: "marco-latido", nombre: t("Latido"), precio: PRECIO_MARCO_ANIMADO },
   { id: "marco-chispazo", nombre: t("Chispazo"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-jungla", nombre: t("Jungla"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-celestial", nombre: t("Celestial"), precio: PRECIO_MARCO_ANIMADO },
+  { id: "marco-escarcha", nombre: t("Escarcha"), precio: PRECIO_MARCO_ANIMADO },
   // Los de metal no se compran: vienen con los mismos logros que los fondos de metal
   // (25 logros, 50 y todos: ver LOGROS_PARA_PLATA y LOGROS_PARA_ORO en logros.js)
   { id: "marco-plata", nombre: t("Plata"), logro: "m-30" },
@@ -293,9 +311,10 @@ export function loTiene(perfil, id) {
   return Boolean(((perfil && perfil.compras) || {})[id]);
 }
 
-// Un marco: comprado o, los de metal, con su logro
+// Un marco: comprado o, los de logro, con su logro (los de tipo lisos, también si se compraron antes)
 export function tieneMarco(perfil, marco) {
-  return marco.logro ? Boolean(((perfil && perfil.logros) || {})[marco.logro]) : loTiene(perfil, marco.id);
+  if (!marco.logro) return loTiene(perfil, marco.id);
+  return Boolean(((perfil && perfil.logros) || {})[marco.logro]) || Boolean(marco.liso && loTiene(perfil, marco.id));
 }
 
 // El marco que lleva puesto ("" si ninguno o si no lo tiene)
@@ -307,7 +326,8 @@ export function marcoDe(perfil) {
 export function claseMarco(id) {
   if (!id) return "";
   const marco = MARCOS.find((cada) => cada.id === id);
-  return marco && marco.tipo ? `con-marco marco-de-tipo ${id}` : `con-marco ${id}`;
+  if (marco && marco.dibujo) return `con-marco marco-dibujo ${id}`;
+  return marco && marco.liso ? `con-marco marco-de-tipo ${id}` : `con-marco ${id}`;
 }
 
 // El marco y el fondo de alguien sabiendo solo su uid (foros, lockes, cementerio, chat...):

@@ -1,0 +1,348 @@
+/* Los marcos de tipo con dibujo (los de la Tienda; js/comun/fichas.js, MARCOS).
+   GENERADO por herramientas/generar-marcos.mjs: no se toca a mano, se cambia allí y se vuelve a
+   ejecutar. El dibujo (img/marcos/tipo-*.svg) va en un ::after DETRÁS de la foto, como en Jungla y
+   Celestial; la foto deja de recortar y se redondea la imagen. En las fotos que son un <img> suelto
+   (chat, barra lateral) no hay ::after: ahí queda el aro del color del tipo. */
+
+.con-marco.marco-dibujo {
+  position: relative;
+  overflow: visible !important;
+  isolation: isolate;
+}
+
+.con-marco.marco-dibujo > * {
+  border-radius: 50%;
+}
+
+.con-marco.marco-dibujo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background: center / 100% 100% no-repeat;
+}
+
+.con-marco.marco-tipo-normal {
+  border-color: #a8a77a !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #5e5d40;
+}
+
+.con-marco.marco-tipo-normal::after {
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 140%;
+  background-image: url("../img/marcos/tipo-normal.svg");
+}
+
+.con-marco.marco-tipo-fire {
+  border-color: #ee8130 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #8a3410;
+}
+
+.con-marco.marco-tipo-fire::after {
+  left: -22%;
+  top: -22%;
+  width: 144%;
+  height: 144%;
+  background-image: url("../img/marcos/tipo-fire.svg");
+}
+
+.con-marco.marco-tipo-water {
+  border-color: #6390f0 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #2a50a8;
+}
+
+.con-marco.marco-tipo-water::after {
+  left: -35%;
+  top: -35%;
+  width: 170%;
+  height: 170%;
+  background-image: url("../img/marcos/tipo-water.svg");
+}
+
+.con-marco.marco-tipo-electric {
+  border-color: #f7d02c !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #8a6a00;
+}
+
+.con-marco.marco-tipo-electric::after {
+  left: -42%;
+  top: -42%;
+  width: 184%;
+  height: 184%;
+  background-image: url("../img/marcos/tipo-electric.svg");
+}
+
+.con-marco.marco-tipo-grass {
+  border-color: #f383b0 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #a8406e;
+}
+
+.con-marco.marco-tipo-grass::after {
+  left: -25%;
+  top: -25%;
+  width: 150%;
+  height: 150%;
+  background-image: url("../img/marcos/tipo-grass.svg");
+}
+
+.con-marco.marco-tipo-grass::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: auto;
+  left: -25%;
+  top: -25%;
+  width: 150%;
+  height: 150%;
+  background: url("../img/marcos/tipo-grass-delante.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.con-marco.marco-tipo-ice {
+  border-color: #96d9d6 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #3a8a90;
+}
+
+.con-marco.marco-tipo-ice::after {
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 140%;
+  background-image: url("../img/marcos/tipo-ice.svg");
+}
+
+.con-marco.marco-tipo-fighting {
+  border-color: #c22e28 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #6a1410;
+}
+
+.con-marco.marco-tipo-fighting::after {
+  left: -20%;
+  top: -20%;
+  width: 148%;
+  height: 140%;
+  background-image: url("../img/marcos/tipo-fighting.svg");
+}
+
+.con-marco.marco-tipo-fighting::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: auto;
+  left: -20%;
+  top: -20%;
+  width: 148%;
+  height: 140%;
+  background: url("../img/marcos/tipo-fighting-delante.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.con-marco.marco-tipo-poison {
+  border-color: #a33ea1 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #5a1a58;
+}
+
+.con-marco.marco-tipo-poison::after {
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 150%;
+  background-image: url("../img/marcos/tipo-poison.svg");
+}
+
+.con-marco.marco-tipo-ground {
+  border-color: #5a3a12 !important;
+  box-shadow: none;
+}
+
+.con-marco.marco-tipo-ground::after {
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 140%;
+  background-image: url("../img/marcos/tipo-ground.svg");
+}
+
+.con-marco.marco-tipo-ground::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: auto;
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 140%;
+  background: url("../img/marcos/tipo-ground-delante.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.con-marco.marco-tipo-flying {
+  border-color: #7ec8f0 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #2a78b8;
+}
+
+.con-marco.marco-tipo-flying::after {
+  left: -35%;
+  top: -35%;
+  width: 170%;
+  height: 170%;
+  background-image: url("../img/marcos/tipo-flying.svg");
+}
+
+.con-marco.marco-tipo-flying::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: auto;
+  left: -35%;
+  top: -35%;
+  width: 170%;
+  height: 170%;
+  background: url("../img/marcos/tipo-flying-delante.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.con-marco.marco-tipo-psychic {
+  border-color: #f95587 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #8a1a40;
+}
+
+.con-marco.marco-tipo-psychic::after {
+  left: -38%;
+  top: -38%;
+  width: 176%;
+  height: 176%;
+  background-image: url("../img/marcos/tipo-psychic.svg");
+}
+
+.con-marco.marco-tipo-psychic::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: auto;
+  left: -38%;
+  top: -38%;
+  width: 176%;
+  height: 176%;
+  background: url("../img/marcos/tipo-psychic-delante.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.con-marco.marco-tipo-bug {
+  border-color: #a6b91a !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #5a6a10;
+}
+
+.con-marco.marco-tipo-bug::after {
+  left: -35%;
+  top: -35%;
+  width: 170%;
+  height: 170%;
+  background-image: url("../img/marcos/tipo-bug.svg");
+}
+
+.con-marco.marco-tipo-rock {
+  border-color: #4a3e2c !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #2e261a;
+}
+
+.con-marco.marco-tipo-rock::after {
+  left: -25%;
+  top: -25%;
+  width: 150%;
+  height: 150%;
+  background-image: url("../img/marcos/tipo-rock.svg");
+}
+
+.con-marco.marco-tipo-rock::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: auto;
+  left: -25%;
+  top: -25%;
+  width: 150%;
+  height: 150%;
+  background: url("../img/marcos/tipo-rock-delante.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.con-marco.marco-tipo-ghost {
+  border-color: #735797 !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #3e2a58;
+}
+
+.con-marco.marco-tipo-ghost::after {
+  left: -38%;
+  top: -20%;
+  width: 176%;
+  height: 160%;
+  background-image: url("../img/marcos/tipo-ghost.svg");
+}
+
+.con-marco.marco-tipo-dragon {
+  border-color: #6f35fc !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #3a1a8a;
+}
+
+.con-marco.marco-tipo-dragon::after {
+  left: -40%;
+  top: -36%;
+  width: 180%;
+  height: 146%;
+  background-image: url("../img/marcos/tipo-dragon.svg");
+}
+
+.con-marco.marco-tipo-dragon::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: auto;
+  left: -40%;
+  top: -36%;
+  width: 180%;
+  height: 146%;
+  background: url("../img/marcos/tipo-dragon-delante.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.con-marco.marco-tipo-dark {
+  border-color: #ddd6f0 !important;
+  box-shadow: none;
+}
+
+.con-marco.marco-tipo-dark::after {
+  left: -32%;
+  top: -36%;
+  width: 162%;
+  height: 162%;
+  background-image: url("../img/marcos/tipo-dark.svg");
+}
+
+.con-marco.marco-tipo-steel {
+  border-color: #b7b7ce !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #5a5a70;
+}
+
+.con-marco.marco-tipo-steel::after {
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 140%;
+  background-image: url("../img/marcos/tipo-steel.svg");
+}
+
+.con-marco.marco-tipo-fairy {
+  border-color: #d685ad !important;
+  box-shadow: 0 0 0 calc(var(--g) * 2) #8a3a6a;
+}
+
+.con-marco.marco-tipo-fairy::after {
+  left: -35%;
+  top: -20%;
+  width: 170%;
+  height: 140%;
+  background-image: url("../img/marcos/tipo-fairy.svg");
+}

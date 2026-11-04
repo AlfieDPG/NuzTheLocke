@@ -347,6 +347,10 @@
 .logro-premio.fondo-platino { box-shadow: inset 0 0 0 1px rgba(127, 224, 240, 0.6); }
 .logro-premio.fondo-tipo { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tipo) 70%, transparent); }
 
+/* El marco liso que da cada logro de tipo: la plaquita con el borde del color del tipo (--marco,
+   de las clases .marco-brasa... de css/juegos.css) */
+.logro-premio.logro-premio-marco { box-shadow: inset 0 0 0 2px var(--marco); }
+
 /* En los de tipo, el mosaico más pequeño (si no, en algo tan chico no se ve el icono) */
 .logro-premio.fondo-tipo::before {
   -webkit-mask-size: 1.6rem 1.6rem;

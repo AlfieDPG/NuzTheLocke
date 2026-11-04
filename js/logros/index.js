@@ -9,7 +9,7 @@ import { usuarioActual, alCambiarSesion, hayNube } from "../comun/nube.js";
 import { alCambiarMiPerfil } from "../comun/perfiles.js";
 import { LOGROS, CATEGORIAS, NIVELES, progreso, insignia, LOGROS_PARA_PLATA, LOGROS_PARA_ORO } from "../comun/logros.js";
 import { FONDOS, claseFondo, estiloFondo } from "../comun/fondos.js";
-import { FICHAS_POR_NIVEL } from "../comun/fichas.js";
+import { FICHAS_POR_NIVEL, MARCOS } from "../comun/fichas.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
 const vista = document.getElementById("vista-logros");
@@ -40,12 +40,16 @@ function plantillaLogro({ logro, valor, meta, conseguido }) {
       <small class="logro-cuenta">${hecho} / ${meta}</small>`;
   }
 
-  // Los que dan un fondo para la tarjeta: una muestra pequeña de ese fondo
+  // Los que dan un fondo para la tarjeta: una muestra pequeña de ese fondo; y los de tipo, además,
+  // el marco liso de ese tipo (una plaquita con el borde de su color)
   const fondo = FONDOS.find((cada) => cada.id === logro.fondo);
-  const premio = fondo
+  const marco = MARCOS.find((cada) => cada.logro === logro.id && cada.liso);
+  const premio = (fondo
     ? `<span class="logro-premio ${claseFondo(fondo.id)}" style="${estiloFondo(fondo.id)}"
              title="${t("Da el fondo «{nombre}» para tu tarjeta", { nombre: escaparHTML(fondo.nombre) })}">${t("Fondo")}</span>`
-    : "";
+    : "") + (marco
+    ? `<span class="logro-premio logro-premio-marco ${marco.id}" title="${t("Da el marco «{nombre}» para tu foto", { nombre: escaparHTML(marco.nombre) })}">${t("Marco")}</span>`
+    : "");
 
   return `
     <article class="logro ${escaparHTML(logro.nivel)} ${conseguido ? "conseguido" : ""}">

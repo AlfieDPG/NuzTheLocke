@@ -1860,8 +1860,8 @@ button.cara-equipo.mvp:hover img {
   color: var(--t-texto);
 }
 
-/* De Eevee (una por Eeveelution y la de Eevee): cada una con su dibujo y sus dos colores
-   (--c1, --c2) y un resplandor arriba. */
+/* De Eevee (una por Eeveelution y la de Eevee): el dibujo es pixel art (css/fondos-pixel.css, de
+   herramientas/generar-fondos-pixel.mjs); aquí, sus dos colores (--c1, --c2) para el borde y el nombre. */
 .ficha-jugador.fondo-eevee:not(.mia):not(.conectado) {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 0 0 1px color-mix(in srgb, var(--c1) 60%, transparent);
 }
@@ -1875,113 +1875,49 @@ button.cara-equipo.mvp:hover img {
 .perfil-fondo.fondo-eevee .perfil-fondo-nombre {
   color: color-mix(in srgb, var(--c1) 65%, #fff);
 }
-/* Eevee: pelusa suave */
+
 .fondo-eevee.fondo-eevee-eevee {
   --c1: #c8955a;
   --c2: #f3e3b8;
-  background-image:
-    radial-gradient(circle, color-mix(in srgb, var(--c2) 11%, transparent) 0 5px, transparent 8px),
-    radial-gradient(circle, color-mix(in srgb, var(--c2) 7%, transparent) 0 3px, transparent 6px),
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c1) 34%, transparent), transparent 70%);
-  background-size: 34px 34px, 22px 22px, auto;
-  background-position: 0 0, 11px 13px, 0 0;
 }
 
-/* Vaporeon: burbujas que suben y agua al fondo */
 .fondo-eevee.fondo-eevee-vaporeon {
   --c1: #4fa3e0;
   --c2: #a8e0ff;
-  background-image:
-    radial-gradient(circle, transparent 0 5px, color-mix(in srgb, var(--c2) 40%, transparent) 6px 7px, transparent 8px),
-    radial-gradient(circle, transparent 0 2px, color-mix(in srgb, var(--c2) 30%, transparent) 3px 4px, transparent 5px),
-    linear-gradient(to top, color-mix(in srgb, var(--c1) 28%, transparent), transparent 65%),
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c1) 22%, transparent), transparent 70%);
-  background-size: 48px 56px, 26px 30px, auto, auto;
-  background-position: 6px 4px, 30px 18px, 0 0, 0 0;
 }
 
-/* Jolteon: zigzag eléctrico */
 .fondo-eevee.fondo-eevee-jolteon {
   --c1: #f5d23a;
   --c2: #fff3a0;
-  background-image:
-    linear-gradient(135deg, color-mix(in srgb, var(--c1) 9%, transparent) 25%, transparent 25%),
-    linear-gradient(225deg, color-mix(in srgb, var(--c1) 9%, transparent) 25%, transparent 25%),
-    linear-gradient(315deg, color-mix(in srgb, var(--c1) 9%, transparent) 25%, transparent 25%),
-    linear-gradient(45deg, color-mix(in srgb, var(--c1) 9%, transparent) 25%, transparent 25%),
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c1) 30%, transparent), transparent 70%);
-  background-size: 22px 22px, 22px 22px, 22px 22px, 22px 22px, auto;
-  background-position: -11px 0, -11px 0, 0 0, 0 0, 0 0;
 }
 
-/* Flareon: brasas y fuego desde abajo */
 .fondo-eevee.fondo-eevee-flareon {
   --c1: #f2733a;
   --c2: #ffd27a;
-  background-image:
-    radial-gradient(circle, color-mix(in srgb, var(--c2) 55%, transparent) 0 1.5px, transparent 2.5px),
-    radial-gradient(circle, color-mix(in srgb, var(--c1) 50%, transparent) 0 1px, transparent 2px),
-    linear-gradient(to top, color-mix(in srgb, var(--c1) 38%, transparent), color-mix(in srgb, var(--c2) 8%, transparent) 45%, transparent 75%);
-  background-size: 23px 31px, 37px 29px, auto;
-  background-position: 0 0, 12px 9px, 0 0;
 }
 
-/* Espeon: rayos de sol desde arriba y la gema de la frente */
 .fondo-eevee.fondo-eevee-espeon {
   --c1: #d48fd6;
   --c2: #ff5c7a;
-  background-image:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--c2) 55%, transparent) 0 0.3rem, transparent 0.38rem),
-    repeating-conic-gradient(from 0deg at 50% -10%, color-mix(in srgb, var(--c1) 9%, transparent) 0 5deg, transparent 5deg 13deg),
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c1) 30%, transparent), transparent 70%);
 }
 
-/* Umbreon: noche con sus anillos amarillos */
 .fondo-eevee.fondo-eevee-umbreon {
   --c1: #f1c40f;
   --c2: #3b3f5c;
-  background-image:
-    radial-gradient(circle, transparent 0 8px, color-mix(in srgb, var(--c1) 30%, transparent) 9px 11px, transparent 12px),
-    radial-gradient(circle, transparent 0 4px, color-mix(in srgb, var(--c1) 16%, transparent) 5px 6px, transparent 7px),
-    linear-gradient(rgba(10, 10, 20, 0.35), rgba(10, 10, 20, 0.35));
-  background-size: 52px 52px, 52px 52px, auto;
-  background-position: 0 0, 26px 26px, 0 0;
 }
 
-/* Leafeon: follaje de hojas superpuestas (como escamas) y rayos de sol entre las hojas */
 .fondo-eevee.fondo-eevee-leafeon {
   --c1: #7bc96f;
   --c2: #f3e7a6;
-  background-image:
-    repeating-linear-gradient(120deg, transparent 0 34px, color-mix(in srgb, var(--c2) 9%, transparent) 34px 48px, transparent 48px 90px),
-    radial-gradient(circle at 50% 0%, transparent 0 9px, color-mix(in srgb, var(--c1) 24%, transparent) 10px 11.5px, color-mix(in srgb, var(--c1) 9%, transparent) 12px 14px, transparent 14.5px),
-    radial-gradient(circle at 50% 0%, transparent 0 9px, color-mix(in srgb, var(--c1) 17%, transparent) 10px 11.5px, color-mix(in srgb, var(--c1) 7%, transparent) 12px 14px, transparent 14.5px),
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c1) 26%, transparent), transparent 70%),
-    linear-gradient(to top, color-mix(in srgb, #2e7d4f 22%, transparent), transparent 70%);
-  background-size: auto, 24px 16px, 24px 16px, auto, auto;
-  background-position: 0 0, 0 0, 12px 8px, 0 0, 0 0;
 }
-/* Glaceon: red de cristales de hielo con destellos */
 .fondo-eevee.fondo-eevee-glaceon {
   --c1: #7fd6e8;
   --c2: #ffffff;
-  background-image:
-    radial-gradient(circle, color-mix(in srgb, var(--c2) 60%, transparent) 0 1px, transparent 2px),
-    repeating-linear-gradient(60deg, color-mix(in srgb, var(--c1) 16%, transparent) 0 1px, transparent 1px 16px),
-    repeating-linear-gradient(-60deg, color-mix(in srgb, var(--c1) 16%, transparent) 0 1px, transparent 1px 16px),
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c1) 30%, transparent), transparent 70%);
-  background-size: 29px 33px, auto, auto, auto;
 }
 
-/* Sylveon: lazos rosas y azules */
 .fondo-eevee.fondo-eevee-sylveon {
   --c1: #f6a5c0;
   --c2: #7fc4f0;
-  background-image:
-    repeating-linear-gradient(115deg,
-      color-mix(in srgb, var(--c1) 12%, transparent) 0 9px, transparent 9px 22px,
-      color-mix(in srgb, var(--c2) 11%, transparent) 22px 27px, transparent 27px 44px),
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c1) 30%, transparent), transparent 70%);
 }
 
 

@@ -331,7 +331,7 @@ async function contextoJuegos(perfil) {
 
   const tienda = {
     compras: Object.keys(perfil.compras || {}).filter((id) => ARTICULOS.some((articulo) => articulo.id === id)).length,
-    marcosDeTipo: MARCOS.filter((marco) => marco.tipo && tieneMarco(perfil, marco)).length,
+    marcosDeTipo: MARCOS.filter((marco) => marco.dibujo && tieneMarco(perfil, marco)).length,
     fondosTodos: FONDOS_TIENDA.every((fondo) => loTiene(perfil, fondo.id)),
     titulosTodos: TITULOS.every((titulo) => loTiene(perfil, titulo.id)),
     estelar: loTiene(perfil, "marco-estelar"),

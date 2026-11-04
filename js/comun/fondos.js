@@ -11,8 +11,7 @@
 //     dibujo es un mosaico con el icono del tipo (img/fondos/<tipo>.svg, hecho a partir de
 //     img/tipos/) del color del tipo: un solo estilo para todos (.fondo-tipo).
 //   · De Eevee (uno por Eeveelution y el de Eevee): con los logros de registrarlas (logros.js,
-//     «x-vaporeon»... y «x-eeveelutions»). Cada uno con su dibujo en CSS
-//     (css/amigos.css, .fondo-eevee-vaporeon...).
+//     «x-vaporeon»... y «x-eeveelutions»). Cada uno con su paisaje en pixel art (ver más abajo).
 //   · De la Tienda: se compran con Pokédólares (FONDOS_TIENDA, js/comun/fichas.js).
 //   · De región: con el logro de completar esa generación en la colección (FONDOS_REGION).
 
@@ -40,8 +39,8 @@ export const FONDOS_EEVEE = [
 ];
 
 // Los de la Tienda de «Juegos» (js/comun/fichas.js): se compran con Pokédólares en vez de con un
-// logro. El dibujo, en CSS (css/juegos.css, .fondo-tienda-hierba...). El precio va por lo
-// elaborado que es: sencillos (un dibujo que se repite), detallados (varias capas) y animados.
+// logro. El dibujo, en pixel art (ver FONDOS_REGION, abajo). El precio va por lo elaborado que es:
+// sencillos (un paisaje), detallados (varias capas) y animados.
 const PRECIO_FONDO = { sencillo: 300, detallado: 450, animado: 700 };
 
 export const FONDOS_TIENDA = [
@@ -54,13 +53,24 @@ export const FONDOS_TIENDA = [
   { id: "tienda-noche", nombre: t("Noche estrellada"), nivel: "animado" },
   { id: "tienda-casino", nombre: t("Casino"), nivel: "animado" },
   { id: "tienda-magma", nombre: t("Magma"), nivel: "detallado" },
-  { id: "tienda-aurora", nombre: t("Aurora"), nivel: "animado" }
+  { id: "tienda-aurora", nombre: t("Aurora"), nivel: "animado" },
+  { id: "tienda-desierto", nombre: t("Desierto"), nivel: "sencillo" },
+  { id: "tienda-bayas", nombre: t("Huerto de bayas"), nivel: "sencillo" },
+  { id: "tienda-eevee", nombre: t("Eeveelutions"), nivel: "animado" },
+  { id: "tienda-espacio", nombre: t("Espacio exterior"), nivel: "detallado" },
+  { id: "tienda-rocket", nombre: t("Guarida Rocket"), nivel: "animado" },
+  { id: "tienda-cementerio", nombre: t("Cementerio"), nivel: "animado" },
+  { id: "tienda-marino", nombre: t("Fondo marino"), nivel: "animado" },
+  { id: "tienda-tormenta", nombre: t("Tormenta"), nivel: "animado" }
 ].map((fondo) => ({ ...fondo, precio: PRECIO_FONDO[fondo.nivel] }));
 
 // Los de región: uno por generación, con el logro de completarla en la colección de huevos de
-// «Juegos» (logros.js, «c-gen-1»...). No se compran. El dibujo, un paisaje de cada región en pixel
-// art (img/fondos/region-kanto.png..., de herramientas/generar-fondos-region.mjs) puesto en CSS
-// (css/juegos.css, .fondo-region-kanto...).
+// «Juegos» (logros.js, «c-gen-1»...). No se compran. El dibujo, un paisaje de cada región.
+//
+// Los de región y los de la Tienda son pixel art dibujado por código: lo pinta
+// herramientas/generar-fondos-pixel.mjs, que deja las capas en img/fondos/ y su CSS en
+// css/fondos-pixel.css (.fondo-region-kanto, .fondo-tienda-hierba...). Llevan además la clase
+// fondo-pixel, que dice lo que mide cada píxel y que se amplíen sin suavizar.
 export const FONDOS_REGION = [
   ["kanto", "Kanto"], ["johto", "Johto"], ["hoenn", "Hoenn"], ["sinnoh", "Sinnoh"], ["teselia", "Teselia"],
   ["kalos", "Kalos"], ["alola", "Alola"], ["galar", "Galar"], ["paldea", "Paldea"]
@@ -106,7 +116,8 @@ export function fondoDe(perfil) {
 export function claseFondo(id) {
   const fondo = FONDOS.find((cada) => cada.id === id);
   if (!fondo) return "";
-  if (fondo.eevee) return `fondo-eevee fondo-${fondo.id}`;
+  if (fondo.eevee) return `fondo-pixel fondo-eevee fondo-${fondo.id}`;
+  if (fondo.region || fondo.precio) return `fondo-pixel fondo-${fondo.id}`;
   return fondo.tipo ? "fondo-tipo" : `fondo-${fondo.id}`;
 }
 

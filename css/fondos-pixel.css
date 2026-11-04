@@ -1,0 +1,665 @@
+/* Fondos en pixel art de la tarjeta de jugador: los de región y los de la Tienda.
+   GENERADO por herramientas/generar-fondos-pixel.mjs: no se toca a mano, se cambia allí y se
+   vuelve a ejecutar. Los dibujos están en img/fondos/ (region-*.png, tienda-*.png).
+
+   Cada píxel del dibujo mide --px: 2px en las tarjetas grandes y 1px en las muestras y franjas
+   (así caben enteros). Se amplían sin suavizar, como el escenario de «Combates». Lo que se mueve
+   desplaza sus capas a saltos de un píxel. */
+
+.fondo-pixel {
+  --px: 2px;
+  image-rendering: pixelated;
+  /* Con tanto dibujo detrás, la letra lleva sombra para que se lea bien (la sombra se hereda:
+     vale para todo lo que va escrito en la tarjeta) */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+/* En el tema claro la letra es oscura: un halo claro en vez de sombra */
+:root[data-tema="claro"] .fondo-pixel {
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+:is(.tienda-muestra, .perfil-fondo, .logro-premio, .lleva-fondo).fondo-pixel {
+  --px: 1px;
+}
+
+/* image-rendering se hereda: que no pase a las fotos de dentro (sin especificidad, así lo que
+   ya diga cada foto sigue mandando) */
+:where(.fondo-pixel) * {
+  image-rendering: auto;
+}
+
+/* Ni en los botones, campos y plaquitas de título, que ya llevan su propio fondo */
+:where(.fondo-pixel) :where(button, input, select, textarea, .perfil-titulo) {
+  text-shadow: none;
+}
+
+/* Kanto: un pueblito con una casa de tejado rojo y otra azul, hierba alta y el monte al fondo */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-kanto {
+  background-image:
+    url("../img/fondos/region-kanto.png"),
+    linear-gradient(115deg, rgba(220, 60, 50, 0.16), rgba(60, 100, 220, 0.18) 60%, transparent);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Johto: otoño, la torre de cinco pisos y hojas que caen */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-johto {
+  background-image:
+    url("../img/fondos/region-johto.png"),
+    linear-gradient(to bottom, rgba(230, 150, 60, 0.24), transparent 75%);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Hoenn: el mar, el volcán echando humo y una isla con palmeras */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-hoenn {
+  background-image:
+    url("../img/fondos/region-hoenn.png"),
+    linear-gradient(to bottom, rgba(60, 150, 220, 0.24), transparent 75%);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Sinnoh: la gran montaña nevada, pinos con nieve y copos */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-sinnoh {
+  background-image:
+    url("../img/fondos/region-sinnoh.png"),
+    linear-gradient(to bottom, rgba(120, 150, 210, 0.26), transparent 75%);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Teselia: la ciudad de noche con las ventanas encendidas y el puente colgante */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-teselia {
+  background-image:
+    url("../img/fondos/region-teselia.png"),
+    linear-gradient(to bottom, rgba(70, 60, 130, 0.32), transparent 80%);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Kalos: la torre de celosía, árboles recortados y parterres de flores */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-kalos {
+  background-image:
+    url("../img/fondos/region-kalos.png"),
+    linear-gradient(to bottom, rgba(240, 170, 200, 0.24), rgba(150, 180, 240, 0.12) 60%, transparent);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Alola: el sol poniéndose en el mar, palmeras y flores */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-alola {
+  background-image:
+    url("../img/fondos/region-alola.png"),
+    linear-gradient(to bottom, rgba(255, 140, 90, 0.28), rgba(230, 90, 150, 0.16) 70%, transparent);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Galar: colinas con muros de piedra, el castillo, ovejas y el cielo nublado */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-galar {
+  background-image:
+    url("../img/fondos/region-galar.png"),
+    linear-gradient(to bottom, rgba(150, 160, 175, 0.24), transparent 75%);
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Paldea: el gran cráter con niebla, mesetas rojas, molinos y un pueblo blanco */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-paldea {
+  background-image:
+    url("../img/fondos/region-paldea.png"),
+    linear-gradient(110deg, rgba(220, 60, 60, 0.2), rgba(140, 70, 200, 0.2));
+  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Eevee: una pradera dorada al atardecer, con dientes de león y sus vilanos volando */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-eevee {
+  background-image:
+    url("../img/fondos/eevee-eevee-pradera.png"),
+    linear-gradient(to bottom, rgba(250, 190, 120, 0.55), rgba(255, 225, 170, 0.5) 60%, rgba(220, 170, 110, 0.4));
+  background-size: calc(256 * var(--px)) calc(60 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Vaporeon: una cascada que cae entre rocas a una laguna, con espuma, bruma y burbujas */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-vaporeon {
+  background-image:
+    url("../img/fondos/eevee-vaporeon-cascada.png"),
+    linear-gradient(to bottom, rgba(90, 170, 230, 0.6), rgba(120, 200, 235, 0.5) 60%, rgba(40, 120, 190, 0.5));
+  background-size: calc(256 * var(--px)) calc(66 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Jolteon: una pradera de noche con hierba de pinchos amarilla, rayos en el cielo, chispas y postes de la luz */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-jolteon {
+  background-image:
+    url("../img/fondos/eevee-jolteon-pradera.png"),
+    linear-gradient(to bottom, rgba(30, 40, 90, 0.6), rgba(60, 60, 110, 0.45) 70%, rgba(80, 70, 40, 0.4));
+  background-size: calc(256 * var(--px)) calc(70 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Flareon: una hoguera de noche con sus troncos y piedras, chispas que suben y árboles de otoño a contraluz */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-flareon {
+  background-image:
+    url("../img/fondos/eevee-flareon-hoguera.png"),
+    linear-gradient(to bottom, rgba(70, 30, 40, 0.55), rgba(150, 60, 40, 0.45) 70%, rgba(230, 110, 40, 0.4));
+  background-size: calc(256 * var(--px)) calc(64 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Espeon: el amanecer, con un sol enorme saliendo detrás de montañas lilas, nubes rosas y destellos */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-espeon {
+  background-image:
+    url("../img/fondos/eevee-espeon-sol.png"),
+    url("../img/fondos/eevee-espeon-montanas.png"),
+    linear-gradient(to bottom, rgba(150, 110, 200, 0.55), rgba(250, 150, 180, 0.5) 55%, rgba(255, 200, 140, 0.5));
+  background-size: calc(70 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), auto;
+  background-position: right calc(40 * var(--px)) bottom calc(16 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, repeat-x, no-repeat;
+}
+
+/* Umbreon: la luna llena sobre un bosque oscuro, su reflejo en el estanque y luces amarillas en forma de anillo */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-umbreon {
+  background-image:
+    url("../img/fondos/eevee-umbreon-luna.png"),
+    url("../img/fondos/eevee-umbreon-bosque.png"),
+    linear-gradient(to bottom, rgba(20, 22, 50, 0.6), rgba(40, 40, 80, 0.45) 70%);
+  background-size: calc(40 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(56 * var(--px)), auto;
+  background-position: right calc(36 * var(--px)) top calc(6 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, repeat-x, no-repeat;
+}
+
+/* Leafeon: un bosque frondoso con las copas juntas arriba, troncos, helechos y hojas que caen */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-leafeon {
+  background-image:
+    url("../img/fondos/eevee-leafeon-bosque.png"),
+    linear-gradient(to bottom, rgba(120, 190, 110, 0.55), rgba(180, 220, 140, 0.45) 60%, rgba(60, 120, 60, 0.45));
+  background-size: calc(256 * var(--px)) calc(60 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Glaceon: un glaciar con acantilados de hielo, cristales, nieve y polvo de diamante que brilla en el aire */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-glaceon {
+  background-image:
+    url("../img/fondos/eevee-glaceon-glaciar.png"),
+    url("../img/fondos/eevee-glaceon-diamantes.png"),
+    linear-gradient(to bottom, rgba(150, 210, 240, 0.6), rgba(210, 240, 255, 0.55) 60%, rgba(160, 210, 235, 0.5));
+  background-size: calc(256 * var(--px)) calc(56 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat, no-repeat;
+}
+
+/* Sylveon: un cielo pastel con cintas rosas y azules que ondean, nubes esponjosas, corazones y destellos */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-sylveon {
+  background-image:
+    url("../img/fondos/eevee-sylveon-cintas.png"),
+    linear-gradient(to bottom, rgba(250, 190, 220, 0.55), rgba(200, 220, 255, 0.5) 60%, rgba(255, 210, 230, 0.5));
+  background-size: calc(256 * var(--px)) calc(60 * var(--px)), auto;
+  background-position: left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, no-repeat;
+}
+
+/* Hierba alta: filas de matas, de lejos (claras) a cerca (oscuras), con flores, rocío y dos mariposas */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-hierba {
+  background-image:
+    url("../img/fondos/tienda-hierba-campo.png"),
+    url("../img/fondos/tienda-hierba-nubes.png"),
+    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+  background-size: calc(256 * var(--px)) calc(60 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+}
+
+/* Bosque: abetos de lejos (claros y azulados) a cerca (oscuros y grandes), helechos y setas */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-bosque {
+  background-image:
+    url("../img/fondos/tienda-bosque-arboles.png"),
+    url("../img/fondos/tienda-bosque-nubes.png"),
+    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+  background-size: calc(256 * var(--px)) calc(68 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+}
+
+/* Cueva: el techo con estalactitas que gotean y murciélagos, y abajo estalagmitas, rocas, un charco y racimos de cristales que brillan */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-cueva {
+  background-image:
+    url("../img/fondos/tienda-cueva-techo.png"),
+    url("../img/fondos/tienda-cueva-suelo.png"),
+    radial-gradient(ellipse at 50% 55%, transparent 40%, rgba(30, 22, 18, 0.32)),
+    linear-gradient(to bottom, rgba(70, 55, 40, 0.24), transparent 50%, rgba(70, 55, 40, 0.2));
+  background-size: calc(256 * var(--px)) calc(32 * var(--px)), calc(256 * var(--px)) calc(48 * var(--px)), auto, auto;
+  background-position: left 0 top 0, left 0 bottom 0, 0 0, 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat, no-repeat;
+}
+
+/* Atardecer: el sol a medio esconder en el mar, con su reflejo, nubes largas, un islote con palmera y pájaros */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-atardecer {
+  background-image:
+    url("../img/fondos/tienda-atardecer-sol.png"),
+    url("../img/fondos/tienda-atardecer-nubes.png"),
+    url("../img/fondos/tienda-atardecer-mar.png"),
+    linear-gradient(to top, rgba(255, 160, 80, 0.34), rgba(240, 110, 90, 0.22) 45%, rgba(130, 70, 150, 0.16) 85%, transparent);
+  background-size: calc(64 * var(--px)) calc(44 * var(--px)), calc(256 * var(--px)) calc(20 * var(--px)), calc(256 * var(--px)) calc(46 * var(--px)), auto;
+  background-position: right calc(40 * var(--px)) bottom calc(10 * var(--px)), left 0 bottom calc(36 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, repeat-x, repeat-x, no-repeat;
+}
+
+/* Magma: roca oscura agrietada con la lava brillando por las grietas, un río de lava con burbujas y brasas en el aire */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-magma {
+  background-image:
+    url("../img/fondos/tienda-magma-roca.png"),
+    url("../img/fondos/tienda-magma-brasas.png"),
+    linear-gradient(to top, rgba(230, 80, 30, 0.36), rgba(140, 35, 20, 0.14) 55%, transparent);
+  background-size: calc(256 * var(--px)) calc(50 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat, no-repeat;
+}
+
+/* Surf: tres filas de olas que avanzan, cada una a su velocidad (las de delante, más deprisa y con espuma) */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-olas {
+  background-image:
+    url("../img/fondos/tienda-olas-delante.png"),
+    url("../img/fondos/tienda-olas-medio.png"),
+    url("../img/fondos/tienda-olas-lejos.png"),
+    url("../img/fondos/tienda-olas-mar.png"),
+    url("../img/fondos/tienda-olas-nubes.png"),
+    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+  background-size: calc(128 * var(--px)) calc(16 * var(--px)), calc(128 * var(--px)) calc(12 * var(--px)), calc(128 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 bottom calc(12 * var(--px)), left 0 bottom calc(22 * var(--px)), left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
+  background-repeat: repeat-x, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-tienda-olas 12s steps(128) infinite;
+}
+
+@keyframes fondo-tienda-olas {
+  0% { background-position: left 0 bottom 0, left 0 bottom calc(12 * var(--px)), left 0 bottom calc(22 * var(--px)), left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0; }
+  100% { background-position: left calc(384 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(12 * var(--px)), left calc(128 * var(--px)) bottom calc(22 * var(--px)), left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0; }
+}
+
+/* Nevada: copos que caen (los grandes, más deprisa y de lado: están más cerca), pinos nevados y una cabaña con la luz encendida */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-nieve {
+  background-image:
+    url("../img/fondos/tienda-nieve-copos-cerca.png"),
+    url("../img/fondos/tienda-nieve-paisaje.png"),
+    url("../img/fondos/tienda-nieve-copos-lejos.png"),
+    linear-gradient(to bottom, rgba(100, 150, 215, 0.36), rgba(150, 195, 235, 0.14) 85%);
+  background-size: calc(128 * var(--px)) calc(128 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(64 * var(--px)) calc(64 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left 0 top 0, 0 0;
+  background-repeat: repeat, repeat-x, repeat, no-repeat;
+  animation: fondo-tienda-nieve 12s steps(128) infinite;
+}
+
+@keyframes fondo-tienda-nieve {
+  0% { background-position: left 0 top 0, left 0 bottom 0, left 0 top 0, 0 0; }
+  100% { background-position: left calc(128 * var(--px)) top calc(256 * var(--px)), left 0 bottom 0, left 0 top calc(128 * var(--px)), 0 0; }
+}
+
+/* Noche estrellada: estrellas que titilan cada una a su ritmo, la luna, colinas con una casita y luciérnagas y, de vez en cuando, estrellas fugaces */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-noche {
+  background-image:
+    url("../img/fondos/tienda-noche-fugaz.png"),
+    url("../img/fondos/tienda-noche-fugaz.png"),
+    url("../img/fondos/tienda-noche-fugaz.png"),
+    url("../img/fondos/tienda-noche-luna.png"),
+    url("../img/fondos/tienda-noche-colinas.png"),
+    url("../img/fondos/tienda-noche-estrellas.png"),
+    linear-gradient(170deg, rgba(60, 70, 160, 0.36), rgba(20, 22, 60, 0.26) 70%);
+  background-size: calc(32 * var(--px)) calc(16 * var(--px)), calc(32 * var(--px)) calc(16 * var(--px)), calc(32 * var(--px)) calc(16 * var(--px)), calc(26 * var(--px)) calc(26 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), calc(384 * var(--px)) calc(96 * var(--px)), auto;
+  background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat-x, repeat, no-repeat;
+  animation: fondo-tienda-noche 12s linear infinite;
+}
+
+@keyframes fondo-tienda-noche {
+  0% { background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  4.99% { background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  5% { background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  9.99% { background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  10% { background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  12% { background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  14.99% { background-position: right calc(119.5 * var(--px)) top calc(54.75 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  15% { background-position: right calc(120 * var(--px)) top calc(55 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  18% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  19.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  20% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  24.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  25% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  29.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  30% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  34.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  35% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  39.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  40% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  44.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  45% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  47% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  49.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(269.5 * var(--px)) top calc(54.75 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  50% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(270 * var(--px)) top calc(55 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  53% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  54.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  55% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  59.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  60% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  64.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  65% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  69.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  70% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  74.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  75% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  79.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  80% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  84.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(289.5 * var(--px)) top calc(104.75 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+  85% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(290 * var(--px)) top calc(105 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  86% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(340 * var(--px)) top calc(130 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  89.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(340 * var(--px)) top calc(130 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(96 * var(--px)) top 0, 0 0; }
+  90% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(340 * var(--px)) top calc(130 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  94.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(340 * var(--px)) top calc(130 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(192 * var(--px)) top 0, 0 0; }
+  95% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(340 * var(--px)) top calc(130 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  99.99% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(340 * var(--px)) top calc(130 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left calc(288 * var(--px)) top 0, 0 0; }
+  100% { background-position: right calc(270 * var(--px)) top calc(130 * var(--px)), right calc(420 * var(--px)) top calc(130 * var(--px)), right calc(340 * var(--px)) top calc(130 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0; }
+}
+
+/* Casino: dos filas de bombillas que se persiguen como en un cartel, tragaperras (de vez en cuando una se pone en marcha y da premio), fichas y la moqueta de rombos */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-casino {
+  background-image:
+    url("../img/fondos/tienda-casino-bombillas.png"),
+    url("../img/fondos/tienda-casino-bombillas.png"),
+    url("../img/fondos/tienda-casino-jugada.png"),
+    url("../img/fondos/tienda-casino-maquinas.png"),
+    url("../img/fondos/tienda-casino-fichas.png"),
+    url("../img/fondos/tienda-casino-rombos.png"),
+    linear-gradient(160deg, rgba(200, 60, 150, 0.26), rgba(90, 40, 140, 0.22) 60%, rgba(241, 196, 15, 0.1));
+  background-size: calc(8 * var(--px)) calc(6 * var(--px)), calc(8 * var(--px)) calc(6 * var(--px)), calc(1280 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(128 * var(--px)) calc(80 * var(--px)), calc(16 * var(--px)) calc(16 * var(--px)), auto;
+  background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat-x, repeat-x, repeat, repeat, no-repeat;
+  animation: fondo-tienda-casino 7.2s linear infinite;
+}
+
+@keyframes fondo-tienda-casino {
+  0% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  6.24% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  6.25% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  12.49% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  12.5% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  18.74% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  18.75% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  24.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  25% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  31.24% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  31.25% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  37.49% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  37.5% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  43.74% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  43.75% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  49.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  50% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  54.99% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  55% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-256 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  56.24% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-256 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  56.25% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-256 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  57.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-256 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  58% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-512 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  60.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-512 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  61% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  62.49% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  62.5% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  63.99% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  64% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-512 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  66.99% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-512 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  67% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  68.74% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  68.75% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  69.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-768 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  70% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-512 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  72.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-512 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  73% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  74.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  75% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  81.24% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  81.25% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  87.49% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  87.5% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  91.99% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left calc(-1024 * var(--px)) bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  92% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  93.74% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  93.75% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  99.99% { background-position: left calc(4 * var(--px)) top calc(1 * var(--px)), left calc(-4 * var(--px)) bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  100% { background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+}
+
+/* Aurora: dos cortinas de luz (verde y violeta) que ondean una contra otra sobre montañas nevadas, con su reflejo en un lago helado */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-aurora {
+  background-image:
+    url("../img/fondos/tienda-aurora-paisaje.png"),
+    url("../img/fondos/tienda-aurora-verde.png"),
+    url("../img/fondos/tienda-aurora-violeta.png"),
+    url("../img/fondos/tienda-aurora-estrellas.png"),
+    linear-gradient(to bottom, rgba(20, 30, 70, 0.38), rgba(30, 80, 90, 0.12) 70%, transparent);
+  background-size: calc(256 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(56 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 top calc(2 * var(--px)), left 0 top calc(10 * var(--px)), left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat-x, repeat, no-repeat;
+  animation: fondo-tienda-aurora 24s steps(256) infinite;
+}
+
+@keyframes fondo-tienda-aurora {
+  0% { background-position: left 0 bottom 0, left 0 top calc(2 * var(--px)), left 0 top calc(10 * var(--px)), left 0 top 0, 0 0; }
+  100% { background-position: left 0 bottom 0, left calc(256 * var(--px)) top calc(2 * var(--px)), left calc(-256 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0; }
+}
+
+/* Desierto: el cielo de día, el sol que aprieta, dunas con su borde al sol, cactus y las columnas de unas ruinas antiguas */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-desierto {
+  background-image:
+    url("../img/fondos/tienda-desierto-sol.png"),
+    url("../img/fondos/tienda-desierto-dunas.png"),
+    linear-gradient(to bottom, rgba(80, 160, 240, 0.78), rgba(150, 205, 250, 0.74) 45%, rgba(255, 220, 160, 0.72) 75%, rgba(245, 190, 120, 0.62));
+  background-size: calc(50 * var(--px)) calc(50 * var(--px)), calc(256 * var(--px)) calc(56 * var(--px)), auto;
+  background-position: right calc(30 * var(--px)) top calc(4 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, repeat-x, no-repeat;
+}
+
+/* Huerto de bayas: matas cargadas de bayas de colores en surcos de tierra, una valla, un cartel y, al fondo, un molino y un granero */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-bayas {
+  background-image:
+    url("../img/fondos/tienda-bayas-huerto.png"),
+    url("../img/fondos/tienda-bayas-nubes.png"),
+    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+  background-size: calc(256 * var(--px)) calc(54 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+}
+
+/* Eeveelutions: un paisaje con un tramo para cada una (agua, rayo, fuego, sol, luna, hoja, hielo y hada) que va girando despacio; encima, su piedra u objeto sube y baja con un efecto de su tipo, y unas huellas de Eevee lo cruzan */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-eevee {
+  background-image:
+    url("../img/fondos/tienda-eevee-piezas.png"),
+    url("../img/fondos/tienda-eevee-tramos.png"),
+    linear-gradient(to bottom, rgba(200, 150, 90, 0.2), transparent 70%);
+  background-size: calc(2048 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(64 * var(--px)), auto;
+  background-position: left 0 bottom calc(22 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+  animation: fondo-tienda-eevee 256s steps(2048) infinite;
+}
+
+@keyframes fondo-tienda-eevee {
+  0% { background-position: left 0 bottom calc(22 * var(--px)), left 0 bottom 0, 0 0; }
+  100% { background-position: left calc(-522240 * var(--px)) bottom calc(22 * var(--px)), left calc(2048 * var(--px)) bottom 0, 0 0; }
+}
+
+/* Espacio: nebulosas de colores, estrellas, un planeta con anillos, una luna, un cometa y el suelo lleno de cráteres de una luna */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-espacio {
+  background-image:
+    url("../img/fondos/tienda-espacio-planeta.png"),
+    url("../img/fondos/tienda-espacio-luna.png"),
+    url("../img/fondos/tienda-espacio-cometa.png"),
+    url("../img/fondos/tienda-espacio-suelo.png"),
+    url("../img/fondos/tienda-espacio-nebulosa.png"),
+    url("../img/fondos/tienda-espacio-estrellas.png"),
+    linear-gradient(to bottom, rgba(40, 20, 90, 0.4), rgba(20, 30, 80, 0.25));
+  background-size: calc(48 * var(--px)) calc(32 * var(--px)), calc(14 * var(--px)) calc(14 * var(--px)), calc(40 * var(--px)) calc(20 * var(--px)), calc(256 * var(--px)) calc(22 * var(--px)), calc(256 * var(--px)) calc(96 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), auto;
+  background-position: right calc(26 * var(--px)) top calc(12 * var(--px)), left calc(70 * var(--px)) top calc(48 * var(--px)), left calc(16 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, left 0 top 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, repeat, no-repeat;
+}
+
+/* Guarida Rocket: paredes de metal con tuberías, estandartes con la R, cajas, una pantalla, suelo con franjas de peligro, alarmas rojas que parpadean y Wobbuffet, que sale de su caja, saluda meneándose y se vuelve a meter */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-rocket {
+  background-image:
+    url("../img/fondos/tienda-rocket-wobbuffet.png"),
+    url("../img/fondos/tienda-rocket-alarmas.png"),
+    url("../img/fondos/tienda-rocket-guarida.png"),
+    linear-gradient(to bottom, rgba(120, 20, 30, 0.3), rgba(20, 20, 30, 0.3) 70%);
+  background-size: calc(1280 * var(--px)) calc(72 * var(--px)), calc(512 * var(--px)) calc(30 * var(--px)), calc(256 * var(--px)) calc(72 * var(--px)), auto;
+  background-position: left 0 bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-tienda-rocket 4.8s linear infinite;
+}
+
+@keyframes fondo-tienda-rocket {
+  0% { background-position: left 0 bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  12.49% { background-position: left 0 bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  12.5% { background-position: left 0 bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  19.99% { background-position: left 0 bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  20% { background-position: left calc(-256 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  24.99% { background-position: left calc(-256 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  25% { background-position: left calc(-512 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  29.99% { background-position: left calc(-512 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  30% { background-position: left calc(-768 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  37.49% { background-position: left calc(-768 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  37.5% { background-position: left calc(-768 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  37.99% { background-position: left calc(-768 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  38% { background-position: left calc(-1024 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  45.99% { background-position: left calc(-1024 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  46% { background-position: left calc(-768 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  49.99% { background-position: left calc(-768 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  50% { background-position: left calc(-768 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  53.99% { background-position: left calc(-768 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  54% { background-position: left calc(-1024 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  61.99% { background-position: left calc(-1024 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  62% { background-position: left calc(-768 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  62.49% { background-position: left calc(-768 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  62.5% { background-position: left calc(-768 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  69.99% { background-position: left calc(-768 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  70% { background-position: left calc(-1024 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  74.99% { background-position: left calc(-1024 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  75% { background-position: left calc(-1024 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  77.99% { background-position: left calc(-1024 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  78% { background-position: left calc(-512 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  82.99% { background-position: left calc(-512 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  83% { background-position: left calc(-256 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  87.49% { background-position: left calc(-256 * var(--px)) bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  87.5% { background-position: left calc(-256 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  87.99% { background-position: left calc(-256 * var(--px)) bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  88% { background-position: left 0 bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  99.99% { background-position: left 0 bottom 0, left calc(256 * var(--px)) bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+  100% { background-position: left 0 bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0; }
+}
+
+/* Cementerio: lápidas (con flores en alguna), un árbol seco, una verja, la luna llena, niebla que pasa y fantasmitas que flotan */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-cementerio {
+  background-image:
+    url("../img/fondos/tienda-cementerio-fantasmas-cerca.png"),
+    url("../img/fondos/tienda-cementerio-fantasmas-lejos.png"),
+    url("../img/fondos/tienda-cementerio-niebla.png"),
+    url("../img/fondos/tienda-cementerio-luna.png"),
+    url("../img/fondos/tienda-cementerio-tumbas.png"),
+    linear-gradient(to bottom, rgba(60, 50, 110, 0.34), rgba(30, 40, 60, 0.2) 70%);
+  background-size: calc(256 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(64 * var(--px)) calc(18 * var(--px)), calc(28 * var(--px)) calc(28 * var(--px)), calc(256 * var(--px)) calc(60 * var(--px)), auto;
+  background-position: left 0 bottom calc(16 * var(--px)), left 0 bottom calc(26 * var(--px)), left 0 bottom calc(4 * var(--px)), right calc(34 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat-x, no-repeat, repeat-x, no-repeat;
+  animation: fondo-tienda-cementerio-deriva 60s linear infinite, fondo-tienda-cementerio-flota 4s linear infinite;
+}
+
+@keyframes fondo-tienda-cementerio-deriva {
+  0% { background-position-x: left 0, left 0, left 0, right calc(34 * var(--px)), left 0, 0; }
+  100% { background-position-x: left calc(256 * var(--px)), left calc(-256 * var(--px)), left calc(448 * var(--px)), right calc(34 * var(--px)), left 0, 0; }
+}
+
+@keyframes fondo-tienda-cementerio-flota {
+  0% { background-position-y: bottom calc(16 * var(--px)), bottom calc(23.5 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  6.25% { background-position-y: bottom calc(14.85 * var(--px)), bottom calc(23.69 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  12.5% { background-position-y: bottom calc(13.88 * var(--px)), bottom calc(24.23 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  18.75% { background-position-y: bottom calc(13.23 * var(--px)), bottom calc(25.04 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  25% { background-position-y: bottom calc(13 * var(--px)), bottom calc(26 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  31.25% { background-position-y: bottom calc(13.23 * var(--px)), bottom calc(26.96 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  37.5% { background-position-y: bottom calc(13.88 * var(--px)), bottom calc(27.77 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  43.75% { background-position-y: bottom calc(14.85 * var(--px)), bottom calc(28.31 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  50% { background-position-y: bottom calc(16 * var(--px)), bottom calc(28.5 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  56.25% { background-position-y: bottom calc(17.15 * var(--px)), bottom calc(28.31 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  62.5% { background-position-y: bottom calc(18.12 * var(--px)), bottom calc(27.77 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  68.75% { background-position-y: bottom calc(18.77 * var(--px)), bottom calc(26.96 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  75% { background-position-y: bottom calc(19 * var(--px)), bottom calc(26 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  81.25% { background-position-y: bottom calc(18.77 * var(--px)), bottom calc(25.04 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  87.5% { background-position-y: bottom calc(18.12 * var(--px)), bottom calc(24.23 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  93.75% { background-position-y: bottom calc(17.15 * var(--px)), bottom calc(23.69 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+  100% { background-position-y: bottom calc(16 * var(--px)), bottom calc(23.5 * var(--px)), bottom calc(4 * var(--px)), top calc(8 * var(--px)), bottom 0, 0; }
+}
+
+/* Fondo marino: luz que ondea arriba, algas, corales, una estrella de mar, un cofre, peces que pasan y burbujas que suben */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-marino {
+  background-image:
+    url("../img/fondos/tienda-marino-burbujas.png"),
+    url("../img/fondos/tienda-marino-peces.png"),
+    url("../img/fondos/tienda-marino-superficie.png"),
+    url("../img/fondos/tienda-marino-arrecife.png"),
+    linear-gradient(to bottom, rgba(40, 150, 200, 0.32), rgba(20, 70, 130, 0.3) 80%);
+  background-size: calc(64 * var(--px)) calc(128 * var(--px)), calc(128 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(12 * var(--px)), calc(256 * var(--px)) calc(58 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom calc(26 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: repeat, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-tienda-marino 16s steps(256) infinite;
+}
+
+@keyframes fondo-tienda-marino {
+  0% { background-position: left 0 top 0, left 0 bottom calc(26 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  100% { background-position: left 0 top calc(-256 * var(--px)), left calc(256 * var(--px)) bottom calc(26 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+}
+
+/* Tormenta: nubes negras, lluvia que cae de lado, charcos y, de vez en cuando, un relámpago (dos destellos) que lo ilumina todo */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-tienda-tormenta {
+  background-image:
+    url("../img/fondos/tienda-tormenta-destello.png"),
+    url("../img/fondos/tienda-tormenta-rayo.png"),
+    url("../img/fondos/tienda-tormenta-lluvia.png"),
+    url("../img/fondos/tienda-tormenta-nubes.png"),
+    url("../img/fondos/tienda-tormenta-suelo.png"),
+    linear-gradient(to bottom, rgba(40, 50, 70, 0.42), rgba(40, 60, 80, 0.2) 75%);
+  background-size: 100% 100%, calc(40 * var(--px)) calc(84 * var(--px)), calc(64 * var(--px)) calc(64 * var(--px)), calc(256 * var(--px)) calc(30 * var(--px)), calc(256 * var(--px)) calc(26 * var(--px)), auto;
+  background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left 0 top 0, left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat, repeat-x, repeat-x, no-repeat;
+  animation: fondo-tienda-tormenta 6.4s linear infinite;
+}
+
+@keyframes fondo-tienda-tormenta {
+  0% { background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left 0 top 0, left 0 top 0, left 0 bottom 0, 0 0; }
+  69.99% { background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left calc(-179.17 * var(--px)) top calc(716.7 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  70% { background-position: left 0 top 0, left calc(60 * var(--px)) top 0, left calc(-179.2 * var(--px)) top calc(716.8 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  71.99% { background-position: left 0 top 0, left calc(60 * var(--px)) top 0, left calc(-184.29 * var(--px)) top calc(737.18 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  72% { background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left calc(-184.32 * var(--px)) top calc(737.28 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  74.99% { background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left calc(-191.97 * var(--px)) top calc(767.9 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  75% { background-position: left 0 top 0, left calc(60 * var(--px)) top 0, left calc(-192 * var(--px)) top calc(768 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  75.99% { background-position: left 0 top 0, left calc(60 * var(--px)) top 0, left calc(-194.53 * var(--px)) top calc(778.14 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  76% { background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left calc(-194.56 * var(--px)) top calc(778.24 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+  100% { background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left calc(-256 * var(--px)) top calc(1024 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo):is(.fondo-tienda-olas, .fondo-tienda-nieve, .fondo-tienda-noche, .fondo-tienda-casino, .fondo-tienda-aurora, .fondo-tienda-eevee, .fondo-tienda-rocket, .fondo-tienda-cementerio, .fondo-tienda-marino, .fondo-tienda-tormenta) {
+    animation: none;
+  }
+}
