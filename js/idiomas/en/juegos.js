@@ -275,7 +275,6 @@ export default {
   "Inicia sesión para abrir huevos y empezar tu colección.": "Sign in to open eggs and start your collection.",
   "No se ha podido abrir. Prueba otra vez.": "Couldn't open it. Please try again.",
   "Huevos Pokémon": "Pokémon eggs",
-  "Completa la Pokédex en «Colección»: cada huevo trae un Pokémon al azar.": "Complete the Pokédex in “Collection”: each egg brings a random Pokémon.",
 
   // Colección: el aspecto de cada uno
   "Ver todas en normal": "Show all as normal",

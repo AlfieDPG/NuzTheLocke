@@ -113,6 +113,37 @@
   gap: 0.8rem;
 }
 
+/* La «i» al lado de «Pokédólares»: abre cómo se ganan */
+.juegos-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  box-sizing: border-box;
+  margin-left: 0.4rem;
+  /* la «i» tiene el punto arriba y parece subida: se baja un poco para que quede en el centro */
+  padding: 0.07rem 0 0;
+  border: 1px solid rgba(var(--t-tinte), 0.35);
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(var(--t-tinte), 0.75);
+  font-family: Georgia, serif;
+  font-size: 0.75rem;
+  font-style: italic;
+  font-weight: bold;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.juegos-info:hover,
+.juegos-info:focus-visible {
+  border-color: rgb(var(--color-vista));
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
 .juegos-saldo p {
   margin: 0;
   color: var(--t-gris-2);
@@ -546,30 +577,6 @@
 }
 
 /* ---------- Tienda ---------- */
-
-.tienda-como {
-  margin-bottom: 1.2rem;
-  padding: 0.9rem 1.1rem;
-  border-radius: 0.7rem;
-  background: var(--t-panel);
-  color: var(--t-gris-3);
-  font-size: 0.92rem;
-}
-
-.tienda-como h2 {
-  margin: 0 0 0.4rem;
-  font-size: 1.1rem;
-  color: var(--t-texto);
-}
-
-.tienda-como ul {
-  margin: 0;
-  padding-left: 1.2rem;
-}
-
-.tienda-como p {
-  margin: 0.5rem 0 0;
-}
 
 .tienda-apartado {
   margin-bottom: 1.5rem;
@@ -2436,38 +2443,6 @@ button.lockedia-poke:hover {
 
 .coleccion-casilla.shiny {
   box-shadow: inset 0 0 0 1.5px #e6b422;
-}
-
-/* En la Tienda: el acceso a los huevos */
-.tienda-ir-coleccion {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  margin-bottom: 1rem;
-  padding: 0.8rem 1.2rem;
-  border: none;
-  border-radius: 14px;
-  background: var(--t-panel);
-  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
-  color: var(--t-texto);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.tienda-ir-coleccion:hover {
-  background: var(--t-panel-3);
-}
-
-.tienda-ir-coleccion > span:nth-child(2) {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-}
-
-.tienda-ir-coleccion small {
-  color: var(--t-gris);
 }
 
 /* ---------- Colección: el aspecto de cada uno ---------- */

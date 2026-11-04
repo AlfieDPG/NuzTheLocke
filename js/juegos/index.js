@@ -5,9 +5,10 @@
 //     silueta.js, pistas.js, eficaz.js, masomenos.js, grito.js, evolucion.js, tipos.js, intruso.js
 //     y locke.js). Lo común, en js/juegos/comun.js. Abajo,
 //     un botón copia los resultados de hoy (con cuadraditos de colores) para compartirlos.
-//   · «Clasificación»: tú y tus amigos, por los Pokédólares ganados en los retos esta semana.
 //   · «Tienda»: fondos para tu tarjeta, marcos para tu foto y títulos, a cambio de Pokédólares.
 //     Lo comprado se pone y se quita desde aquí (los fondos y los títulos, también desde el perfil).
+//   · «Colección»: la Pokédex de los huevos (js/juegos/coleccion.js).
+//   · «Clasificación»: tú y tus amigos, por los Pokédólares ganados en los retos esta semana.
 //
 // Las Pokédólares (cómo se ganan y cómo se guardan) están en js/comun/fichas.js.
 
@@ -47,9 +48,9 @@ const cuerpo = vista.querySelector(".juegos-cuerpo");
 
 const PESTANAS = [
   { id: "retos", nombre: t("Reto del día") },
-  { id: "clasificacion", nombre: t("Clasificación") },
+  { id: "tienda", nombre: t("Tienda") },
   { id: "coleccion", nombre: t("Colección") },
-  { id: "tienda", nombre: t("Tienda") }
+  { id: "clasificacion", nombre: t("Clasificación") }
 ];
 let pestana = "retos";
 let ocupado = false;
@@ -58,6 +59,17 @@ const numero = (n) => n.toLocaleString(LOCALE);
 const moneda = (n) => `<span class="ficha-cifra"><span class="ficha-moneda"></span>${numero(n)}</span>`;
 
 // ---------- Cabecera ----------
+
+// Cómo se ganan: en la ventana de la «i» que hay al lado de «Pokédólares»
+function comoSeGanan() {
+  const niveles = Object.entries(FICHAS_POR_NIVEL).map(([nivel, fichas]) => `${NIVELES[nivel]} ${fichas}`).join(" · ");
+  return [
+    t("Cómo se ganan Pokédólares"),
+    t("Con cada logro, según su nivel: {niveles}. También los que ya tenías.", { niveles }),
+    t("Con los retos del día, como mucho: {lista}.", { lista: JUEGOS.map((juego) => `${juego.maximo} en «${juego.nombre}»`).join(", ") }),
+    t("Con la racha: 2 más por reto por cada día seguido jugando, hasta 20.")
+  ].join("\n\n");
+}
 
 function pintarCabecera() {
   const perfil = miPerfil();
@@ -77,7 +89,7 @@ function pintarCabecera() {
     <div class="juegos-saldo">
       <span class="ficha-moneda grande"></span>
       <div>
-        <strong>${numero(saldo(perfil))}</strong> <span>${t("Pokédólares")}</span>
+        <strong>${numero(saldo(perfil))}</strong> <span>${t("Pokédólares")}</span><button class="juegos-info" aria-label="${t("Cómo se ganan Pokédólares")}" title="${t("Cómo se ganan Pokédólares")}">i</button>
         <small>${t("{logros} de logros · {juegos} de retos", { logros: numero(fichasDeLogros(perfil)), juegos: numero(fichasDeJuegos(perfil)) })}${fichasDeRegalos() ? ` · ${t("{n} de regalos", { n: numero(fichasDeRegalos()) })}` : ""}</small>
       </div>
     </div>
@@ -360,23 +372,8 @@ function pintarTienda() {
     plantillaArticulo(titulo, "titulo", `<span class="perfil-titulo ${claseTitulo(titulo)}">${escaparHTML(titulo.nombre)}</span>`, perfil)
   ).join("");
 
-  const niveles = Object.entries(FICHAS_POR_NIVEL).map(([nivel, fichas]) => `${NIVELES[nivel]} ${fichas}`).join(" · ");
-
   cuerpo.innerHTML = `
-    <button class="tienda-ir-coleccion">
-      <span class="huevo-dibujo"></span>
-      <span><strong>${t("Huevos Pokémon")}</strong><small>${t("Completa la Pokédex en «Colección»: cada huevo trae un Pokémon al azar.")}</small></span>
-      ${icono("mas")}
-    </button>
-    <aside class="tienda-como">
-      <h2>${t("Cómo se ganan Pokédólares")}</h2>
-      <ul>
-        <li>${t("Con cada logro, según su nivel: {niveles}. También los que ya tenías.", { niveles })}</li>
-        <li>${t("Con los retos del día, como mucho: {lista}.", { lista: JUEGOS.map((juego) => `${juego.maximo} en «${juego.nombre}»`).join(", ") })}</li>
-        <li>${t("Con la racha: 2 más por reto por cada día seguido jugando, hasta 20.")}</li>
-      </ul>
-      ${perfil ? "" : `<p>${t("Inicia sesión para comprar.")}</p>`}
-    </aside>
+    ${perfil ? "" : `<p class="juegos-nota">${t("Inicia sesión para comprar.")}</p>`}
     ${apartado(t("Fondos"), t("Para tu tarjeta de «Amigos» y la cabecera de tu perfil."), fondos)}
     ${apartado(t("Marcos"), t("Alrededor de tu foto, en tu perfil y en «Amigos». Los de un solo color vienen con los logros de cada tipo."), marcos)}
     ${apartado(t("Títulos"), t("Una plaquita debajo de tu nombre, en tu perfil."), titulos, "tienda-titulos")}`;
@@ -434,6 +431,9 @@ function pintarTodo() {
 }
 
 export function iniciar() {
+  cabecera.addEventListener("click", (e) => {
+    if (e.target.closest(".juegos-info")) avisar(comoSeGanan());
+  });
   pestanas.addEventListener("click", (e) => {
     const boton = e.target.closest("[data-pestana]");
     if (!boton || boton.dataset.pestana === pestana) return;
@@ -441,10 +441,7 @@ export function iniciar() {
     pintarTodo();
   });
   cuerpo.addEventListener("click", (e) => {
-    if (e.target.closest(".tienda-ir-coleccion")) {
-      pestana = "coleccion";
-      pintarTodo();
-    } else if (pestana === "tienda") alPulsarTienda(e);
+    if (pestana === "tienda") alPulsarTienda(e);
     else if (e.target.closest(".juegos-compartir-enlace")) compartir().catch((error) => console.error(error));
     else if (e.target.closest("[data-modo]")) {
       modo = e.target.closest("[data-modo]").dataset.modo;
