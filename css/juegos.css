@@ -3110,90 +3110,67 @@ button.coleccion-casilla:hover {
 }
 
 /* ---------- Fondos de región (js/comun/fondos.js, FONDOS_REGION) ----------
-   Uno por región, con el logro de completar esa generación en la colección. Todos con
-   degradados: un rasgo de cada región, suave para que se siga leyendo encima. */
+   Uno por región, con el logro de completar esa generación en la colección. Un paisaje en pixel
+   art abajo (img/fondos/region-*.png, dibujado por herramientas/generar-fondos-region.mjs), que
+   se repite a lo ancho y se amplía sin suavizar, como el escenario de «Combates»; por encima, un
+   tinte suave del cielo de esa región. El dibujo, como mucho a ×2 (144 px de alto): en las
+   franjas bajas, a la altura de la franja. */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo):is(.fondo-region-kanto, .fondo-region-johto, .fondo-region-hoenn, .fondo-region-sinnoh, .fondo-region-teselia, .fondo-region-kalos, .fondo-region-alola, .fondo-region-galar, .fondo-region-paldea) {
+  background-position: 0 100%, 0 0;
+  background-size: auto min(100%, 144px), auto;
+  background-repeat: repeat-x, no-repeat;
+  image-rendering: pixelated;
+}
 
-/* Kanto: rojo y azul (los de siempre), con una rejilla de píxeles */
+/* image-rendering se hereda: que no pase a las fotos de dentro (sin especificidad, así lo que
+   ya diga cada foto sigue mandando) */
+:where(.fondo-region-kanto, .fondo-region-johto, .fondo-region-hoenn, .fondo-region-sinnoh, .fondo-region-teselia, .fondo-region-kalos, .fondo-region-alola, .fondo-region-galar, .fondo-region-paldea) * {
+  image-rendering: auto;
+}
+
+/* Kanto: un pueblito con una casa de tejado rojo y otra azul, hierba alta y el monte al fondo */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-kanto {
-  background-image:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 6px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 6px),
-    linear-gradient(115deg, rgba(220, 60, 50, 0.38) 0 48%, rgba(60, 100, 220, 0.38) 52%);
+  background-image: url("../img/fondos/region-kanto.png"), linear-gradient(115deg, rgba(220, 60, 50, 0.16), rgba(60, 100, 220, 0.18) 60%, transparent);
 }
 
-/* Johto: oro y plata, con hojas de otoño cayendo */
+/* Johto: otoño, la torre de cinco pisos y hojas que caen */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-johto {
-  background-image:
-    radial-gradient(ellipse 5px 3px at 30% 40%, rgba(230, 120, 40, 0.55), transparent),
-    radial-gradient(ellipse 4px 3px at 75% 70%, rgba(200, 70, 40, 0.5), transparent),
-    linear-gradient(120deg, rgba(212, 175, 55, 0.35), rgba(195, 202, 214, 0.25) 60%, transparent);
-  background-size: 46px 38px, 58px 44px, auto;
+  background-image: url("../img/fondos/region-johto.png"), linear-gradient(to bottom, rgba(230, 150, 60, 0.24), transparent 75%);
 }
 
-/* Hoenn: el mar arriba y el magma abajo */
+/* Hoenn: el mar, el volcán echando humo y una isla con palmeras */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-hoenn {
-  background-image:
-    radial-gradient(circle at 50% 100%, transparent 8px, rgba(90, 170, 230, 0.25) 9px 11px, transparent 12px),
-    linear-gradient(to bottom, rgba(50, 120, 210, 0.38), transparent 50%, rgba(220, 70, 40, 0.38));
-  background-size: 26px 13px, auto;
+  background-image: url("../img/fondos/region-hoenn.png"), linear-gradient(to bottom, rgba(60, 150, 220, 0.24), transparent 75%);
 }
 
-/* Sinnoh: montañas nevadas sobre un cielo frío */
+/* Sinnoh: la gran montaña nevada, pinos con nieve y copos */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-sinnoh {
-  background-image:
-    linear-gradient(135deg, transparent 50%, rgba(220, 235, 255, 0.28) 50%),
-    linear-gradient(225deg, transparent 50%, rgba(170, 195, 235, 0.28) 50%),
-    linear-gradient(to bottom, rgba(70, 100, 170, 0.35), transparent 75%);
-  background-size: 60px 60px, 60px 60px, auto;
-  background-position: 0 100%, 30px 100%, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat;
+  background-image: url("../img/fondos/region-sinnoh.png"), linear-gradient(to bottom, rgba(120, 150, 210, 0.26), transparent 75%);
 }
 
-/* Teselia: los rascacielos de la ciudad, en blanco y negro */
+/* Teselia: la ciudad de noche con las ventanas encendidas y el puente colgante */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-teselia {
-  background-image:
-    linear-gradient(to top, rgba(20, 20, 25, 0.5) 0 35%, transparent 35%),
-    linear-gradient(to top, rgba(240, 240, 245, 0.18) 0 55%, transparent 55%),
-    linear-gradient(to top, rgba(20, 20, 25, 0.45) 0 45%, transparent 45%),
-    linear-gradient(160deg, rgba(160, 160, 175, 0.3), transparent 60%);
-  background-size: 18px 100%, 26px 100%, 34px 100%, auto;
-  background-position: 0 100%, 9px 100%, 20px 100%, 0 0;
+  background-image: url("../img/fondos/region-teselia.png"), linear-gradient(to bottom, rgba(70, 60, 130, 0.32), transparent 80%);
 }
 
-/* Kalos: una celosía elegante, rosa y azul */
+/* Kalos: la torre de celosía, árboles recortados y parterres de flores */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-kalos {
-  background-image:
-    repeating-linear-gradient(45deg, rgba(240, 170, 200, 0.18) 0 1px, transparent 1px 14px),
-    repeating-linear-gradient(-45deg, rgba(150, 180, 240, 0.18) 0 1px, transparent 1px 14px),
-    radial-gradient(ellipse at 50% 0%, rgba(240, 170, 200, 0.3), transparent 70%);
+  background-image: url("../img/fondos/region-kalos.png"), linear-gradient(to bottom, rgba(240, 170, 200, 0.24), rgba(150, 180, 240, 0.12) 60%, transparent);
 }
 
-/* Alola: atardecer tropical con el sol sobre el mar */
+/* Alola: el sol poniéndose en el mar, palmeras y flores */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-alola {
-  background-image:
-    radial-gradient(circle at 80% 70%, rgba(255, 210, 110, 0.55) 0 12%, transparent 13%),
-    repeating-linear-gradient(0deg, rgba(60, 170, 200, 0.2) 0 2px, transparent 2px 7px),
-    linear-gradient(to bottom, rgba(255, 140, 90, 0.35), rgba(230, 90, 150, 0.25) 55%, rgba(40, 150, 190, 0.3) 56%);
-  background-size: auto, 100% 40%, auto;
-  background-position: 0 0, 0 100%, 0 0;
-  background-repeat: no-repeat;
+  background-image: url("../img/fondos/region-alola.png"), linear-gradient(to bottom, rgba(255, 140, 90, 0.28), rgba(230, 90, 150, 0.16) 70%, transparent);
 }
 
-/* Galar: tartán */
+/* Galar: colinas con muros de piedra, el castillo, ovejas y el cielo nublado */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-galar {
-  background-image:
-    repeating-linear-gradient(0deg, rgba(180, 40, 50, 0.22) 0 6px, transparent 6px 18px, rgba(40, 110, 70, 0.2) 18px 22px, transparent 22px 30px),
-    repeating-linear-gradient(90deg, rgba(180, 40, 50, 0.22) 0 6px, transparent 6px 18px, rgba(40, 110, 70, 0.2) 18px 22px, transparent 22px 30px);
+  background-image: url("../img/fondos/region-galar.png"), linear-gradient(to bottom, rgba(150, 160, 175, 0.24), transparent 75%);
 }
 
-/* Paldea: escarlata y púrpura, con las mesetas al fondo */
+/* Paldea: el gran cráter con niebla, mesetas rojas, molinos y un pueblo blanco */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-paldea {
-  background-image:
-    linear-gradient(to top, rgba(120, 50, 40, 0.4) 0 18%, transparent 18%),
-    linear-gradient(to top, rgba(150, 70, 50, 0.3) 0 30%, transparent 30%),
-    linear-gradient(110deg, rgba(220, 60, 60, 0.35), rgba(140, 70, 200, 0.35));
-  background-size: 70px 100%, 110px 100%, auto;
-  background-position: 0 100%, 40px 100%, 0 0;
+  background-image: url("../img/fondos/region-paldea.png"), linear-gradient(110deg, rgba(220, 60, 60, 0.2), rgba(140, 70, 200, 0.2));
 }
 
 /* «Destacar en mi perfil», en la ventana de cada Pokémon de la colección */

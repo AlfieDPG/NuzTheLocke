@@ -58,8 +58,9 @@ export const FONDOS_TIENDA = [
 ].map((fondo) => ({ ...fondo, precio: PRECIO_FONDO[fondo.nivel] }));
 
 // Los de región: uno por generación, con el logro de completarla en la colección de huevos de
-// «Juegos» (logros.js, «c-gen-1»...). No se compran. El dibujo, en CSS (css/juegos.css,
-// .fondo-region-kanto...), con algo de cada región.
+// «Juegos» (logros.js, «c-gen-1»...). No se compran. El dibujo, un paisaje de cada región en pixel
+// art (img/fondos/region-kanto.png..., de herramientas/generar-fondos-region.mjs) puesto en CSS
+// (css/juegos.css, .fondo-region-kanto...).
 export const FONDOS_REGION = [
   ["kanto", "Kanto"], ["johto", "Johto"], ["hoenn", "Hoenn"], ["sinnoh", "Sinnoh"], ["teselia", "Teselia"],
   ["kalos", "Kalos"], ["alola", "Alola"], ["galar", "Galar"], ["paldea", "Paldea"]
