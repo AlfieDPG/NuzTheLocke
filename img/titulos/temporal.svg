@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40">
+  <!-- Viajero temporal: la gema de diamante del pecho (centrada en el borde izquierdo de la plaquita)
+       y tres aletas de acero que salen hacia fuera, a la izquierda -->
+  <defs>
+    <linearGradient id="acero" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7f9bd6"/>
+      <stop offset="1" stop-color="#2c4684"/>
+    </linearGradient>
+    <linearGradient id="diamante" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6fbff"/>
+      <stop offset="0.5" stop-color="#8fdcff"/>
+      <stop offset="1" stop-color="#3f9ed6"/>
+    </linearGradient>
+    <!-- Una aleta: una hoja con punta, a lo largo, que sale del centro de la gema (51, 20) hacia la izquierda -->
+    <path id="aleta" d="M49 16.5 L19 15.2 L8 20 L19 24.8 L49 23.5 Z"/>
+    <path id="raya" d="M44 20 L16 20"/>
+  </defs>
+  <g fill="url(#acero)" stroke="#121f45" stroke-width="2.2" stroke-linejoin="round">
+    <use href="#aleta" transform="rotate(18 51 20)"/>
+    <use href="#aleta" transform="rotate(-15 51 20)"/>
+    <use href="#aleta" transform="rotate(1 51 20)"/>
+  </g>
+  <!-- La raya azul claro de cada aleta -->
+  <g stroke="#9fe6ff" stroke-width="1.7" stroke-linecap="round" fill="none">
+    <use href="#raya" transform="rotate(18 51 20)"/>
+    <use href="#raya" transform="rotate(-15 51 20)"/>
+    <use href="#raya" transform="rotate(1 51 20)"/>
+  </g>
+  <circle cx="51" cy="20" r="10.6" fill="#5d6f92" stroke="#121f45" stroke-width="2.2"/>
+  <path d="M51 10.6 L58.4 20 L51 29.4 L43.6 20 Z" fill="url(#diamante)" stroke="#123c66" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M43.6 20 H58.4 M51 10.6 L48.6 20 L51 29.4 M51 10.6 L53.4 20 L51 29.4" stroke="#4fa8d8" stroke-width="0.9" fill="none"/>
+  <path d="M51 12.6 L48.9 18.4 L46.4 19.4 Z" fill="#fff" opacity="0.85"/>
+</svg>

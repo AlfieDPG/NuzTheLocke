@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Un destello de cuatro puntas, como el de los Pokémon variocolor -->
+  <path d="M16 1.5 C17.4 11, 21 14.6, 30.5 16 C21 17.4, 17.4 21, 16 30.5 C14.6 21, 11 17.4, 1.5 16 C11 14.6, 14.6 11, 16 1.5 Z"
+        fill="#fffbe2" stroke="#d99a00" stroke-width="2.4" stroke-linejoin="round"/>
+  <circle cx="16" cy="16" r="2.6" fill="#fff"/>
+</svg>

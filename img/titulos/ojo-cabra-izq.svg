@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" preserveAspectRatio="none">
+  <!-- Ojo izquierdo de GOAT: una rendija roja rasgada, más baja hacia dentro (mirada de enfado), con
+       su resplandor. Se estira sin guardar la proporción: al bajarle el alto desde el CSS, se cierra -->
+  <defs>
+    <radialGradient id="resplandor">
+      <stop offset="0" stop-color="#ff2a10" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff0000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rojo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8a5a"/>
+      <stop offset="1" stop-color="#d40c0c"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="15" cy="10" rx="15" ry="9" fill="url(#resplandor)"/>
+  <path d="M3 7.5 Q14 2.5 27 12.5 Q13 13.5 3 7.5 Z" fill="url(#rojo)" stroke="#2a0000" stroke-width="1.1" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 20" preserveAspectRatio="none">
+  <!-- La línea de un monitor de latidos (Maestro Nuzlocke): plana, un latido y plana otra vez.
+       Se repite a lo ancho y corre hacia la izquierda; tenue, detrás de las letras -->
+  <path d="M0 10 H20 L22.5 10 L24.5 5 L27 15.5 L30 2.5 L33 14 L35 10 H60" fill="none"
+        stroke="#ff8a8a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.45"
+        vector-effect="non-scaling-stroke"/>
+</svg>

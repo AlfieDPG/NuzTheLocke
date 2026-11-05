@@ -362,95 +362,6 @@
   opacity: 0.6;
 }
 
-/* ---------- Pestañas del perfil ---------- */
-
-.perfil-pestanas {
-  display: flex;
-  gap: 0.4rem;
-  margin-top: 0.9rem;
-}
-
-.perfil-pestanas button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 0.45rem;
-  background: var(--t-fondo-2);
-  color: rgba(var(--t-texto-rgb), 0.75);
-  font-family: inherit;
-  font-size: 0.88rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.perfil-pestanas button:hover {
-  background: var(--t-panel-3);
-  color: var(--t-texto);
-}
-
-.perfil-pestanas button.activa {
-  background: #c0392b;
-  color: #fff;
-}
-
-.perfil-pestanas .icono {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
-.perfil-pestanas small {
-  font-weight: normal;
-  opacity: 0.8;
-}
-
-/* Los logros de un perfil: insignia y nombre, en rejilla */
-.perfil-logros {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.perfil-logro {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.55rem 0.3rem;
-  border-radius: 0.5rem;
-  background: var(--t-fondo-2);
-  font-size: 0.75rem;
-  font-weight: bold;
-  text-align: center;
-  cursor: help;
-}
-
-.perfil-logro:not(.conseguido) {
-  opacity: 0.5;
-}
-
-.perfil-logro .logro-insignia {
-  width: 2.3rem;
-  height: 2.3rem;
-}
-
-.perfil-logro .logro-insignia .icono {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-#dialogo-perfil .perfil-logros-faltan {
-  margin-top: 1rem;
-}
-
-#dialogo-perfil .perfil-logros-faltan small {
-  font-weight: normal;
-  opacity: 0.7;
-}
-
 /* ---------- Título (un logro, debajo del nombre) ---------- */
 
 /* Una plaquita: del tamaño del texto, con un fondo y un borde del color de su nivel (los de
@@ -495,61 +406,6 @@ button.perfil-titulo:hover:not(:disabled) {
 .perfil-titulo.nivel-plata { --color-nivel: #c3cad6; }
 .perfil-titulo.nivel-oro { --color-nivel: #f1c40f; }
 .perfil-titulo.nivel-platino { --color-nivel: #7fe0f0; }
-
-#dialogo-titulo {
-  width: min(32rem, calc(100vw - 2rem));
-}
-
-.titulo-lista {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
-  max-height: 60vh;
-  /* Hueco alrededor para que, al agrandarse con el ratón, no se corte el borde ni salga scroll */
-  padding: 0.4rem;
-  margin: -0.4rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-  outline: none; /* al abrir la ventana se le pone el foco y salía un recuadro blanco */
-}
-
-.titulo-opcion {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.55rem 0.3rem;
-  border: 2px solid transparent;
-  border-radius: 0.5rem;
-  background: var(--t-fondo-2);
-  color: var(--t-texto);
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: bold;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s;
-}
-
-.titulo-opcion:hover {
-  transform: scale(1.04);
-  border-color: #f1c40f;
-}
-
-.titulo-opcion.elegido {
-  border-color: #f1c40f;
-  background: var(--t-panel-4);
-}
-
-.titulo-opcion .logro-insignia {
-  width: 2.3rem;
-  height: 2.3rem;
-}
-
-.titulo-opcion .logro-insignia .icono {
-  width: 1.1rem;
-  height: 1.1rem;
-}
 
 /* ---------- Aviso al conseguir uno ---------- */
 
@@ -608,13 +464,6 @@ button.perfil-titulo:hover:not(:disabled) {
   from {
     opacity: 0;
     transform: translateY(1rem) scale(0.9);
-  }
-}
-
-@media (max-width: 760px) {
-  .perfil-logros,
-  .titulo-lista {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

@@ -133,5 +133,10 @@ export default {
   "No hay denuncias pendientes.": "No pending reports.",
   "No se han podido cargar las denuncias.": "Couldn't load the reports.",
   "¿Borrar este contenido?": "Delete this content?",
-  "¿Descartar esta denuncia? El contenido se queda como está.": "Discard this report? The content stays as it is."
+  "¿Descartar esta denuncia? El contenido se queda como está.": "Discard this report? The content stays as it is.",
+
+  // ---------- Fichas de quien escribe ----------
+  "Administrador de la web": "Site administrator",
+  "Moderador de la web": "Site moderator",
+  "No se han podido cargar las respuestas.": "Couldn't load the replies."
 };

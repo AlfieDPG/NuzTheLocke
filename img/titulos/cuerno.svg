@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 35">
+  <!-- Un cuerno de cabra (el izquierdo; el derecho es el mismo dado la vuelta): la base abajo, la punta arriba y hacia fuera -->
+  <defs>
+    <linearGradient id="cuerno" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#f4e6bf"/>
+      <stop offset="1" stop-color="#b38f4f"/>
+    </linearGradient>
+  </defs>
+  <path d="M14 34 C12 22, 8 13, 3 4 C12 7.5, 20 15, 26 34 Z" fill="url(#cuerno)" stroke="#3b2a0c" stroke-width="2.4" stroke-linejoin="round"/>
+  <g fill="none" stroke="#7a5a22" stroke-width="1.7" stroke-linecap="round">
+    <path d="M14.4 27.5 Q19 26 23.3 27"/>
+    <path d="M11.8 20.5 Q16 19 20.3 20"/>
+    <path d="M8.6 13.6 Q12 12.4 15.4 12.9"/>
+  </g>
+</svg>

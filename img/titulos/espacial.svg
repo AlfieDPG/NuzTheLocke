@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40">
+  <!-- Explorador del tiempo: la perla del hombro (centrada en el borde de la plaquita) y tres placas que salen hacia fuera -->
+  <defs>
+    <linearGradient id="placa" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbfaff"/>
+      <stop offset="1" stop-color="#cbc5d8"/>
+    </linearGradient>
+    <radialGradient id="perla" cx="0.38" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#ffe3ef"/>
+      <stop offset="0.55" stop-color="#f294bb"/>
+      <stop offset="1" stop-color="#c4547f"/>
+    </radialGradient>
+  </defs>
+  <g stroke="#4e3b62" stroke-width="2.2" stroke-linejoin="round">
+    <rect x="16" y="16" width="42" height="8" rx="3" fill="url(#placa)" transform="rotate(-18 13 20)"/>
+    <rect x="16" y="16" width="37" height="8" rx="3" fill="url(#placa)" transform="rotate(15 13 20)"/>
+    <rect x="16" y="16" width="46" height="8" rx="3" fill="url(#placa)" transform="rotate(-1 13 20)"/>
+  </g>
+  <!-- La raya lila de cada placa -->
+  <g stroke="#b88bd0" stroke-width="1.6" stroke-linecap="round">
+    <path d="M24 22 H53" transform="rotate(-18 13 20)"/>
+    <path d="M24 22 H48" transform="rotate(15 13 20)"/>
+    <path d="M24 22 H57" transform="rotate(-1 13 20)"/>
+  </g>
+  <circle cx="13" cy="20" r="11" fill="#8b5ea0" stroke="#3f2752" stroke-width="2.2"/>
+  <circle cx="13" cy="20" r="8.4" fill="#aaa7b8" stroke="#3f2752" stroke-width="1.4"/>
+  <circle cx="13" cy="20" r="6.2" fill="url(#perla)"/>
+  <ellipse cx="10.8" cy="17.4" rx="2.1" ry="1.4" fill="#fff" opacity="0.9"/>
+</svg>

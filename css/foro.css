@@ -627,9 +627,124 @@
 
 .foro-hilo-autor {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.7rem;
+  margin: 0.3rem 0 0.8rem;
+}
+
+/* La ficha de quien escribe: su foto con el marco, el nombre, el título a la derecha y, detrás,
+   el fondo de su tarjeta (js/comun/fichas.js, fondoVisual). No recorta nada: los marcos con
+   dibujo (alas, llamas...) se salen por fuera, como en el resto de la web. */
+.foro-ficha {
+  position: relative;
+  display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  margin: 0.2rem 0 0.7rem;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.4rem 0.8rem 0.4rem 0.45rem;
+  border-radius: 0.7rem;
+  background-color: var(--t-fondo-2);
+  /* Sombra marcada: la ficha se despega del panel y del texto de la respuesta */
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.foro-ficha .foro-foto {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.foro-ficha .foro-foto::before {
+  font-size: 1rem;
+}
+
+.foro-hilo-autor .foro-ficha .foro-foto {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.foro-ficha-datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+}
+
+.foro-ficha .foro-nombre {
+  overflow-wrap: anywhere;
+  text-align: left;
+  /* En blanco y con sombra, como en las tarjetas de otros sitios: se lee sobre cualquier fondo */
+  color: #fff;
+  text-shadow: 0 0 3px #000, 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Quien modera: la franja del color de la sección a la izquierda (como la capa de color de las
+   tarjetas) y su insignia, para que se sepa que contesta alguien de la web */
+.foro-ficha.moderador {
+  padding-left: 0.6rem;
+  box-shadow: inset 0.25rem 0 0 rgb(var(--color-vista)), 0 3px 10px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* La insignia de moderador: un rango, como un segundo título. Plaquita oscura con doble borde
+   del color de la sección (el de la web), el escudo y las letras en versalitas, y un destello que
+   la cruza de vez en cuando. No se parece a ningún título de la Tienda: no se puede comprar. */
+.foro-insignia-mod {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.5rem 0.1rem 0.38rem;
+  border-radius: 0.3rem;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 55%),
+    linear-gradient(135deg, #1b2233, #0e121c);
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--color-vista)),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 3px rgba(var(--color-vista), 0.35),
+    0 0 8px rgba(var(--color-vista), 0.45),
+    0 2px 5px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(var(--color-vista), 0.9), 0 1px 1px #000;
+  white-space: nowrap;
+}
+
+.foro-insignia-mod .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: rgb(var(--color-vista));
+  filter: drop-shadow(0 0 2px rgba(var(--color-vista), 0.8));
+}
+
+/* El destello: una franja de luz que pasa y luego descansa un rato */
+.foro-insignia-mod::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  animation: insignia-mod-destello 4s ease-in-out infinite;
+}
+
+@keyframes insignia-mod-destello {
+  0% { background-position: 150% 0; }
+  35%, 100% { background-position: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foro-insignia-mod::after {
+    animation: none;
+    background: none;
+  }
 }
 
 .foro-hilo-texto {
@@ -645,39 +760,27 @@
   flex: 1;
   min-height: 3rem;
   overflow-y: auto;   /* la altura la pone el panel (foro-panel-hilo): los comentarios se desplazan dentro */
-  padding-top: 0.6rem;
-  border-top: 2px solid rgba(var(--t-tinte), 0.1);
+  /* Al desplazarse dentro, recorta lo que se sale: un poco de hueco a los lados y arriba (que se
+     come el del panel) para que quepan los marcos que sobresalen de la foto */
+  margin-inline: -0.9rem;
+  padding: 0.9rem 0.9rem 0.3rem;
+  /* La raya de arriba, a lo ancho del panel como antes (no del hueco de más) */
+  background: linear-gradient(rgba(var(--t-tinte), 0.1), rgba(var(--t-tinte), 0.1)) 0.9rem 0 / calc(100% - 1.8rem) 2px no-repeat;
 }
 
 .comentario {
-  display: flex;
-  gap: 0.65rem;
-  padding: 0.55rem 0;
+  padding: 0.6rem 0;
 }
 
 .comentario + .comentario {
   border-top: 1px solid rgba(var(--t-tinte), 0.07);
 }
 
-.comentario .foro-foto {
-  width: 2.1rem;
-  height: 2.1rem;
-}
-
-.comentario .foro-foto::before {
-  font-size: 1rem;
-}
-
-.comentario-cuerpo {
-  flex: 1;
-  min-width: 0;
-}
-
 .comentario-cabecera {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.2rem 0.55rem;
+  gap: 0.3rem 0.6rem;
 }
 
 .comentario-hace {
@@ -711,7 +814,7 @@
 }
 
 .comentario-texto {
-  margin: 0.15rem 0 0;
+  margin: 0.45rem 0 0 0.3rem;
   font-size: 0.92rem;
   line-height: 1.45;
   opacity: 1;

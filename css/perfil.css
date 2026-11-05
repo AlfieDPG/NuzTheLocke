@@ -1,0 +1,1297 @@
+/* ---------- Perfil (js/perfil.js) ----------
+   La ventana del perfil, en dos columnas y sin pestañas: a la izquierda la ficha de la persona
+   (la misma tarjeta que en «Amigos», en grande, con su fondo) y a la derecha lo que ha hecho
+   (equipos destacados arriba; debajo, su historial de lockes y, al lado, colección, logros y
+   amigos). Tiene que caber sin bajar: cada caja enseña lo justo y, si hay más, «Ver todos».
+   Y el modo «Editar perfil»: los apartados a la izquierda, sus opciones en medio y la ficha tal
+   como quedará a la derecha. */
+
+/* El perfil no se tiñe del color de la sección desde la que se abre, sino del que haya elegido la
+   persona (js/perfil.js lo pone en la ventana: --color-vista). Este, el de «Amigos», es el que lleva
+   quien no ha elegido ninguno. */
+#dialogo-perfil {
+  --color-vista: 80, 190, 215;
+  width: min(78rem, 96vw);
+  max-height: 94vh;
+}
+
+/* La aspa, en la esquina (no hay botones abajo) */
+.perfil-cerrar {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  cursor: pointer;
+}
+
+.perfil-cerrar:hover {
+  background: var(--t-control-2);
+}
+
+.perfil-cerrar .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+.perfil-vacio {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+.perfil-error {
+  color: var(--t-mal);
+  font-weight: bold;
+}
+
+/* Botones del perfil: siempre con su capa de fondo */
+.perfil-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.perfil-boton:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.perfil-boton.peligro {
+  background: var(--t-rojo-oscuro);
+  color: #fff;
+}
+
+.perfil-boton .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* El pequeño de la cabecera de cada caja («Ver todos», «Ver colección»...) */
+.perfil-mini {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.perfil-mini:hover {
+  background: var(--t-control-2);
+}
+
+.perfil-mini .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* ---------- Ver un perfil ---------- */
+
+.perfil-vista {
+  display: grid;
+  grid-template-columns: 19rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+/* La ficha: la capa de color de la izquierda y el aro de la foto, del color que haya elegido su
+   dueño (--color-vista, ver #dialogo-perfil). Si está conectado lo dice la etiqueta verde. */
+.perfil-ficha {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 1.5rem 1rem 1rem 1.05rem;
+  border-left: 0.35rem solid rgb(var(--color-vista));
+  border-radius: 0.9rem;
+  background-color: var(--t-fondo-2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+/* Los fondos de pixel art, a 2 px por píxel, como la tarjeta de «Amigos»: aquí hay sitio */
+.perfil-ficha.lleva-fondo.fondo-pixel {
+  --px: 2px;
+}
+
+.perfil-ficha-foto {
+  position: relative;
+  flex: none;
+  width: 7.5rem;
+  height: 7.5rem;
+  border: 0.25rem solid rgb(var(--color-vista));
+  border-radius: 50%;
+  background: var(--t-fondo);
+  color: var(--t-texto);
+  overflow: hidden;
+}
+
+/* La foto (o la inicial, si no hay): en la ficha, en la ventana de la foto y en los marcos */
+.perfil-foto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  font-size: 2.2rem;
+  font-weight: bold;
+}
+
+.perfil-ficha-foto .perfil-foto.sin-foto {
+  font-size: 3rem;
+}
+
+/* Los retratos de Mundo Misterioso son pixel art: ampliados sin suavizar (las fotos subidas o de
+   Google, no). Hace falta decirlo: dentro de un fondo de pixel art se les quita (fondos-pixel.css). */
+.perfil-ficha-foto img[src*="SpriteCollab"],
+.perfil-marco-foto img[src*="SpriteCollab"] {
+  image-rendering: pixelated;
+}
+
+.perfil-ficha .jugador-estado {
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
+}
+
+.perfil-ficha-nombre {
+  margin: 0.15rem 0 0;
+  font-family: var(--letra-titulos);
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+/* (con :where, para que manden los títulos con adornos, que reservan su hueco arriba o abajo) */
+.perfil-ficha :where(.perfil-titulo) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.perfil-busca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(var(--t-bien-rgb), 0.16);
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.perfil-busca .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.perfil-ficha-texto {
+  margin: 0;
+  max-width: 100%;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.perfil-ficha-horario {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--t-gris-3);
+  font-size: 0.82rem;
+}
+
+.perfil-ficha-horario .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* Las cifras, en una franja oscura (se leen sobre cualquier fondo) */
+.perfil-ficha-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem 0.3rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.65rem 0.3rem;
+  border-radius: 0.7rem;
+  background: rgba(var(--t-oscurecer), 0.35);
+}
+
+.perfil-cifra {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--t-gris-3);
+  font-size: 0.72rem;
+  font-weight: bold;
+  line-height: 1.15;
+}
+
+.perfil-cifra strong {
+  color: var(--t-texto);
+  font-family: var(--letra-titulos);
+  font-size: 1.35rem;
+  line-height: 1.05;
+}
+
+/* El botón de abajo (Editar perfil; Chat y Retar; Añadir a amigos): abajo del todo */
+.perfil-ficha > .perfil-boton,
+.perfil-ficha-botones {
+  width: 100%;
+  margin-top: auto;
+}
+
+.perfil-ficha-botones {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.perfil-ficha-botones .perfil-boton {
+  flex: 1;
+  padding-inline: 0.5rem;
+}
+
+/* Los botones de la ficha van encima del fondo, casi siempre oscuro: el gris de los demás botones
+   se camuflaba. El principal (Editar perfil, Retar, Añadir a amigos), relleno del color de la
+   sección; «Chat», casi negro con el borde de ese color; los dos con sombra. Colores fijos (no del
+   tema): así contrastan igual sobre un fondo claro que sobre uno oscuro. */
+.perfil-ficha .perfil-boton {
+  /* Un brillo arriba, un canto oscuro abajo y una sombra amplia: así se despega del fondo */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 3px 0 rgba(0, 0, 0, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+.perfil-ficha .perfil-editar,
+.perfil-ficha .perfil-retar,
+.perfil-ficha .perfil-amistad {
+  background: rgb(var(--color-vista));
+  color: #1c1a19;
+}
+
+.perfil-ficha .perfil-editar:hover:not(:disabled),
+.perfil-ficha .perfil-retar:hover:not(:disabled),
+.perfil-ficha .perfil-amistad:hover:not(:disabled) {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 82%, #fff);
+}
+
+.perfil-ficha .perfil-chat {
+  background: #1c1a19;
+  color: #f2f2f2;
+  box-shadow:
+    inset 0 0 0 2px rgb(var(--color-vista)),
+    0 3px 0 rgba(0, 0, 0, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+.perfil-ficha .perfil-chat:hover:not(:disabled) {
+  background: #2e2b29;
+}
+
+.perfil-solicitud {
+  margin-top: auto;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.55rem;
+  background: rgba(28, 26, 25, 0.85);
+  color: #f2f2f2;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+/* «Mi perfil»: para volver al tuyo desde el de un amigo */
+.perfil-volver-mio {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: rgba(28, 26, 25, 0.85);
+  color: #f2f2f2;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.perfil-volver-mio .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+/* ---------- La columna derecha ---------- */
+
+.perfil-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.perfil-abajo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.perfil-pila {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.perfil-caja {
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--t-fondo-2);
+}
+
+.perfil-caja-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+/* La primera caja está bajo la aspa de cerrar */
+.perfil-derecha > .perfil-caja:first-child .perfil-caja-cabeza {
+  padding-right: 2.2rem;
+}
+
+.perfil-caja-cabeza h3 {
+  margin: 0;
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.perfil-caja-cabeza small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--t-gris);
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.perfil-caja-cabeza small .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* Quien no es amigo: solo la ficha */
+.perfil-solo-amigos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 12rem;
+  padding: 2rem 1rem;
+  border: 2px dashed rgba(var(--t-tinte), 0.12);
+  border-radius: 0.8rem;
+  text-align: center;
+}
+
+/* Equipos destacados: tres, uno al lado del otro */
+.perfil-destacados-lista {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.perfil-equipo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel);
+}
+
+.perfil-equipo header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.perfil-equipo strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.perfil-copiar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.4rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.perfil-copiar:hover {
+  background: var(--t-control-2);
+}
+
+.perfil-copiar .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* Las seis caras de un equipo (también las usan otras secciones: lockes) */
+.perfil-equipo-caras {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.25rem;
+}
+
+.perfil-equipo-caras img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 0.4rem;
+  background: var(--t-fondo-2);
+  image-rendering: pixelated;
+}
+
+/* Historial de lockes: cada uno con la capa del color de su tipo de locke */
+.perfil-historial-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.perfil-locke {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0.65rem 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel);
+  box-shadow: inset 4px 0 0 var(--color-locke, var(--t-azulado));
+}
+
+.perfil-locke-nombre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.perfil-locke-nombre strong {
+  overflow: hidden;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.perfil-locke-nombre small {
+  color: var(--t-gris);
+  font-size: 0.76rem;
+}
+
+.perfil-locke-ganado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #f1c40f;
+  font-size: 0.78rem;
+  font-weight: bold;
+}
+
+.perfil-locke-ganado .icono {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.perfil-locke-caras {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding-bottom: 0.25rem;
+}
+
+.perfil-locke-caras .salon-cara img {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+/* Colección */
+.perfil-coleccion-muestra {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.perfil-coleccion-poke {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: 0.6rem;
+  background: var(--t-panel);
+  overflow: hidden;
+}
+
+.perfil-coleccion-poke img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.perfil-coleccion-poke.shiny {
+  box-shadow: inset 0 0 0 2px #e6b422;
+}
+
+/* Logros en resumen: cuántos, una barra y los últimos */
+.perfil-logros-barra {
+  height: 0.45rem;
+  margin: -0.1rem 0 0.65rem;
+  border-radius: 999px;
+  background: var(--t-control);
+  overflow: hidden;
+}
+
+.perfil-logros-barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #cd7f32, #f1c40f);
+}
+
+.perfil-logros-ultimos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.perfil-logros-ultimos .logro-insignia {
+  width: 2.15rem;
+  height: 2.15rem;
+}
+
+.perfil-logros-ultimos .logro-insignia .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Los de otra persona, enteros (en lugar de la columna derecha) */
+.perfil-logros-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.45rem;
+  max-height: 64vh;
+  overflow-y: auto;
+}
+
+.perfil-logro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.55rem 0.3rem;
+  border-radius: 0.5rem;
+  background: var(--t-panel);
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.perfil-logro:not(.conseguido) {
+  opacity: 0.5;
+}
+
+.perfil-logro .logro-insignia {
+  width: 2.3rem;
+  height: 2.3rem;
+}
+
+.perfil-logro .logro-insignia .icono {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* Amigos: cinco, con su foto */
+.perfil-amigos {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.perfil-amigo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.45rem 0.2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.perfil-amigo:hover {
+  background: rgba(var(--t-tinte), 0.08);
+}
+
+.perfil-amigo.ajeno {
+  cursor: default;
+}
+
+.perfil-amigo.ajeno:hover {
+  background: transparent;
+}
+
+.perfil-amigo-nombre {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.perfil-amigo small {
+  font-size: 0.7rem;
+  font-weight: normal;
+  opacity: 0.6;
+}
+
+.perfil-amigo-foto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 2px solid var(--t-azulado);
+  border-radius: 50%;
+  background: var(--t-fondo-2);
+  object-fit: cover;
+  box-sizing: border-box;
+}
+
+.perfil-amigo.conectado .perfil-amigo-foto {
+  border-color: var(--t-bien);
+}
+
+.perfil-amigo.conectado {
+  color: color-mix(in srgb, var(--t-bien) var(--t-vivo), black);
+}
+
+.perfil-amigo .perfil-amigo-foto.sin-foto {
+  font-size: 1.1rem;
+}
+
+/* ---------- Editar perfil ---------- */
+
+.editar-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-right: 2.6rem; /* (la aspa) */
+}
+
+.editar-barra h2 {
+  margin: 0 auto 0 0;
+  font-family: var(--letra-titulos);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.editar-nota {
+  margin-right: 0.4rem;
+  color: var(--t-gris);
+  font-size: 0.85rem;
+}
+
+.editar-barra button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.95rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.editar-cancelar {
+  background: var(--t-control);
+  color: var(--t-texto);
+}
+
+.editar-cancelar:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.editar-guardar {
+  background: var(--t-bien-oscuro);
+  color: #fff;
+}
+
+.editar-barra button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.editar-barra button .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+.editar-cuerpo {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr) 17.5rem;
+  gap: 1.1rem;
+  align-items: stretch;
+  /* Siempre la misma altura, más o menos la del perfil al verlo: la ventana no salta al entrar ni
+     al cambiar de apartado. Lo que no cabe (fondos, títulos...) baja dentro del panel del medio. */
+  height: min(34rem, calc(94vh - 7rem));
+}
+
+/* Los apartados: cada uno con su capa de fondo; el elegido, con la del color de la sección */
+.editar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 0;
+}
+
+.editar-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: var(--t-fondo-2);
+  color: var(--t-gris-3);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: bold;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editar-menu button:hover {
+  color: var(--t-texto);
+  background: var(--t-panel-3);
+}
+
+.editar-menu button.activo {
+  background: var(--t-control);
+  color: var(--t-texto);
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.editar-menu button.peligro {
+  color: #f08a7f;
+}
+
+.editar-menu button.peligro.activo {
+  box-shadow: inset 3px 0 0 var(--t-mal);
+}
+
+.editar-menu .icono {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* «Borrar mi cuenta», separado y abajo del todo */
+.editar-menu hr {
+  margin: auto 0 0.4rem;
+  border: none;
+  border-top: 1px solid var(--t-control);
+}
+
+/* Las opciones del apartado: si son muchas (fondos, títulos), bajan dentro, no la ventana. Lo que
+   se desplaza dentro recorta lo que se sale, así que lleva hueco alrededor (comiéndose el de la
+   rejilla y el de la barra de arriba): si no, los marcos que sobresalen de la foto (alas, llamas...)
+   se cortaban en su borde */
+.editar-panel {
+  min-width: 0;
+  min-height: 0;
+  margin: -0.7rem -0.9rem -0.8rem -1rem;
+  padding: 0.7rem 0.9rem 0.8rem 1rem;
+  overflow-y: auto;
+}
+
+.editar-panel h3 {
+  margin: 0;
+  font-family: var(--letra-titulos);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.editar-panel > p {
+  max-width: 62ch;
+  margin: 0.2rem 0 0.9rem;
+  color: var(--t-gris);
+  font-size: 0.88rem;
+}
+
+.editar-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-width: 32rem;
+  margin-top: 0.9rem;
+}
+
+.editar-campo > span {
+  color: var(--t-gris-3);
+  font-size: 0.78rem;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.editar-campo input,
+.editar-campo textarea {
+  padding: 0.55rem 0.7rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--t-fondo-2);
+  color: var(--t-texto);
+  font: inherit;
+  resize: vertical;
+}
+
+.editar-campo input:focus,
+.editar-campo textarea:focus {
+  outline: 2px solid rgba(var(--color-vista), 0.6);
+}
+
+.editar-campo small {
+  color: var(--t-gris);
+  font-size: 0.78rem;
+}
+
+.editar-casilla {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.editar-foto {
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+  margin-top: 1rem;
+  padding-left: 1rem; /* (los marcos más grandes sobresalen casi dos de cada lado) */
+}
+
+.editar-foto .perfil-ficha-foto {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-color: rgb(var(--color-vista));
+}
+
+.editar-foto-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.editar-foto-texto small {
+  max-width: 34ch;
+  color: var(--t-gris);
+  font-size: 0.8rem;
+}
+
+/* Una opción (título, marco, fondo): con su capa; la elegida, con el borde dorado */
+.editar-opcion {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.45rem;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+  color: var(--t-texto);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.editar-opcion:hover:not(:disabled) {
+  border-color: rgba(var(--t-tinte), 0.18);
+}
+
+.editar-opcion.elegido {
+  border-color: #f1c40f;
+  background: var(--t-panel-4);
+}
+
+.editar-opcion:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.editar-opcion small {
+  max-width: 100%;
+  color: var(--t-gris-3);
+  font-size: 0.7rem;
+  font-weight: bold;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.editar-titulos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.editar-titulos .editar-opcion {
+  min-height: 3.6rem;
+  padding: 0.7rem 0.4rem;
+}
+
+.editar-titulo .perfil-titulo {
+  font-size: 0.8rem;
+}
+
+.editar-sin {
+  color: var(--t-gris);
+  font-weight: bold;
+}
+
+.editar-marcos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr));
+  gap: 0.5rem;
+}
+
+.editar-marcos .editar-opcion {
+  padding: 1rem 0.35rem 0.5rem;
+}
+
+.perfil-marco-foto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border: 2px solid var(--t-azulado);
+  border-radius: 50%;
+  background: var(--t-fondo);
+  overflow: hidden;
+  font-size: 1.3rem;
+}
+
+.perfil-marco-foto .perfil-foto {
+  font-size: 1.3rem;
+}
+
+.editar-grupo + .editar-grupo {
+  margin-top: 1rem;
+}
+
+.editar-grupo h4,
+.editar-subtitulo {
+  margin: 0 0 0.45rem;
+  color: var(--t-gris-3);
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.editar-grupo h4 small,
+.editar-subtitulo small {
+  color: var(--t-gris);
+}
+
+.editar-subtitulo {
+  margin-top: 1rem;
+}
+
+.editar-fondos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.4rem, 1fr));
+  gap: 0.45rem;
+}
+
+/* La muestra del fondo: el dibujo lo ponen amigos.css y fondos-pixel.css (.perfil-fondo) */
+.editar-fondo .perfil-fondo {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 3.2rem;
+  border-radius: 0.4rem;
+  background-color: var(--t-panel);
+}
+
+.editar-candado {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: rgba(28, 26, 25, 0.85);
+  color: var(--t-texto);
+}
+
+.editar-candado .icono {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* El color del perfil: una bola de cada uno */
+.editar-colores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.6rem, 1fr));
+  gap: 0.5rem;
+}
+
+.editar-colores .editar-opcion {
+  padding: 0.7rem 0.4rem 0.5rem;
+}
+
+.editar-muestra-color {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: rgb(var(--c));
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* Equipos destacados: los que están (con subir, bajar y quitar) y los tuyos para elegir */
+.editar-destacados,
+.editar-equipos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.editar-destacado,
+.editar-equipo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+  color: var(--t-texto);
+}
+
+.editar-destacado {
+  box-shadow: inset 3px 0 0 #f1c40f;
+}
+
+.editar-equipo {
+  border: 2px solid transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editar-equipo:hover:not(:disabled) {
+  border-color: rgba(var(--t-tinte), 0.18);
+}
+
+.editar-equipo.destacado {
+  border-color: #f1c40f;
+}
+
+.editar-equipo:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.editar-destacado strong,
+.editar-equipo strong {
+  flex: 0 1 12rem;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.editar-destacado .perfil-equipo-caras,
+.editar-equipo .perfil-equipo-caras {
+  flex: 0 1 15rem;
+}
+
+.editar-equipo > .icono {
+  margin-left: auto;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.editar-destacado-botones {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.editar-destacado-botones button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.4rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.editar-destacado-botones button:hover:not(:disabled) {
+  background: var(--t-control-2);
+}
+
+.editar-destacado-botones button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.editar-destacado-botones .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.editar-historial {
+  margin-top: 0.9rem;
+}
+
+/* Aquí van sobre el color de la ventana (en el perfil, dentro de una caja más oscura): con el
+   de las tarjetas, para que cada locke se vea como una tarjeta aparte */
+.editar-historial .perfil-locke {
+  background: var(--t-fondo-2);
+}
+
+/* La ficha tal como quedará */
+.editar-vista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.editar-asi {
+  color: rgb(var(--color-vista));
+  font-size: 0.74rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.editar-vista .perfil-ficha-foto {
+  width: 6rem;
+  height: 6rem;
+}
+
+.editar-vista .perfil-ficha-nombre {
+  font-size: 1.5rem;
+}
+
+/* ---------- En pantallas estrechas, una columna ---------- */
+
+@media (max-width: 1000px) {
+  .perfil-vista,
+  .perfil-abajo,
+  .editar-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .perfil-destacados-lista {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editar-menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .editar-menu hr {
+    display: none;
+  }
+
+  .editar-cuerpo {
+    height: auto;
+  }
+
+  .editar-panel {
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}

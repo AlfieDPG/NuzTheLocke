@@ -1,0 +1,625 @@
+/* ---------- Títulos con adornos ----------
+   Los más trabajados de la Tienda (acabado «adornado» en TITULOS, js/comun/fichas.js): además de
+   su color y su efecto, llevan dibujos que asoman por fuera de la plaquita, mitad dentro y mitad
+   fuera (una corona, unas placas, unos cuernos...), o un fondo con movimiento (monedas que caen,
+   un monitor de latidos...), siempre tenue detrás de las letras para que el título se lea. Los
+   dibujos son SVG hechos a mano en img/titulos/ y van en el ::before y el ::after de la plaquita
+   o en una capa más de su fondo.
+
+   · Todo va en «em»: los adornos crecen o encogen con la plaquita (la pequeña de junto al nombre
+     y la grande del perfil o la Tienda).
+   · La plaquita hace su propio apilamiento (z-index 0) y los adornos van a z-index -1: quedan
+     encima de su fondo pero debajo de las letras, así nunca tapan el texto.
+   · Donde un adorno pisa la plaquita, esta lleva más relleno (el mismo a los dos lados, para que
+     las letras sigan centradas) y, por fuera, margen por ese lado (para que no se monte en lo que
+     haya al lado): cada título dice cuánto en --adorno-izquierda y --adorno-derecha. */
+
+/* Siempre en una línea (con los adornos, partida en dos se veía mal): no encoge; si en una fila no
+   cabe, es la fila la que pasa a la siguiente línea (la Tienda: css/juegos.css) */
+.perfil-titulo.placa-adornada {
+  position: relative;
+  z-index: 0;
+  flex-shrink: 0;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.perfil-titulo.placa-adornada::before,
+.perfil-titulo.placa-adornada::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  background: center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+/* El hueco para lo que sobresale por arriba y por abajo: cada título dice cuánto en --adorno-arriba
+   y --adorno-abajo y lo reserva con su margen. Donde el título va en una columna (el perfil, la
+   tarjeta de Amigos, el cara a cara, los lockes, el modo «Editar perfil») vale tal cual. Donde
+   va en una fila junto al nombre y centrado (el foro, la clasificación, la Tienda, los combates),
+   un hueco solo arriba o solo abajo lo descentraría: ahí se reserva el mayor de los dos a los dos
+   lados. */
+:is(.foro-ficha-datos, .foro-usuario-nombre, .clasificacion-nombre, .tienda-titulo-fila, .lucha-fila-nombre, .lucha-grande-nombre) > .perfil-titulo.placa-adornada {
+  margin-block: max(var(--adorno-arriba, 0em), var(--adorno-abajo, 0em));
+}
+
+/* Donde el título va centrado (tu ficha del perfil, los títulos para elegir en «Editar perfil», el
+   cara a cara de «Amigos»), el hueco se reserva igual a los dos lados. Si no, con margen fijo a un
+   lado y «auto» al otro, la plaquita se iría hacia un lado. */
+:is(.perfil-ficha, .editar-opcion, .luchador) .perfil-titulo.placa-adornada {
+  margin-inline: max(var(--adorno-izquierda, 0em), var(--adorno-derecha, 0em));
+}
+
+/* Un destello que cruza la plaquita y luego descansa (la primera capa del fondo de cada una) */
+@keyframes titulo-destello {
+  0% { background-position: 150% 0, 0 0, 0 0, 0 0; }
+  40%, 100% { background-position: -50% 0, 0 0, 0 0, 0 0; }
+}
+
+/* Un destello de cuatro puntas que crece, gira un poco y vuelve */
+@keyframes titulo-destellar {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.8; }
+  50% { transform: scale(1.12) rotate(45deg); opacity: 1; }
+}
+
+/* ---------- Explorador espacial ----------
+   Gris perla y rosa: rayas rosadas y un destello rosa. A la derecha, la perla del hombro justo en
+   el borde, con tres placas que salen hacia fuera y se abren y se cierran despacio; de la perla
+   sale una onda rosa, como si doblara el espacio. */
+.perfil-titulo.titulo-espacial {
+  --placa-borde: #a77aa8;
+  background:
+    linear-gradient(110deg, transparent 32%, rgba(255, 170, 210, 0.65) 46%, transparent 60%) 0 0 / 250% 100% no-repeat,
+    repeating-linear-gradient(118deg, transparent 0 0.85em, rgba(210, 120, 170, 0.2) 0.85em 1.1em),
+    linear-gradient(180deg, #f4f0f7, #c9bfd5);
+  color: #5a2d63;
+  padding-inline: 0.9em;
+  --adorno-derecha: 1.85em;
+  margin-right: var(--adorno-derecha);
+  animation: titulo-destello 4.5s ease-in-out infinite;
+}
+
+.perfil-titulo.titulo-espacial::before {
+  top: 50%;
+  right: -0.42em;
+  width: 0.84em;
+  height: 0.84em;
+  margin-top: -0.42em;
+  border: 0.12em solid rgba(242, 148, 187, 0.9);
+  border-radius: 50%;
+  background: none;
+  animation: titulo-espacial-onda 2.6s ease-out infinite;
+}
+
+/* (la perla, en el 13/64 del dibujo: su centro cae justo en el borde de la plaquita) */
+.perfil-titulo.titulo-espacial::after {
+  top: 50%;
+  right: -1.91em;
+  width: 2.4em;
+  height: 1.5em;
+  margin-top: -0.75em;
+  background-image: url("../img/titulos/espacial.svg");
+  transform-origin: 20.3% 50%;   /* el centro de la perla: las placas giran a su alrededor */
+  animation: titulo-espacial-alas 3.2s ease-in-out infinite;
+}
+
+@keyframes titulo-espacial-alas {
+  0%, 100% { transform: rotate(-4deg); filter: drop-shadow(0 0 0.1em rgba(242, 148, 187, 0.4)); }
+  50% { transform: rotate(4deg); filter: drop-shadow(0 0 0.35em rgba(242, 148, 187, 0.95)); }
+}
+
+@keyframes titulo-espacial-onda {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* ---------- Viajero temporal ----------
+   El hermano del espacial, al otro lado: azul marino y acero con rayas azul claro y un destello
+   frío. A la izquierda, la gema de diamante del pecho justo en el borde, con tres aletas de acero
+   que salen hacia fuera y se mueven despacio; detrás de la gema gira la esfera de un reloj. */
+.perfil-titulo.titulo-temporal {
+  --placa-borde: #8fd0f0;
+  background:
+    linear-gradient(110deg, transparent 32%, rgba(170, 230, 255, 0.5) 46%, transparent 60%) 0 0 / 250% 100% no-repeat,
+    repeating-linear-gradient(62deg, transparent 0 0.9em, rgba(140, 210, 240, 0.2) 0.9em 1.05em),
+    linear-gradient(180deg, #2f4f8f, #142247);
+  color: #e6f6ff;
+  text-shadow: 0 0 0.35em rgba(120, 210, 255, 0.7);
+  padding-inline: 0.9em;
+  --adorno-izquierda: 1.85em;
+  margin-left: var(--adorno-izquierda);
+  animation: titulo-destello 4.5s ease-in-out infinite;
+}
+
+.perfil-titulo.titulo-temporal::before {
+  top: 50%;
+  left: -0.66em;
+  width: 1.32em;
+  height: 1.32em;
+  margin-top: -0.66em;
+  background-image: url("../img/titulos/reloj.svg");
+  animation: titulo-temporal-reloj 16s linear infinite;
+}
+
+/* (la gema, en el 51/64 del dibujo: su centro cae justo en el borde de la plaquita) */
+.perfil-titulo.titulo-temporal::after {
+  top: 50%;
+  left: -1.91em;
+  width: 2.4em;
+  height: 1.5em;
+  margin-top: -0.75em;
+  background-image: url("../img/titulos/temporal.svg");
+  transform-origin: 79.7% 50%;   /* el centro de la gema: las aletas giran a su alrededor */
+  animation: titulo-temporal-aletas 3.2s ease-in-out infinite;
+}
+
+@keyframes titulo-temporal-reloj {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes titulo-temporal-aletas {
+  0%, 100% { transform: rotate(4deg); filter: drop-shadow(0 0 0.1em rgba(159, 230, 255, 0.4)); }
+  50% { transform: rotate(-4deg); filter: drop-shadow(0 0 0.35em rgba(159, 230, 255, 0.95)); }
+}
+
+/* ---------- Rey del Inframundo ----------
+   El tercero de la familia (con el espacial y el temporal): gris oscuro con franjas rojas como el
+   cuerpo de Giratina, borde dorado como su armadura, letras de oro con un resplandor rojo y un
+   destello rojizo que la cruza. A cada lado salen sus alas: tres cintas negras que se curvan y
+   vuelven hacia la plaquita (la del medio apunta hacia fuera), con un pincho rojo que brilla en la
+   punta. Se retuercen y se mecen a ritmos distintos, y los pinchos laten; todo eso va dentro de
+   los SVG (giratina.svg a la izquierda; giratina-der.svg, en espejo y con otros ritmos, a la
+   derecha: lo genera herramientas/generar-giratina.mjs).
+
+   Las alas salen de DETRÁS de la tarjeta: nacen un poco por dentro (en el 42 de los 48 de ancho
+   del dibujo) y la tarjeta tapa ese arranque, igual que tapa los pinchos que se meten por las
+   esquinas. Para eso la tarjeta no es el fondo de la plaquita, sino su ::before (z-index -1), y
+   las dos alas van juntas en el ::after (z-index -2), por debajo. */
+.perfil-titulo.titulo-giratina {
+  --placa-borde: #d4b04a;
+  background: none;
+  box-shadow: none;
+  color: #f3d27a;
+  text-shadow: 0 0 0.35em rgba(255, 50, 50, 0.75);
+  --adorno-izquierda: 1.15em;
+  --adorno-derecha: 1.15em;
+  margin-inline: var(--adorno-izquierda) var(--adorno-derecha);
+  --adorno-arriba: 0.35em;
+  --adorno-abajo: 0.35em;
+  margin-block: var(--adorno-arriba) var(--adorno-abajo);
+}
+
+/* La tarjeta: lo que en las demás es el fondo y el borde de la plaquita */
+.perfil-titulo.titulo-giratina::before {
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(110deg, transparent 35%, rgba(255, 80, 80, 0.4) 48%, transparent 60%) 0 0 / 250% 100% no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 1.2em, rgba(220, 40, 50, 0.22) 1.2em 1.45em),
+    linear-gradient(180deg, #3a3542, #141118);
+  box-shadow: inset 0 0 0 1px var(--placa-borde), 0 2px 5px rgba(0, 0, 0, 0.25);
+  animation: titulo-destello 4.2s ease-in-out infinite;
+}
+
+/* Las alas, por debajo de la tarjeta: una pieza más ancha que la plaquita, con el ala izquierda
+   en su borde izquierdo y la derecha en el derecho */
+.perfil-titulo.titulo-giratina::after {
+  z-index: -2;
+  top: 50%;
+  left: -1.41em;
+  right: -1.41em;
+  height: 2.375em;
+  margin-top: -1.1875em;
+  background-image: url("../img/titulos/giratina.svg"), url("../img/titulos/giratina-der.svg");
+  background-size: 1.9em 100%, 1.9em 100%;
+  background-position: left center, right center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/* ---------- Shiny Hunter ----------
+   Azul noche con un brillo de colores que la cruza, y los destellos de un variocolor en dos
+   esquinas, que titilan a destiempo. */
+.perfil-titulo.titulo-shiny {
+  --placa-borde: #8fd3ff;
+  background:
+    linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.4) 40%, rgba(255, 200, 240, 0.4) 50%, rgba(170, 235, 255, 0.4) 60%, transparent 70%) 0 0 / 250% 100% no-repeat,
+    linear-gradient(135deg, #1b2347, #33205a);
+  color: #fff6c9;
+  text-shadow: 0 0 0.4em rgba(255, 230, 140, 0.8);
+  padding-inline: 1.05em;
+  --adorno-izquierda: 0.55em;
+  --adorno-derecha: 0.75em;
+  margin-inline: var(--adorno-izquierda) var(--adorno-derecha);
+  --adorno-arriba: 0.4em;
+  --adorno-abajo: 0.35em;
+  margin-block: var(--adorno-arriba) var(--adorno-abajo);
+  animation: titulo-destello 3.6s ease-in-out infinite;
+}
+
+.perfil-titulo.titulo-shiny::before {
+  top: -0.68em;
+  left: -0.62em;
+  width: 1.35em;
+  height: 1.35em;
+  background-image: url("../img/titulos/shiny-1.svg");
+  animation: titulo-destellar 2.4s ease-in-out infinite;
+}
+
+.perfil-titulo.titulo-shiny::after {
+  right: -0.8em;
+  bottom: -0.62em;
+  width: 1.75em;
+  height: 1.31em;
+  background-image: url("../img/titulos/shiny-2.svg");
+  animation: titulo-destellar 2.4s ease-in-out -1.2s infinite;
+}
+
+/* ---------- GOAT ----------
+   Negro y oro, letras espaciadas que brillan y dos cuernos de cabra que salen justo del borde de
+   arriba. En el hueco de cada lado de la palabra, bajo cada cuerno, un ojo rojo rasgado (una
+   rendija inclinada hacia dentro, con su resplandor) que se abre, mira, parpadea y se cierra:
+   cerrado no queda nada, solo el negro.
+   Los ojos son dos capas más del fondo: se abren y se cierran cambiando su alto (el SVG se estira
+   sin guardar la proporción, como un párpado). */
+.perfil-titulo.titulo-goat {
+  --placa-borde: #e3b341;
+  background:
+    linear-gradient(110deg, transparent 35%, rgba(255, 236, 160, 0.55) 48%, transparent 60%) 0 0 / 250% 100% no-repeat,
+    url("../img/titulos/ojo-cabra-izq.svg") left 0.32em center / 0.75em 0 no-repeat,
+    url("../img/titulos/ojo-cabra-der.svg") right 0.32em center / 0.75em 0 no-repeat,
+    linear-gradient(180deg, #33291a, #0d0a05);
+  color: #ffd76a;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 0.4em rgba(255, 200, 60, 0.6);
+  padding-inline: 1.35em 1.13em;   /* (el espaciado deja hueco tras la última letra) */
+  --adorno-arriba: 0.85em;
+  margin-top: var(--adorno-arriba);
+  animation: titulo-goat-destello 3.8s ease-in-out infinite, titulo-goat-ojos 6s ease-in-out infinite;
+}
+
+/* El destello (como titulo-destello, pero sin mover los ojos de su sitio) */
+@keyframes titulo-goat-destello {
+  0% { background-position: 150% 0, left 0.32em center, right 0.32em center, 0 0; }
+  40%, 100% { background-position: -50% 0, left 0.32em center, right 0.32em center, 0 0; }
+}
+
+/* Cerrados (invisibles), se abren, miran, parpadean una vez y se cierran despacio */
+@keyframes titulo-goat-ojos {
+  0%, 30% { background-size: 250% 100%, 0.75em 0em, 0.75em 0em, 100% 100%; }
+  38%, 58% { background-size: 250% 100%, 0.75em 0.6em, 0.75em 0.6em, 100% 100%; }
+  61% { background-size: 250% 100%, 0.75em 0em, 0.75em 0em, 100% 100%; }
+  64%, 80% { background-size: 250% 100%, 0.75em 0.6em, 0.75em 0.6em, 100% 100%; }
+  90%, 100% { background-size: 250% 100%, 0.75em 0em, 0.75em 0em, 100% 100%; }
+}
+
+/* Los cuernos: su base (abajo del dibujo) queda justo en el borde de arriba */
+.perfil-titulo.titulo-goat::before,
+.perfil-titulo.titulo-goat::after {
+  top: -1.12em;
+  width: 1em;
+  height: 1.17em;
+  background-image: url("../img/titulos/cuerno.svg");
+  animation: titulo-goat-brillo 2.6s ease-in-out infinite;
+}
+
+.perfil-titulo.titulo-goat::before {
+  left: 0.17em;
+}
+
+.perfil-titulo.titulo-goat::after {
+  right: 0.17em;
+  transform: scaleX(-1);
+}
+
+@keyframes titulo-goat-brillo {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 210, 90, 0)); }
+  50% { filter: drop-shadow(0 0 0.25em rgba(255, 210, 90, 0.9)); }
+}
+
+/* ---------- Baddie de Alola ----------
+   Negro de bote de espray (con motas), letras de grafiti, una calavera a la izquierda que cabecea
+   con chulería y, abajo, el propio borde derramándose en pintura blanca.
+   La franja de pintura ES el borde: un box-shadow por dentro, más grueso abajo, que sigue las
+   esquinas redondeadas y se va afinando hasta quedarse en el borde fino de los lados (sin cortes).
+   De ella cuelgan los goterones (del mismo color), que de vez en cuando sueltan una gota. */
+.perfil-titulo.titulo-baddie {
+  --placa-borde: #ececec;
+  box-shadow: inset 0 -0.16em 0 #ececec, inset 0 0 0 1px var(--placa-borde), 0 2px 5px rgba(0, 0, 0, 0.25);
+  background:
+    radial-gradient(circle at 25% 35%, rgba(255, 255, 255, 0.14) 0 0.06em, transparent 0.1em) 0 0 / 0.7em 0.55em,
+    radial-gradient(circle at 70% 75%, rgba(255, 255, 255, 0.09) 0 0.05em, transparent 0.09em) 0 0 / 0.45em 0.6em,
+    linear-gradient(180deg, #262626, #0b0b0b);
+  color: #f6f6f6;
+  font-style: italic;
+  letter-spacing: 0.03em;
+  text-shadow: 0.07em 0.07em 0 #5b5b5b;
+  padding-inline: 1.25em;
+  padding-bottom: 0.2em;   /* (que la franja de abajo no roce las letras) */
+  --adorno-izquierda: 0.65em;
+  margin-left: var(--adorno-izquierda);
+  --adorno-abajo: 1em;
+  margin-bottom: var(--adorno-abajo);
+}
+
+.perfil-titulo.titulo-baddie::before {
+  top: 50%;
+  left: -0.72em;
+  width: 1.4em;
+  height: 1.5em;
+  margin-top: -0.78em;
+  background-image: url("../img/titulos/calavera.svg");
+  transform-origin: 50% 90%;
+  animation: titulo-baddie-cabeza 1.6s ease-in-out infinite;
+}
+
+/* La pintura que cuelga, justo del borde de abajo (monta 1px para que no quede rendija), por toda
+   la parte recta (sin las esquinas, donde el borde ya sube). Una silueta continua: arcos entre
+   goterones de distintos largos que acaban redondeados. La tesela empieza y acaba a ras del borde
+   y «round» la repite un número entero de veces (estirándola un poco): sin cortes en los lados.
+   Debajo, la gota: empieza escondida en el goterón largo y, al caer, se desvanece con la máscara.
+   Sin contorno: una sombra hacia abajo les da el relieve sin dibujar rayas sobre el borde.
+   Dibujos de derrame.svg, GENERADOS por herramientas/generar-derrame.mjs. */
+.perfil-titulo.titulo-baddie::after {
+  top: calc(100% - 1px);
+  left: 0.3em;
+  right: 0.3em;
+  height: 2.67em;
+  background-image: url("../img/titulos/derrame.svg"), url("../img/titulos/derrame-gota.svg");
+  background-size: 4em 2.67em, 4em 2.67em;
+  background-repeat: round no-repeat, round no-repeat;
+  background-position: 0 0, 0 0;
+  filter: drop-shadow(0 0.07em 0.04em rgba(0, 0, 0, 0.6));
+  -webkit-mask-image: linear-gradient(#000 45%, transparent 90%);
+  mask-image: linear-gradient(#000 45%, transparent 90%);
+  animation: titulo-baddie-gota 2.8s ease-in infinite;
+}
+
+@keyframes titulo-baddie-cabeza {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(-3deg) translateY(-0.06em); }
+}
+
+@keyframes titulo-baddie-gota {
+  0%, 45% { background-position: 0 0, 0 0; }
+  100% { background-position: 0 0, 0 1em; }
+}
+
+/* ---------- Campeón de la Liga (sus colores, de css/juegos.css) ----------
+   Detrás de las letras, confeti de celebración que cae sobre el azul con su brillo; en la esquina,
+   una corona de oro ladeada, con un destello que titila en su punta */
+.perfil-titulo.titulo-campeon {
+  background:
+    url("../img/titulos/confeti.svg") 0 0 / 2.2em 2.2em,
+    linear-gradient(110deg, #1d3c8f 20%, #6f8fe8 40%, #1d3c8f 60%) 0 0 / 250% 100%;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  padding-inline: 1.05em;
+  --adorno-izquierda: 0.45em;
+  margin-left: var(--adorno-izquierda);
+  --adorno-arriba: 0.5em;
+  margin-top: var(--adorno-arriba);
+  animation: titulo-campeon-confeti 3.5s linear infinite;
+}
+
+/* El confeti baja dos teselas; el brillo avanza justo una (100% → -66,667% con un fondo al 250 %):
+   así vuelve a empezar sin que se note */
+@keyframes titulo-campeon-confeti {
+  from { background-position: 0 0, 100% 0; }
+  to { background-position: 0 4.4em, -66.667% 0; }
+}
+
+.perfil-titulo.titulo-campeon::before {
+  top: -0.78em;
+  left: -0.62em;
+  width: 1.5em;
+  height: 1.2em;
+  background-image: url("../img/titulos/corona.svg");
+  transform: rotate(-20deg);
+}
+
+.perfil-titulo.titulo-campeon::after {
+  top: -1em;
+  left: 0.6em;
+  width: 0.62em;
+  height: 0.62em;
+  background-image: url("../img/titulos/shiny-1.svg");
+  animation: titulo-destellar 2s ease-in-out infinite;
+}
+
+/* ---------- Leyenda del Casino ----------
+   Terciopelo granate con letras de oro y, detrás de ellas, una lluvia de monedas (dos capas: las
+   de delante caen más deprisa que las de atrás) y un brillo dorado. Abajo a la derecha, por fuera,
+   el montón de fichas donde acaban. */
+.perfil-titulo.titulo-leyenda {
+  --placa-borde: #f1c40f;
+  background:
+    linear-gradient(110deg, transparent 35%, rgba(255, 230, 150, 0.35) 48%, transparent 60%) 0 0 / 250% 100% no-repeat,
+    url("../img/titulos/monedas-caen.svg") 0 0 / 2.4em 2.4em,
+    url("../img/titulos/monedas-lejos.svg") 0 0 / 1.6em 1.6em,
+    linear-gradient(180deg, #6a1222, #2c050d);
+  color: #ffe27a;
+  text-shadow: 0 0 2px #000, 0 1px 2px #000;
+  padding-inline: 1.1em;
+  --adorno-derecha: 0.85em;
+  margin-right: var(--adorno-derecha);
+  --adorno-abajo: 0.35em;
+  margin-bottom: var(--adorno-abajo);
+  animation: titulo-leyenda-monedas 3s linear infinite;
+}
+
+.perfil-titulo.titulo-leyenda::after {
+  right: -0.85em;
+  bottom: -0.6em;
+  width: 1.75em;
+  height: 1.55em;
+  background-image: url("../img/titulos/fichas.svg");
+}
+
+/* Las de delante bajan dos teselas y las de atrás una: así vuelve a empezar sin que se note */
+@keyframes titulo-leyenda-monedas {
+  from { background-position: 150% 0, 0 0, 0 0, 0 0; }
+  to { background-position: -50% 0, 0 4.8em, 0 1.6em, 0 0; }
+}
+
+/* ---------- Cazador de leyendas (sus colores, de css/juegos.css) ----------
+   El morado y azul de siempre, que ahora fluye, con estrellas detrás de las letras. A la derecha,
+   mitad dentro y mitad fuera, una Master Ball (morada, como la plaquita) que se sacude tres veces
+   como en una captura y, al final, ¡atrapado!: salen unos destellos. */
+.perfil-titulo.titulo-leyendas {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.85) 0 0.05em, transparent 0.08em) 0.3em 0.2em / 1.7em 1.1em,
+    radial-gradient(circle, rgba(225, 205, 255, 0.6) 0 0.04em, transparent 0.07em) 1.1em 0.7em / 2.3em 1.4em,
+    linear-gradient(90deg, #5b2a9e, #2a5bd6, #5b2a9e) 0 0 / 200% 100%;
+  padding-inline: 1.15em;
+  --adorno-derecha: 0.75em;
+  margin-right: var(--adorno-derecha);
+  --adorno-arriba: 0.45em;
+  margin-top: var(--adorno-arriba);
+  animation: titulo-leyendas-cielo 6s linear infinite;
+}
+
+.perfil-titulo.titulo-leyendas::after {
+  top: 50%;
+  right: -0.62em;
+  width: 1.25em;
+  height: 1.25em;
+  margin-top: -0.62em;
+  background-image: url("../img/titulos/masterball.svg");
+  transform-origin: 50% 90%;
+  animation: titulo-leyendas-captura 3.6s ease-in-out infinite;
+}
+
+.perfil-titulo.titulo-leyendas::before {
+  top: -0.8em;
+  right: -1em;
+  width: 1.2em;
+  height: 0.9em;
+  background-image: url("../img/titulos/shiny-2.svg");
+  opacity: 0;
+  animation: titulo-leyendas-atrapado 3.6s ease-out infinite;
+}
+
+/* El morado y el azul corren a lo ancho (una vuelta entera: no se nota dónde empieza) */
+@keyframes titulo-leyendas-cielo {
+  from { background-position: 0.3em 0.2em, 1.1em 0.7em, 100% 0; }
+  to { background-position: 0.3em 0.2em, 1.1em 0.7em, -100% 0; }
+}
+
+/* Tres sacudidas con su pausa, y quieta mientras salen los destellos */
+@keyframes titulo-leyendas-captura {
+  0%, 10%, 25%, 35%, 50%, 60%, 75%, 100% { transform: rotate(0deg); }
+  15%, 40%, 65% { transform: rotate(-18deg); }
+  20%, 45%, 70% { transform: rotate(14deg); }
+}
+
+@keyframes titulo-leyendas-atrapado {
+  0%, 76% { transform: scale(0.4); opacity: 0; }
+  84% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+/* ---------- Maestro Nuzlocke (su granate y su latido, de css/juegos.css) ----------
+   Detrás de las letras, la línea de un monitor de latidos que corre al ritmo del brillo; en la
+   esquina de abajo, una lápida y, de ella, un alma que sube y se desvanece */
+.perfil-titulo.titulo-nuzlocke {
+  background:
+    url("../img/titulos/latido.svg") 0 0 / 3.6em 100% repeat-x,
+    linear-gradient(#5a1414, #2e0a0a);
+  padding-inline: 1.05em;
+  --adorno-izquierda: 0.55em;
+  margin-left: var(--adorno-izquierda);
+  --adorno-arriba: 0.3em;
+  --adorno-abajo: 0.15em;
+  margin-block: var(--adorno-arriba) var(--adorno-abajo);
+  animation: placa-latido 2s ease-in-out infinite, titulo-nuzlocke-monitor 2s linear infinite;
+}
+
+.perfil-titulo.titulo-nuzlocke::before {
+  bottom: -0.22em;
+  left: -0.58em;
+  width: 1.15em;
+  height: 1.38em;
+  background-image: url("../img/titulos/lapida.svg");
+  transform: rotate(-8deg);
+}
+
+.perfil-titulo.titulo-nuzlocke::after {
+  bottom: 0.9em;
+  left: -0.25em;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(255, 220, 220, 0) 70%);
+  animation: titulo-nuzlocke-alma 3s ease-out infinite;
+}
+
+@keyframes titulo-nuzlocke-monitor {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: -3.6em 0, 0 0; }
+}
+
+@keyframes titulo-nuzlocke-alma {
+  0% { transform: translateY(0.35em) scale(0.6); opacity: 0; }
+  30% { opacity: 0.9; }
+  100% { transform: translateY(-0.9em) scale(1.1); opacity: 0; }
+}
+
+/* ---------- Guardián de la Pokédex (su rojo y su escáner, de css/juegos.css) ----------
+   Una Pokédex roja apoyada en la esquina de la izquierda, mitad dentro y mitad fuera: su lente
+   azul parpadea y una raya le recorre la pantalla (la animación va dentro del propio SVG) */
+.perfil-titulo.titulo-guardian {
+  padding-inline: 1em;
+  --adorno-izquierda: 0.55em;
+  margin-left: var(--adorno-izquierda);
+}
+
+.perfil-titulo.titulo-guardian::before {
+  top: 50%;
+  left: -0.6em;
+  width: 1.15em;
+  height: 1.53em;
+  margin-top: -0.8em;
+  background-image: url("../img/titulos/pokedex.svg");
+  transform: rotate(-10deg);
+}
+
+/* ---------- Gran coleccionista (sus colores y su brillo, de css/juegos.css) ----------
+   Una bandolera de cuero colgada de una anilla en la esquina de arriba a la derecha, que se mece
+   despacio; la bolsa cuelga mitad sobre la plaquita y mitad fuera */
+.perfil-titulo.titulo-coleccionista {
+  padding-inline: 0.95em;
+  --adorno-derecha: 0.8em;
+  margin-right: var(--adorno-derecha);
+  --adorno-abajo: 0.4em;
+  margin-bottom: var(--adorno-abajo);
+}
+
+.perfil-titulo.titulo-coleccionista::after {
+  top: 0;
+  left: calc(100% - 0.52em);
+  width: 1.36em;
+  height: 2em;
+  background-image: url("../img/titulos/bolsa.svg");
+  transform-origin: 20% 5%;   /* la anilla */
+  animation: titulo-coleccionista-bolsa 2.8s ease-in-out infinite;
+}
+
+@keyframes titulo-coleccionista-bolsa {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(5deg); }
+}
+
+/* Sin movimiento: los dibujos quietos, y fuera lo que solo es movimiento (la onda, el alma, los
+   destellos de la captura) */
+@media (prefers-reduced-motion: reduce) {
+  .perfil-titulo.placa-adornada,
+  .perfil-titulo.placa-adornada::before,
+  .perfil-titulo.placa-adornada::after {
+    animation: none;
+  }
+
+  .perfil-titulo.titulo-espacial::before,
+  .perfil-titulo.titulo-nuzlocke::after,
+  .perfil-titulo.titulo-leyendas::before {
+    display: none;
+  }
+}

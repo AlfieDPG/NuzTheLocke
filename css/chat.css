@@ -448,14 +448,6 @@
   display: none;
 }
 
-/* ---------- En el perfil: Chat y Retar, uno al lado del otro ---------- */
-
-.perfil-botones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
 /* ---------- Botón de chats, a la izquierda de la campana ---------- */
 
 /* La campana ya se empuja al borde derecho: la del chat va justo antes, y la campana pegada */

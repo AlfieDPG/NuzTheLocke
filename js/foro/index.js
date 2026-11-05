@@ -64,6 +64,7 @@ let denunciasAbiertas = 0;
 let gruposDenuncias = new Map();
 
 const perfiles = new Map();   // uid -> perfil de quien aparece en pantalla
+let rolesForo = new Map();    // uid -> «admin» o «moderador»: para su insignia junto al nombre
 
 // ---------- Cosas pequeñas ----------
 
@@ -144,6 +145,42 @@ function foto(uid) {
 
 function nombreDe(uid) {
   return escaparHTML(perfilDe(uid).nombre || t("Jugador"));
+}
+
+// La insignia de quien modera el foro, para que se sepa que contesta alguien de la web
+function insigniaModerador(uid) {
+  const rol = rolesForo.get(uid);
+  if (!rol) return "";
+  const explicacion = rol === "admin" ? t("Administrador de la web") : t("Moderador de la web");
+  return `<span class="foro-insignia-mod" title="${explicacion}">${icono("escudo")}${t("Moderador")}</span>`;
+}
+
+// La ficha de quien escribe (en la cabecera del hilo y en cada respuesta): su foto con el marco,
+// el nombre, el título a la derecha y, detrás, el fondo de su tarjeta. Quien modera lleva su
+// franja de color y la insignia. «extra»: lo que va tras el título (p. ej. «Autor»).
+function fichaAutor(uid, extra = "") {
+  const perfil = perfilDe(uid);
+  const fondo = fondoVisual(perfil);
+  return `
+    <div class="foro-ficha ${rolesForo.has(uid) ? "moderador" : ""} ${fondo.clase}" style="${fondo.estilo}">
+      ${foto(uid)}
+      <div class="foro-ficha-datos">
+        <button class="foro-nombre" data-autor="${escaparHTML(uid)}">${nombreDe(uid)}</button>
+        ${plantillaTituloDe(perfil, "pequeno")}
+        ${insigniaModerador(uid)}
+        ${extra}
+      </div>
+    </div>`;
+}
+
+// Quién modera: lo puede leer cualquiera con sesión (firestore.rules). Si las reglas aún no están
+// publicadas, quien no modera no puede: el foro sigue, solo que sin insignias.
+async function traerRoles() {
+  try {
+    rolesForo = new Map((await foro.listarModeradores()).map((cada) => [cada.uid, cada.rol]));
+  } catch (error) {
+    console.warn("No se ha podido saber quién modera el foro", error);
+  }
 }
 
 // Amigo ("ok"), solicitud pendiente ("pendiente") o nada (null)
@@ -293,7 +330,7 @@ async function recargar() {
     avisoSilencio.hidden = !silencio;
     avisoSilencio.textContent = silencio ? t("Un moderador te ha silenciado: puedes leer el foro, pero no escribir.") : "";
 
-    const [nuevosFijados] = await Promise.all([foro.cargarFijados(), cargarPagina(true)]);
+    const [nuevosFijados] = await Promise.all([foro.cargarFijados(), cargarPagina(true), traerRoles()]);
     fijados = nuevosFijados;
     await traerPerfiles(fijados.map((hilo) => hilo.uid));
 
@@ -495,11 +532,8 @@ function pintarCabeceraHilo() {
     </div>
     <div class="hilo-chips">${chipsDeHilo(hilo).join("")}</div>
     <div class="foro-hilo-autor">
-      ${foto(hilo.uid)}
-      <div>
-        <button class="foro-nombre" data-autor="${escaparHTML(hilo.uid)}">${nombreDe(hilo.uid)}</button>
-        <span class="comentario-hace">${hace(hilo.creado)}</span>
-      </div>
+      ${fichaAutor(hilo.uid)}
+      <span class="comentario-hace">${hace(hilo.creado)}</span>
     </div>
     ${hilo.texto ? `<p class="foro-hilo-texto">${escaparHTML(hilo.texto)}</p>` : ""}`;
 
@@ -522,16 +556,12 @@ function pintarComentarios(alFinal) {
           }
           return `
             <div class="comentario">
-              ${foto(comentario.uid)}
-              <div class="comentario-cuerpo">
-                <div class="comentario-cabecera">
-                  <button class="foro-nombre" data-autor="${escaparHTML(comentario.uid)}">${nombreDe(comentario.uid)}</button>
-                  ${comentario.uid === hiloAbierto.uid ? `<span class="comentario-op">${t("Autor")}</span>` : ""}
-                  <span class="comentario-hace">${hace(comentario.creado)}</span>
-                  <span class="comentario-acciones">${acciones.join("")}</span>
-                </div>
-                <p class="comentario-texto">${escaparHTML(comentario.texto)}</p>
+              <div class="comentario-cabecera">
+                ${fichaAutor(comentario.uid, comentario.uid === hiloAbierto.uid ? `<span class="comentario-op">${t("Autor")}</span>` : "")}
+                <span class="comentario-hace">${hace(comentario.creado)}</span>
+                <span class="comentario-acciones">${acciones.join("")}</span>
               </div>
+              <p class="comentario-texto">${escaparHTML(comentario.texto)}</p>
             </div>`;
         })
         .join("")
@@ -641,7 +671,13 @@ function suscribirComentarios(id, apertura) {
       hayMasComentarios = Boolean(recienteActual) && hayMas;
       if (hiloAbierto) pintarComentarios(false);
     },
-    (error) => console.error(error),
+    (error) => {
+      console.error(error);
+      // Que no parezca un hilo sin respuestas
+      if (apertura === aperturas) {
+        panelHilo.querySelector(".foro-hilo-comentarios").innerHTML = `<p class="foro-vacio">${t("No se han podido cargar las respuestas.")}</p>`;
+      }
+    },
     { recientesPrimero: Boolean(recienteActual), limite: recienteActual ? limiteComentarios : 300 }
   );
 }
@@ -893,7 +929,7 @@ async function abrirUsuario(uid) {
           : conectado
             ? `<span class="jugador-estado"><span class="punto-conectado"></span>${t("Conectado")}</span>`
             : ""}
-        <div class="foro-usuario-nombre"><h2>${nombreDe(uid)}</h2>${plantillaTituloDe(perfil, "pequeno")}</div>
+        <div class="foro-usuario-nombre"><h2>${nombreDe(uid)}</h2>${plantillaTituloDe(perfil, "pequeno")}${insigniaModerador(uid)}</div>
         <span class="foro-usuario-ganados">
           ${t(jugados === 1 ? "{n} locke jugado" : "{n} lockes jugados", { n: jugados })}
           <span class="foro-usuario-de-ellos">${icono("corona")}${t(ganados === 1 ? "{n} ganado" : "{n} ganados", { n: ganados })}</span>

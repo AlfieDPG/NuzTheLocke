@@ -49,10 +49,12 @@
   <link rel="stylesheet" href="css/juegos.css">
   <link rel="stylesheet" href="css/fondos-pixel.css">
   <link rel="stylesheet" href="css/marcos-dibujo.css">
+  <link rel="stylesheet" href="css/titulos-adornos.css">
   <link rel="stylesheet" href="css/ruleta.css">
   <link rel="stylesheet" href="css/calculadora.css">
   <link rel="stylesheet" href="css/randomizer.css">
   <link rel="stylesheet" href="css/inicio.css">
+  <link rel="stylesheet" href="css/perfil.css">
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
@@ -565,17 +567,14 @@
     </form>
   </dialog>
 
-  <!-- Perfil: el tuyo o el de un amigo (js/perfil.js) -->
-  <dialog id="dialogo-perfil" class="dialogo-sesion">
+  <!-- Perfil: el tuyo o el de otra persona, y el modo «Editar perfil» (js/perfil.js) -->
+  <dialog id="dialogo-perfil">
+    <button class="perfil-cerrar" title="Cerrar" aria-label="Cerrar"></button>
     <div class="perfil-cuerpo"></div>
-    <div class="dialogo-botones">
-      <button class="perfil-borrar boton-rojo boton-izquierda">Borrar mi cuenta</button>
-      <button class="boton-gris perfil-volver">Volver a mi perfil</button>
-      <button class="boton-gris perfil-cerrar">Cerrar</button>
-    </div>
   </dialog>
 
-  <!-- Elegir un Pokémon como foto de perfil (js/perfil.js) -->
+  <!-- La foto de perfil: un Pokémon, una tuya o la de Google. Lo elegido pasa al modo «Editar
+       perfil» y se guarda con el resto (js/perfil.js) -->
   <dialog id="dialogo-avatar" class="dialogo-sesion">
     <h2>Foto de perfil</h2>
     <form class="avatar-formulario">
@@ -595,28 +594,9 @@
       <div class="dialogo-botones">
         <button type="button" class="boton-gris boton-izquierda avatar-quitar">Quitar</button>
         <button type="button" class="boton-gris avatar-cancelar">Cancelar</button>
-        <button type="submit" class="boton-verde avatar-ok">Guardar</button>
+        <button type="submit" class="boton-verde avatar-ok">Elegir</button>
       </div>
     </form>
-  </dialog>
-
-  <!-- Elegir qué equipo enseñar en el perfil (js/perfil.js) -->
-  <dialog id="dialogo-escaparate" class="dialogo-sesion">
-    <h2>Destacar un equipo</h2>
-    <div class="escaparate-lista"></div>
-    <div class="dialogo-botones">
-      <button class="boton-gris escaparate-cerrar">Cerrar</button>
-    </div>
-  </dialog>
-
-  <!-- Todos los equipos destacados de un perfil; en el tuyo, para ordenarlos (js/perfil.js) -->
-  <dialog id="dialogo-destacados" class="dialogo-sesion">
-    <h2>Equipos destacados</h2>
-    <div class="destacados-lista"></div>
-    <div class="dialogo-botones">
-      <button class="boton-gris boton-izquierda destacados-anadir">Destacar otro</button>
-      <button class="boton-gris destacados-cerrar">Cerrar</button>
-    </div>
   </dialog>
 
   <!-- Chat con tus amigos: la lista y cada conversación (js/chat.js) -->
@@ -641,48 +621,6 @@
       <p class="chat-error"></p>
     </div>
     <p class="chat-pie"></p>
-  </dialog>
-
-  <!-- Lo que cuentas de ti en tu perfil: frase, horario y si buscas compañeros (js/perfil.js) -->
-  <dialog id="dialogo-sobre-mi" class="dialogo-sesion">
-    <h2>Sobre mí</h2>
-    <form class="sobre-mi-formulario">
-      <label>
-        <span>Una frase sobre ti</span>
-        <textarea class="sobre-mi-texto" rows="3" maxlength="200" placeholder="Por ejemplo: juego Nuzlockes aleatorizados desde hace años."></textarea>
-      </label>
-      <label>
-        <span>Horario (opcional)</span>
-        <input class="sobre-mi-horario" type="text" maxlength="40" autocomplete="off" placeholder="Por ejemplo: noches y fines de semana (España)">
-      </label>
-      <label class="casilla-sesion sobre-mi-busca">
-        <input type="checkbox">
-        <span>Busco compañeros para un locke</span>
-      </label>
-      <span class="sesion-error sobre-mi-error"></span>
-      <div class="dialogo-botones">
-        <button type="button" class="boton-gris sobre-mi-cancelar">Cancelar</button>
-        <button type="submit" class="boton-verde">Guardar</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="dialogo-titulo" class="dialogo-sesion">
-    <h2>Título</h2>
-    <div class="titulo-lista"></div>
-    <div class="dialogo-botones">
-      <button class="boton-gris boton-izquierda titulo-quitar">Sin título</button>
-      <button class="boton-gris titulo-cerrar">Cerrar</button>
-    </div>
-  </dialog>
-
-  <!-- Todos los fondos de la tarjeta, por apartados (js/perfil.js) -->
-  <dialog id="dialogo-fondos" class="dialogo-sesion">
-    <h2>Fondos</h2>
-    <div class="fondos-lista"></div>
-    <div class="dialogo-botones">
-      <button class="boton-gris fondos-cerrar">Cerrar</button>
-    </div>
   </dialog>
 
   <dialog id="dialogo-borrar-cuenta" class="dialogo-sesion">

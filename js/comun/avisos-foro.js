@@ -8,6 +8,10 @@
 //   · La primera vez que se ve un hilo no se avisa de lo que ya tiene (se apunta tal cual).
 //   · Abrir el hilo en el foro lo deja al día (js/foro/index.js), y eso incluye tus propias
 //     respuestas en él, que también suben el contador.
+//   · El contador de respuestas del hilo nunca baja (ver js/comun/foro.js), aunque se borre una
+//     respuesta (la borra quien la escribió, un moderador o quien borra su cuenta). Por eso, antes
+//     de avisar, se miran las respuestas de verdad: su id es «uid_N», con N el número que dejó el
+//     hilo, así que las nuevas son las de N mayor que lo visto y que no son tuyas.
 //   · Los avisos llegan solo con la web abierta o la próxima vez que se abre (no hay notificaciones
 //     push: harían falta Cloud Functions, que piden el plan de pago).
 
@@ -19,6 +23,7 @@ const MAX_HILOS = 50;          // los más recientes de los tuyos
 const MAX_GUARDADOS = 300;     // apuntes de hilos viejos que se conservan
 
 let hilos = [];                // { id, titulo, respuestas, ultimo }
+const comprobadas = new Map(); // idHilo -> { respuestas, visto, nuevas }: las que existen de verdad
 let dejarDeEscuchar = null;
 const oyentes = new Set();
 
@@ -38,12 +43,53 @@ function vistos() {
 }
 
 // Los hilos tuyos con más respuestas de las que has visto, el que tiene la respuesta más nueva primero
+// (solo las ya comprobadas: mientras se comprueba un hilo, no sale)
 export function respuestasNuevas() {
   const vistas = vistos();
   return hilos
     .filter((hilo) => hilo.id in vistas && hilo.respuestas > vistas[hilo.id])
-    .map((hilo) => ({ id: hilo.id, titulo: hilo.titulo, nuevas: hilo.respuestas - vistas[hilo.id], ultimo: hilo.ultimo }))
+    .map((hilo) => {
+      const hecha = comprobadas.get(hilo.id);
+      const vale = hecha && hecha.respuestas === hilo.respuestas && hecha.visto === vistas[hilo.id];
+      return { id: hilo.id, titulo: hilo.titulo, nuevas: vale ? hecha.nuevas : 0, ultimo: hilo.ultimo };
+    })
+    .filter((hilo) => hilo.nuevas > 0)
     .sort((uno, otro) => otro.ultimo - uno.ultimo);
+}
+
+// Cuenta las respuestas nuevas que siguen existiendo en un hilo (las últimas, como mucho 20). Si
+// no queda ninguna (las borraron, o eran tuyas), el hilo se da por visto.
+async function comprobar(hilo, visto) {
+  const base = baseDeDatos();
+  const usuario = usuarioActual();
+  if (!base || !usuario) return;
+  const { bd, fn } = base;
+  const hecha = comprobadas.get(hilo.id);
+  if (hecha && hecha.respuestas === hilo.respuestas && hecha.visto === visto) return;
+  comprobadas.set(hilo.id, { respuestas: hilo.respuestas, visto, nuevas: 0, pendiente: true });
+
+  try {
+    const instantanea = await fn.getDocs(
+      fn.query(
+        fn.collection(bd, "foro", hilo.id, "comentarios"),
+        fn.orderBy("creado", "desc"),
+        fn.limit(Math.min(20, hilo.respuestas - visto))
+      )
+    );
+    const nuevas = instantanea.docs.filter((documento) => {
+      const numero = Number(documento.id.split("_").pop());
+      return numero > visto && (documento.data().uid || "") !== usuario.uid;
+    }).length;
+    const actual = comprobadas.get(hilo.id);
+    if (!actual || actual.respuestas !== hilo.respuestas || actual.visto !== visto) return; // ya ha cambiado
+    comprobadas.set(hilo.id, { respuestas: hilo.respuestas, visto, nuevas });
+    if (!nuevas) marcarHiloVisto(hilo.id, hilo.respuestas);
+    else avisar();
+  } catch (error) {
+    // Si no se puede mirar, se avisa con el contador, como antes
+    comprobadas.set(hilo.id, { respuestas: hilo.respuestas, visto, nuevas: hilo.respuestas - visto });
+    avisar();
+  }
 }
 
 // Apunta que ya has visto esas respuestas (o, sin número, las que tiene el hilo ahora)
@@ -72,6 +118,7 @@ export function iniciarAvisosForo() {
     if (dejarDeEscuchar) dejarDeEscuchar();
     dejarDeEscuchar = null;
     hilos = [];
+    comprobadas.clear();
     avisar();
 
     const base = baseDeDatos();
@@ -100,6 +147,9 @@ export function iniciarAvisosForo() {
           cambia = true;
         }
         if (cambia) escribir(CLAVE, actual);
+        for (const hilo of hilos) {
+          if (hilo.respuestas > actual[hilo.id]) comprobar(hilo, actual[hilo.id]);
+        }
         avisar();
       },
       (error) => console.error("No se han podido leer tus hilos del foro", error)

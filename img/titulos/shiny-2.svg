@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30">
+  <!-- Dos destellos: uno grande y uno pequeño arriba a la derecha -->
+  <path d="M14 3 C15.2 11.5, 18.5 14.8, 27 16 C18.5 17.2, 15.2 20.5, 14 29 C12.8 20.5, 9.5 17.2, 1 16 C9.5 14.8, 12.8 11.5, 14 3 Z"
+        fill="#e9fbff" stroke="#3a9fd0" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M33 1.5 C33.6 5.4, 35.1 6.9, 39 7.5 C35.1 8.1, 33.6 9.6, 33 13.5 C32.4 9.6, 30.9 8.1, 27 7.5 C30.9 6.9, 32.4 5.4, 33 1.5 Z"
+        fill="#ffe9f6" stroke="#d0569a" stroke-width="2" stroke-linejoin="round"/>
+</svg>

@@ -2595,13 +2595,15 @@ button.coleccion-casilla:hover {
   color: var(--placa-texto);
 }
 
-/* Sencillos */
-.titulo-ojo { --placa-fondo: #6b4a2b; --placa-texto: #ffd9a8; --placa-borde: #a87442; }
-.titulo-detective { --placa-fondo: #3d3322; --placa-texto: #e8d5a3; --placa-borde: #7d6a44; }
-.titulo-madrugador { --placa-fondo: #f5c66b; --placa-texto: #4a2a00; --placa-borde: #c9952e; }
-.titulo-estratega { --placa-fondo: #24365e; --placa-texto: #cfe0ff; --placa-borde: #4a6aa8; }
-.titulo-alma { --placa-fondo: #7a1f2b; --placa-texto: #ffd6d6; --placa-borde: #b5404f; }
-.titulo-trotamundos { --placa-fondo: #2f5e3a; --placa-texto: #d8f5c8; --placa-borde: #5c9a66; }
+/* Sencillos: un color cada uno, todos distintos (naranja, morado, amarillo, azul, granate y verde).
+   Con «.perfil-titulo» delante: si no, el gris de .perfil-titulo.placa-tienda (más específico) les
+   pisaba el color y salían todos grises. */
+.perfil-titulo.titulo-ojo { --placa-fondo: #a3561a; --placa-texto: #fff0d6; --placa-borde: #e0904a; }
+.perfil-titulo.titulo-detective { --placa-fondo: #4a2f6b; --placa-texto: #eadcff; --placa-borde: #8a66b8; }
+.perfil-titulo.titulo-madrugador { --placa-fondo: #f5c66b; --placa-texto: #4a2a00; --placa-borde: #c9952e; }
+.perfil-titulo.titulo-estratega { --placa-fondo: #24365e; --placa-texto: #cfe0ff; --placa-borde: #4a6aa8; }
+.perfil-titulo.titulo-alma { --placa-fondo: #7a1f2b; --placa-texto: #ffd6d6; --placa-borde: #b5404f; }
+.perfil-titulo.titulo-trotamundos { --placa-fondo: #2f5e3a; --placa-texto: #d8f5c8; --placa-borde: #5c9a66; }
 
 /* Detallados */
 .perfil-titulo.titulo-casino {
@@ -2717,15 +2719,20 @@ button.coleccion-casilla:hover {
   }
 }
 
-/* En la Tienda, los títulos en filas: la plaquita y, a la derecha, el precio o el botón */
+/* En la Tienda, los títulos en filas: la plaquita y, a la derecha, el precio o el botón. Las
+   columnas, de 22rem como poco: los títulos con adornos no se parten y tienen que caber con el
+   botón en la misma línea (en un móvil estrecho, la columna ocupa todo el ancho) */
 .tienda-titulos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
   gap: 0.5rem 0.8rem;
 }
 
+/* Si la plaquita no cabe en una línea junto al botón (los títulos con adornos no se parten), el
+   botón baja a la línea de abajo, a la derecha */
 .tienda-titulo-fila {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
@@ -2744,6 +2751,7 @@ button.coleccion-casilla:hover {
 
 .tienda-titulo-fila button {
   flex: none;
+  margin-left: auto;
   padding: 0.4rem 0.8rem;
   border: none;
   border-radius: 0.5rem;
@@ -3121,4 +3129,12 @@ button.coleccion-casilla:hover {
   .con-marco:is(.marco-jungla, .marco-celestial, .marco-llamarada, .marco-escarcha)::after {
     animation: none;
   }
+}
+
+/* Las fotos que son un <img> suelto (chat, barra lateral...) no tienen ::after donde poner el
+   dibujo, y Latido, Celestial, Jungla, Llamarada, Escarcha y los de tipo con dibujo les quitan el
+   recorte (overflow: visible): la imagen se salía del círculo y se veía cuadrada o estirada. Se
+   recorta otra vez (más específico que esos, que también llevan !important) y se queda el aro. */
+img.con-marco.con-marco {
+  overflow: hidden !important;
 }

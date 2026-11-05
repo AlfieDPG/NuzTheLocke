@@ -735,17 +735,16 @@ service cloud.firestore {
     // sin servidor propio, esa es la única forma de que nadie se los dé.
     //
     //   moderadores/{uid}  -> un documento por moderador (el id es su uid): { rol, por, desde }.
-    //                         El tuyo lleva rol: "admin" (a mano). Cada uno puede mirar el suyo, para
-    //                         que la web sepa si enseñarle el panel; los moderadores miran los de los
-    //                         demás. Solo el admin nombra moderadores (rol «moderador», nunca otro
+    //                         El tuyo lleva rol: "admin" (a mano). Los lee cualquiera con sesión:
+    //                         el foro pone una insignia a quien modera (no hay nada privado).
+    //                         Solo el admin nombra moderadores (rol «moderador», nunca otro
     //                         admin) y los quita, y no puede tocar el documento de un admin.
     //   silenciados/{uid}  -> { desde, motivo, por }. Quien está aquí no puede escribir en el
     //                         foro. Lo crean y lo quitan los moderadores; el silenciado puede ver
     //                         el suyo (para que la web le explique por qué no le deja).
 
     match /moderadores/{uid} {
-      allow get: if identificado() && (request.auth.uid == uid || esMod());
-      allow list: if esMod();
+      allow read: if identificado();
       // Nombrar: crear el documento de otra persona (si ya existe sería una modificación, y esa
       // no se deja: así tampoco se le puede quitar el rol «admin» a nadie desde la web)
       allow create: if esAdmin()

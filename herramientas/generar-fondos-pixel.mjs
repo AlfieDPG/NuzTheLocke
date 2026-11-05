@@ -649,41 +649,109 @@ function nubesDeDia(l, azar) {
 }
 
 // Wobbuffet saliendo de una caja, en la Guarida Rocket (x0: dónde empieza ese dibujo en la capa).
-// dibujo: 0 la caja cerrada, 1 se asoma, 2 medio fuera, 3 y 4 fuera del todo saludando con la mano
-// en la frente, inclinado a un lado y al otro (con la cola asomando por el lado de la caja)
+// dibujo: 0 la caja cerrada, 1 se asoma (la coronilla y los ojos), 2 medio fuera (ya con la boca),
+// 3 y 4 fuera del todo con los dos brazos arriba, meneándose a un lado y al otro, y con la cola
+// asomando por el lado de la caja.
+// Dibujado píxel a píxel a partir de cómo es (nada copiado ni de IA): cuerpo azul de una pieza con
+// la coronilla redonda, ojos cerrados en «> <», una bocaza abierta con el borde de arriba en
+// zigzag y la lengua rosa, brazos planos y largos, y la cola negra con dos ojos con pupila.
+const WOBBU = {
+  contorno: "#1c4470", cuerpo: "#58b2ea", luz: "#9cd8fb", sombra: "#3a8cca",
+  ojo: "#15202e", boca: "#5a1222", garganta: "#8e2a3c", lengua: "#ec8299"
+};
+
+// El dibujo de Wobbuffet: un mapa «dx,fila» → color, con dx desde el centro (el cuerpo va de -9 a
+// 8) y fila desde la coronilla (las negativas, los brazos que suben por encima de la cabeza)
+function figuraWobbuffet(brazos) {
+  const figura = new Map();
+  const poner = (dx, fila, color) => figura.set(`${dx},${fila}`, color);
+  const hay = (dx, fila) => figura.has(`${dx},${fila}`);
+
+  // Los brazos, detrás del cuerpo: del hombro salen hacia fuera, suben rectos y la mano se dobla
+  // hacia la cabeza (aletas planas y anchas, de 5). El derecho es el izquierdo en espejo.
+  if (brazos) {
+    const brazo = [[-9, 17], [-10, 16], [-11, 15], [-12, 14], [-13, 13], [-14, 12], [-14, 11], [-14, 10], [-14, 9],
+      [-14, 8], [-14, 7], [-14, 6], [-14, 5], [-14, 4], [-14, 3], [-13, 2], [-13, 1], [-12, 0], [-11, -1], [-10, -2]];
+    for (const [dx, fila] of brazo) {
+      for (const k of [-2, -1, 0, 1, 2]) {
+        poner(dx + k, fila, WOBBU.cuerpo);
+        poner(-1 - (dx + k), fila, WOBBU.cuerpo);
+      }
+    }
+  }
+  // El cuerpo: la coronilla redonda y luego recto (lo de abajo queda dentro de la caja)
+  const MEDIO = [4, 6, 7, 8, 8, 9];
+  for (let fila = 0; fila < 34; fila++) {
+    const m = MEDIO[fila] || 9;
+    for (let dx = -m; dx < m; dx++) poner(dx, fila, WOBBU.cuerpo);
+  }
+  // El contorno: todo lo que da al vacío (lo de abajo del todo queda dentro de la caja)
+  const borde = [];
+  for (const clave of figura.keys()) {
+    const [dx, fila] = clave.split(",").map(Number);
+    if (!hay(dx - 1, fila) || !hay(dx + 1, fila) || !hay(dx, fila - 1) || !hay(dx, fila + 1)) borde.push([dx, fila]);
+  }
+  // Luz a la izquierda y sombra a la derecha (dos píxeles por dentro del contorno)
+  for (const clave of figura.keys()) {
+    const [dx, fila] = clave.split(",").map(Number);
+    const izquierda = !hay(dx - 1, fila) || !hay(dx - 2, fila);
+    const derecha = !hay(dx + 1, fila) || !hay(dx + 2, fila);
+    if (izquierda && fila < 26) poner(dx, fila, WOBBU.luz);
+    else if (derecha) poner(dx, fila, WOBBU.sombra);
+  }
+  for (const [dx, fila] of borde) poner(dx, fila, WOBBU.contorno);
+  // Un brillo en la coronilla
+  for (const [dx, fila] of [[-4, 2], [-3, 2], [-5, 3], [-4, 3]]) poner(dx, fila, WOBBU.luz);
+
+  // Los ojos cerrados: «>» y «<» de 4×5
+  const OJO = ["k...", ".kk.", "...k", ".kk.", "k..."];
+  OJO.forEach((filaOjo, f) => [...filaOjo].forEach((c, i) => {
+    if (c !== "k") return;
+    poner(-6 + i, 6 + f, WOBBU.ojo);   // el izquierdo, «>»
+    poner(5 - i, 6 + f, WOBBU.ojo);    // el derecho, «<» (en espejo)
+  }));
+
+  // La bocaza: arriba en zigzag (los «dientes» son del color del cuerpo), oscura por dentro, roja
+  // hacia abajo y la lengua rosa al fondo
+  const BOCA = [3, 5, 5, 6, 6, 6, 5, 5, 4, 2];   // medio ancho de cada fila, desde la fila 12
+  BOCA.forEach((m, f) => {
+    for (let dx = -m; dx < m; dx++) {
+      if (f === 0 && (dx + 10) % 2) continue;                     // el zigzag de arriba
+      const centro = Math.abs(dx + 0.5) < m - 1;
+      let color = WOBBU.boca;
+      if (f >= 3 && centro) color = WOBBU.garganta;
+      if (f >= 6 && Math.abs(dx + 0.5) < m - 1.5) color = WOBBU.lengua;
+      if (f === BOCA.length - 1) color = WOBBU.boca;
+      poner(dx, 12 + f, color);
+    }
+  });
+  return figura;
+}
+
 function pintarWobbuffet(l, x0, dibujo) {
   const [cx, boca] = [x0 + 133, 47]; // el centro de la caja y su borde de arriba
   const a = 0.97;
-  const fuera = [0, 7, 16, 27, 27][dibujo];
+  const fuera = [0, 9, 20, 31, 31][dibujo];
   const desvio = dibujo === 3 ? -1 : dibujo === 4 ? 1 : 0;
   const top = boca - fuera;
   if (fuera) {
-    const ANCHO = [4, 6, 7, 8, 8, 9];
-    for (let fila = 0; fila < 30; fila++) {
+    // Al menearse, la cabeza y los brazos se ladean un píxel y lo de abajo se queda
+    for (const [clave, color] of figuraWobbuffet(dibujo >= 3)) {
+      const [dx, fila] = clave.split(",").map(Number);
       const y = top + fila;
-      if (y > boca) break;
-      const media = ANCHO[fila] || 9;
-      const x1 = cx + (fila < 14 ? desvio : 0);
-      for (let dx = -media; dx < media; dx++) {
-        const borde = dx === -media || dx === media - 1 || fila === 0;
-        l.poner(x1 + dx, y, borde ? "#1e4a7a" : fila < 6 && dx < -3 ? "#a8dcff" : "#5ab4ec", a);
-      }
+      if (y >= boca) continue;   // lo que queda dentro de la caja
+      l.poner(cx + dx + (fila < 18 ? desvio : 0), y, color, a);
     }
-    const cara = cx + desvio;
-    for (const ojo of [-5, 2]) rect(l, cara + ojo, top + 7, 3, 1, "#1a1a2a", a);
-    if (fuera > 12) rect(l, cara - 1, top + 11, 3, 2, "#e8506a", a);
     if (dibujo >= 3) {
-      // El saludo: el brazo sube por el lado hasta la frente
-      for (const [dx, fila] of [[9, 18], [10, 17], [10, 16], [11, 15], [11, 14], [11, 13], [11, 12], [10, 11], [10, 10], [9, 9], [8, 8], [7, 7]]) {
-        const x = cx + dx + (fila < 14 ? desvio : 0);
-        l.poner(x, top + fila, "#5ab4ec", a);
-        l.poner(x + 1, top + fila, "#1e4a7a", a);
-      }
-      for (const [dx, fila] of [[-10, 18], [-11, 19], [-12, 20]]) {
-        l.poner(cx + dx, top + fila, "#5ab4ec", a);
-        l.poner(cx + dx - 1, top + fila, "#1e4a7a", a);
-      }
-      mapa(l, cx + 12, boca + 3 - (dibujo - 3), [".aaa.", "aaaaa", "awawa", "aaaaa", ".aaa."], { a: "#1a1a22", w: "#ffffff" }, a);
+      // La cola, negra y con sus dos ojos con pupila, asomando por el lado de la caja
+      mapa(l, cx + 12, boca + 2 - (dibujo - 3), [
+        "..aaaa..",
+        ".aaaaaaa",
+        "aawwawwa",
+        "aawkawka",
+        ".aaaaaaa",
+        "..aaaa.."
+      ], { a: "#24242c", w: "#ffffff", k: "#000000" }, a);
     }
   }
   // La caja, delante (tapa lo que queda dentro)

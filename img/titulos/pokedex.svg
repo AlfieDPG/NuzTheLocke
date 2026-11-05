@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32">
+  <!-- Una Pokédex roja (Guardián de la Pokédex): la lente azul que parpadea, sus tres lucecitas y
+       una pantalla verde con una raya que la escanea -->
+  <style>
+    @keyframes lente { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+    @keyframes barrido { from { transform: translateY(0); } to { transform: translateY(8.4px); } }
+    .brillo { animation: lente 1.6s ease-in-out infinite; }
+    .linea { animation: barrido 1.2s linear infinite; }
+    @media (prefers-reduced-motion: reduce) { .brillo, .linea { animation: none; } }
+  </style>
+  <defs>
+    <clipPath id="pantalla"><rect x="5" y="15" width="14" height="10" rx="1.5"/></clipPath>
+  </defs>
+  <rect x="2" y="1.5" width="20" height="29" rx="3.5" fill="#d23a2e" stroke="#3a0a06" stroke-width="2.4"/>
+  <path d="M2.5 12.5 H21.5" stroke="#3a0a06" stroke-width="1.4"/>
+  <circle cx="8" cy="7.2" r="4.2" fill="#fff" stroke="#3a0a06" stroke-width="1.6"/>
+  <circle cx="8" cy="7.2" r="3" fill="#3a8ee8"/>
+  <circle class="brillo" cx="8" cy="7.2" r="3" fill="#c4ecff"/>
+  <circle cx="7" cy="6.1" r="1" fill="#fff"/>
+  <g stroke="#3a0a06" stroke-width="0.9">
+    <circle cx="14.2" cy="5" r="1.2" fill="#ff5a5a"/>
+    <circle cx="17.2" cy="5" r="1.2" fill="#ffd34d"/>
+    <circle cx="20" cy="5" r="1.2" fill="#6fd36b"/>
+  </g>
+  <rect x="5" y="15" width="14" height="10" rx="1.5" fill="#a8e8b0" stroke="#3a0a06" stroke-width="1.6"/>
+  <g clip-path="url(#pantalla)">
+    <rect class="linea" x="5" y="15" width="14" height="1.6" fill="#fff" opacity="0.75"/>
+  </g>
+  <circle cx="7" cy="28" r="1.4" fill="#3a0a06"/>
+  <rect x="11" y="27" width="8" height="2" rx="1" fill="#3a0a06"/>
+</svg>

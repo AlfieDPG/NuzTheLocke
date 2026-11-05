@@ -248,9 +248,11 @@ export const MARCOS = [
 ];
 
 // Títulos: cada uno es una plaquita con su propio diseño (css/juegos.css, .titulo-<id>). El
-// precio, por lo trabajado que está: sencillos (un color), detallados (degradados o dibujo) y
-// animados (con movimiento). «nivel» solo da el color de respaldo (el de los títulos de logros).
-const PRECIO_TITULO = { sencillo: 150, detallado: 350, animado: 800 };
+// precio, por lo trabajado que está: sencillos (un color), detallados (degradados o dibujo),
+// animados (con movimiento) y con adornos (animados y, además, con dibujos que asoman por fuera
+// de la plaquita o con un fondo que se mueve: css/titulos-adornos.css). «nivel» solo da el color de respaldo (el de los
+// títulos de logros).
+const PRECIO_TITULO = { sencillo: 150, detallado: 350, animado: 800, adornado: 1200 };
 
 export const TITULOS = [
   { id: "titulo-ojo", nombre: t("Ojo de halcón"), nivel: "bronce", acabado: "sencillo" },
@@ -265,18 +267,26 @@ export const TITULOS = [
   { id: "titulo-siluetas", nombre: t("Maestro de las siluetas"), nivel: "oro", acabado: "detallado" },
   { id: "titulo-tipos", nombre: t("Domador de tipos"), nivel: "oro", acabado: "detallado" },
   { id: "titulo-calle", nombre: t("Veterano de Calle Victoria"), nivel: "oro", acabado: "detallado" },
-  { id: "titulo-coleccionista", nombre: t("Gran coleccionista"), nivel: "platino", acabado: "animado" },
-  { id: "titulo-leyenda", nombre: t("Leyenda del Casino"), nivel: "platino", acabado: "animado" },
-  { id: "titulo-nuzlocke", nombre: t("Maestro Nuzlocke"), nivel: "platino", acabado: "animado" },
-  { id: "titulo-leyendas", nombre: t("Cazador de leyendas"), nivel: "platino", acabado: "animado" },
-  { id: "titulo-campeon", nombre: t("Campeón de la Liga"), nivel: "oro", acabado: "animado" },
-  { id: "titulo-guardian", nombre: t("Guardián de la Pokédex"), nivel: "platino", acabado: "animado" }
+  // Con adornos (quien compró alguno de los de antes a 800 lo conserva: se guarda lo que pagó)
+  { id: "titulo-coleccionista", nombre: t("Gran coleccionista"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-guardian", nombre: t("Guardián de la Pokédex"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-leyenda", nombre: t("Leyenda del Casino"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-nuzlocke", nombre: t("Maestro Nuzlocke"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-leyendas", nombre: t("Cazador de leyendas"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-campeon", nombre: t("Campeón de la Liga"), nivel: "oro", acabado: "adornado" },
+  { id: "titulo-shiny", nombre: t("Shiny Hunter"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-goat", nombre: t("GOAT"), nivel: "oro", acabado: "adornado" },
+  { id: "titulo-baddie", nombre: t("Baddie de Alola"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-espacial", nombre: t("Explorador espacial"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-temporal", nombre: t("Viajero temporal"), nivel: "platino", acabado: "adornado" },
+  { id: "titulo-giratina", nombre: t("Rey del Inframundo"), nivel: "platino", acabado: "adornado" }
 ].map((titulo) => ({ ...titulo, precio: PRECIO_TITULO[titulo.acabado] }));
 
 // Las clases con las que se pinta un título (el de un logro o uno de la Tienda), donde salga
 export function claseTitulo(titulo) {
   if (!titulo) return "";
-  return `nivel-${titulo.nivel} ${titulo.id && titulo.id.startsWith("titulo-") ? `placa-tienda ${titulo.id}` : ""}`;
+  const tienda = titulo.id && titulo.id.startsWith("titulo-");
+  return `nivel-${titulo.nivel} ${tienda ? `placa-tienda ${titulo.id}` : ""} ${titulo.acabado === "adornado" ? "placa-adornada" : ""}`;
 }
 
 // El título que lleva alguien (perfil.titulo): uno de sus logros o uno comprado en la Tienda,
@@ -297,6 +307,38 @@ export function plantillaTituloDe(perfil, clase = "") {
   if (!titulo) return "";
   const nombre = String(titulo.nombre).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
   return `<span class="perfil-titulo ${claseTitulo(titulo)} ${clase}" title="${nombre}">${nombre}</span>`;
+}
+
+// El color de cada perfil (perfil.color; se elige en «Editar perfil», js/perfil.js): el de su
+// ficha, sus botones y sus apartados, se abra desde donde se abra. Son los colores de las
+// secciones de la web; quien no elige ninguno, el de «Amigos». Gratis, como el «Sobre mí».
+export const COLORES_PERFIL = [
+  { id: "rojo", nombre: t("Rojo"), rgb: "231, 76, 60" },
+  { id: "naranja", nombre: t("Naranja"), rgb: "240, 150, 60" },
+  { id: "amarillo", nombre: t("Amarillo"), rgb: "241, 196, 15" },
+  { id: "arena", nombre: t("Arena"), rgb: "205, 165, 100" },
+  { id: "lima", nombre: t("Lima"), rgb: "160, 205, 80" },
+  { id: "verde", nombre: t("Verde"), rgb: "76, 182, 92" },
+  { id: "turquesa", nombre: t("Turquesa"), rgb: "0, 184, 169" },
+  { id: "celeste", nombre: t("Celeste"), rgb: "80, 190, 215" },
+  { id: "azul", nombre: t("Azul"), rgb: "91, 141, 239" },
+  { id: "morado", nombre: t("Morado"), rgb: "155, 110, 230" },
+  { id: "lila", nombre: t("Lila"), rgb: "196, 128, 214" },
+  { id: "rosa", nombre: t("Rosa"), rgb: "232, 82, 110" },
+  { id: "granate", nombre: t("Granate"), rgb: "186, 62, 102" }
+];
+export const COLOR_PERFIL_DEFECTO = "celeste";
+
+// El que lleva (solo si es uno de la lista); "" si no ha elegido
+export function colorElegido(perfil) {
+  const id = perfil && perfil.color;
+  return COLORES_PERFIL.some((color) => color.id === id) ? id : "";
+}
+
+// Sus «R, G, B», para --color-vista
+export function rgbDePerfil(perfil) {
+  const id = colorElegido(perfil) || COLOR_PERFIL_DEFECTO;
+  return COLORES_PERFIL.find((color) => color.id === id).rgb;
 }
 
 // Del más barato al más caro (los que no se compran, al final)

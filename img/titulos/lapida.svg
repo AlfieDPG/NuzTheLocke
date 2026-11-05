@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 0 28 33.5">
+  <!-- Una lápida con su cruz, una grieta y un poco de hierba -->
+  <defs>
+    <linearGradient id="piedra" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c3c8cf"/>
+      <stop offset="1" stop-color="#7a8089"/>
+    </linearGradient>
+  </defs>
+  <path d="M4 30 V12 C4 6, 8 2, 13 2 C18 2, 22 6, 22 12 V30 Z" fill="url(#piedra)" stroke="#24272c" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M13 9 V21 M9 13 H17" stroke="#454a52" stroke-width="2.3" stroke-linecap="round"/>
+  <path d="M18.3 4.6 L16.2 8.6 L18.6 11.6" stroke="#454a52" stroke-width="1.4" fill="none" stroke-linejoin="round"/>
+  <rect x="0" y="28.5" width="26" height="3.8" rx="1.9" fill="#4a8a3c" stroke="#1f3d16" stroke-width="1.8"/>
+</svg>

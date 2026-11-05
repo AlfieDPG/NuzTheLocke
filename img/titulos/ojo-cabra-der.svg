@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" preserveAspectRatio="none">
+  <!-- Ojo derecho de GOAT: el izquierdo dado la vuelta (más bajo hacia dentro) -->
+  <defs>
+    <radialGradient id="resplandor">
+      <stop offset="0" stop-color="#ff2a10" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff0000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rojo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8a5a"/>
+      <stop offset="1" stop-color="#d40c0c"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="15" cy="10" rx="15" ry="9" fill="url(#resplandor)"/>
+  <path d="M27 7.5 Q16 2.5 3 12.5 Q17 13.5 27 7.5 Z" fill="url(#rojo)" stroke="#2a0000" stroke-width="1.1" stroke-linejoin="round"/>
+</svg>

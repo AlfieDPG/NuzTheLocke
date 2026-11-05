@@ -421,8 +421,11 @@ export async function iniciarSesionUI() {
     if (e.key === "Escape") cerrarMenuCuentas();
   });
 
-  // Borrar la cuenta
-  dialogoPerfil.querySelector(".perfil-borrar").addEventListener("click", abrirBorrar);
+  // Borrar la cuenta: el botón sale en «Editar perfil» → «Borrar mi cuenta» (js/perfil.js lo
+  // pinta cuando hace falta, así que se escucha en toda la ventana)
+  dialogoPerfil.addEventListener("click", (e) => {
+    if (e.target.closest(".perfil-borrar")) abrirBorrar();
+  });
   dialogoBorrar.querySelector(".borrar-formulario").addEventListener("submit", (e) => {
     e.preventDefault();
     borrarCuenta();
