@@ -40,8 +40,12 @@
      tono ya se ve marrón (sepia). La letra y sus grises, neutros.
    · Oscuro, [data-tema="oscuro"]: el azul marino de siempre. Solo cambia lo que es distinto.
    · Claro, [data-tema="claro"].
-   Los colores vivos (rojo, amarillo, el de cada sección...) son los mismos en todos */
-:root {
+   Los colores vivos (rojo, amarillo, el de cada sección...) son los mismos en todos.
+   Lo que lleva un fondo con dibujo (.con-fondo: la tarjeta de «Amigos», tu ficha del perfil, las
+   muestras de la Tienda...) se ve igual con cualquier tema, como los títulos y los marcos: el fondo
+   es opaco y lo de encima va siempre con los colores de Atardecer (letra clara con sombra). */
+:root,
+.con-fondo {
   color-scheme: dark;
   --t-hundido: #1c1a19;
   --t-fondo: #22201f;

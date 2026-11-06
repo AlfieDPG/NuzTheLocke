@@ -344,7 +344,7 @@
 
 .logro-premio.fondo-plata { box-shadow: inset 0 0 0 1px rgba(195, 202, 214, 0.6); }
 .logro-premio.fondo-oro { box-shadow: inset 0 0 0 1px rgba(241, 196, 15, 0.6); }
-.logro-premio.fondo-platino { box-shadow: inset 0 0 0 1px rgba(127, 224, 240, 0.6); }
+.logro-premio.fondo-platino { box-shadow: inset 0 0 0 1px rgba(214, 206, 246, 0.7); }
 .logro-premio.fondo-tipo { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tipo) 70%, transparent); }
 
 /* El marco liso que da cada logro de tipo: la plaquita con el borde del color del tipo (--marco,

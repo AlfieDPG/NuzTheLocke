@@ -21,7 +21,7 @@ import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, pla
 
 const JUEGO = "silueta";
 const INTENTOS = 3;
-const PUNTOS = [15, 10, 6];
+const PUNTOS = [30, 20, 12];
 const RONDAS = [
   { nombre: t("Fácil"), gens: [1, 2, 3] },
   { nombre: t("Media"), gens: [4, 5, 6] },

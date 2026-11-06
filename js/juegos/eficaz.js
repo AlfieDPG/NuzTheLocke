@@ -16,7 +16,7 @@ import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, pla
 const JUEGO = "eficaz";
 const RONDAS = 10;
 const SEGUNDOS = 45;
-const POR_ACIERTO = 5;
+const POR_ACIERTO = 10;
 
 let caja = null;
 let rondas = [];

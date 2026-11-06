@@ -187,7 +187,7 @@ export const montarIntruso = crearTest({
   juego: "intruso",
   titulo: t("El intruso"),
   explicacion: t("Tres de los cuatro tienen algo en común: un tipo, una debilidad, el color, la generación, el grupo huevo... Elige el que no."),
-  porAcierto: 10,
+  porAcierto: 20,
   pausa: 2600,
   async cargar() {
     cargando ??= fetch(URL_RASGOS).then((respuesta) => respuesta.json()).then((datos) => (rasgos = datos));

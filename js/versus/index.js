@@ -39,7 +39,7 @@ import {
   crearLocke, editarLocke, invitarALocke, quitarDeLocke, sePuedenCambiarVidas,
   cambiarNumero, borrarLocke, enlaceParaSeguir, lockePorId, nuevoIdCadena, vidasDeLaSiguienteEtapa, pokemonQuePasan,
   hayEtapaSiguiente, crearSiguienteEtapa, siguenEnLaCadena, estaEliminado, combatesDe, victoriasDe, medallasDe, cambiarMedallas,
-  muertosDe, conKanto
+  muertosDe, conKanto, puestosDe
 } from "../comun/lockes.js";
 import { kantoEnCaps, cambiarKantoEnCaps } from "../levelcaps/datos.js";
 import { medallasDelLocke, marcarGimnasios } from "../comun/medallas.js";
@@ -191,6 +191,35 @@ function plantillaCaidos(locke, uid) {
     </div>`;
 }
 
+// Quién va 1.º, 2.º y 3.º en un locke en marcha (puestosDe, js/comun/lockes.js): un galardón de oro,
+// plata o bronce colgado del borde de arriba de su ficha, a la derecha: la cinta sale por detrás de
+// la ficha y la medalla queda delante. La primera vez que se ve (y cada vez que alguien cambia de
+// puesto) sale de detrás de la ficha y se pone delante. En el resumen, una medallita en la foto.
+// El porqué, al pasar el ratón.
+const PUESTOS = { 1: t("1.º"), 2: t("2.º"), 3: t("3.º") };
+const vistos = new Map(); // `${locke}:${uid}` → el puesto que se enseñó: solo se anima lo nuevo
+
+// «Va 1.º · victorias: 5 (en toda la cadena)»
+function porQue(ranking, uid, puesto) {
+  if (ranking.criterio === "vidas") return t("Va {puesto}: más vidas", { puesto });
+  if (ranking.criterio === "bajas") return t("Va {puesto}: menos bajas", { puesto });
+  return `${t("Va {puesto}", { puesto })} · ${t("victorias: {n}", { n: ranking.victorias[uid] })}${ranking.cadena ? ` ${t("(en toda la cadena)")}` : ""}`;
+}
+
+function plantillaPuesto(locke, uid, resumen = false) {
+  const ranking = puestosDe(locke);
+  const puesto = ranking && ranking.puestos[uid];
+  if (!puesto || puesto > 3) return "";
+  const texto = escaparHTML(porQue(ranking, uid, PUESTOS[puesto]));
+  if (resumen) return `<span class="locke-resumen-galardon puesto-${puesto}" data-puesto="${puesto}" title="${texto}" role="img" aria-label="${texto}"></span>`;
+  const clave = `${locke.id}:${uid}`;
+  const entra = vistos.get(clave) !== puesto ? "entra" : "";
+  vistos.set(clave, puesto);
+  return `
+    <span class="locke-galardon-cinta puesto-${puesto} ${entra}" aria-hidden="true"></span>
+    <span class="locke-galardon puesto-${puesto} ${entra}" title="${texto}" role="img" aria-label="${texto}">${puesto}</span>`;
+}
+
 function plantillaJugador(locke, uid) {
   const usuario = usuarioActual();
   const nombre = escaparHTML((locke.nombres || {})[uid] || t("Jugador"));
@@ -204,6 +233,7 @@ function plantillaJugador(locke, uid) {
   return `
     <div class="locke-jugador ${gano ? "ganador" : ""} ${pendiente ? "pendiente" : ""} ${esMio ? "mio" : ""} ${eliminado ? "eliminado" : ""}"
          data-uid="${escaparHTML(uid)}">
+      ${pendiente ? "" : plantillaPuesto(locke, uid)}
       <div class="locke-persona ${fondoVisualDe(uid).clase}" style="${fondoVisualDe(uid).estilo}">
         <div class="locke-cara ${claseMarcoDe(uid)}" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">
           ${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-respaldo="" data-quitar-si-falla>` : ""}
@@ -302,7 +332,7 @@ function plantillaLocke(locke) {
         ${locke.descripcion ? `<p class="locke-descripcion">${escaparHTML(locke.descripcion)}</p>` : ""}
         ${plantillaCombates(locke)}
 
-        <div class="locke-jugadores">
+        <div class="locke-jugadores ${puestosDe(locke) ? "con-galardones" : ""}">
           ${locke.jugadores.map((uid) => plantillaJugador(locke, uid)).join("")}
         </div>
 
@@ -345,6 +375,7 @@ function plantillaResumen(locke) {
         <span class="locke-resumen-cara ${claseMarcoDe(uid)}">
           ${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-quitar-si-falla>` : ""}
         </span>
+        ${plantillaPuesto(locke, uid, true)}
         ${locke.ganador === uid ? `<span class="locke-resumen-corona">${icono("corona")}</span>` : ""}
         <span class="locke-resumen-dato">${vidas}</span>
         ${varios ? `<span class="locke-resumen-dato">${icono("espadas")} ${victoriasDe(locke, uid)}</span>` : ""}

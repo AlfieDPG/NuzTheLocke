@@ -19,7 +19,7 @@ export const montarEvolucion = crearTest({
   juego: "evolucion",
   titulo: t("¿En qué evoluciona?"),
   explicacion: t("Elige en qué evoluciona cada Pokémon."),
-  porAcierto: 8,
+  porAcierto: 16,
   armar(especies, azar) {
     const porId = new Map(especies.map((especie) => [especie.id, especie]));
     const deQuien = familias();

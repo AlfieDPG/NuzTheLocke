@@ -521,12 +521,59 @@ export function nombreCombate(locke, idCombate) {
   return (combate && combate.nombre) || t("Combate {n}", { n: posicion + 1 });
 }
 
-// Victorias de alguien: con combates, los que ha ganado; sin ellos, las que se ha sumado
+// Victorias de alguien: con combates, los puntos que se ha llevado en todos ellos (cada combate del
+// locke es una ronda de varios combates sueltos, y cuenta cada uno que gana, no quién se lleva la
+// ronda: así da igual cómo apunte cada grupo los puntos); sin combates, las que se ha sumado a mano
 export function victoriasDe(locke, uid) {
-  const combates = combatesDe(locke);
-  if (!combates.length) return (locke.marcador || {})[uid] || 0;
+  if (!combatesDe(locke).length) return (locke.marcador || {})[uid] || 0;
+  return combatesSueltosDe(locke, uid);
+}
+
+// Los combates sueltos que ha ganado alguien en todas las rondas de un locke (cada «combate» del
+// locke es una ronda: al mejor de 3, o un todos contra todos, con lo que ganó cada uno en «puntos»).
+// Los apuntados antes de las casillas por jugador solo tienen el ganador y un «2-1»: el ganador se
+// lleva el primer número (o 1) y, si son dos, el otro el segundo.
+export function combatesSueltosDe(locke, uid) {
   const resultados = locke.resultados || {};
-  return combates.filter((combate) => (resultados[combate.id] || {}).ganador === uid).length;
+  return combatesDe(locke).reduce((suma, combate) => {
+    const resultado = resultados[combate.id];
+    if (!resultado || !resultado.ganador) return suma;
+    if (resultado.puntos) return suma + (Number(resultado.puntos[uid]) || 0);
+    const [alto, bajo] = String(resultado.marcador || "").split("-").map((n) => Number(n) || 0);
+    if (resultado.ganador === uid) return suma + (alto || 1);
+    const otros = (locke.jugadores || []).filter((otro) => otro !== resultado.ganador && estadoDe(locke, otro) === "aceptado");
+    return suma + (otros.length === 1 && otros[0] === uid ? bajo : 0);
+  }, 0);
+}
+
+// Quién va ganando un locke en marcha, entre los que siguen jugando: quien se queda sin vidas
+// (eliminado) pierde, aunque hubiera ganado combates; los que no han contestado no cuentan. Entre los
+// demás va delante quien tiene más victorias (victoriasDe: los puntos de todos los combates) y, si
+// empatan, quien más vidas tiene. Si nadie tiene victorias todavía, quien más vidas tiene (con vidas
+// ilimitadas, quien menos bajas lleva). En una cadena se suman las victorias de todas sus etapas (la
+// de ahora puede no tener ninguna todavía). Si siguen empatados, comparten puesto.
+// Devuelve { puestos: { uid: 1, 2, 3... }, criterio: "combates" | "vidas" | "bajas",
+// victorias: { uid: n }, cadena: true si se han sumado varias etapas }, o null si no hay a quién
+// comparar (uno solo, terminado) o si van todos igual.
+export function puestosDe(locke) {
+  if (!locke || locke.estado === "cerrado") return null;
+  const enJuego = (locke.jugadores || []).filter((uid) => estadoDe(locke, uid) !== "pendiente" && !estaEliminado(locke, uid));
+  if (enJuego.length < 2) return null;
+  const etapas = locke.cadena ? [...etapasDeCadena(locke.cadena.id).filter((etapa) => etapa.id !== locke.id), locke] : [locke];
+  const suma = (cuenta) => Object.fromEntries((locke.jugadores || []).map((uid) => [uid, etapas.reduce((total, etapa) => total + cuenta(etapa, uid), 0)]));
+  const victorias = suma(victoriasDe);
+  const hayCombates = Object.values(victorias).some((n) => n > 0);
+  const vidas = (uid) => (locke.vidasIlimitadas ? -muertosDe(locke, uid).length : (locke.vidas || {})[uid] || 0);
+  const nota = (uid) => (hayCombates ? [victorias[uid], vidas(uid)] : [vidas(uid), -muertosDe(locke, uid).length]);
+  const notas = new Map(enJuego.map((uid) => [uid, nota(uid)]));
+  const delante = (a, b) => notas.get(a).reduce((cuenta, valor, i) => cuenta || valor - notas.get(b)[i], 0);
+  const orden = [...enJuego].sort((a, b) => delante(b, a));
+  if (!delante(orden[0], orden[orden.length - 1])) return null;
+  const puestos = {};
+  orden.forEach((uid, i) => {
+    puestos[uid] = i && !delante(orden[i - 1], uid) ? puestos[orden[i - 1]] : i + 1;
+  });
+  return { puestos, criterio: hayCombates ? "combates" : locke.vidasIlimitadas ? "bajas" : "vidas", victorias, cadena: etapas.length > 1 };
 }
 
 export function seHaPasadoLaRom(locke, uid) {

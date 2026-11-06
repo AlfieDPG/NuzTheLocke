@@ -30,7 +30,7 @@ export const montarGrito = crearTest({
   juego: "grito",
   titulo: t("¿De quién es este grito?"),
   explicacion: t("Escucha el grito y elige de quién es. Puedes escucharlo todas las veces que quieras."),
-  porAcierto: 9,
+  porAcierto: 18,
   armar(especies, azar) {
     const salen = mezclar(especies, azar).slice(0, RONDAS * 4);
     return Array.from({ length: RONDAS }, (_, i) => {

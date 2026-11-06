@@ -126,8 +126,8 @@ export default {
   "Has perdido. Derrotaste a {n} del líder.": "You lost. You defeated {n} of the leader's Pokémon.",
   "Elige 3 de los tuyos, en el orden en que saldrán. Pega primero el más rápido; cada uno usa el tipo suyo que más daño haga. Lo que cae, cae.": "Pick 3 of yours, in the order they will come out. The fastest one hits first; each uses its own type that does the most damage. What falls, stays fallen.",
   "¡Al combate!": "To battle!",
-  "Con la racha: 2 más por reto por cada día seguido jugando, hasta 20.":
-    "With your streak: 2 more per challenge for each day in a row, up to 20.",
+  "Con la racha: {n} más por reto por cada día seguido jugando, hasta {max}.":
+    "With your streak: {n} more per challenge for each day in a row, up to {max}.",
   "Inicia sesión para comprar.": "Sign in to buy.",
   "Inicia sesión para usar la Tienda.": "Sign in to use the Shop.",
   "Fondos": "Backgrounds",
@@ -200,8 +200,8 @@ export default {
   "de {n}": "of {n}",
   "Pokédólares de la semana": "Pokédollars this week",
   "Racha": "Streak",
-  "Cada reto da Pokédólares según lo bien que te salga, y la racha suma hasta 20 más por reto. Pulsa la foto de alguien para ver su perfil.":
-    "Each challenge gives Pokédollars depending on how well you do, and your streak adds up to 20 more per challenge. Click someone's picture to see their profile.",
+  "Cada reto da Pokédólares según lo bien que te salga, y la racha suma hasta {max} más por reto. Pulsa la foto de alguien para ver su perfil.":
+    "Each challenge gives Pokédollars depending on how well you do, and your streak adds up to {max} more per challenge. Click someone's picture to see their profile.",
   "{n} de {total} retos hoy": "{n} of {total} challenges today",
   "¡Todos hechos! Vuelve mañana.": "All done! Come back tomorrow.",
   "Te quedan {n}": "{n} left",

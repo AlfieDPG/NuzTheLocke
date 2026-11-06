@@ -860,6 +860,13 @@ function teñir(perfil) {
 }
 
 function pintarEditar() {
+  // Al elegir algo se repinta todo. Si sigue en el mismo apartado, lo que baja se queda donde
+  // estaba (el panel y, en pantallas estrechas, la ventana): si no, volvería arriba y habría que
+  // bajar otra vez para elegir el de al lado. Al cambiar de apartado, sí empieza arriba.
+  const panelAntes = cuerpo.querySelector(".editar-panel");
+  const mismoApartado = Boolean(panelAntes) && panelAntes.dataset.apartado === apartado;
+  const bajadoPanel = mismoApartado ? panelAntes.scrollTop : 0;
+  const bajadoVentana = mismoApartado ? dialogo.scrollTop : 0;
   cuerpo.classList.add("editando");
   teñir(perfilEditado());
   const cambia = hayCambios();
@@ -878,12 +885,14 @@ function pintarEditar() {
         <hr>
         <button class="peligro ${apartado === "cuenta" ? "activo" : ""}" data-apartado="cuenta">${icono("papelera")} ${t("Borrar mi cuenta")}</button>
       </nav>
-      <div class="editar-panel">${PANELES[apartado]()}</div>
+      <div class="editar-panel" data-apartado="${apartado}">${PANELES[apartado]()}</div>
       <div class="editar-vista">
         <span class="editar-asi">${t("Así te ven")}</span>
         ${plantillaFicha(perfilEditado(), { mio: true, vistaPrevia: true })}
       </div>
     </div>`;
+  cuerpo.querySelector(".editar-panel").scrollTop = bajadoPanel;
+  dialogo.scrollTop = bajadoVentana;
 }
 
 // Al escribir no se repinta todo (se perdería el cursor): solo la ficha y la barra

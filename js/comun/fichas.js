@@ -37,10 +37,12 @@ import { t } from "./idioma.js";
 
 export const FICHAS_POR_NIVEL = { bronce: 10, plata: 25, oro: 50, platino: 100 };
 
-// Lo más que puede dar un reto (el mejor resultado y la racha más larga). Las reglas lo miran.
-export const PUNTOS_MAX = 70;
-const BONO_POR_DIA = 2;
-const BONO_MAX = 20;
+// Lo más que puede dar un reto (el mejor resultado y la racha más larga). Las reglas lo miran
+// (firestore.rules, «puntos <= 160»): si se sube, hay que cambiarlo allí y publicarlas.
+// (2026-11-06: todo al doble que antes, que era 70 con racha de 2 por día hasta 20.)
+export const PUNTOS_MAX = 160;
+export const BONO_POR_DIA = 4;
+export const BONO_MAX = 40;
 
 // ---------- Días ----------
 
@@ -84,7 +86,7 @@ function rachaTrasJugar(juegos, dia) {
   return 1;
 }
 
-// Lo que suma la racha a cada reto: 2 por cada día seguido después del primero, hasta 20
+// Lo que suma la racha a cada reto: BONO_POR_DIA por cada día seguido después del primero, hasta BONO_MAX
 export function bonoRacha(racha) {
   return Math.min(Math.max(racha - 1, 0) * BONO_POR_DIA, BONO_MAX);
 }

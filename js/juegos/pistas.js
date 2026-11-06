@@ -19,7 +19,7 @@ import { cargarEspecies, delDia, estadoDe, guardarEstado, mirarSiYaJugado, termi
 
 const JUEGO = "pistas";
 const INTENTOS = 6;
-const PUNTOS = [50, 42, 34, 26, 18, 10];
+const PUNTOS = [100, 84, 68, 52, 36, 20];
 const CERCA_TOTAL = 150; // a esta distancia del total bueno (o más), ya en rojo
 
 const COLUMNAS = [t("Tipo 1"), t("Tipo 2"), t("Gen."), t("Etapa"), t("Total"), t("Clase")];

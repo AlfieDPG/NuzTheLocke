@@ -216,7 +216,7 @@ service cloud.firestore {
         && id == request.auth.uid + '_' + request.resource.data.juego + '_' + request.resource.data.dia
         && delDia(request.resource.data.dia)
         && request.resource.data.puntos is int
-        && request.resource.data.puntos >= 0 && request.resource.data.puntos <= 70
+        && request.resource.data.puntos >= 0 && request.resource.data.puntos <= 160
         && request.resource.data.intentos is int
         && request.resource.data.intentos >= 0 && request.resource.data.intentos <= 10
         && request.resource.data.acierto is bool

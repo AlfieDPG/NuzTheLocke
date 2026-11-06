@@ -1,7 +1,8 @@
 // Combates, ROM, terminar el locke y salón de la fama (sección «Lockes»).
 //
 // Cómo se gana un locke: hay que pasarse la ROM. Si no se la pasa nadie, no gana nadie; si
-// solo uno, ese, aunque fuese perdiendo los combates; si varios, el que más combates gana. Los
+// solo uno, ese, aunque fuese perdiendo los combates; si varios, el que más victorias tiene (los
+// puntos de todos los combates sumados, no cuántos combates se ha llevado: victoriasDe). Los
 // combates (cuántos y cuándo: «tras la 3ª medalla», «Liga»...) los pone quien crea el locke, y
 // cada uno se juega en «Combates» (el botón «Retar» junto a cada rival: al terminar se suma sola la victoria) o fuera
 // (en Showdown: el botón «Showdown» copia tu equipo y lo abre) y aquí se apunta quién ganó y cómo (al mejor de 3: 2-0,
@@ -253,7 +254,6 @@ function pintarTerminar() {
   const locke = lockePorId(terminando.id);
   if (!locke) return;
   const { ganadores } = ganadorPropuesto(locke);
-  const conCombates = combatesDe(locke).length > 0;
 
   const fila = (uid) => {
     const eliminado = estaEliminado(locke, uid);
@@ -263,7 +263,7 @@ function pintarTerminar() {
         ${fotoDe(locke, uid, "combate-opcion-foto")}
         <span class="terminar-nombre">${escaparHTML(nombreDe(locke, uid))}</span>
         <span class="terminar-dato ${rom && !eliminado ? "bien" : ""}">${eliminado ? `${icono("calavera")} ${t("Eliminado")}` : `${icono(rom ? "visto" : "aspa")} ROM`}</span>
-        <span class="terminar-dato">${icono("espadas")} ${victoriasDe(locke, uid)}${conCombates ? ` / ${combatesDe(locke).length}` : ""}</span>
+        <span class="terminar-dato">${icono("espadas")} ${victoriasDe(locke, uid)}</span>
       </button>`;
   };
 

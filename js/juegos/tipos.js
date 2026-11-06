@@ -20,7 +20,7 @@ import { mezclar } from "./test.js";
 const JUEGO = "tipos";
 const RONDAS = 6;
 const DOBLES = 4;
-const POR_ACIERTO = 8;
+const POR_ACIERTO = 16;
 const PAUSA = 1600; // ms con la respuesta a la vista
 
 let caja = null;

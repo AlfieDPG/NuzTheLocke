@@ -20,7 +20,7 @@ import {
 } from "../comun/perfiles.js";
 import { FONDOS_TIENDA, claseFondo, estiloFondo } from "../comun/fondos.js";
 import {
-  saldo, rachaDe, bonoRacha, fichasDeLogros, fichasDeJuegos, FICHAS_POR_NIVEL, MARCOS, TITULOS, loTiene, tieneMarco, porPrecio,
+  saldo, rachaDe, bonoRacha, BONO_POR_DIA, BONO_MAX, fichasDeLogros, fichasDeJuegos, FICHAS_POR_NIVEL, MARCOS, TITULOS, loTiene, tieneMarco, porPrecio,
   marcoDe, claseMarco, claseTitulo, plantillaTituloDe, comprar, hoy, fichasDeLaSemana, jugoHoy
 } from "../comun/fichas.js";
 import { fichasDeRegalos } from "../comun/regalos.js";
@@ -67,7 +67,7 @@ function comoSeGanan() {
     t("Cómo se ganan Pokédólares"),
     t("Con cada logro, según su nivel: {niveles}. También los que ya tenías.", { niveles }),
     t("Con los retos del día, como mucho: {lista}.", { lista: JUEGOS.map((juego) => `${juego.maximo} en «${juego.nombre}»`).join(", ") }),
-    t("Con la racha: 2 más por reto por cada día seguido jugando, hasta 20.")
+    t("Con la racha: {n} más por reto por cada día seguido jugando, hasta {max}.", { n: BONO_POR_DIA, max: BONO_MAX })
   ].join("\n\n");
 }
 
@@ -121,15 +121,15 @@ function pintarCabecera() {
 // Arriba, una tarjeta pequeña por reto (con lo que llevas hoy en cada uno); debajo, solo el
 // elegido. Al entrar se abre el primero que te quede por jugar.
 const JUEGOS = [
-  { id: "silueta", nombre: t("¿Quién es ese Pokémon?"), icono: "lupa", maximo: 45, montar: montarSilueta },
-  { id: "pistas", nombre: t("Adivínalo"), icono: "pokedex", maximo: 50, montar: montarPistas },
-  { id: "eficaz", nombre: t("Supereficaz"), icono: "rayo", maximo: 50, montar: montarEficaz },
-  { id: "masomenos", nombre: t("¿Más o menos?"), icono: "estadisticas", maximo: 50, montar: montarMasOMenos },
-  { id: "grito", nombre: t("¿De quién es este grito?"), icono: "campana", maximo: 45, montar: montarGrito },
-  { id: "evolucion", nombre: t("¿En qué evoluciona?"), icono: "intercambiar", maximo: 48, montar: montarEvolucion },
-  { id: "tipos", nombre: t("¿De qué tipo es?"), icono: "etiqueta", maximo: 48, montar: montarTipos },
-  { id: "intruso", nombre: t("El intruso"), icono: "cuadricula", maximo: 50, montar: montarIntruso },
-  { id: "locke", nombre: t("Locke del día"), icono: "espadas", maximo: 60, montar: montarLocke }
+  { id: "silueta", nombre: t("¿Quién es ese Pokémon?"), icono: "lupa", maximo: 90, montar: montarSilueta },
+  { id: "pistas", nombre: t("Adivínalo"), icono: "pokedex", maximo: 100, montar: montarPistas },
+  { id: "eficaz", nombre: t("Supereficaz"), icono: "rayo", maximo: 100, montar: montarEficaz },
+  { id: "masomenos", nombre: t("¿Más o menos?"), icono: "estadisticas", maximo: 100, montar: montarMasOMenos },
+  { id: "grito", nombre: t("¿De quién es este grito?"), icono: "campana", maximo: 90, montar: montarGrito },
+  { id: "evolucion", nombre: t("¿En qué evoluciona?"), icono: "intercambiar", maximo: 96, montar: montarEvolucion },
+  { id: "tipos", nombre: t("¿De qué tipo es?"), icono: "etiqueta", maximo: 96, montar: montarTipos },
+  { id: "intruso", nombre: t("El intruso"), icono: "cuadricula", maximo: 100, montar: montarIntruso },
+  { id: "locke", nombre: t("Locke del día"), icono: "espadas", maximo: 120, montar: montarLocke }
 ];
 let reto = null;
 
@@ -301,7 +301,7 @@ function pintarClasificacion() {
         <div class="clasificacion-dato"><span>${t("clasificacion|Puesto")}</span><strong>${mia.puesto}.º</strong><small>${t("de {n}", { n: filas.length })}</small></div>
         <div class="clasificacion-dato"><span>${semanal ? t("Pokédólares de la semana") : t("Pokédólares en total")}</span>${moneda(mia.fichas)}</div>
         <div class="clasificacion-dato"><span>${t("Racha")}</span><strong>${t(rachaDe(mia.perfil) === 1 ? "{n} día seguido" : "{n} días seguidos", { n: rachaDe(mia.perfil) })}</strong></div>
-        <p class="juegos-nota">${t("Cada reto da Pokédólares según lo bien que te salga, y la racha suma hasta 20 más por reto. Pulsa la foto de alguien para ver su perfil.")}</p>
+        <p class="juegos-nota">${t("Cada reto da Pokédólares según lo bien que te salga, y la racha suma hasta {max} más por reto. Pulsa la foto de alguien para ver su perfil.", { max: BONO_MAX })}</p>
       </aside>
     </div>`;
 }

@@ -6,7 +6,8 @@
 // verdad lo tenga desbloqueado.
 //
 //   · De metal (plata, oro, platino): con los logros de conseguir 25, 50 y todos los logros.
-//     El dibujo, en CSS (css/amigos.css, .fondo-plata...).
+//     Lisos, sin dibujos: la chapa de su metal con un brillo que la cruza, en pixel art (ver
+//     FONDOS_REGION, abajo).
 //   · De tipo (uno por cada uno de los 18): con su logro de tipo (logros.js, «t-fire»...). El
 //     dibujo es un mosaico con el icono del tipo (img/fondos/<tipo>.svg, hecho a partir de
 //     img/tipos/) del color del tipo: un solo estilo para todos (.fondo-tipo).
@@ -67,9 +68,9 @@ export const FONDOS_TIENDA = [
 // Los de región: uno por generación, con el logro de completarla en la colección de huevos de
 // «Juegos» (logros.js, «c-gen-1»...). No se compran. El dibujo, un paisaje de cada región.
 //
-// Los de región y los de la Tienda son pixel art dibujado por código: lo pinta
+// Los de metal, los de región y los de la Tienda son pixel art dibujado por código: lo pinta
 // herramientas/generar-fondos-pixel.mjs, que deja las capas en img/fondos/ y su CSS en
-// css/fondos-pixel.css (.fondo-region-kanto, .fondo-tienda-hierba...). Llevan además la clase
+// css/fondos-pixel.css (.fondo-plata, .fondo-region-kanto, .fondo-tienda-hierba...). Llevan además la clase
 // fondo-pixel, que dice lo que mide cada píxel y que se amplíen sin suavizar.
 export const FONDOS_REGION = [
   ["kanto", "Kanto"], ["johto", "Johto"], ["hoenn", "Hoenn"], ["sinnoh", "Sinnoh"], ["teselia", "Teselia"],
@@ -112,13 +113,15 @@ export function fondoDe(perfil) {
   return fondo && desbloqueado(fondo, perfil) ? fondo.id : "";
 }
 
-// Clase y estilo para el elemento que lo lleva: class="${clase}" style="${estilo}"
+// Clase y estilo para el elemento que lo lleva: class="${clase}" style="${estilo}".
+// con-fondo: se ve igual con cualquier tema (css/base.css le da los colores de Atardecer y
+// css/amigos.css, letra con sombra); cada fondo es opaco, no deja ver el color de la tarjeta.
 export function claseFondo(id) {
   const fondo = FONDOS.find((cada) => cada.id === id);
   if (!fondo) return "";
-  if (fondo.eevee) return `fondo-pixel fondo-eevee fondo-${fondo.id}`;
-  if (fondo.region || fondo.precio) return `fondo-pixel fondo-${fondo.id}`;
-  return fondo.tipo ? "fondo-tipo" : `fondo-${fondo.id}`;
+  if (fondo.eevee) return `con-fondo fondo-pixel fondo-eevee fondo-${fondo.id}`;
+  if (fondo.tipo) return "con-fondo fondo-tipo";
+  return `con-fondo fondo-pixel fondo-${fondo.id}`;
 }
 
 export function estiloFondo(id) {

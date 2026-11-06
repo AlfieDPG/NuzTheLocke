@@ -15,7 +15,7 @@ import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, pla
 
 const JUEGO = "masomenos";
 const RONDAS = 10;
-const POR_ACIERTO = 5;
+const POR_ACIERTO = 10;
 const PAUSA = 1500; // ms con lo que tenía a la vista antes de pasar a la siguiente
 
 // índice en «bases» (o «total»)

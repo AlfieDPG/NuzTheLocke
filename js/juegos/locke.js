@@ -15,8 +15,8 @@
 // cae se apaga; debajo, una sola línea con lo que pasa. El combate entero, línea a línea, queda
 // plegado debajo («Ver el combate»).
 //
-// Pokédólares: si ganas, 30 y 10 por cada Pokémon que te quede en pie (60 como mucho); si pierdes,
-// 5 por cada Pokémon del líder que hayas derrotado. Más lo de la racha.
+// Pokédólares: si ganas, 60 y 20 por cada Pokémon que te quede en pie (120 como mucho); si pierdes,
+// 10 por cada Pokémon del líder que hayas derrotado. Más lo de la racha.
 
 import { escaparHTML } from "../comun/utilidades.js";
 import { icono } from "../comun/iconos.js";
@@ -373,7 +373,7 @@ async function cerrar(resultado) {
   estado.perfecto = resultado.gana && resultado.vivos === EQUIPO; // para el logro: sin bajas
   const cuadros = resultado.ps.map((vivo) => (vivo ? "🟩" : "🟥")).join("");
   estado.resumen = `${t("Locke del día")} (${tiposEs[lider.tipo]}) ${cuadros} ${resultado.gana ? "🏆" : "💀"}`;
-  const puntos = resultado.gana ? 30 + 10 * resultado.vivos : 5 * resultado.derrotados;
+  const puntos = resultado.gana ? 60 + 20 * resultado.vivos : 10 * resultado.derrotados;
   const apuntando = terminar(JUEGO, estado, puntos);
   pintar();
   await apuntando;

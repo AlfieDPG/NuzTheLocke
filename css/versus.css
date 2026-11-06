@@ -724,6 +724,186 @@ button.locke-anadir .icono {
   height: 1.4rem;
 }
 
+/* ---------- Quién va ganando (1.º, 2.º, 3.º) ----------
+   Un galardón colgado del borde de arriba de la ficha, a la derecha: la cinta (dos tiras en V, con
+   la punta en cola de golondrina) asoma por encima, por DETRÁS de la ficha, y la medalla queda
+   DELANTE, montada en el borde. Oro con cinta roja, plata con cinta azul y bronce con cinta verde.
+   Para que la cinta quede detrás de la ficha pero se vea sobre el locke, las fichas van en su
+   propia capa (.locke-jugadores, isolation). Al entrar (.entra: la primera vez, o al cambiar de
+   puesto), la medalla sube desde detrás de la ficha, asoma por encima y baja a ponerse delante.
+   Se ve igual con cualquier tema. */
+.locke-jugadores {
+  isolation: isolate;
+}
+
+/* Con galardones, más aire encima de cada fila de fichas: la cinta no toca lo de arriba (los
+   combates o la fila anterior) */
+.locke-jugadores.con-galardones {
+  padding-top: 1.4rem;
+  row-gap: 1.4rem;
+}
+
+.puesto-1 { --metal-brillo: #fff6c4; --metal: #f1c40f; --metal-sombra: #c48a0c; --metal-canto: #8e6006; --metal-tinta: #5a3a00; --cinta: #d43a3a; --cinta-raya: #ffe2a8; }
+.puesto-2 { --metal-brillo: #ffffff; --metal: #d3d9e3; --metal-sombra: #949daf; --metal-canto: #646e80; --metal-tinta: #2a303c; --cinta: #3566c4; --cinta-raya: #e2ebff; }
+.puesto-3 { --metal-brillo: #ffe0bc; --metal: #d9924e; --metal-sombra: #a8642a; --metal-canto: #6e3c18; --metal-tinta: #3a1c06; --cinta: #2e8a4c; --cinta-raya: #dff4cf; }
+
+/* La cinta: detrás de la ficha. Las dos tiras salen del centro de la medalla en V hacia arriba */
+.locke-galardon-cinta {
+  position: absolute;
+  z-index: -1;
+  top: -0.8rem;
+  right: 0.7rem;
+  width: 2.6rem;
+  height: 1.85rem;
+  pointer-events: none;
+}
+
+.locke-galardon-cinta::before,
+.locke-galardon-cinta::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: calc(50% - 0.4rem);
+  width: 0.8rem;
+  height: 1.95rem;
+  background: linear-gradient(90deg, var(--cinta) 0 30%, var(--cinta-raya) 30% 70%, var(--cinta) 70%);
+  box-shadow: inset -0.12rem 0 0 rgba(0, 0, 0, 0.18);
+  clip-path: polygon(0 0, 50% 0.32rem, 100% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 100%;
+}
+
+.locke-galardon-cinta::before {
+  transform: rotate(-26deg);
+}
+
+.locke-galardon-cinta::after {
+  transform: rotate(26deg);
+}
+
+/* La medalla: delante, montada en el borde de arriba. El canto oscuro, un aro en relieve, el número
+   y un brillo que la cruza de vez en cuando; arriba, la anilla de donde cuelga */
+.locke-galardon {
+  position: absolute;
+  z-index: 2;
+  top: -0.55rem;
+  right: 1.05rem;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background:
+    linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.75) 50%, transparent 60%) 120% 0 / 300% 100% no-repeat,
+    radial-gradient(circle at 35% 30%, var(--metal-brillo) 0 14%, var(--metal) 50%, var(--metal-sombra));
+  box-shadow:
+    0 0 0 0.12rem var(--metal-canto),
+    inset 0 0 0 0.16rem var(--metal-sombra),
+    inset 0 0 0 0.24rem var(--metal-brillo),
+    0 3px 6px rgba(0, 0, 0, 0.45);
+  color: var(--metal-tinta);
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 0 var(--metal-brillo);
+  cursor: help;
+  animation: galardon-brilla 5s ease-in-out infinite;
+}
+
+.locke-galardon::before {
+  content: "";
+  position: absolute;
+  top: -0.3rem;
+  left: calc(50% - 0.32rem);
+  width: 0.64rem;
+  height: 0.3rem;
+  border-radius: 0.15rem 0.15rem 0 0;
+  background: linear-gradient(var(--metal-brillo), var(--metal-sombra));
+  box-shadow: 0 0 0 0.08rem var(--metal-canto);
+}
+
+@keyframes galardon-brilla {
+  0%, 70% { background-position: 120% 0, 0 0; }
+  90%, 100% { background-position: -20% 0, 0 0; }
+}
+
+/* Al entrar: detrás de la ficha (escondida), sube hasta asomar por encima, pasa delante y baja a su
+   sitio con un pequeño rebote. La cinta sube a la vez, siempre por detrás */
+.locke-galardon.entra {
+  animation: galardon-sale 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both, galardon-brilla 5s ease-in-out 0.9s infinite;
+}
+
+.locke-galardon-cinta.entra {
+  animation: galardon-cinta-sale 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+@keyframes galardon-sale {
+  0% { transform: translateY(1.6rem) scale(0.85); z-index: -1; }
+  45% { transform: translateY(-0.55rem) scale(0.95); z-index: -1; }
+  47% { z-index: 2; }
+  72% { transform: translateY(0.12rem) scale(1.1); z-index: 2; }
+  100% { transform: none; z-index: 2; }
+}
+
+@keyframes galardon-cinta-sale {
+  0% { transform: translateY(1.2rem); }
+  45% { transform: translateY(-0.2rem); }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locke-galardon,
+  .locke-galardon.entra,
+  .locke-galardon-cinta.entra {
+    animation: none;
+  }
+}
+
+/* En el resumen: una medallita colgada en la esquina de la foto (la cinta, ::before; la medalla con
+   su número, ::after, que va encima) */
+.locke-resumen-uno {
+  position: relative;
+}
+
+.locke-resumen-galardon {
+  position: absolute;
+  top: -0.3rem;
+  left: 1.2rem;
+  width: 1.05rem;
+  height: 1.4rem;
+  cursor: help;
+}
+
+.locke-resumen-galardon::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0.2rem;
+  width: 0.65rem;
+  height: 0.55rem;
+  background: linear-gradient(90deg, var(--cinta) 0 30%, var(--cinta-raya) 30% 70%, var(--cinta) 70%);
+  clip-path: polygon(0 0, 100% 0, 75% 100%, 25% 100%);
+}
+
+.locke-resumen-galardon::after {
+  content: attr(data-puesto);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--metal-brillo) 0 14%, var(--metal) 50%, var(--metal-sombra));
+  box-shadow: 0 0 0 0.08rem var(--metal-canto), 0 1px 3px rgba(0, 0, 0, 0.45);
+  color: var(--metal-tinta);
+  font-family: var(--letra-titulos);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
 /* ---------- Eliminado: perdió la vida cero ---------- */
 
 /* La ficha apagada y en gris, con la tira roja, la foto tachada por una calavera y una

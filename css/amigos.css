@@ -240,68 +240,29 @@
 }
 
 /* ---------- Fondos de la tarjeta (js/comun/fondos.js) ----------
-   Encima del color de la tarjeta (que no cambia), un dibujo del color del metal y un
-   resplandor en la esquina de arriba. Valen igual para la tarjeta y para las muestras del
-   perfil. */
+   Cada fondo es opaco y se ve igual con cualquier tema, como los títulos y los marcos (no deja ver
+   el color de la tarjeta, que cambia con el tema). Valen igual para la tarjeta y para las muestras
+   del perfil. */
 
-.ficha-jugador.fondo-plata,
-.perfil-fondo.fondo-plata,
-.perfil-cabeza.fondo-plata,
-.lleva-fondo.fondo-plata,
-.logro-premio.fondo-plata {
-  background-image:
-    repeating-linear-gradient(135deg, rgba(195, 202, 214, 0.11) 0 2px, transparent 2px 11px),
-    linear-gradient(160deg, rgba(195, 202, 214, 0.2), transparent 55%);
+/* Lo que va escrito encima: con los colores de Atardecer (css/base.css, .con-fondo) y con sombra,
+   para que se lea sobre el dibujo (la sombra se hereda). Sin especificidad: lo que diga cada sitio
+   sigue mandando. */
+:where(.con-fondo) {
+  color: var(--t-texto);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6);
 }
 
-.ficha-jugador.fondo-oro,
-.perfil-fondo.fondo-oro,
-.perfil-cabeza.fondo-oro,
-.lleva-fondo.fondo-oro,
-.logro-premio.fondo-oro {
-  background-image:
-    radial-gradient(circle, rgba(241, 196, 15, 0.28) 1.4px, transparent 2px),
-    radial-gradient(circle, rgba(241, 196, 15, 0.14) 1.4px, transparent 2px),
-    linear-gradient(160deg, rgba(241, 196, 15, 0.22), transparent 55%);
-  background-size: 16px 16px, 16px 16px, auto;
-  background-position: 0 0, 8px 8px, 0 0;
+/* Menos en los botones, campos y plaquitas de título, que ya llevan su propio fondo */
+:where(.con-fondo) :where(button, input, select, textarea, .perfil-titulo) {
+  text-shadow: none;
 }
 
-/* Platino: una malla de triángulos y, de vez en cuando, un brillo que la cruza */
-.ficha-jugador.fondo-platino,
-.perfil-fondo.fondo-platino,
-.perfil-cabeza.fondo-platino,
-.lleva-fondo.fondo-platino,
-.logro-premio.fondo-platino {
-  background-image:
-    linear-gradient(115deg, transparent 42%, rgba(200, 245, 252, 0.2) 50%, transparent 58%),
-    repeating-linear-gradient(60deg, rgba(127, 224, 240, 0.12) 0 1px, transparent 1px 14px),
-    repeating-linear-gradient(-60deg, rgba(127, 224, 240, 0.12) 0 1px, transparent 1px 14px),
-    repeating-linear-gradient(0deg, rgba(127, 224, 240, 0.07) 0 1px, transparent 1px 12.1px),
-    linear-gradient(160deg, rgba(127, 224, 240, 0.24), transparent 55%);
-  background-size: 300% 100%, auto, auto, auto, auto;
-  background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
-  animation: brillo-platino 7s ease-in-out infinite;
-}
+/* Los de metal (plata, oro, platino) son pixel art: css/fondos-pixel.css (GENERADO) */
 
-@keyframes brillo-platino {
-  0%, 15% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
-  55%, 100% { background-position: 100% 0, 0 0, 0 0, 0 0, 0 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ficha-jugador.fondo-platino,
-  .perfil-fondo.fondo-platino,
-  .perfil-cabeza.fondo-platino,
-  .lleva-fondo.fondo-platino,
-  .logro-premio.fondo-platino {
-    animation: none;
-  }
-}
-
-/* De tipo: un resplandor del color del tipo y, encima, un mosaico con su icono (el SVG de
-   img/fondos/ hace de máscara y se pinta del color del tipo). --color-tipo y --patron los
-   pone js/comun/fondos.js en el propio elemento. */
+/* De tipo: del color del tipo (más claro arriba a la izquierda, más hondo abajo), con un resplandor
+   arriba y, encima, un mosaico con su icono (el SVG de img/fondos/ hace de máscara y se pinta de
+   un tono más claro del tipo). --color-tipo y --patron los pone js/comun/fondos.js en el propio
+   elemento. */
 .ficha-jugador.fondo-tipo,
 .perfil-fondo.fondo-tipo,
 .perfil-cabeza.fondo-tipo,
@@ -309,8 +270,8 @@
 .logro-premio.fondo-tipo {
   isolation: isolate; /* el mosaico (z-index -1) queda encima del fondo y debajo del contenido */
   background-image:
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--color-tipo) 32%, transparent), transparent 70%),
-    linear-gradient(to top, color-mix(in srgb, var(--color-tipo) 14%, transparent), transparent 60%);
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, color-mix(in srgb, var(--color-tipo) 60%, white) 40%, transparent), transparent 70%),
+    linear-gradient(160deg, color-mix(in srgb, var(--color-tipo) 74%, #1c1a19), color-mix(in srgb, var(--color-tipo) 44%, #1c1a19));
 }
 
 .ficha-jugador.fondo-tipo::before,
@@ -323,7 +284,7 @@
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background-color: var(--color-tipo);
+  background-color: color-mix(in srgb, var(--color-tipo) 45%, white);
   opacity: 0.2;
   -webkit-mask: var(--patron) 0 0 / 3.4rem 3.4rem repeat;
   mask: var(--patron) 0 0 / 3.4rem 3.4rem repeat;
@@ -344,7 +305,7 @@
 }
 
 .ficha-jugador.fondo-platino:not(.mia):not(.conectado) {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(127, 224, 240, 0.6);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(214, 206, 246, 0.7);
 }
 
 /* Al pulsar en la ficha se esconde la lista y queda solo la foto, el nombre y el recuento.

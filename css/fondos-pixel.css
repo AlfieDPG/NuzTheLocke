@@ -1,26 +1,26 @@
-/* Fondos en pixel art de la tarjeta de jugador: los de región y los de la Tienda.
+/* Fondos en pixel art de la tarjeta de jugador: los de metal, de región, de Eevee y de la Tienda.
    GENERADO por herramientas/generar-fondos-pixel.mjs: no se toca a mano, se cambia allí y se
-   vuelve a ejecutar. Los dibujos están en img/fondos/ (region-*.png, tienda-*.png).
+   vuelve a ejecutar. Los dibujos están en img/fondos/ (metal-*.png, region-*.png, tienda-*.png...).
 
    Cada píxel del dibujo mide --px: 2px en las tarjetas grandes y 1px en las muestras y franjas
    (así caben enteros). Se amplían sin suavizar, como el escenario de «Combates». Lo que se mueve
-   desplaza sus capas a saltos de un píxel. */
+   desplaza sus capas a saltos de un píxel o cambia de dibujo de golpe. Debajo de todo, el cielo de
+   cada uno, opaco: se ven igual con cualquier tema (la letra de encima, en css/amigos.css). */
 
 .fondo-pixel {
   --px: 2px;
+  /* Lo fino (los sellos de Alola): un píxel de pantalla por píxel donde --px es 2, y uno donde es 1 */
+  --px-fino: max(1px, calc(var(--px) / 2));
+  /* Los sellos de los fondos de región, en alto: en la tarjeta de «Amigos», junto al nombre (lo de
+     abajo, a 92 px del borde, queda encima de la franja de los contadores) */
+  --sello-y: calc(100% - 92px);
   image-rendering: pixelated;
-  /* Con tanto dibujo detrás, la letra lleva sombra para que se lea bien (la sombra se hereda:
-     vale para todo lo que va escrito en la tarjeta) */
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6);
-}
-
-/* En el tema claro la letra es oscura: un halo claro en vez de sombra */
-:root[data-tema="claro"] .fondo-pixel {
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 6px rgba(255, 255, 255, 0.8);
 }
 
 :is(.tienda-muestra, .perfil-fondo, .logro-premio, .lleva-fondo).fondo-pixel {
   --px: 1px;
+  /* Los sellos de los fondos de región: aquí, centrados entre las dos bandas */
+  --sello-y: 50%;
 }
 
 /* image-rendering se hereda: que no pase a las fotos de dentro (sin especificidad, así lo que
@@ -29,192 +29,645 @@
   image-rendering: auto;
 }
 
-/* Ni en los botones, campos y plaquitas de título, que ya llevan su propio fondo */
-:where(.fondo-pixel) :where(button, input, select, textarea, .perfil-titulo) {
-  text-shadow: none;
+/* Plata: una chapa de plata cepillada, con un reflejo en diagonal y un brillo que la cruza de vez en cuando */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-plata {
+  background-image:
+    url("../img/fondos/metal-plata-brillo.png"),
+    url("../img/fondos/metal-plata-cepillado.png"),
+    linear-gradient(115deg, transparent 18%, rgba(255, 255, 255, 0.38) 34%, transparent 50%, transparent 62%, rgba(255, 255, 255, 0.38) 68%, transparent 74%),
+    linear-gradient(160deg, #e6ebf2, #c3cad7 48%, #a2abbd);
+  background-size: calc(512 * var(--px)) calc(320 * var(--px)), calc(128 * var(--px)) calc(64 * var(--px)), auto, auto;
+  background-position: left 0 top 0, left 0 top 0, 0 0, 0 0;
+  background-repeat: repeat-x, repeat, no-repeat, no-repeat;
+  animation: fondo-plata-brillo 9s linear infinite;
 }
 
-/* Kanto: un pueblito con una casa de tejado rojo y otra azul, hierba alta y el monte al fondo */
+@keyframes fondo-plata-brillo {
+  0% { background-position-x: left 0, left 0, 0, 0; }
+  100% { background-position-x: left calc(512 * var(--px)), left 0, 0, 0; }
+}
+
+/* Oro: una chapa de oro con puntitos, un reflejo en diagonal, un brillo que la cruza de vez en cuando y destellos que titilan */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-oro {
+  background-image:
+    url("../img/fondos/metal-oro-destellos-0.png"),
+    url("../img/fondos/metal-oro-destellos-1.png"),
+    url("../img/fondos/metal-oro-brillo.png"),
+    url("../img/fondos/metal-oro-puntitos.png"),
+    linear-gradient(115deg, transparent 18%, rgba(255, 244, 196, 0.32) 34%, transparent 50%, transparent 62%, rgba(255, 244, 196, 0.32) 68%, transparent 74%),
+    linear-gradient(160deg, #f8d466, #e6a92e 48%, #c27e1c);
+  background-size: calc(128 * var(--px)) calc(96 * var(--px)), calc(128 * var(--px)) calc(96 * var(--px)), calc(512 * var(--px)) calc(320 * var(--px)), calc(16 * var(--px)) calc(16 * var(--px)), auto, auto;
+  background-position: left 0 top 0, left 0 top calc(2000 * var(--px)), left 0 top 0, left 0 top 0, 0 0, 0 0;
+  background-repeat: repeat, repeat, repeat-x, repeat, no-repeat, no-repeat;
+  animation: fondo-oro-brillo 8s linear infinite, fondo-oro-turnos 8s steps(1) infinite;
+}
+
+@keyframes fondo-oro-brillo {
+  0% { background-position-x: left 0, left 0, left 0, left 0, 0, 0; }
+  100% { background-position-x: left 0, left 0, left calc(512 * var(--px)), left 0, 0, 0; }
+}
+
+@keyframes fondo-oro-turnos {
+  0% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  12.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  25% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  37.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  50% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  62.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  75% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  87.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  100% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+}
+
+/* Platino: una chapa nacarada con facetas de gema, un brillo con los bordes de arcoíris que la cruza de vez en cuando y destellos de colores que titilan */
+:is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-platino {
+  background-image:
+    url("../img/fondos/metal-platino-destellos-0.png"),
+    url("../img/fondos/metal-platino-destellos-1.png"),
+    url("../img/fondos/metal-platino-brillo.png"),
+    url("../img/fondos/metal-platino-facetas.png"),
+    linear-gradient(115deg, rgba(255, 190, 220, 0.22), rgba(190, 236, 255, 0.18) 50%, rgba(255, 236, 170, 0.2)),
+    linear-gradient(160deg, #f6f2fb, #e0e0f0 45%, #c6c9e0);
+  background-size: calc(128 * var(--px)) calc(96 * var(--px)), calc(128 * var(--px)) calc(96 * var(--px)), calc(512 * var(--px)) calc(320 * var(--px)), calc(128 * var(--px)) calc(64 * var(--px)), auto, auto;
+  background-position: left 0 top 0, left 0 top calc(2000 * var(--px)), left 0 top 0, left 0 top 0, 0 0, 0 0;
+  background-repeat: repeat, repeat, repeat-x, repeat, no-repeat, no-repeat;
+  animation: fondo-platino-brillo 7s linear infinite, fondo-platino-turnos 8s steps(1) infinite;
+}
+
+@keyframes fondo-platino-brillo {
+  0% { background-position-x: left 0, left 0, left 0, left 0, 0, 0; }
+  100% { background-position-x: left 0, left 0, left calc(512 * var(--px)), left 0, 0, 0; }
+}
+
+@keyframes fondo-platino-turnos {
+  0% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  12.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  25% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  37.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  50% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  62.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  75% { background-position-y: top 0, top calc(2000 * var(--px)), top 0, top 0, 0, 0; }
+  87.5% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+  100% { background-position-y: top calc(2000 * var(--px)), top 0, top 0, top 0, 0, 0; }
+}
+
+/* Kanto: los sellos de Articuno, Zapdos y Moltres, con bandas de Poké Balls */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-kanto {
   background-image:
-    url("../img/fondos/region-kanto.png"),
-    linear-gradient(115deg, rgba(220, 60, 50, 0.16), rgba(60, 100, 220, 0.18) 60%, transparent);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-kanto-sello-articuno.png"),
+    url("../img/fondos/region-kanto-sello-zapdos.png"),
+    url("../img/fondos/region-kanto-sello-moltres.png"),
+    url("../img/fondos/region-kanto-banda-arriba.png"),
+    url("../img/fondos/region-kanto-banda-abajo.png"),
+    linear-gradient(105deg, #e8eef8, #f3ede6 50%, #f8e8dc);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 144px top var(--sello-y), right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Johto: otoño, la torre de cinco pisos y hojas que caen */
+.perfil-ficha.fondo-region-kanto {
+  background-size: 128px 128px, 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, center bottom 62px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Johto: los sellos de Ho-Oh y Lugia, con bandas de hojas de arce */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-johto {
   background-image:
-    url("../img/fondos/region-johto.png"),
-    linear-gradient(to bottom, rgba(230, 150, 60, 0.24), transparent 75%);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-johto-sello-hoOh.png"),
+    url("../img/fondos/region-johto-sello-lugia.png"),
+    url("../img/fondos/region-johto-banda-arriba.png"),
+    url("../img/fondos/region-johto-banda-abajo.png"),
+    linear-gradient(105deg, #f8e6cc, #f4ead8 50%, #e6eaf2);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Hoenn: el mar, el volcán echando humo y una isla con palmeras */
+.perfil-ficha.fondo-region-johto {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Hoenn: los sellos de Groudon y Kyogre, con bandas de olas */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-hoenn {
   background-image:
-    url("../img/fondos/region-hoenn.png"),
-    linear-gradient(to bottom, rgba(60, 150, 220, 0.24), transparent 75%);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-hoenn-sello-groudon.png"),
+    url("../img/fondos/region-hoenn-sello-kyogre.png"),
+    url("../img/fondos/region-hoenn-banda-arriba.png"),
+    url("../img/fondos/region-hoenn-banda-abajo.png"),
+    linear-gradient(105deg, #f6e0d6, #f0ebe6 50%, #dde8f6);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Sinnoh: la gran montaña nevada, pinos con nieve y copos */
+.perfil-ficha.fondo-region-hoenn {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Sinnoh: los sellos de Dialga y Palkia, con bandas de diamantes y perlas */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-sinnoh {
   background-image:
-    url("../img/fondos/region-sinnoh.png"),
-    linear-gradient(to bottom, rgba(120, 150, 210, 0.26), transparent 75%);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-sinnoh-sello-dialga.png"),
+    url("../img/fondos/region-sinnoh-sello-palkia.png"),
+    url("../img/fondos/region-sinnoh-banda-arriba.png"),
+    url("../img/fondos/region-sinnoh-banda-abajo.png"),
+    linear-gradient(105deg, #e0e6f6, #ede9f2 50%, #f4e4ee);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Teselia: la ciudad de noche con las ventanas encendidas y el puente colgante */
+.perfil-ficha.fondo-region-sinnoh {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Teselia: los sellos de Reshiram y Zekrom, con bandas en blanco y negro */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-teselia {
   background-image:
-    url("../img/fondos/region-teselia.png"),
-    linear-gradient(to bottom, rgba(70, 60, 130, 0.32), transparent 80%);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-teselia-sello-reshiram.png"),
+    url("../img/fondos/region-teselia-sello-zekrom.png"),
+    url("../img/fondos/region-teselia-banda-arriba.png"),
+    url("../img/fondos/region-teselia-banda-abajo.png"),
+    linear-gradient(105deg, #f4f4f6, #ebebee 50%, #dadae2);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Kalos: la torre de celosía, árboles recortados y parterres de flores */
+.perfil-ficha.fondo-region-teselia {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Kalos: los sellos de Xerneas e Yveltal, con bandas de la celosía de la Torre Prisma */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-kalos {
   background-image:
-    url("../img/fondos/region-kalos.png"),
-    linear-gradient(to bottom, rgba(240, 170, 200, 0.24), rgba(150, 180, 240, 0.12) 60%, transparent);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-kalos-sello-xerneas.png"),
+    url("../img/fondos/region-kalos-sello-yveltal.png"),
+    url("../img/fondos/region-kalos-banda-arriba.png"),
+    url("../img/fondos/region-kalos-banda-abajo.png"),
+    linear-gradient(105deg, #dfe6f6, #ebe8f0 50%, #f4e0e2);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Alola: el sol poniéndose en el mar, palmeras y flores */
+.perfil-ficha.fondo-region-kalos {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Alola: los sellos de Solgaleo y Lunala, con bandas de triángulos como las del Pasaporte */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-alola {
   background-image:
-    url("../img/fondos/region-alola.png"),
-    linear-gradient(to bottom, rgba(255, 140, 90, 0.28), rgba(230, 90, 150, 0.16) 70%, transparent);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-alola-sello-solgaleo.png"),
+    url("../img/fondos/region-alola-sello-lunala.png"),
+    url("../img/fondos/region-alola-banda-arriba.png"),
+    url("../img/fondos/region-alola-banda-abajo.png"),
+    linear-gradient(105deg, #f7e8c8, #f4e8da 50%, #e4e2f4);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Galar: colinas con muros de piedra, el castillo, ovejas y el cielo nublado */
+.perfil-ficha.fondo-region-alola {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Galar: los sellos de Zacian y Zamazenta, con bandas de tartán */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-galar {
   background-image:
-    url("../img/fondos/region-galar.png"),
-    linear-gradient(to bottom, rgba(150, 160, 175, 0.24), transparent 75%);
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-galar-sello-zacian.png"),
+    url("../img/fondos/region-galar-sello-zamazenta.png"),
+    url("../img/fondos/region-galar-banda-arriba.png"),
+    url("../img/fondos/region-galar-banda-abajo.png"),
+    linear-gradient(105deg, #dfe6f6, #ebe8ee 50%, #f4e0e0);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Paldea: el gran cráter con niebla, mesetas rojas, molinos y un pueblo blanco */
+.perfil-ficha.fondo-region-galar {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Paldea: los sellos de Koraidon y Miraidon, con bandas de azulejos */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-region-paldea {
   background-image:
-    url("../img/fondos/region-paldea.png"),
-    linear-gradient(110deg, rgba(220, 60, 60, 0.2), rgba(140, 70, 200, 0.2));
-  background-size: calc(256 * var(--px)) calc(72 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/region-paldea-sello-koraidon.png"),
+    url("../img/fondos/region-paldea-sello-miraidon.png"),
+    url("../img/fondos/region-paldea-banda-arriba.png"),
+    url("../img/fondos/region-paldea-banda-abajo.png"),
+    linear-gradient(105deg, #f6e0da, #f2e9e6 50%, #e4e0f6);
+  background-size: calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(64 * var(--px-fino)) calc(64 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: right 74px top var(--sello-y), right 4px top var(--sello-y), left 0 top 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
 }
 
-/* Eevee: una pradera dorada al atardecer, con dientes de león y sus vilanos volando */
+.perfil-ficha.fondo-region-paldea {
+  background-size: 128px 128px, 128px 128px, calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), calc(256 * var(--px-fino)) calc(8 * var(--px-fino)), auto;
+  background-position: left 2px bottom 32px, right 2px bottom 32px, left 0 top 0, left 0 bottom 0, 0 0;
+}
+
+/* Eevee: sentado entre la hierba de una pradera dorada a media tarde, con dientes de león, flores y vilanos que vuelan */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-eevee {
   background-image:
+    url("../img/fondos/eevee-eevee-pokemon.png"),
+    url("../img/fondos/eevee-eevee-vilanos.png"),
     url("../img/fondos/eevee-eevee-pradera.png"),
-    linear-gradient(to bottom, rgba(250, 190, 120, 0.55), rgba(255, 225, 170, 0.5) 60%, rgba(220, 170, 110, 0.4));
-  background-size: calc(256 * var(--px)) calc(60 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/eevee-eevee-colinas.png"),
+    url("../img/fondos/eevee-eevee-nubes.png"),
+    linear-gradient(to bottom, #5fb0ec, #9dd4f6 42%, #ffe2b0 80%, #ffcf8c);
+  background-size: calc(46 * var(--px)) calc(46 * var(--px)), calc(256 * var(--px)) calc(60 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), auto;
+  background-position: right calc(8 * var(--px)) bottom calc(36 * var(--px)), left 0 bottom calc(26 * var(--px)), left 0 bottom 0, left 0 bottom 0, left 0 top calc(6 * var(--px)), 0 0;
+  background-repeat: no-repeat, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-eevee-deriva 64s linear infinite;
 }
 
-/* Vaporeon: una cascada que cae entre rocas a una laguna, con espuma, bruma y burbujas */
+@keyframes fondo-eevee-eevee-deriva {
+  0% { background-position-x: right calc(8 * var(--px)), left 0, left 0, left 0, left 0, 0; }
+  100% { background-position-x: right calc(8 * var(--px)), left calc(-512 * var(--px)), left 0, left 0, left calc(-256 * var(--px)), 0; }
+}
+
+/* Vaporeon: en una roca de la laguna, junto a una cascada que cae entre rocas con musgo, con espuma y brillos en el agua */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-vaporeon {
   background-image:
-    url("../img/fondos/eevee-vaporeon-cascada.png"),
-    linear-gradient(to bottom, rgba(90, 170, 230, 0.6), rgba(120, 200, 235, 0.5) 60%, rgba(40, 120, 190, 0.5));
-  background-size: calc(256 * var(--px)) calc(66 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/eevee-vaporeon-pokemon.png"),
+    url("../img/fondos/eevee-vaporeon-cascada-0.png"),
+    url("../img/fondos/eevee-vaporeon-cascada-1.png"),
+    url("../img/fondos/eevee-vaporeon-cascada-2.png"),
+    url("../img/fondos/eevee-vaporeon-orilla.png"),
+    url("../img/fondos/eevee-vaporeon-rocas.png"),
+    url("../img/fondos/eevee-vaporeon-brillos-0.png"),
+    url("../img/fondos/eevee-vaporeon-brillos-1.png"),
+    url("../img/fondos/eevee-vaporeon-laguna.png"),
+    url("../img/fondos/eevee-vaporeon-lejos.png"),
+    url("../img/fondos/eevee-vaporeon-nubes.png"),
+    linear-gradient(to bottom, #4cacf0, #8ad2fa 55%, #c4ecff);
+  background-size: calc(46 * var(--px)) calc(46 * var(--px)), calc(28 * var(--px)) calc(50 * var(--px)), calc(28 * var(--px)) calc(50 * var(--px)), calc(28 * var(--px)) calc(50 * var(--px)), calc(60 * var(--px)) calc(8 * var(--px)), calc(124 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
+  background-position: right calc(3 * var(--px)) bottom calc(36 * var(--px)), right calc(66 * var(--px)) bottom calc(30 * var(--px)), right calc(66 * var(--px)) bottom calc(2030 * var(--px)), right calc(66 * var(--px)) bottom calc(2030 * var(--px)), right calc(4 * var(--px)) bottom calc(26 * var(--px)), right 0 bottom 0, left 0 bottom 0, left 0 bottom calc(2000 * var(--px)), left 0 bottom 0, left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-vaporeon-turnos 8s steps(1) infinite, fondo-eevee-vaporeon-deriva 64s linear infinite;
 }
 
-/* Jolteon: una pradera de noche con hierba de pinchos amarilla, rayos en el cielo, chispas y postes de la luz */
+@keyframes fondo-eevee-vaporeon-turnos {
+  0% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  1.5625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  3.125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  4.6875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  6.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  7.8125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  9.375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  10.9375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  12.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  14.0625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  15.625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  17.1875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  18.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  20.3125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  21.875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  23.4375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  26.5625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  28.125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  29.6875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  31.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  32.8125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  34.375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  35.9375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  37.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  39.0625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  40.625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  42.1875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  43.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  45.3125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  46.875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  48.4375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  50% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  51.5625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  53.125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  54.6875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  56.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  57.8125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  59.375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  60.9375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  62.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  64.0625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  65.625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  67.1875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  68.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  70.3125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  71.875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  73.4375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  76.5625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  78.125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  79.6875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  81.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  82.8125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  84.375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  85.9375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  87.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  89.0625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  90.625% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  92.1875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  93.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  95.3125% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  96.875% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  98.4375% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+  100% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(26 * var(--px)), bottom 0, bottom calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(4 * var(--px)), 0; }
+}
+
+@keyframes fondo-eevee-vaporeon-deriva {
+  0% { background-position-x: right calc(3 * var(--px)), right calc(66 * var(--px)), right calc(66 * var(--px)), right calc(66 * var(--px)), right calc(4 * var(--px)), right 0, left 0, left 0, left 0, left 0, left 0, 0; }
+  100% { background-position-x: right calc(3 * var(--px)), right calc(66 * var(--px)), right calc(66 * var(--px)), right calc(66 * var(--px)), right calc(4 * var(--px)), right 0, left 0, left 0, left 0, left 0, left calc(-256 * var(--px)), 0; }
+}
+
+/* Jolteon: en un peñasco de un prado de hierba amarilla, con una tormenta al atardecer, rayos y chispas a su alrededor */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-jolteon {
   background-image:
-    url("../img/fondos/eevee-jolteon-pradera.png"),
-    linear-gradient(to bottom, rgba(30, 40, 90, 0.6), rgba(60, 60, 110, 0.45) 70%, rgba(80, 70, 40, 0.4));
-  background-size: calc(256 * var(--px)) calc(70 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/eevee-jolteon-chispas-0.png"),
+    url("../img/fondos/eevee-jolteon-chispas-1.png"),
+    url("../img/fondos/eevee-jolteon-chispas-2.png"),
+    url("../img/fondos/eevee-jolteon-pokemon.png"),
+    url("../img/fondos/eevee-jolteon-pena.png"),
+    url("../img/fondos/eevee-jolteon-prado.png"),
+    url("../img/fondos/eevee-jolteon-lejos.png"),
+    url("../img/fondos/eevee-jolteon-rayo-0.png"),
+    url("../img/fondos/eevee-jolteon-rayo-1.png"),
+    url("../img/fondos/eevee-jolteon-nubes.png"),
+    linear-gradient(to bottom, #2c2266, #5c3c96 38%, #c86494 72%, #ffa070);
+  background-size: calc(60 * var(--px)) calc(56 * var(--px)), calc(60 * var(--px)) calc(56 * var(--px)), calc(60 * var(--px)) calc(56 * var(--px)), calc(46 * var(--px)) calc(46 * var(--px)), calc(76 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), calc(256 * var(--px)) calc(30 * var(--px)), auto;
+  background-position: right 0 bottom calc(36 * var(--px)), right 0 bottom calc(2036 * var(--px)), right 0 bottom calc(2036 * var(--px)), right calc(14 * var(--px)) bottom calc(36 * var(--px)), right 0 bottom 0, left 0 bottom 0, left 0 bottom 0, left 0 top calc(6 * var(--px)), left 0 top calc(2006 * var(--px)), left 0 top 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-jolteon-turnos 8s steps(1) infinite, fondo-eevee-jolteon-deriva 48s linear infinite;
 }
 
-/* Flareon: una hoguera de noche con sus troncos y piedras, chispas que suben y árboles de otoño a contraluz */
+@keyframes fondo-eevee-jolteon-turnos {
+  0% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  6.25% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  12.5% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  18.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  25% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  30% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(2006 * var(--px)), top calc(6 * var(--px)), top 0, 0; }
+  31.25% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(2006 * var(--px)), top calc(6 * var(--px)), top 0, 0; }
+  32% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  34% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(2006 * var(--px)), top calc(6 * var(--px)), top 0, 0; }
+  37% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  37.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  43.75% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  50% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  56.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  62.5% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  68.75% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(2006 * var(--px)), top calc(6 * var(--px)), top 0, 0; }
+  78% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  81.25% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  87.5% { background-position-y: bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  93.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+  100% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, bottom 0, bottom 0, top calc(6 * var(--px)), top calc(2006 * var(--px)), top 0, 0; }
+}
+
+@keyframes fondo-eevee-jolteon-deriva {
+  0% { background-position-x: right 0, right 0, right 0, right calc(14 * var(--px)), right 0, left 0, left 0, left 0, left 0, left 0, 0; }
+  100% { background-position-x: right 0, right 0, right 0, right calc(14 * var(--px)), right 0, left 0, left 0, left 0, left 0, left calc(-256 * var(--px)), 0; }
+}
+
+/* Flareon: junto a una hoguera al atardecer, con la llama que baila, chispas que suben y árboles de otoño */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-flareon {
   background-image:
+    url("../img/fondos/eevee-flareon-fuego-0.png"),
+    url("../img/fondos/eevee-flareon-fuego-1.png"),
+    url("../img/fondos/eevee-flareon-fuego-2.png"),
+    url("../img/fondos/eevee-flareon-chispas-0.png"),
+    url("../img/fondos/eevee-flareon-chispas-1.png"),
+    url("../img/fondos/eevee-flareon-chispas-2.png"),
+    url("../img/fondos/eevee-flareon-pokemon.png"),
     url("../img/fondos/eevee-flareon-hoguera.png"),
-    linear-gradient(to bottom, rgba(70, 30, 40, 0.55), rgba(150, 60, 40, 0.45) 70%, rgba(230, 110, 40, 0.4));
-  background-size: calc(256 * var(--px)) calc(64 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/eevee-flareon-suelo.png"),
+    url("../img/fondos/eevee-flareon-bosque.png"),
+    linear-gradient(to bottom, #3c2a70, #8c3c82 38%, #f0684e 72%, #ffb464);
+  background-size: calc(22 * var(--px)) calc(26 * var(--px)), calc(22 * var(--px)) calc(26 * var(--px)), calc(22 * var(--px)) calc(26 * var(--px)), calc(30 * var(--px)) calc(40 * var(--px)), calc(30 * var(--px)) calc(40 * var(--px)), calc(30 * var(--px)) calc(40 * var(--px)), calc(46 * var(--px)) calc(46 * var(--px)), calc(100 * var(--px)) calc(46 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), auto;
+  background-position: right calc(58 * var(--px)) bottom calc(34 * var(--px)), right calc(58 * var(--px)) bottom calc(2034 * var(--px)), right calc(58 * var(--px)) bottom calc(2034 * var(--px)), right calc(54 * var(--px)) bottom calc(58 * var(--px)), right calc(54 * var(--px)) bottom calc(2058 * var(--px)), right calc(54 * var(--px)) bottom calc(2058 * var(--px)), right calc(8 * var(--px)) bottom calc(33 * var(--px)), right 0 bottom 0, left 0 bottom 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-flareon-turnos 8s steps(1) infinite;
 }
 
-/* Espeon: el amanecer, con un sol enorme saliendo detrás de montañas lilas, nubes rosas y destellos */
+@keyframes fondo-eevee-flareon-turnos {
+  0% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  3.125% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  6.25% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  9.375% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  12.5% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  15.625% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  18.75% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  21.875% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  25% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  28.125% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  31.25% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  34.375% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  37.5% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  40.625% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  43.75% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  46.875% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  50% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  53.125% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  56.25% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  59.375% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  62.5% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  65.625% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  68.75% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  71.875% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  75% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  78.125% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  81.25% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  84.375% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  87.5% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  90.625% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(58 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  93.75% { background-position-y: bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  96.875% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  100% { background-position-y: bottom calc(2034 * var(--px)), bottom calc(34 * var(--px)), bottom calc(2034 * var(--px)), bottom calc(58 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(2058 * var(--px)), bottom calc(33 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+}
+
+/* Espeon: en un risco al amanecer, con el sol saliendo detrás de montañas lilas, nubes rosas y destellos que titilan */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-espeon {
   background-image:
+    url("../img/fondos/eevee-espeon-pokemon.png"),
+    url("../img/fondos/eevee-espeon-risco.png"),
     url("../img/fondos/eevee-espeon-sol.png"),
     url("../img/fondos/eevee-espeon-montanas.png"),
-    linear-gradient(to bottom, rgba(150, 110, 200, 0.55), rgba(250, 150, 180, 0.5) 55%, rgba(255, 200, 140, 0.5));
-  background-size: calc(70 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), auto;
-  background-position: right calc(40 * var(--px)) bottom calc(16 * var(--px)), left 0 bottom 0, 0 0;
-  background-repeat: no-repeat, repeat-x, no-repeat;
+    url("../img/fondos/eevee-espeon-destellos-0.png"),
+    url("../img/fondos/eevee-espeon-destellos-1.png"),
+    url("../img/fondos/eevee-espeon-nubes.png"),
+    linear-gradient(to bottom, #7e62cc, #c884d2 38%, #ff9eb8 68%, #ffd29c);
+  background-size: calc(46 * var(--px)) calc(46 * var(--px)), calc(76 * var(--px)) calc(40 * var(--px)), calc(64 * var(--px)) calc(36 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(60 * var(--px)), calc(256 * var(--px)) calc(60 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), auto;
+  background-position: right calc(14 * var(--px)) bottom calc(35 * var(--px)), right 0 bottom 0, right calc(58 * var(--px)) bottom calc(42 * var(--px)), left 0 bottom 0, left 0 top calc(4 * var(--px)), left 0 top calc(2004 * var(--px)), left 0 top calc(4 * var(--px)), 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-espeon-turnos 8s steps(1) infinite, fondo-eevee-espeon-deriva 80s linear infinite;
 }
 
-/* Umbreon: la luna llena sobre un bosque oscuro, su reflejo en el estanque y luces amarillas en forma de anillo */
+@keyframes fondo-eevee-espeon-turnos {
+  0% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(42 * var(--px)), bottom 0, top calc(4 * var(--px)), top calc(2004 * var(--px)), top calc(4 * var(--px)), 0; }
+  16.6667% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(42 * var(--px)), bottom 0, top calc(2004 * var(--px)), top calc(4 * var(--px)), top calc(4 * var(--px)), 0; }
+  33.3333% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(42 * var(--px)), bottom 0, top calc(4 * var(--px)), top calc(2004 * var(--px)), top calc(4 * var(--px)), 0; }
+  50% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(42 * var(--px)), bottom 0, top calc(2004 * var(--px)), top calc(4 * var(--px)), top calc(4 * var(--px)), 0; }
+  66.6667% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(42 * var(--px)), bottom 0, top calc(4 * var(--px)), top calc(2004 * var(--px)), top calc(4 * var(--px)), 0; }
+  83.3333% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(42 * var(--px)), bottom 0, top calc(2004 * var(--px)), top calc(4 * var(--px)), top calc(4 * var(--px)), 0; }
+  100% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(42 * var(--px)), bottom 0, top calc(2004 * var(--px)), top calc(4 * var(--px)), top calc(4 * var(--px)), 0; }
+}
+
+@keyframes fondo-eevee-espeon-deriva {
+  0% { background-position-x: right calc(14 * var(--px)), right 0, right calc(58 * var(--px)), left 0, left 0, left 0, left 0, 0; }
+  100% { background-position-x: right calc(14 * var(--px)), right 0, right calc(58 * var(--px)), left 0, left 0, left 0, left calc(-256 * var(--px)), 0; }
+}
+
+/* Umbreon: en una roca bajo la luna llena, con el bosque de noche, estrellas que titilan, luces en forma de anillo y sus anillos que brillan */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-umbreon {
   background-image:
+    url("../img/fondos/eevee-umbreon-pokemon.png"),
+    url("../img/fondos/eevee-umbreon-luces-0.png"),
+    url("../img/fondos/eevee-umbreon-luces-1.png"),
+    url("../img/fondos/eevee-umbreon-roca.png"),
     url("../img/fondos/eevee-umbreon-luna.png"),
     url("../img/fondos/eevee-umbreon-bosque.png"),
-    linear-gradient(to bottom, rgba(20, 22, 50, 0.6), rgba(40, 40, 80, 0.45) 70%);
-  background-size: calc(40 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(56 * var(--px)), auto;
-  background-position: right calc(36 * var(--px)) top calc(6 * var(--px)), left 0 bottom 0, 0 0;
-  background-repeat: no-repeat, repeat-x, no-repeat;
+    url("../img/fondos/eevee-umbreon-estrellas-0.png"),
+    url("../img/fondos/eevee-umbreon-estrellas-1.png"),
+    linear-gradient(to bottom, #141a4c, #22307a 50%, #33489a);
+  background-size: calc(46 * var(--px)) calc(46 * var(--px)), calc(256 * var(--px)) calc(60 * var(--px)), calc(256 * var(--px)) calc(60 * var(--px)), calc(76 * var(--px)) calc(40 * var(--px)), calc(44 * var(--px)) calc(44 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(64 * var(--px)), calc(128 * var(--px)) calc(64 * var(--px)), auto;
+  background-position: right calc(14 * var(--px)) bottom calc(36 * var(--px)), left 0 bottom calc(30 * var(--px)), left 0 bottom calc(2030 * var(--px)), right 0 bottom 0, right calc(60 * var(--px)) bottom calc(36 * var(--px)), left 0 bottom 0, left 0 top calc(2 * var(--px)), left 0 top calc(2002 * var(--px)), 0 0;
+  background-repeat: no-repeat, repeat-x, repeat-x, no-repeat, no-repeat, repeat-x, repeat, repeat, no-repeat;
+  animation: fondo-eevee-umbreon-turnos 8s steps(1) infinite;
 }
 
-/* Leafeon: un bosque frondoso con las copas juntas arriba, troncos, helechos y hojas que caen */
+@keyframes fondo-eevee-umbreon-turnos {
+  0% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2 * var(--px)), top calc(2002 * var(--px)), 0; }
+  12.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2002 * var(--px)), top calc(2 * var(--px)), 0; }
+  25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2 * var(--px)), top calc(2002 * var(--px)), 0; }
+  37.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2002 * var(--px)), top calc(2 * var(--px)), 0; }
+  50% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2 * var(--px)), top calc(2002 * var(--px)), 0; }
+  62.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(30 * var(--px)), bottom calc(2030 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2002 * var(--px)), top calc(2 * var(--px)), 0; }
+  75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2 * var(--px)), top calc(2002 * var(--px)), 0; }
+  87.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2002 * var(--px)), top calc(2 * var(--px)), 0; }
+  100% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2030 * var(--px)), bottom calc(30 * var(--px)), bottom 0, bottom calc(36 * var(--px)), bottom 0, top calc(2002 * var(--px)), top calc(2 * var(--px)), 0; }
+}
+
+/* Leafeon: en un tocón con musgo en un bosque soleado, con rayos de luz, helechos, setas, flores, mariposas, motas de luz y hojas que vuelan */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-leafeon {
   background-image:
+    url("../img/fondos/eevee-leafeon-pokemon.png"),
+    url("../img/fondos/eevee-leafeon-mariposas-0.png"),
+    url("../img/fondos/eevee-leafeon-mariposas-1.png"),
+    url("../img/fondos/eevee-leafeon-motas-0.png"),
+    url("../img/fondos/eevee-leafeon-motas-1.png"),
+    url("../img/fondos/eevee-leafeon-tocon.png"),
+    url("../img/fondos/eevee-leafeon-hojas.png"),
+    url("../img/fondos/eevee-leafeon-helechos.png"),
     url("../img/fondos/eevee-leafeon-bosque.png"),
-    linear-gradient(to bottom, rgba(120, 190, 110, 0.55), rgba(180, 220, 140, 0.45) 60%, rgba(60, 120, 60, 0.45));
-  background-size: calc(256 * var(--px)) calc(60 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    linear-gradient(to bottom, #6cc8f2, #b4e6cc 52%, #e6f6bc);
+  background-size: calc(46 * var(--px)) calc(46 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(48 * var(--px)), calc(256 * var(--px)) calc(48 * var(--px)), calc(76 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(56 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), auto;
+  background-position: right calc(15 * var(--px)) bottom calc(36 * var(--px)), left 0 bottom calc(44 * var(--px)), left 0 bottom calc(2044 * var(--px)), left 0 bottom calc(40 * var(--px)), left 0 bottom calc(2040 * var(--px)), right 0 bottom 0, left 0 bottom calc(30 * var(--px)), left 0 bottom 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-leafeon-turnos 8s steps(1) infinite, fondo-eevee-leafeon-deriva 32s linear infinite;
 }
 
-/* Glaceon: un glaciar con acantilados de hielo, cristales, nieve y polvo de diamante que brilla en el aire */
+@keyframes fondo-eevee-leafeon-turnos {
+  0% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  6.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  12.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  16.6667% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  18.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  31.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  33.3333% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  37.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  43.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  50% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  56.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  62.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  66.6667% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  68.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  81.25% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  83.3333% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  87.5% { background-position-y: bottom calc(36 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  93.75% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+  100% { background-position-y: bottom calc(36 * var(--px)), bottom calc(2044 * var(--px)), bottom calc(44 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom 0, bottom calc(30 * var(--px)), bottom 0, bottom 0, 0; }
+}
+
+@keyframes fondo-eevee-leafeon-deriva {
+  0% { background-position-x: right calc(15 * var(--px)), left 0, left 0, left 0, left 0, right 0, left 0, left 0, left 0, 0; }
+  100% { background-position-x: right calc(15 * var(--px)), left 0, left 0, left 0, left 0, right 0, left calc(-256 * var(--px)), left 0, left 0, 0; }
+}
+
+/* Glaceon: en un bloque de hielo de un glaciar, con montañas nevadas, acantilados de hielo y polvo de diamante que brilla */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-glaceon {
   background-image:
+    url("../img/fondos/eevee-glaceon-pokemon.png"),
+    url("../img/fondos/eevee-glaceon-polvo-0.png"),
+    url("../img/fondos/eevee-glaceon-polvo-1.png"),
+    url("../img/fondos/eevee-glaceon-polvo-2.png"),
+    url("../img/fondos/eevee-glaceon-bloque.png"),
     url("../img/fondos/eevee-glaceon-glaciar.png"),
-    url("../img/fondos/eevee-glaceon-diamantes.png"),
-    linear-gradient(to bottom, rgba(150, 210, 240, 0.6), rgba(210, 240, 255, 0.55) 60%, rgba(160, 210, 235, 0.5));
-  background-size: calc(256 * var(--px)) calc(56 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), auto;
-  background-position: left 0 bottom 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat, no-repeat;
+    url("../img/fondos/eevee-glaceon-montanas.png"),
+    linear-gradient(to bottom, #4aa6ea, #8ed0f6 50%, #d6f2ff);
+  background-size: calc(46 * var(--px)) calc(46 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), calc(76 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), auto;
+  background-position: right calc(15 * var(--px)) bottom calc(32 * var(--px)), left 0 top 0, left 0 top calc(2000 * var(--px)), left 0 top calc(2000 * var(--px)), right 0 bottom 0, left 0 bottom 0, left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, repeat, repeat, repeat, no-repeat, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-glaceon-turnos 8s steps(1) infinite;
 }
 
-/* Sylveon: un cielo pastel con cintas rosas y azules que ondean, nubes esponjosas, corazones y destellos */
+@keyframes fondo-eevee-glaceon-turnos {
+  0% { background-position-y: bottom calc(32 * var(--px)), top 0, top calc(2000 * var(--px)), top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  8.3333% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top 0, top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  16.6667% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top calc(2000 * var(--px)), top 0, bottom 0, bottom 0, bottom 0, 0; }
+  25% { background-position-y: bottom calc(32 * var(--px)), top 0, top calc(2000 * var(--px)), top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  33.3333% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top 0, top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  41.6667% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top calc(2000 * var(--px)), top 0, bottom 0, bottom 0, bottom 0, 0; }
+  50% { background-position-y: bottom calc(32 * var(--px)), top 0, top calc(2000 * var(--px)), top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  58.3333% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top 0, top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  66.6667% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top calc(2000 * var(--px)), top 0, bottom 0, bottom 0, bottom 0, 0; }
+  75% { background-position-y: bottom calc(32 * var(--px)), top 0, top calc(2000 * var(--px)), top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  83.3333% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top 0, top calc(2000 * var(--px)), bottom 0, bottom 0, bottom 0, 0; }
+  91.6667% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top calc(2000 * var(--px)), top 0, bottom 0, bottom 0, bottom 0, 0; }
+  100% { background-position-y: bottom calc(32 * var(--px)), top calc(2000 * var(--px)), top calc(2000 * var(--px)), top 0, bottom 0, bottom 0, bottom 0, 0; }
+}
+
+/* Sylveon: sentado en una nube de un cielo pastel, con cintas rosas y azules que ondean, corazones y destellos que titilan */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-sylveon {
   background-image:
-    url("../img/fondos/eevee-sylveon-cintas.png"),
-    linear-gradient(to bottom, rgba(250, 190, 220, 0.55), rgba(200, 220, 255, 0.5) 60%, rgba(255, 210, 230, 0.5));
-  background-size: calc(256 * var(--px)) calc(60 * var(--px)), auto;
-  background-position: left 0 bottom 0, 0 0;
-  background-repeat: repeat-x, no-repeat;
+    url("../img/fondos/eevee-sylveon-pokemon.png"),
+    url("../img/fondos/eevee-sylveon-nube.png"),
+    url("../img/fondos/eevee-sylveon-corazones-0.png"),
+    url("../img/fondos/eevee-sylveon-corazones-1.png"),
+    url("../img/fondos/eevee-sylveon-cintas-0.png"),
+    url("../img/fondos/eevee-sylveon-cintas-1.png"),
+    url("../img/fondos/eevee-sylveon-nubes.png"),
+    linear-gradient(to bottom, #9cc0ff, #e6c2f0 52%, #ffd6e6);
+  background-size: calc(46 * var(--px)) calc(46 * var(--px)), calc(80 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), calc(256 * var(--px)) calc(44 * var(--px)), calc(256 * var(--px)) calc(44 * var(--px)), calc(256 * var(--px)) calc(92 * var(--px)), auto;
+  background-position: right calc(17 * var(--px)) bottom calc(35 * var(--px)), right 0 bottom 0, left 0 bottom calc(40 * var(--px)), left 0 bottom calc(2040 * var(--px)), left 0 bottom calc(36 * var(--px)), left 0 bottom calc(2036 * var(--px)), left 0 bottom 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat-x, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
+  animation: fondo-eevee-sylveon-turnos 8s steps(1) infinite;
+}
+
+@keyframes fondo-eevee-sylveon-turnos {
+  0% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom 0, 0; }
+  12.5% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, 0; }
+  16.6667% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, 0; }
+  25% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom 0, 0; }
+  33.3333% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom 0, 0; }
+  37.5% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, 0; }
+  50% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom 0, 0; }
+  62.5% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, 0; }
+  66.6667% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, 0; }
+  75% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(40 * var(--px)), bottom calc(2040 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom 0, 0; }
+  83.3333% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom calc(36 * var(--px)), bottom calc(2036 * var(--px)), bottom 0, 0; }
+  87.5% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, 0; }
+  100% { background-position-y: bottom calc(35 * var(--px)), bottom 0, bottom calc(2040 * var(--px)), bottom calc(40 * var(--px)), bottom calc(2036 * var(--px)), bottom calc(36 * var(--px)), bottom 0, 0; }
 }
 
 /* Hierba alta: filas de matas, de lejos (claras) a cerca (oscuras), con flores, rocío y dos mariposas */
@@ -222,7 +675,7 @@
   background-image:
     url("../img/fondos/tienda-hierba-campo.png"),
     url("../img/fondos/tienda-hierba-nubes.png"),
-    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+    linear-gradient(to bottom, rgb(80, 167, 248), rgb(116, 189, 255) 50%, rgb(150, 212, 255));
   background-size: calc(256 * var(--px)) calc(60 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
   background-position: left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
   background-repeat: repeat-x, repeat-x, no-repeat;
@@ -233,7 +686,7 @@
   background-image:
     url("../img/fondos/tienda-bosque-arboles.png"),
     url("../img/fondos/tienda-bosque-nubes.png"),
-    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+    linear-gradient(to bottom, rgb(80, 167, 248), rgb(116, 189, 255) 50%, rgb(150, 212, 255));
   background-size: calc(256 * var(--px)) calc(68 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
   background-position: left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
   background-repeat: repeat-x, repeat-x, no-repeat;
@@ -245,10 +698,11 @@
     url("../img/fondos/tienda-cueva-techo.png"),
     url("../img/fondos/tienda-cueva-suelo.png"),
     radial-gradient(ellipse at 50% 55%, transparent 40%, rgba(30, 22, 18, 0.32)),
-    linear-gradient(to bottom, rgba(70, 55, 40, 0.24), transparent 50%, rgba(70, 55, 40, 0.2));
-  background-size: calc(256 * var(--px)) calc(32 * var(--px)), calc(256 * var(--px)) calc(48 * var(--px)), auto, auto;
-  background-position: left 0 top 0, left 0 bottom 0, 0 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, no-repeat;
+    linear-gradient(to bottom, rgba(70, 55, 40, 0.24), transparent 50%, rgba(70, 55, 40, 0.2)),
+    linear-gradient(to bottom, #3e3029, #2b231f 50%, #3a2e27);
+  background-size: calc(256 * var(--px)) calc(32 * var(--px)), calc(256 * var(--px)) calc(48 * var(--px)), auto, auto, auto;
+  background-position: left 0 top 0, left 0 bottom 0, 0 0, 0 0, 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat, no-repeat, no-repeat;
 }
 
 /* Atardecer: el sol a medio esconder en el mar, con su reflejo, nubes largas, un islote con palmera y pájaros */
@@ -257,7 +711,7 @@
     url("../img/fondos/tienda-atardecer-sol.png"),
     url("../img/fondos/tienda-atardecer-nubes.png"),
     url("../img/fondos/tienda-atardecer-mar.png"),
-    linear-gradient(to top, rgba(255, 160, 80, 0.34), rgba(240, 110, 90, 0.22) 45%, rgba(130, 70, 150, 0.16) 85%, transparent);
+    linear-gradient(to top, #ff9d55, #ee6f5c 30%, #9a4f9a 65%, #4a3478);
   background-size: calc(64 * var(--px)) calc(44 * var(--px)), calc(256 * var(--px)) calc(20 * var(--px)), calc(256 * var(--px)) calc(46 * var(--px)), auto;
   background-position: right calc(40 * var(--px)) bottom calc(10 * var(--px)), left 0 bottom calc(36 * var(--px)), left 0 bottom 0, 0 0;
   background-repeat: no-repeat, repeat-x, repeat-x, no-repeat;
@@ -268,7 +722,7 @@
   background-image:
     url("../img/fondos/tienda-magma-roca.png"),
     url("../img/fondos/tienda-magma-brasas.png"),
-    linear-gradient(to top, rgba(230, 80, 30, 0.36), rgba(140, 35, 20, 0.14) 55%, transparent);
+    linear-gradient(to top, #d9521f, #8a2716 40%, #3d1713 80%, #2a1210);
   background-size: calc(256 * var(--px)) calc(50 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), auto;
   background-position: left 0 bottom 0, left 0 top 0, 0 0;
   background-repeat: repeat-x, repeat, no-repeat;
@@ -282,7 +736,7 @@
     url("../img/fondos/tienda-olas-lejos.png"),
     url("../img/fondos/tienda-olas-mar.png"),
     url("../img/fondos/tienda-olas-nubes.png"),
-    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+    linear-gradient(to bottom, rgb(80, 167, 248), rgb(116, 189, 255) 50%, rgb(150, 212, 255));
   background-size: calc(128 * var(--px)) calc(16 * var(--px)), calc(128 * var(--px)) calc(12 * var(--px)), calc(128 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
   background-position: left 0 bottom 0, left 0 bottom calc(12 * var(--px)), left 0 bottom calc(22 * var(--px)), left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
   background-repeat: repeat-x, repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
@@ -300,7 +754,7 @@
     url("../img/fondos/tienda-nieve-copos-cerca.png"),
     url("../img/fondos/tienda-nieve-paisaje.png"),
     url("../img/fondos/tienda-nieve-copos-lejos.png"),
-    linear-gradient(to bottom, rgba(100, 150, 215, 0.36), rgba(150, 195, 235, 0.14) 85%);
+    linear-gradient(to bottom, #4f73ad, #7d9fcf 55%, #a9c4e6);
   background-size: calc(128 * var(--px)) calc(128 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(64 * var(--px)) calc(64 * var(--px)), auto;
   background-position: left 0 top 0, left 0 bottom 0, left 0 top 0, 0 0;
   background-repeat: repeat, repeat-x, repeat, no-repeat;
@@ -321,7 +775,7 @@
     url("../img/fondos/tienda-noche-luna.png"),
     url("../img/fondos/tienda-noche-colinas.png"),
     url("../img/fondos/tienda-noche-estrellas.png"),
-    linear-gradient(170deg, rgba(60, 70, 160, 0.36), rgba(20, 22, 60, 0.26) 70%);
+    linear-gradient(170deg, #263184, #171a4a 70%, #12143a);
   background-size: calc(32 * var(--px)) calc(16 * var(--px)), calc(32 * var(--px)) calc(16 * var(--px)), calc(32 * var(--px)) calc(16 * var(--px)), calc(26 * var(--px)) calc(26 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), calc(384 * var(--px)) calc(96 * var(--px)), auto;
   background-position: right calc(-30 * var(--px)) top calc(-20 * var(--px)), right calc(120 * var(--px)) top calc(-20 * var(--px)), right calc(40 * var(--px)) top calc(-20 * var(--px)), right calc(28 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, 0 0;
   background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat-x, repeat, no-repeat;
@@ -386,7 +840,7 @@
     url("../img/fondos/tienda-casino-maquinas.png"),
     url("../img/fondos/tienda-casino-fichas.png"),
     url("../img/fondos/tienda-casino-rombos.png"),
-    linear-gradient(160deg, rgba(200, 60, 150, 0.26), rgba(90, 40, 140, 0.22) 60%, rgba(241, 196, 15, 0.1));
+    linear-gradient(160deg, #7a2470, #4a1d6a 60%, #2e1846);
   background-size: calc(8 * var(--px)) calc(6 * var(--px)), calc(8 * var(--px)) calc(6 * var(--px)), calc(1280 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(128 * var(--px)) calc(80 * var(--px)), calc(16 * var(--px)) calc(16 * var(--px)), auto;
   background-position: left 0 top calc(1 * var(--px)), left 0 bottom calc(1 * var(--px)), left 0 bottom calc(8 * var(--px)), left 0 bottom calc(8 * var(--px)), left calc(20 * var(--px)) top calc(10 * var(--px)), left 0 top 0, 0 0;
   background-repeat: repeat-x, repeat-x, repeat-x, repeat-x, repeat, repeat, no-repeat;
@@ -452,7 +906,7 @@
     url("../img/fondos/tienda-aurora-verde.png"),
     url("../img/fondos/tienda-aurora-violeta.png"),
     url("../img/fondos/tienda-aurora-estrellas.png"),
-    linear-gradient(to bottom, rgba(20, 30, 70, 0.38), rgba(30, 80, 90, 0.12) 70%, transparent);
+    linear-gradient(to bottom, #0f1a3c, #12304a 60%, #173e48);
   background-size: calc(256 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(56 * var(--px)), calc(256 * var(--px)) calc(50 * var(--px)), calc(96 * var(--px)) calc(96 * var(--px)), auto;
   background-position: left 0 bottom 0, left 0 top calc(2 * var(--px)), left 0 top calc(10 * var(--px)), left 0 top 0, 0 0;
   background-repeat: repeat-x, repeat-x, repeat-x, repeat, no-repeat;
@@ -469,7 +923,7 @@
   background-image:
     url("../img/fondos/tienda-desierto-sol.png"),
     url("../img/fondos/tienda-desierto-dunas.png"),
-    linear-gradient(to bottom, rgba(80, 160, 240, 0.78), rgba(150, 205, 250, 0.74) 45%, rgba(255, 220, 160, 0.72) 75%, rgba(245, 190, 120, 0.62));
+    linear-gradient(to bottom, rgb(80, 160, 240), rgb(150, 205, 250) 45%, rgb(255, 220, 160) 75%, rgb(245, 190, 120));
   background-size: calc(50 * var(--px)) calc(50 * var(--px)), calc(256 * var(--px)) calc(56 * var(--px)), auto;
   background-position: right calc(30 * var(--px)) top calc(4 * var(--px)), left 0 bottom 0, 0 0;
   background-repeat: no-repeat, repeat-x, no-repeat;
@@ -480,7 +934,7 @@
   background-image:
     url("../img/fondos/tienda-bayas-huerto.png"),
     url("../img/fondos/tienda-bayas-nubes.png"),
-    linear-gradient(to bottom, rgba(80, 167, 248, 0.8), rgba(116, 189, 255, 0.85) 50%, rgba(150, 212, 255, 0.9));
+    linear-gradient(to bottom, rgb(80, 167, 248), rgb(116, 189, 255) 50%, rgb(150, 212, 255));
   background-size: calc(256 * var(--px)) calc(54 * var(--px)), calc(256 * var(--px)) calc(36 * var(--px)), auto;
   background-position: left 0 bottom 0, left 0 top calc(4 * var(--px)), 0 0;
   background-repeat: repeat-x, repeat-x, no-repeat;
@@ -491,7 +945,7 @@
   background-image:
     url("../img/fondos/tienda-eevee-piezas.png"),
     url("../img/fondos/tienda-eevee-tramos.png"),
-    linear-gradient(to bottom, rgba(200, 150, 90, 0.2), transparent 70%);
+    linear-gradient(to bottom, #e9a96a, #f4cf98 60%, #f0d9b0);
   background-size: calc(2048 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(64 * var(--px)), auto;
   background-position: left 0 bottom calc(22 * var(--px)), left 0 bottom 0, 0 0;
   background-repeat: repeat-x, repeat-x, no-repeat;
@@ -512,7 +966,7 @@
     url("../img/fondos/tienda-espacio-suelo.png"),
     url("../img/fondos/tienda-espacio-nebulosa.png"),
     url("../img/fondos/tienda-espacio-estrellas.png"),
-    linear-gradient(to bottom, rgba(40, 20, 90, 0.4), rgba(20, 30, 80, 0.25));
+    linear-gradient(to bottom, #1d1050, #151c4c);
   background-size: calc(48 * var(--px)) calc(32 * var(--px)), calc(14 * var(--px)) calc(14 * var(--px)), calc(40 * var(--px)) calc(20 * var(--px)), calc(256 * var(--px)) calc(22 * var(--px)), calc(256 * var(--px)) calc(96 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), auto;
   background-position: right calc(26 * var(--px)) top calc(12 * var(--px)), left calc(70 * var(--px)) top calc(48 * var(--px)), left calc(16 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, left 0 top 0, left 0 top 0, 0 0;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, repeat, no-repeat;
@@ -524,7 +978,7 @@
     url("../img/fondos/tienda-rocket-wobbuffet.png"),
     url("../img/fondos/tienda-rocket-alarmas.png"),
     url("../img/fondos/tienda-rocket-guarida.png"),
-    linear-gradient(to bottom, rgba(120, 20, 30, 0.3), rgba(20, 20, 30, 0.3) 70%);
+    linear-gradient(to bottom, #4a1c24, #262229 60%, #1f1d24);
   background-size: calc(1280 * var(--px)) calc(72 * var(--px)), calc(512 * var(--px)) calc(30 * var(--px)), calc(256 * var(--px)) calc(72 * var(--px)), auto;
   background-position: left 0 bottom 0, left 0 bottom calc(44 * var(--px)), left 0 bottom 0, 0 0;
   background-repeat: repeat-x, repeat-x, repeat-x, no-repeat;
@@ -579,7 +1033,7 @@
     url("../img/fondos/tienda-cementerio-niebla.png"),
     url("../img/fondos/tienda-cementerio-luna.png"),
     url("../img/fondos/tienda-cementerio-tumbas.png"),
-    linear-gradient(to bottom, rgba(60, 50, 110, 0.34), rgba(30, 40, 60, 0.2) 70%);
+    linear-gradient(to bottom, #2f2a62, #262b44 65%, #20263a);
   background-size: calc(256 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(40 * var(--px)), calc(64 * var(--px)) calc(18 * var(--px)), calc(28 * var(--px)) calc(28 * var(--px)), calc(256 * var(--px)) calc(60 * var(--px)), auto;
   background-position: left 0 bottom calc(16 * var(--px)), left 0 bottom calc(26 * var(--px)), left 0 bottom calc(4 * var(--px)), right calc(34 * var(--px)) top calc(8 * var(--px)), left 0 bottom 0, 0 0;
   background-repeat: repeat-x, repeat-x, repeat-x, no-repeat, repeat-x, no-repeat;
@@ -618,7 +1072,7 @@
     url("../img/fondos/tienda-marino-peces.png"),
     url("../img/fondos/tienda-marino-superficie.png"),
     url("../img/fondos/tienda-marino-arrecife.png"),
-    linear-gradient(to bottom, rgba(40, 150, 200, 0.32), rgba(20, 70, 130, 0.3) 80%);
+    linear-gradient(to bottom, #2c98c8, #1d6aa0 50%, #12457a);
   background-size: calc(64 * var(--px)) calc(128 * var(--px)), calc(128 * var(--px)) calc(40 * var(--px)), calc(256 * var(--px)) calc(12 * var(--px)), calc(256 * var(--px)) calc(58 * var(--px)), auto;
   background-position: left 0 top 0, left 0 bottom calc(26 * var(--px)), left 0 top 0, left 0 bottom 0, 0 0;
   background-repeat: repeat, repeat-x, repeat-x, repeat-x, no-repeat;
@@ -638,7 +1092,7 @@
     url("../img/fondos/tienda-tormenta-lluvia.png"),
     url("../img/fondos/tienda-tormenta-nubes.png"),
     url("../img/fondos/tienda-tormenta-suelo.png"),
-    linear-gradient(to bottom, rgba(40, 50, 70, 0.42), rgba(40, 60, 80, 0.2) 75%);
+    linear-gradient(to bottom, #333c50, #3f4c60 60%, #4a5a6c);
   background-size: 100% 100%, calc(40 * var(--px)) calc(84 * var(--px)), calc(64 * var(--px)) calc(64 * var(--px)), calc(256 * var(--px)) calc(30 * var(--px)), calc(256 * var(--px)) calc(26 * var(--px)), auto;
   background-position: left 0 top calc(-4000 * var(--px)), left calc(60 * var(--px)) top calc(-200 * var(--px)), left 0 top 0, left 0 top 0, left 0 bottom 0, 0 0;
   background-repeat: no-repeat, no-repeat, repeat, repeat-x, repeat-x, no-repeat;
@@ -659,7 +1113,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo):is(.fondo-tienda-olas, .fondo-tienda-nieve, .fondo-tienda-noche, .fondo-tienda-casino, .fondo-tienda-aurora, .fondo-tienda-eevee, .fondo-tienda-rocket, .fondo-tienda-cementerio, .fondo-tienda-marino, .fondo-tienda-tormenta) {
+  :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo):is(.fondo-plata, .fondo-oro, .fondo-platino, .fondo-eevee-eevee, .fondo-eevee-vaporeon, .fondo-eevee-jolteon, .fondo-eevee-flareon, .fondo-eevee-espeon, .fondo-eevee-umbreon, .fondo-eevee-leafeon, .fondo-eevee-glaceon, .fondo-eevee-sylveon, .fondo-tienda-olas, .fondo-tienda-nieve, .fondo-tienda-noche, .fondo-tienda-casino, .fondo-tienda-aurora, .fondo-tienda-eevee, .fondo-tienda-rocket, .fondo-tienda-cementerio, .fondo-tienda-marino, .fondo-tienda-tormenta) {
     animation: none;
   }
 }
