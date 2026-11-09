@@ -194,19 +194,81 @@ export function descomprimirLZ11(b) {
   return s;
 }
 
-// Un LZ11 válido sin comprimir nada (todo literales: un poco más grande, pero el juego lo lee igual)
+// Comprime de verdad: el juego reserva poca memoria para estos archivos y, sin comprimir (más del doble de grandes en las
+// zonas), se puede colgar al cargar algunas. Como en los archivos del juego, nunca copia desde 1 byte atrás
+const LZ11_DESP_MIN = 2;
+const LZ11_DESP_MAX = 0x1000;
+const LZ11_LARGO_MIN = 3;
+const LZ11_LARGO_MAX = 0x10110;
+const LZ11_VUELTAS = 512; // cuántos candidatos mira como mucho en cada posición
+
 export function comprimirLZ11(b) {
-  const bloques = Math.ceil(b.length / 8);
-  const s = new Uint8Array(8 + b.length + bloques);
+  const n = b.length;
+  const s = new Uint8Array(8 + n + Math.ceil(n / 8) + 8);
   s[0] = 0x11;
-  s[1] = 0;
-  s[2] = 0;
-  s[3] = 0;
-  poner32(s, 4, b.length);
-  let p = 8;
-  for (let i = 0; i < b.length; i += 8) {
-    s[p++] = 0;
-    for (let k = 0; k < 8 && i + k < b.length; k++) s[p++] = b[i + k];
+  let p = 4;
+  if (n < 0x1000000) {
+    s[1] = n & 0xff;
+    s[2] = (n >> 8) & 0xff;
+    s[3] = (n >> 16) & 0xff;
+  } else {
+    poner32(s, 4, n);
+    p = 8;
+  }
+  // Las posiciones anteriores con los mismos tres primeros bytes
+  const cabezas = new Int32Array(0x8000).fill(-1);
+  const previos = new Int32Array(n);
+  const clave = (i) => ((b[i] << 10) ^ (b[i + 1] << 5) ^ b[i + 2]) & 0x7fff;
+  const apuntar = (i) => {
+    if (i + 2 >= n) return;
+    const h = clave(i);
+    previos[i] = cabezas[h];
+    cabezas[h] = i;
+  };
+  let i = 0;
+  while (i < n) {
+    const banderas = p++;
+    let bits = 0;
+    for (let k = 7; k >= 0 && i < n; k--) {
+      let largo = 0;
+      let desp = 0;
+      if (i + 2 < n) {
+        const tope = Math.min(LZ11_LARGO_MAX, n - i);
+        let c = cabezas[clave(i)];
+        for (let vueltas = LZ11_VUELTAS; c >= 0 && i - c <= LZ11_DESP_MAX && vueltas > 0 && largo < tope; vueltas--, c = previos[c]) {
+          if (i - c < LZ11_DESP_MIN) continue;
+          let l = 0;
+          while (l < tope && b[c + l] === b[i + l]) l++;
+          if (l > largo) {
+            largo = l;
+            desp = i - c;
+          }
+        }
+      }
+      if (largo < LZ11_LARGO_MIN) {
+        apuntar(i);
+        s[p++] = b[i++];
+        continue;
+      }
+      bits |= 1 << k;
+      const d = desp - 1;
+      if (largo <= 0x10) {
+        s[p++] = ((largo - 1) << 4) | (d >> 8);
+      } else if (largo <= 0x110) {
+        const l = largo - 0x11;
+        s[p++] = l >> 4;
+        s[p++] = ((l & 0xf) << 4) | (d >> 8);
+      } else {
+        const l = largo - 0x111;
+        s[p++] = 0x10 | (l >> 12);
+        s[p++] = (l >> 4) & 0xff;
+        s[p++] = ((l & 0xf) << 4) | (d >> 8);
+      }
+      s[p++] = d & 0xff;
+      for (let q = 0; q < largo; q++) apuntar(i + q);
+      i += largo;
+    }
+    s[banderas] = bits;
   }
   return s.subarray(0, p);
 }

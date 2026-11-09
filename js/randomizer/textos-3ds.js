@@ -2,7 +2,7 @@
 //
 // Cada archivo de texto (una entrada de un GARC):
 //   0x00 u16 secciones (1)   0x02 u16 líneas   0x04 u32 tamaño total   0x08 u32 (0)   0x0c u32 dónde empieza la sección
-//   la sección: u32 tamaño; luego, por línea, [s32 dónde empieza (desde el inicio de la sección), u16 caracteres, u16 (0)];
+//   la sección: u32 tamaño; luego, por línea, [s32 dónde empieza (desde el inicio de la sección), u16 caracteres, u16 sin uso conocido];
 //   luego los caracteres (u16), cifrados: la clave de la línea i es 0x7C89 + i * 0x2983 y, tras cada carácter,
 //   se gira 3 bits a la izquierda.
 // Las variables (nombres, números...) empiezan por 0x0010: [0x0010, cuántos u16 van detrás, código, argumentos...].
@@ -51,7 +51,9 @@ export function escribirTextos6(original, textos) {
     return c;
   });
   const cabeza = 4 + cuantas * 8;
-  const tam = cabeza + todas.reduce((t, c) => t + c.length * 2, 0);
+  // Cada línea empieza alineada a 4 bytes, como en los archivos del juego
+  const ocupa = (c) => (c.length * 2 + 3) & ~3;
+  const tam = cabeza + todas.reduce((t, c) => t + ocupa(c), 0);
   const salida = new Uint8Array(0x10 + tam);
   poner16(salida, 0, 1);
   poner16(salida, 2, cuantas);
@@ -62,12 +64,13 @@ export function escribirTextos6(original, textos) {
   todas.forEach((c, i) => {
     poner32(salida, 0x10 + 4 + i * 8, donde);
     poner16(salida, 0x10 + 8 + i * 8, c.length);
+    poner16(salida, 0x10 + 10 + i * 8, u16(original, u32(original, 0x0c) + 10 + i * 8)); // lo que venga detrás, como estaba
     let clave = (0x7c89 + i * 0x2983) & 0xffff;
     c.forEach((x, j) => {
       poner16(salida, 0x10 + donde + j * 2, x ^ clave);
       clave = girar(clave);
     });
-    donde += c.length * 2;
+    donde += ocupa(c);
   });
   return salida;
 }

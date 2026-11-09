@@ -100,7 +100,9 @@ const XY = {
     // de los de verdad vienen muchas Pociones de relleno
     amx: { scripts: "a/0/3/1", secciones: [{ archivo: 17, desde: 0xb04, recortar: true }, { archivo: 26, desde: 0xb18 }] },
     tamanos: [2, 11, 14, 17, 18, 19, 19, 19, 19, 1, 4, 10, 3, 9, 1, 1, 3, 3, 5, 5, 6, 7, 5, 5, 8, 3],
-    mt: [18, 19, 22, 23], normales: [0, 1, 2, 3, 4, 5, 6, 7, 8, 14, 15], historia: [10, 11, 12, 13, 16, 17, 20, 21, 24, 25]
+    mt: [18, 19, 22, 23], normales: [0, 1, 2, 3, 4, 5, 6, 7, 8, 14, 15], historia: [10, 11, 12, 13, 16, 17, 20, 21, 24, 25],
+    // Sin medallas la tienda solo tiene Poké Ball y Poción: hasta la primera, en el segundo mostrador de Ciudad Vánitas (24)
+    caramelos: [24, 1, 2, 3, 4, 5, 6, 7, 8]
   }
 };
 
@@ -124,6 +126,9 @@ const ORAS = {
   legendarios: [716, 717, 718, 719, 720, 721],
   // Las del clima primigenio (solo Groudon, Kyogre y Rayquaza) y Cambio de Táctica
   habilidadesNunca: [176, 189, 190, 191],
+  // El Poochyena del principio y el Zigzagoon y el Ralts del tutorial de captura de Blasco: siguen aleatorios, pero sin lo que
+  // acaba el combate antes de tiempo (ver randomizar.js)
+  primerosCombates: [261, 263, 280],
   iniciales: { cro: "DllField.cro", desde: 0xf906c, tam: 0x24, forma: 4, pantalla: "DllPoke3Select.cro", extra: 0, texto: 77 },
   // Rayquaza (28) lleva además código y scripts: se deja como está
   estaticos6: {
@@ -144,11 +149,14 @@ const ORAS = {
   // Igual, con dos MO más (Golpe Roca y Buceo, en otro sitio de la lista de MO)
   tm: { prefijo: "D400AE02AF02B002", dos: 98, hm: 5, hmExtra: [10, 28], descObjetos: 117, descAtaques: 16 },
   objetos: {
-    datos: "a/1/9/7", localizador: "04001100120004000300",
+    // (la segunda marca: la misma con el Caramelo Raro en la primera lista, por si se randomiza una ROM ya randomizada)
+    datos: "a/1/9/7", localizador: "04001100120004000300", localizadorRandom: "04001100320004000300",
     // y las Megapiedras que se encuentran por el camino (27, de 0x20 en 0x20 desde 0xaba, en otro script)
     amx: { scripts: "a/0/2/9", secciones: [{ archivo: 39, desde: 0xb64, recortar: true }, { archivo: 57, desde: 0xaba, paso: 0x20, cuantos: 27 }] },
     tamanos: [3, 10, 14, 17, 18, 19, 19, 19, 19, 1, 9, 6, 4, 3, 8, 8, 3, 3, 4, 3, 6, 8, 7, 4],
     mt: [12, 15, 22, 23], normales: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], historia: [10, 11, 13, 14, 16, 17, 18, 19, 20, 21],
+    // La lista de la Tienda Pokémon de cada número de medallas (la 9, antes de tener la Pokédex, solo tiene Poción)
+    caramelos: [0, 1, 2, 3, 4, 5, 6, 7, 8],
     // Los escondidos: 170 entradas de 14 bytes tras esta marca (el objeto, 2 bytes más allá)
     ocultos: { prefijo: "A100A200A300A400A5001400010053004A0084000900", cuantos: 170, salto: 0xe, desfase: 2 }
   }
@@ -198,7 +206,8 @@ const SM = {
   objetos: {
     datos: "a/0/1/9", cro: "Shop.cro", desde: 0x50a8, campo: true,
     tamanos: [9, 11, 13, 15, 17, 19, 20, 21, 9, 4, 8, 12, 5, 4, 11, 3, 10, 6, 10, 6, 4, 5, 7, 1],
-    mt: [12, 13, 16, 18, 19], normales: [0, 1, 2, 3, 4, 5, 6, 7], historia: [8, 9, 10, 11, 14, 15, 17, 20, 21, 22, 23]
+    mt: [12, 13, 16, 18, 19], normales: [0, 1, 2, 3, 4, 5, 6, 7], historia: [8, 9, 10, 11, 14, 15, 17, 20, 21, 22, 23],
+    caramelos: [0, 1, 2, 3, 4, 5, 6, 7]
   },
   // Las 100 MT, seguidas, tras esta marca del programa (que en Sol y Luna viene sin comprimir)
   tm: { prefijo: "034003410342034303", dos: 92, hm: 0, descObjetos: 35, descAtaques: 112 },
@@ -241,7 +250,8 @@ const USUM = {
   objetos: {
     datos: "a/0/1/9", cro: "Shop.cro", desde: 0x50bc, campo: true,
     tamanos: [9, 12, 14, 16, 18, 20, 21, 22, 9, 4, 8, 12, 5, 4, 11, 3, 5, 6, 10, 5, 4, 5, 7, 5, 8, 8, 8, 8],
-    mt: [12, 13, 16, 18, 19], normales: [0, 1, 2, 3, 4, 5, 6, 7], historia: [8, 9, 10, 11, 14, 15, 17, 20, 21, 22, 23, 24, 25, 26, 27]
+    mt: [12, 13, 16, 18, 19], normales: [0, 1, 2, 3, 4, 5, 6, 7], historia: [8, 9, 10, 11, 14, 15, 17, 20, 21, 22, 23, 24, 25, 26, 27],
+    caramelos: [0, 1, 2, 3, 4, 5, 6, 7]
   },
   // Solo en Ultrasol y Ultraluna: la lista de ataques detrás de esta marca del programa y la tienda, en el Shop.cro; en los
   // datos de cada especie, 67 bits desde el 60
@@ -251,6 +261,10 @@ const USUM = {
   },
   tm: { prefijo: "03BC03BD03BE03BF03", dos: 92, hm: 0, descObjetos: 39, descAtaques: 117 }
 };
+
+// Lo que nunca deja de venderse para hacer sitio a otro objeto: Ultra, Super y Poké Ball, y Restaurar Todo, Poción Máxima,
+// Hiperpoción, Superpoción, Poción, Cura Total y Revivir
+const OBJETOS_BASICOS = new Set([2, 3, 4, 17, 23, 24, 25, 26, 27, 28]);
 
 // Cuántos ataques de tutor hay en total
 const totalTutores = (base) => base.tutores.cuantos || base.tutores.grupos.reduce((a, b) => a + b, 0);
@@ -267,7 +281,7 @@ export function perfilDe(sesion) {
     id: base.id, gen: base.gen, base,
     nombre: sesion.nombreJuego || codigo,
     ultimaEspecie: base.ultimaEspecie, ultimoAtaque: base.ultimoAtaque, ultimaHabilidad: base.ultimaHabilidad, ultimoObjeto: base.ultimoObjeto,
-    tipos: TIPOS, habilidadesNunca: base.habilidadesNunca, legendarios: base.legendarios,
+    tipos: TIPOS, habilidadesNunca: base.habilidadesNunca, legendarios: base.legendarios, primerosCombates: base.primerosCombates,
     // Lo que todavía no se hace en 3DS
     sinObjetos: !base.objetos, sinMT: !base.tm, tutores: Boolean(base.tutores), tutorInfo: base.tutores ? { cuantos: totalTutores(base), bytes: Math.ceil(totalTutores(base) / 8), fijos: [] } : null, claros: false, iniciales,
     // Los objetos de las MT: 92 desde el 328, 3 desde el 618 y 5 desde el 690
@@ -278,7 +292,12 @@ export function perfilDe(sesion) {
     sinDobles: [],
     // Los precios van en decenas (la Poción, 30 = 300), como en la 5.ª generación
     preciosEnDecenas: true,
-    tiendas: { mt: base.objetos ? base.objetos.mt : [], normales: base.objetos ? base.objetos.normales : [], historia: base.objetos ? base.objetos.historia : [], primera: -1, saltar: [], cuantas: 0 },
+    tiendas: {
+      mt: base.objetos ? base.objetos.mt : [], normales: base.objetos ? base.objetos.normales : [], historia: base.objetos ? base.objetos.historia : [],
+      // La Tienda Pokémon no tiene una lista sino una por cada número de medallas (o sellos): el Caramelo Raro, en todas.
+      // Va en el sitio del Antihielo o, si no lo hay, del Antídoto; nunca en el de una Ball o una poción
+      primera: base.objetos ? base.objetos.caramelos : -1, sacrificables: [20, 18], protegidos: OBJETOS_BASICOS, saltar: [], cuantas: 0
+    },
     rutas: base.rutas
   };
 }
@@ -653,6 +672,7 @@ function leerObjetos(sesion, perfil) {
   // Las tiendas van seguidas: en el programa, tras una marca, o en el Shop.cro, desde un sitio fijo
   const fuente = ob.cro ? sesion.archivo(ob.cro) : sesion.code;
   let pos = ob.cro ? ob.desde : buscarCodigo(sesion.code, ob.localizador);
+  if (pos < 0 && ob.localizadorRandom) pos = buscarCodigo(sesion.code, ob.localizadorRandom);
   if (pos >= 0) {
     ob.tamanos.forEach((n, indice) => {
       const objetos = [];
@@ -1014,6 +1034,7 @@ export function escribirBW2(sesion, datos) {
   // Salvajes (6.ª)
   if (perfil.gen === 6) {
     const nuevosSalvajes = {};
+    const almacen = perfil.id === "oras" ? garcs.salvajes.archivos[garcs.salvajes.archivos.length - 1].slice() : null;
     for (const { archivo, estaciones } of datos.salvajes) {
       const b = garcs.salvajes.archivos[archivo].slice();
       const antes = b.slice();
@@ -1027,10 +1048,24 @@ export function escribirBW2(sesion, datos) {
           b[p + 3] = h.max;
         });
       }
-      if (b.some((v, i) => v !== antes[i])) nuevosSalvajes[archivo] = comprimirLZ11(b);
+      if (b.some((v, i) => v !== antes[i])) {
+        nuevosSalvajes[archivo] = comprimirLZ11(b);
+        if (almacen) copiarAlDexNav(almacen, archivo, b, sitio);
+      }
     }
+    if (almacen && Object.keys(nuevosSalvajes).length) nuevosSalvajes[garcs.salvajes.archivos.length - 1] = almacen;
     guardar(r.salvajes, nuevosSalvajes);
   }
+}
+
+// Rubí Omega y Zafiro Alfa: el último archivo de los salvajes («EN») repite los de cada zona, y de ahí lee el DexNav. La
+// zona i, en el desplazamiento guardado en (i + 1) * 4, con la misma cabecera; los pueblos sin Pokémon no tienen sitio
+function copiarAlDexNav(almacen, archivo, zona, sitio) {
+  const cabecera = 0x0e;
+  const copiados = 0xf4;
+  const desde = u32(almacen, (archivo + 1) * 4);
+  if (u32(almacen, (archivo + 2) * 4) - desde < cabecera + copiados) return;
+  almacen.set(zona.subarray(sitio.desde, sitio.desde + copiados), desde + cabecera);
 }
 
 // X, Y, Rubí Omega y Zafiro Alfa: los estáticos (12 bytes cada uno: especie u16, forma, nivel, objeto) y los regalos

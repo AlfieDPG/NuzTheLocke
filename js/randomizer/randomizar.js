@@ -35,8 +35,9 @@ const HABILIDADES_NUNCA = new Set([25, 59, 121, 161]);
 // Más, Menos, Compiescolta, Telepatía
 const HABILIDADES_MALAS = new Set([54, 112, 129, 103, 100, 118, 50, 35, 57, 58, 132, 140]);
 const rango = (desde, hasta) => Array.from({ length: hasta - desde + 1 }, (_, k) => desde + k);
-// Forcejeo y los que solo existen en combate: los movimientos Z (7.ª) y los Maxiataques (8.ª, al dinamaxizarse)
-const ATAQUES_MALOS = new Set([165, ...rango(622, 658), ...rango(695, 703), 719, ...rango(723, 728), 743, ...rango(757, 774)]);
+// Forcejeo, Cerco Dimensión (solo lo puede usar Hoopa desatado) y los que solo existen en combate: los movimientos Z (7.ª) y
+// los Maxiataques (8.ª, al dinamaxizarse)
+const ATAQUES_MALOS = new Set([165, 621, ...rango(622, 658), ...rango(695, 703), 719, ...rango(723, 728), 743, ...rango(757, 774)]);
 // Los que acaban el combate o debilitan al que los usa (Remolino, Rugido, Teletransporte, Autodestrucción, Explosión,
 // Mismodestino, Canto Mortal, Legado, Deseo Cura y Danza Lunar) y Huida: en el primer combate (la inicial, a nivel 5) y
 // en los que el juego hace a su manera (perfil.primerosCombates), el juego se queda a medias si acaba antes de tiempo
@@ -860,8 +861,10 @@ function randomizarTiendas(datos, reglas, azar, objetos) {
 
 // Que estos objetos se vendan en alguna tienda especial de las de la historia (si no está ya, en
 // el sitio de otro objeto). primera: una tienda concreta (aunque sea una normal), si se quiere.
-// Lo que pone una llamada no lo quita la siguiente: los Caramelos Raros no pisan una piedra
+// Lo que pone una llamada no lo quita la siguiente: los Caramelos Raros no pisan una piedra.
+// Si el juego lo dice (perfil.tiendas): en el sitio de uno de «sacrificables» y nunca en el de uno de «protegidos»
 function venderSiempre(datos, azar, ids, primera) {
+  const { sacrificables = [], protegidos = new Set() } = datos.perfil.tiendas;
   const tiendas = datos.tiendas.filter((t) => datos.perfil.tiendas.historia.includes(t.indice) && t.objetos.length);
   if (!datos.fijosTiendas) datos.fijosTiendas = new Set(); // «tienda:hueco» ya ocupados por uno de estos
   const fijos = datos.fijosTiendas;
@@ -870,11 +873,12 @@ function venderSiempre(datos, azar, ids, primera) {
     if ((concreta ? [concreta] : tiendas).some((t) => t.objetos.includes(id))) continue;
     const donde = concreta || azar.elegir(tiendas);
     if (!donde) continue;
-    const libres = donde.objetos.map((_, k) => k).filter((k) => !fijos.has(`${donde.indice}:${k}`) && !ids.includes(donde.objetos[k]));
+    const libres = donde.objetos.map((_, k) => k).filter((k) => !fijos.has(`${donde.indice}:${k}`) && !ids.includes(donde.objetos[k]) && !protegidos.has(donde.objetos[k]));
     if (!libres.length) continue;
     // Mejor en un hueco libre (0) que en el sitio de otro objeto
     const vacios = libres.filter((k) => !donde.objetos[k]);
-    const k = azar.elegir(vacios.length ? vacios : libres);
+    const sacrificado = sacrificables.find((o) => libres.some((k) => donde.objetos[k] === o));
+    const k = vacios.length ? azar.elegir(vacios) : sacrificado !== undefined ? donde.objetos.indexOf(sacrificado) : azar.elegir(libres);
     donde.objetos[k] = id;
     fijos.add(`${donde.indice}:${k}`);
   }
@@ -1004,7 +1008,9 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
   hacer("piedras en las tiendas", r.objetos.piedras && !datos.perfil.sinObjetos, () => venderSiempre(datos, azar("piedras"), PIEDRAS_EVOLUTIVAS));
   hacer("precios", r.objetos.precios && !datos.perfil.sinObjetos, () => equilibrarPrecios(datos, objetos));
   hacer("Caramelos Raros baratos", r.objetos.caramelos && !datos.perfil.sinObjetos, () => {
-    venderSiempre(datos, azar("caramelos"), [CARAMELO_RARO], datos.perfil.tiendas.primera);
+    // (una tienda o, si sus existencias cambian con las medallas, todas sus listas)
+    const azarCaramelos = azar("caramelos");
+    for (const tienda of [].concat(datos.perfil.tiendas.primera)) venderSiempre(datos, azarCaramelos, [CARAMELO_RARO], tienda);
     datos.precios[CARAMELO_RARO] = datos.perfil.preciosEnDecenas === false ? PRECIO_CARAMELO * 10 : PRECIO_CARAMELO;
   });
   // (antes de escribir los scripts)
