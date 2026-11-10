@@ -177,9 +177,8 @@ const BW1 = {
     primera: 6 // la de Rumia
   },
   estaticos: ESTATICOS_BW1,
-  // Uno de los dos (Reshiram en Negro, Zekrom en Blanco) lo comprueba el juego en más sitios (sale
-  // de la caja): se queda como está
-  estaticosFijos: (rom) => [rom.codigo.startsWith("IRB") ? 15 : 16],
+  // Reshiram y Zekrom (el de la caja) también cambian: la lista lleva todos sus sitios (los del Castillo de N incluidos)
+  estaticosFijos: [],
   textos: {
     pokemon: 70, descripcionObjetos: 53, descripcionAtaques: 202, nombresEntrenadores: 190, clasesEntrenadores: 191,
     iniciales: 430, entradasIniciales: [18, 17, 16]

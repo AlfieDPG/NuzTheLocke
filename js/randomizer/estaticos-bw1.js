@@ -2,8 +2,7 @@
 //
 // Dónde va cada uno en los scripts (a/0/5/7): [script, posición] de la especie (u16), del nivel
 // (byte) y de la forma (byte). Sacado de la tabla de UPR-ZX (gen5_offsets.ini), que la comparten
-// todas las versiones de idioma. Los dos que se sacan de la caja (Reshiram y Zekrom, el último de
-// cada versión) llevan «caja» a 1: se dejan como están (el juego los comprueba en más sitios).
+// todas las versiones de idioma. «huevo»: el que se regala como huevo (sale una especie que no venga de otra).
 
 export const ESTATICOS_BW1 = [
   { nombre: "Pansage", especie: [[304, 0x121], [304, 0x1c9], [304, 0x299]], nivel: [[304, 0x29d]], forma: [] },
@@ -36,5 +35,8 @@ export const ESTATICOS_BW1 = [
   { nombre: "Anorith", especie: [[877, 0x69c]], nivel: [[877, 0x3f7]], forma: [] },
   { nombre: "Lileep", especie: [[877, 0x6bb]], nivel: [[877, 0x3f7]], forma: [] },
   { nombre: "Tirtouga", especie: [[877, 0x6da]], nivel: [[877, 0x3f7]], forma: [] },
-  { nombre: "Archen", especie: [[877, 0x6f9]], nivel: [[877, 0x3f7]], forma: [] }
+  { nombre: "Archen", especie: [[877, 0x6f9]], nivel: [[877, 0x3f7]], forma: [] },
+  // Los que se hacen pasar por un objeto en el suelo (StaticPokemonFakeBall de UPR-ZX)
+  { nombre: "Foongus (objeto)", especie: [[897, 0x45]], nivel: [[331, 0x2aa], [331, 0x2ce], [355, 0x196], [355, 0x2da]], forma: [] },
+  { nombre: "Amoonguss (objeto)", especie: [[897, 0xc1]], nivel: [[355, 0x24a], [355, 0x26e]], forma: [] }
 ];

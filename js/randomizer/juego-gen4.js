@@ -82,7 +82,8 @@ export function entradaDe(rom) {
   let entrada = mismas.length === 1 ? mismas[0] : null;
   if (!entrada && mismas.length) {
     const crc = crc32(rom.leerArm9());
-    entrada = mismas.find((e) => e.crc === crc) || null;
+    // (una ROM ya randomizada tiene otro programa: las entradas del mismo código solo se distinguen por la región)
+    entrada = mismas.find((e) => e.crc === crc) || mismas[0];
   }
   memoria.set(rom, entrada);
   return entrada;
@@ -103,7 +104,9 @@ const tres = (x) => [x - 1, x, x + 1]; // tagRivalConsecutive
 const tresDesde = (x) => [x, x + 1, x + 2]; // tagFriendConsecutive
 
 // Los entrenadores que combaten a tu lado en las dobles (tagFriendConsecutive)
-const AMIGOS_DPPT = [...[0x265, 0x268, 0x26d, 0x270].flatMap((x) => [x, x + 1, x + 2])];
+// Y los que te acompañan por el camino (Cheryl, Mira, Riley, Marley y Buck): marcados como dobles, los combates salvajes
+// a su lado se convierten en combates contra entrenadores rotos (Gen4Constants.partnerTrainerIndices)
+const AMIGOS_DPPT = [...[0x265, 0x268, 0x26d, 0x270].flatMap((x) => [x, x + 1, x + 2]), 608, 609, 610, 611, 612];
 
 const DP = {
   amigos: AMIGOS_DPPT,
@@ -153,6 +156,148 @@ const HGSS = {
   ]
 };
 
+// Los premios del Casino de HG/SS (como en UPR-ZX, StaticPokemonGameCorner): la especie en el script, el nivel y el nombre en
+// la lista de premios (archivo de texto y línea). Iguales en todos los idiomas de fuera de Japón y Corea
+const CASINO_HGSS = [
+  { nombre: "Abra (Casino)", especie: [[910, 0x9a9], [910, 0xa38], [910, 0xad8]], nivel: [[910, 0xabc]], texto: [603, 0x18] },
+  { nombre: "Ekans (Casino)", especie: [[910, 0x9b5], [910, 0xa5c], [910, 0xaef]], nivel: [[910, 0xabc]], texto: [603, 0x19] },
+  { nombre: "Sandshrew (Casino)", especie: [[910, 0x9cd], [910, 0xa80], [910, 0xb06]], nivel: [[910, 0xabc]], texto: [603, 0x1b] },
+  { nombre: "Dratini (Casino)", especie: [[910, 0x9c1]], nivel: [[910, 0xabc]], texto: [603, 0x1a] },
+  { nombre: "Mr. Mime (Casino)", especie: [[804, 0x875], [804, 0x8db], [804, 0x957]], nivel: [[804, 0x93b]], texto: [509, 0x21] },
+  { nombre: "Eevee (Casino)", especie: [[804, 0x881], [804, 0x8ff], [804, 0x96e]], nivel: [[804, 0x93b]], texto: [509, 0x22] },
+  { nombre: "Porygon (Casino)", especie: [[804, 0x88d]], nivel: [[804, 0x93b]], texto: [509, 0x23] }
+];
+// El Mundo Distorsión de Platino: con otro Pokémon en lugar de Giratina el juego se cuelga al empezar el combate (el tipo de
+// suelo 23 no prepara la entrada). Se le da la de la hierba, como en UPR-ZX (patchDistortionWorldGroundCheck)
+const MARCA_SUELO_DISTORSION = "23D849187944C988090409148F44";
+const SIETE_FOSILES = 7;
+
+// Los estáticos que no van en la lista de cada juego: fósiles, premios del Casino, el huevo misterioso de HG/SS (un byte: hasta
+// el 255) y Kenya y Shuckie (van en los intercambios: no se cambian por otro, se regalan)
+function estaticosExtra(rom, perfil, narcs, arm9) {
+  const extra = [];
+  const n = perfil.num;
+  const hgss = esHGSS(perfil.entrada);
+  if (esDP(perfil.entrada)) {
+    const f = erranteDP(arm9);
+    if (f) {
+      [0xf0, 0xf4].forEach((d, k) => {
+        const actual = u32(arm9, f.inicio + d);
+        extra.push({ nombre: k ? "Cresselia (errante)" : "Mesprit (errante)", tabla: "erranteDP", k, ...f, actual: f.ya || !k ? actual : 488, nivelActual: arm9[f.inicio + (k ? 0x2e : 0x26)] });
+      });
+    }
+  }
+  if (n.FossilTableOffset) {
+    const tabla = hgss ? rom.leerOverlay(n.FossilTableOvlNumber) : arm9;
+    const nivel = narcs.scripts.archivos[n.FossilLevelScriptNumber][n.FossilLevelOffset];
+    for (let f = 0; f < SIETE_FOSILES; f++) {
+      const pos = n.FossilTableOffset + 2 + f * 4;
+      extra.push({ nombre: `Fósil ${f + 1}`, tabla: "fosil", pos, actual: u16(tabla, pos), nivelActual: nivel });
+    }
+  }
+  if (hgss && !["J", "K"].includes(rom.codigo[3])) {
+    for (const c of CASINO_HGSS) {
+      const [archivo, pos] = c.especie[0];
+      extra.push({ ...c, forma: [], actual: u16(narcs.scripts.archivos[archivo], pos), nivelActual: narcs.scripts.archivos[c.nivel[0][0]][c.nivel[0][1]] });
+    }
+  }
+  if (n.MysteryEggOffset) {
+    const campo = rom.leerOverlay(n.FieldOvlNumber);
+    extra.push({ nombre: "Huevo misterioso", tabla: "huevoMisterio", pos: n.MysteryEggOffset, actual: campo[n.MysteryEggOffset], nivelActual: 1, soloBase: true, maximo: 255 });
+  }
+  (perfil.lis.StaticPokemonTrades || []).forEach((archivo, k) => {
+    const t = narcs.intercambios.archivos[archivo];
+    extra.push({
+      nombre: k ? "Kenya" : "Shuckie", tabla: "regaloTrueque", archivo, script: perfil.lis.StaticPokemonTradeScripts[k],
+      posNivel: perfil.lis.StaticPokemonTradeLevelOffsets[k], actual: u32(t, 0), nivelActual: 0, kenya: k === 1
+    });
+  });
+  return extra.filter((e) => e.actual && e.actual <= ULTIMA_ESPECIE);
+}
+
+// Los errantes de Diamante y Perla (Mesprit y Cresselia): sus especies, en la función que los crea (Mesprit cargado de una
+// palabra; Cresselia, como 0x7A << 2: se cambia para que la cargue de la palabra de Darkrai, que no se usa, como en UPR-ZX,
+// applyDiamondPearlRoamerPatch), y en dos scripts (especie y género). Se busca la función por su forma
+const ERRANTES_DP = { original: "324F32260AE07A27BF003226", hecho: "324F32260AE0324F00003226", desde: 0x24 };
+const SCRIPTS_ERRANTES_DP = [{ especie: [[344, 0x1a], [344, 0x24]], genero: [344, 0x1c] }, { especie: [[274, 0x18], [274, 0x22]], genero: [274, 0x1a] }];
+
+function erranteDP(arm9) {
+  for (const [clave, ya] of [["original", false], ["hecho", true]]) {
+    const i = buscar(arm9, ERRANTES_DP[clave]);
+    if (i >= 0) return { inicio: i - ERRANTES_DP.desde, ya };
+  }
+  return null;
+}
+
+function escribirEstaticosExtra(rom, perfil, datos, arm9) {
+  const n = perfil.num;
+  const hgss = esHGSS(perfil.entrada);
+  const nuevos = datos.estaticos.filter((e) => e.nueva !== undefined && e.nueva !== e.actual);
+  const errantes = datos.estaticos.filter((e) => e.tabla === "erranteDP");
+  if (errantes.some((e) => e.nueva !== undefined && e.nueva !== e.actual)) {
+    const f = errantes[0];
+    if (!f.ya) {
+      poner32(arm9, f.inicio + 0xf4, 488);
+      arm9.set([0x32, 0x4f, 0x00, 0x00], f.inicio + 42);
+    }
+    for (const e of errantes) {
+      const especie = e.nueva !== undefined ? e.nueva : e.actual;
+      poner32(arm9, e.inicio + (e.k ? 0xf4 : 0xf0), especie);
+      const sc = SCRIPTS_ERRANTES_DP[e.k];
+      for (const [archivo, pos] of sc.especie) poner16(datos.narcs.scripts.archivos[archivo], pos, especie);
+      // Macho (sirve también para los que no tienen) salvo si solo hay hembras
+      poner16(datos.narcs.scripts.archivos[sc.genero[0]], sc.genero[1], datos.especies[especie]?.genero === 254 ? 1 : 0);
+    }
+  }
+  const fosiles = nuevos.filter((e) => e.tabla === "fosil");
+  if (fosiles.length) {
+    const tabla = hgss ? rom.leerOverlay(n.FossilTableOvlNumber) : arm9;
+    for (const e of fosiles) poner16(tabla, e.pos, e.nueva);
+    if (hgss) rom.escribirOverlay(n.FossilTableOvlNumber, tabla);
+  }
+  const huevo = nuevos.find((e) => e.tabla === "huevoMisterio");
+  if (huevo) {
+    const campo = rom.leerOverlay(n.FieldOvlNumber);
+    campo[huevo.pos] = huevo.nueva;
+    rom.escribirOverlay(n.FieldOvlNumber, campo);
+  }
+  for (const e of nuevos.filter((x) => x.tabla === "regaloTrueque")) {
+    const t = datos.narcs.intercambios.archivos[e.archivo];
+    poner32(t, 0, e.nueva);
+    // Una habilidad que tenga (la del juego era la de la especie de antes)
+    poner32(t, 0x1c, datos.especies[e.nueva]?.habilidades[0] || u32(t, 0x1c));
+    if (t.length > 0x50) poner32(t, 0x50, 0);
+  }
+  // Los nombres que se leen: los premios del Casino y Kenya (a quien el cartero llama por su especie)
+  const textos = nuevos.filter((e) => e.texto || e.kenya);
+  if (textos.length) {
+    const t = textosDe(rom);
+    const nombres = t.leer(n.PokemonNamesTextOffset);
+    for (const e of textos) {
+      const [archivo, linea] = e.texto || [n.KenyaTextOffset, -1];
+      const lineas = t.leer(archivo);
+      const cambia = (k) => (lineas[k] = sustituir(lineas[k], nombres[e.actual], nombres[e.nueva]));
+      if (linea >= 0) cambia(linea);
+      else lineas.forEach((_, k) => cambia(k));
+      t.poner(archivo, lineas);
+    }
+    rom.cambiar(perfil.archivos.Text, crearNarc(t.narc));
+  }
+  // Giratina en el Mundo Distorsión
+  if (esPt(perfil.entrada) && datos.estaticos.some((e) => e.nueva !== undefined && e.nueva !== e.actual)) {
+    const campo = rom.leerOverlay(n.FieldOvlNumber);
+    const i = buscar(campo, MARCA_SUELO_DISTORSION);
+    if (i >= 0 && campo[i + MARCA_SUELO_DISTORSION.length / 2 + 46] !== 0x30) {
+      campo[i + MARCA_SUELO_DISTORSION.length / 2 + 46] = 0x30;
+      rom.escribirOverlay(n.FieldOvlNumber, campo);
+    }
+  }
+}
+
+// Ultra, Super y Poké Ball; Poción, Antídoto, Antiquemar, Antihielo, Despertar, Antiparaliz, Restaurar Todo, Poción Máxima,
+// Hiperpoción, Superpoción, Cura Total y Revivir; Superrepelente, Máximo Repelente, Cuerda Huida y Repelente
+const OBJETOS_TIENDA_NORMAL = [2, 3, 4, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 76, 77, 78, 79];
+
 // El perfil que usa randomizar.js (lo mismo que los de ./perfiles-gen5.js, con lo que cambia)
 export function perfilDe(rom) {
   const entrada = entradaDe(rom);
@@ -180,8 +325,13 @@ export function perfilDe(rom) {
     claros: false,
     estaticos: entrada.estaticos.map((e) => ({ ...e })),
     estaticosFijos: [],
+    // Unown no sale en la hierba: en DP y Pt solo existe con sus letras en las Ruinas Sosiego y en HG/SS no aparece hasta
+    // resolver un puzle en las Ruinas Alfa
+    sinSalvajes: [201],
     tiendas: {
       mt: [], normales: [], historia: lis.MainGameShops || [], primera: tipo === "dp" ? 1 : 0,
+      // Lo que vende la Tienda Pokémon normal (va en otra tabla, por medallas): Balls, pociones, curas y repelentes
+      objetosNormales: OBJETOS_TIENDA_NORMAL,
       saltar: lis.SkipShops || [], cuantas: num.ShopCount || 0
     },
     num, lis, textos: entrada.textos, archivos: entrada.archivos
@@ -338,7 +488,7 @@ function escribirSalvajesDPPt(narcs, salvajes) {
 //          u16, especie u16]
 //   188    2 especies de enjambre, 1 que sustituye a la de la caña de noche y 1 de enjambre de pesca (u16;
 //          en 188, 190, 192 y 194)
-// (Los árboles de golpe cabeza y el concurso de bichos se dejan como están.)
+// (Los de Golpe Cabeza y el concurso de bichos, más abajo: leerSalvajesExtra.)
 const GRUPOS_AGUA_HGSS = [["surf", 5], ["golpe-roca", 2], ["vieja", 5], ["buena", 5], ["super", 5]];
 
 function leerSalvajesHGSS(narcs) {
@@ -393,6 +543,143 @@ function escribirSalvajesHGSS(narcs, salvajes) {
       }
     }
   }
+}
+
+// ---------- Los salvajes que no están en las tablas de cada zona ----------
+//
+// DP y Pt (ExtraEncounters, un NARC; u32 por especie): Feebas en el Monte Corona (archivo 0, 1), los árboles de miel
+// (HoneyTreeOffsets, 6 cada uno), los del Jardín Trofeo que trae el señor de la mansión (archivo 8, 16) y los del Gran
+// Pantano que cambian cada día (9 y 10, 32). Sus niveles: los de Feebas y la miel, en el overlay de los encuentros
+// (detrás de estas marcas); los otros dos usan los de la hierba de su zona.
+// HG/SS: Golpe Cabeza (HeadbuttPokemon, un archivo por mapa: 4 bytes y 18 huecos de [especie u16, nivel mín., máx.]; los de 4
+// bytes no tienen, el 24 es una Ruta 16 sin usar) y el concurso de bichos (BCCWilds: 4 tandas de 10 huecos de 8 bytes,
+// [especie u16, nivel mín., máx., ...], desde 0, 80, 160 y 240). Como en UPR-ZX (Gen4RomHandler).
+const MARCA_NIVEL_FEEBAS = "019813B0F0BD";
+const MARCA_NIVEL_MIEL = "F0BDF0B589B0051C0C1C";
+const MAPA_SIN_USO_HGSS = 24;
+const SAFARI_HGSS = "a/2/3/0";
+
+function leerSalvajesExtra(rom, perfil) {
+  const areas = [];
+  const zona = (archivo, nombre, huecos, extra) => areas.push({ archivo, extra, estaciones: [[{ zona: nombre, clase: "extra", huecos }]] });
+  if (esHGSS(perfil.entrada)) {
+    const cabezas = leerNarc(rom.archivo(perfil.archivos.HeadbuttPokemon));
+    cabezas.archivos.forEach((b, mapa) => {
+      if (b.length <= 4 || mapa === MAPA_SIN_USO_HGSS) return;
+      const huecos = [];
+      for (let i = 0; i < 18 && 4 + i * 4 + 4 <= b.length; i++) {
+        const p = 4 + i * 4;
+        huecos.push({ especie: u16(b, p), forma: 0, min: b[p + 2], max: b[p + 3], vacio: !u16(b, p), pos: p });
+      }
+      if (huecos.some((h) => !h.vacio)) zona(`cabeza-${mapa}`, "golpe-cabeza", huecos, { tipo: "cabeza", mapa });
+    });
+    const bichos = rom.archivo(perfil.archivos.BCCWilds);
+    [0, 80, 160, 240].forEach((desde, tanda) => {
+      const huecos = Array.from({ length: 10 }, (_, i) => {
+        const p = desde + i * 8;
+        return { especie: u16(bichos, p), forma: 0, min: bichos[p + 2], max: bichos[p + 3], vacio: !u16(bichos, p), pos: p };
+      });
+      if (huecos.some((h) => !h.vacio)) zona(`bichos-${tanda}`, "concurso", huecos, { tipo: "bichos" });
+    });
+    // La Zona Safari (a/2/3/0, un archivo de 912 bytes por zona; como en pret/pokeheartgold, safari_enc): cuántos extra
+    // lleva cada modo (hierba, surf y las tres cañas: 5 bytes y 3 de relleno); y en cada modo, 10 huecos por hora (mañana,
+    // día y noche) de [especie u16, nivel u16], los extra (los que salen según los objetos puestos) de las tres horas y sus
+    // condiciones (4 bytes cada uno). Ahí, nada que no deje huir (Sombratrampa, Trampa Arena)
+    if (rom.rutas.has(SAFARI_HGSS)) {
+      const safari = leerNarc(rom.archivo(SAFARI_HGSS));
+      safari.archivos.forEach((b, n) => {
+        const extra = [...b.subarray(0, 5)];
+        let pos = 8;
+        const huecos = [];
+        for (const cuantos of extra) {
+          for (let k = 0; k < 30 + cuantos * 3; k++, pos += 4) huecos.push({ especie: u16(b, pos), forma: 0, min: u16(b, pos + 2), max: u16(b, pos + 2), vacio: !u16(b, pos) || u16(b, pos) > ULTIMA_ESPECIE, pos });
+          pos += cuantos * 4;
+        }
+        if (pos !== b.length) return; // (no es lo que se espera)
+        zona(`safari-${n}`, "safari", huecos, { tipo: "safari", archivo: n });
+        areas[areas.length - 1].prohibir = (e) => e.habilidades.some((h) => h === 23 || h === 71);
+      });
+    }
+    return areas;
+  }
+  const narc = leerNarc(rom.archivo(perfil.archivos.ExtraEncounters));
+  const overlay = rom.leerOverlay(perfil.num.EncounterOvlNumber);
+  const lista = (archivo, cuantos, min, max) =>
+    Array.from({ length: cuantos }, (_, i) => ({ especie: u32(narc.archivos[archivo], i * 4), forma: 0, min, max, vacio: !u32(narc.archivos[archivo], i * 4), pos: i * 4 }));
+  const feebas = buscar(overlay, MARCA_NIVEL_FEEBAS);
+  const nivelFeebas = feebas >= 0 ? [overlay[feebas + 6 + 4], overlay[feebas + 6]] : [0, 0];
+  zona("feebas", "feebas", lista(0, 1, ...nivelFeebas), { tipo: "lista", archivo: 0, nivel: "feebas" });
+  const miel = buscar(overlay, MARCA_NIVEL_MIEL);
+  const m = miel + MARCA_NIVEL_MIEL.length / 2;
+  // (si el código es el del juego, el mínimo es 5: va escrito de otra forma)
+  const nivelMiel = miel >= 0 ? [overlay[m + 46] === 0x0b && overlay[m + 47] === 0x2e ? 5 : overlay[m + 46], overlay[m + 102]] : [0, 0];
+  (perfil.lis.HoneyTreeOffsets || []).forEach((archivo, k) => zona(`miel-${k}`, "miel", lista(archivo, 6, ...nivelMiel), { tipo: "lista", archivo, nivel: "miel" }));
+  zona("jardin-trofeo", "jardin-trofeo", lista(8, 16, 0, 0), { tipo: "lista", archivo: 8 });
+  zona("gran-pantano-0", "gran-pantano", lista(9, 32, 0, 0), { tipo: "lista", archivo: 9 });
+  zona("gran-pantano-1", "gran-pantano", lista(10, 32, 0, 0), { tipo: "lista", archivo: 10 });
+  return areas;
+}
+
+function escribirSalvajesExtra(rom, perfil, areas) {
+  if (!areas.length) return;
+  if (esHGSS(perfil.entrada)) {
+    const cabezas = leerNarc(rom.archivo(perfil.archivos.HeadbuttPokemon));
+    const bichos = rom.archivo(perfil.archivos.BCCWilds);
+    const safari = rom.rutas.has(SAFARI_HGSS) ? leerNarc(rom.archivo(SAFARI_HGSS)) : null;
+    for (const a of areas) {
+      if (a.extra.tipo === "safari") {
+        const b = safari.archivos[a.extra.archivo];
+        for (const h of a.estaciones[0][0].huecos) {
+          if (h.vacio) continue;
+          poner16(b, h.pos, h.especie);
+          poner16(b, h.pos + 2, Math.max(1, Math.min(100, h.min)));
+        }
+        continue;
+      }
+      const b = a.extra.tipo === "cabeza" ? cabezas.archivos[a.extra.mapa] : bichos;
+      for (const h of a.estaciones[0][0].huecos) {
+        if (h.vacio) continue;
+        poner16(b, h.pos, h.especie);
+        b[h.pos + 2] = h.min;
+        b[h.pos + 3] = Math.max(h.min, h.max);
+      }
+    }
+    rom.cambiar(perfil.archivos.HeadbuttPokemon, crearNarc(cabezas));
+    rom.cambiar(perfil.archivos.BCCWilds, bichos);
+    if (safari) rom.cambiar(SAFARI_HGSS, crearNarc(safari));
+    return;
+  }
+  const narc = leerNarc(rom.archivo(perfil.archivos.ExtraEncounters));
+  const overlay = rom.leerOverlay(perfil.num.EncounterOvlNumber);
+  const antes = overlay.slice();
+  for (const a of areas) {
+    const huecos = a.estaciones[0][0].huecos;
+    // En el Jardín Trofeo, si todos fueran el mismo, el juego se queda colgado
+    if (a.archivo === "jardin-trofeo" && huecos.every((h) => h.especie === huecos[0].especie)) huecos[0].especie = huecos[0].especie === 1 ? 4 : 1;
+    for (const h of huecos) if (!h.vacio) poner32(narc.archivos[a.extra.archivo], h.pos, h.especie);
+  }
+  const primero = (nivel) => areas.find((a) => a.extra.nivel === nivel)?.estaciones[0][0].huecos[0];
+  const feebas = primero("feebas");
+  const i = buscar(overlay, MARCA_NIVEL_FEEBAS);
+  if (feebas && i >= 0) {
+    overlay[i + 6] = Math.max(feebas.min, feebas.max);
+    overlay[i + 6 + 4] = feebas.min;
+  }
+  // La miel: el mismo cambio que UPR-ZX (el mínimo, con un «mov»; y el divisor que da el nivel al azar, para el nuevo margen)
+  const miel = primero("miel");
+  const j = buscar(overlay, MARCA_NIVEL_MIEL);
+  if (miel && j >= 0) {
+    const m = j + MARCA_NIVEL_MIEL.length / 2;
+    const original = [overlay[m + 46] === 0x0b && overlay[m + 47] === 0x2e ? 5 : overlay[m + 46], overlay[m + 102]];
+    const max = Math.max(miel.min, miel.max);
+    if (miel.min !== original[0] || max !== original[1]) {
+      overlay.set([miel.min, 0x20, 0, 0, 0, 0, 0, 0, 0x80, 0x19], m + 46);
+      overlay[m + 102] = max;
+      poner32(overlay, m + 148, Math.floor(0xffff / (max - miel.min + 1)) + 1);
+    }
+  }
+  rom.cambiar(perfil.archivos.ExtraEncounters, crearNarc(narc));
+  if (overlay.some((v, k) => v !== antes[k])) rom.escribirOverlay(perfil.num.EncounterOvlNumber, overlay);
 }
 
 // Los objetos del suelo: una lista de punteros (relativos) a trozos de script que empiezan por
@@ -479,18 +766,22 @@ export function leerBW2(rom) {
     id && id <= ULTIMO_ATAQUE ? { id, tipo: TIPOS[d[4]], categoria: d[2], potencia: d[3], precision: d[5], pp: d[6] } : null
   );
 
-  const estaticos = perfil.estaticos.map((e) => {
+  const huevos = perfil.lis.StaticEggPokemonOffsets || [];
+  const estaticos = perfil.estaticos.map((e, i) => {
     const [archivo, pos] = e.especie[0];
     const nivel = e.nivel[0] ? narcs.scripts.archivos[e.nivel[0][0]][e.nivel[0][1]] : 0;
-    return { ...e, actual: u16(narcs.scripts.archivos[archivo], pos), nivelActual: nivel };
+    // (los huevos que se regalan, de una que no venga de otra)
+    return { ...e, actual: u16(narcs.scripts.archivos[archivo], pos), nivelActual: nivel, soloBase: /egg/i.test(e.nombre || "") };
   });
+  estaticos.push(...estaticosExtra(rom, perfil, narcs, arm9));
+  const regalos = new Set(perfil.lis.StaticPokemonTrades || []);
 
   const intercambios = narcs.intercambios.archivos
     .map((t, archivo) => ({
       archivo, da: u32(t, 0), pide: u32(t, 0x4c), objeto: u32(t, 0x3c), daOriginal: u32(t, 0), pideOriginal: u32(t, 0x4c),
       ivs: [0, 1, 2, 3, 4, 5].map((k) => u32(t, 4 + k * 4))
     }))
-    .filter((t) => t.da && t.da <= ULTIMA_ESPECIE);
+    .filter((t) => t.da && t.da <= ULTIMA_ESPECIE && !regalos.has(t.archivo));
 
   // Las iniciales: tres u16, cada 4 bytes, en el overlay de las iniciales (Diamante, Perla, Platino)
   // (en HeartGold y SoulSilver, en el programa principal, detrás de una marca)
@@ -526,7 +817,7 @@ export function leerBW2(rom) {
     especies,
     aprende: leerAprende(narcs),
     ataques,
-    salvajes: esHGSS(perfil.entrada) ? leerSalvajesHGSS(narcs) : leerSalvajesDPPt(narcs),
+    salvajes: [...(esHGSS(perfil.entrada) ? leerSalvajesHGSS(narcs) : leerSalvajesDPPt(narcs)), ...leerSalvajesExtra(rom, perfil)],
     entrenadores,
     iniciales,
     inicialesOriginales: iniciales.slice(),
@@ -584,8 +875,8 @@ function escribirEntrenadores(narcs, entrenadores, relleno) {
     const cabecera = narcs.entrenadores.archivos[t.indice];
     cabecera[0] = (cabecera[0] & ~3) | (t.conAtaques ? 1 : 0) | (t.conObjetos ? 2 : 0);
     cabecera[3] = t.pokemon.length;
-    // Combate doble (el byte 16 vale 2 y es igual para uno solo que para una pareja de entrenadores)
-    if ((cabecera[16] ? 1 : 0) !== t.combate) cabecera[16] = t.combate ? 2 : 0;
+    // Combate doble: 2 es el de una pareja de entrenadores y 3, el de uno solo que pasa a doble (ver ponerCombatesDobles)
+    if ((cabecera[16] ? 1 : 0) !== t.combate) cabecera[16] = t.combate ? 3 : 0;
     const tam = 6 + (t.conObjetos ? 2 : 0) + (t.conAtaques ? 8 : 0) + (relleno ? 2 : 0);
     const p = new Uint8Array(tam * t.pokemon.length);
     let pos = 0;
@@ -624,8 +915,10 @@ export function escribirBW2(rom, datos) {
   const arm9Antes = arm9.slice();
   escribirEspecies(narcs, datos.especies);
   escribirAprende(narcs, datos.aprende);
-  if (esHGSS(perfil.entrada)) escribirSalvajesHGSS(narcs, datos.salvajes);
-  else escribirSalvajesDPPt(narcs, datos.salvajes);
+  const deZonas = datos.salvajes.filter((a) => !a.extra);
+  if (esHGSS(perfil.entrada)) escribirSalvajesHGSS(narcs, deZonas);
+  else escribirSalvajesDPPt(narcs, deZonas);
+  escribirSalvajesExtra(rom, perfil, datos.salvajes.filter((a) => a.extra));
   escribirEntrenadores(narcs, datos.entrenadores, !esDP(perfil.entrada));
 
   for (const a of datos.ataques) {
@@ -653,14 +946,19 @@ export function escribirBW2(rom, datos) {
   // Estáticos: la especie en todos sus sitios (y la forma a 0)
   for (const e of datos.estaticos) {
     if (e.nueva === undefined) continue;
+    if (e.tabla) continue; // (fósiles, huevo misterioso, Kenya y Shuckie: en escribirEstaticosExtra)
     for (const [archivo, pos] of e.especie) poner16(narcs.scripts.archivos[archivo], pos, e.nueva);
     for (const [archivo, pos] of e.forma) narcs.scripts.archivos[archivo][pos] = 0;
   }
+  escribirEstaticosExtra(rom, perfil, datos, arm9);
 
   // Intercambios
   for (const t of datos.intercambios) {
     const a = narcs.intercambios.archivos[t.archivo];
-    if (t.da !== t.daOriginal) poner32(a, 0, t.da);
+    if (t.da !== t.daOriginal) {
+      poner32(a, 0, t.da);
+      if (a.length > 0x50) poner32(a, 0x50, 0); // sin género fijo (el de antes puede no existir en la nueva)
+    }
     t.ivs.forEach((iv, k) => poner32(a, 4 + k * 4, iv));
     poner32(a, 0x3c, t.objeto);
     if (t.pide !== t.pideOriginal) poner32(a, 0x4c, t.pide);
@@ -1028,4 +1326,34 @@ export function ponerHierbaEnPueblos(rom) {
 }
 
 export function ponerTextoRapido() {}
-export function ponerCombatesDobles() {}
+
+// Todos los combates dobles (como UPR-ZX): los entrenadores que pasan a doble ya llevan un 3 (en escribirBW2). Aquí, que el
+// juego trate el 3 como a un entrenador solo: el aviso y la música de siempre, que no busque a una pareja que no tiene y
+// la caja de texto del final. (Lo que se cambia va detrás de cada marca: no pasa nada por aplicarlo dos veces)
+const ARREGLO_DOBLES = { dp: "022912D90221214201", pt: "022919D90221214205", hgss: "2C2815D00221214201" };
+
+export function ponerCombatesDobles(rom) {
+  const perfil = perfilDe(rom);
+  const arm9 = rom.leerArm9();
+  const tras = (marca) => {
+    const i = buscar(arm9, marca);
+    if (i < 0) throw new Error("Este juego no admite los combates dobles.");
+    return i + marca.length / 2;
+  };
+  arm9[tras(ARREGLO_DOBLES[perfil.id])] = 0xe0; // el aviso especial de los dobles, nunca
+  poner16(arm9, tras(perfil.textos.DoubleBattleFlagReturnPrefix), 0xbd08); // devolver el valor tal cual, no 0 o 1
+  const andar = tras(perfil.textos.DoubleBattleWalkingPrefix1); // que anden los dos solo con el 2
+  arm9[andar] = 2;
+  arm9[andar + 3] = 0xd0;
+  arm9[tras(perfil.textos.DoubleBattleWalkingPrefix2)] = 2;
+  const caja = tras(perfil.textos.DoubleBattleTextBoxPrefix);
+  poner16(arm9, caja, 0x46c0);
+  poner16(arm9, caja + 2, 0x2802);
+  arm9[caja + 5] = 0xd0;
+  rom.escribirArm9(arm9);
+  // Al acabar: mirar si es exactamente 2 (de 4 a 0 en esta secuencia de combate)
+  const ruta = perfil.archivos.BattleSkillSubSeq;
+  const secuencias = leerNarc(rom.archivo(ruta));
+  secuencias.archivos[perfil.num.TrainerEndFileNumber][perfil.num.TrainerEndTextBoxOffset] = 0;
+  rom.cambiar(ruta, crearNarc(secuencias));
+}

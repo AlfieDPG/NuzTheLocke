@@ -271,9 +271,10 @@ export function leerBW2(rom) {
     const nivel = e.nivel[0] ? narcs.scripts.archivos[e.nivel[0][0]][e.nivel[0][1]] : 0;
     return { ...e, actual: u16(narcs.scripts.archivos[archivo], pos), nivelActual: nivel };
   });
-  // Los que no se tocan (el que sale de la caja en Negro y Blanco)
+  // Los que no se tocan (ninguno: también el de la caja de Negro y Blanco, con todos sus sitios, como en UPR-ZX)
   const fijos = typeof perfil.estaticosFijos === "function" ? perfil.estaticosFijos(rom) : perfil.estaticosFijos;
-  fijos.forEach((i) => (estaticos[i].huevo = true));
+  fijos.forEach((i) => (estaticos[i].ignorar = true));
+  estaticos.push(...leerErrantesBW(rom, perfil));
 
   const usados = new Set(perfil.intercambiosUsados(rom, narcs.intercambios.archivos.length));
   const intercambios = narcs.intercambios.archivos
@@ -316,7 +317,7 @@ export function leerBW2(rom) {
     especies: leerEspecies(narcs),
     aprende: leerAprende(narcs),
     ataques,
-    salvajes: leerSalvajes(narcs),
+    salvajes: [...leerSalvajes(narcs), ...leerEnjambres(rom, perfil)],
     entrenadores: leerEntrenadores(narcs, importantesDe(perfil)),
     iniciales: perfil.iniciales.map((sitios) => u16(narcs.scripts.archivos[sitios[0][0]], sitios[0][1])),
     estaticos,
@@ -328,6 +329,92 @@ export function leerBW2(rom) {
     precios,
     claros: claros ? { narc: claros, huecos: huecosClaros } : { narc: null, huecos: [] }
   };
+}
+
+// ---------- Los enjambres ----------
+//
+// En el overlay del campo (el 21 en Negro y Blanco, el 36 en Negro 2 y Blanco 2), una fila de 8 bytes por ruta: [55 u16,
+// zona u16, especie u16, forma, otro byte (igual en todas)]. Cada versión tiene la suya. Se busca por su forma (ningún
+// randomizer los toca: localizado a mano con la lista de Serebii)
+function filasEnjambres(c) {
+  const vale = (k) => u16(c, k) === 55 && u16(c, k + 4) >= 1 && u16(c, k + 4) <= ULTIMA_ESPECIE && c[k + 6] === 0;
+  for (let k = 0; k + 64 < c.length; k += 2) {
+    if (![0, 1, 2, 3, 4, 5, 6, 7].every((n) => vale(k + n * 8) && c[k + n * 8 + 7] === c[k + 7])) continue;
+    const filas = [];
+    for (let i = k; vale(i) && c[i + 7] === c[k + 7]; i += 8) filas.push(i);
+    return filas;
+  }
+  return [];
+}
+
+function leerEnjambres(rom, perfil) {
+  const c = rom.leerOverlay(perfil.dobles.overlay);
+  return filasEnjambres(c).map((pos) => ({
+    archivo: `enjambre:${u16(c, pos + 2)}`, enjambre: true,
+    estaciones: [[{ zona: "enjambre", huecos: [{ especie: u16(c, pos + 4), forma: 0, min: 0, max: 0, vacio: false, pos }] }]]
+  }));
+}
+
+function escribirEnjambres(rom, perfil, areas) {
+  if (!areas.length) return;
+  const c = rom.leerOverlay(perfil.dobles.overlay);
+  const antes = c.slice();
+  for (const a of areas) for (const h of a.estaciones[0][0].huecos) {
+    poner16(c, h.pos + 4, h.especie);
+    c[h.pos + 6] = 0;
+  }
+  if (c.some((v, i) => v !== antes[i])) rom.escribirOverlay(perfil.dobles.overlay, c);
+}
+
+// ---------- Los errantes de Negro y Blanco ----------
+//
+// Tornadus (Negro) y Thundurus (Blanco), en el overlay 10: la especie de cada uno en una pareja de u32 y en la función que
+// da su marca (que calcula Thundurus como Tornadus + 1: se cambia como en UPR-ZX, applyBlackWhiteRoamerPatch, para que lo
+// lea de una palabra propia); el nivel (un «movs r0, #40»), 0xFE bytes antes de la pareja; y en el script 674. Se busca
+// todo por su forma (en las ROM españolas está 16 bytes antes que en las de UPR-ZX)
+const OVERLAY_ERRANTES = 10;
+const MARCA_ERRANTES = "0549884204d0491c884203d1";
+const MARCA_ERRANTES_HECHO = "0549884204d00349884200d1";
+const SCRIPT_ERRANTES = { 642: [[674, 0x57e], [674, 0x5f1]], 641: [[674, 0x572], [674, 0x5dc]] };
+
+function leerErrantesBW(rom, perfil) {
+  if (perfil.id !== "bw1") return [];
+  const ov = rom.leerOverlay(OVERLAY_ERRANTES);
+  const sinTocar = buscar(ov, hex(MARCA_ERRANTES));
+  const tocada = buscar(ov, hex(MARCA_ERRANTES_HECHO));
+  const funcion = sinTocar >= 0 ? sinTocar : tocada;
+  if (funcion < 0) return [];
+  const u32 = (i) => (ov[i] | (ov[i + 1] << 8) | (ov[i + 2] << 16) | (ov[i + 3] << 24)) >>> 0;
+  const tornadus = u32(funcion + 24);
+  const thundurus = sinTocar >= 0 ? tornadus + 1 : u32(funcion + 20);
+  const parejas = [];
+  // (sin contar la de la función, que tras el cambio es igual)
+  for (let i = 0; i + 8 <= ov.length; i += 4) if (u32(i) === thundurus && u32(i + 4) === tornadus && i !== funcion + 20) parejas.push(i);
+  if (parejas.length !== 1 || ov[parejas[0] - 0xfe + 1] !== 0x20) return [];
+  const pareja = parejas[0];
+  return [[thundurus, 642, 0], [tornadus, 641, 4]].map(([actual, delJuego, k]) => ({
+    nombre: delJuego === 642 ? "Thundurus (errante)" : "Tornadus (errante)", tabla: "erranteBW", funcion, ya: sinTocar < 0,
+    k, pareja, actual, nivelActual: ov[pareja - 0xfe], especie: [], nivel: [], forma: [], scripts: SCRIPT_ERRANTES[delJuego]
+  }));
+}
+
+function escribirErrantesBW(rom, narcs, errantes) {
+  if (!errantes.length || errantes.every((e) => e.nueva === undefined || e.nueva === e.actual)) return;
+  const ov = rom.leerOverlay(OVERLAY_ERRANTES);
+  const poner32 = (i, v) => { ov[i] = v & 0xff; ov[i + 1] = (v >> 8) & 0xff; ov[i + 2] = (v >> 16) & 0xff; ov[i + 3] = (v >>> 24) & 0xff; };
+  const f = errantes[0].funcion;
+  if (!errantes[0].ya) {
+    ov[f + 10] = 0x00; // «bne» al caso que no se usa: vuelve sin más
+    ov[f + 6] = 0x03; // y Thundurus, de su palabra (ldr r1, [pc, #12])
+    ov[f + 7] = 0x49;
+  }
+  for (const e of errantes) {
+    const especie = e.nueva !== undefined ? e.nueva : e.actual;
+    poner32(e.k ? f + 24 : f + 20, especie);
+    poner32(e.pareja + e.k, especie);
+    for (const [archivo, pos] of e.scripts) poner16(narcs.scripts.archivos[archivo], pos, especie);
+  }
+  rom.escribirOverlay(OVERLAY_ERRANTES, ov);
 }
 
 // ---------- Escribir ----------
@@ -441,7 +528,7 @@ export function escribirBW2(rom, datos) {
   const { narcs, perfil } = datos;
   escribirEspecies(narcs, datos.especies);
   escribirAprende(narcs, datos.aprende);
-  escribirSalvajes(narcs, datos.salvajes);
+  escribirSalvajes(narcs, datos.salvajes.filter((a) => !a.enjambre));
   escribirEntrenadores(narcs, datos.entrenadores);
 
   // Datos de los ataques
@@ -465,10 +552,11 @@ export function escribirBW2(rom, datos) {
 
   // Estáticos: la especie en todos sus sitios y la forma a 0
   for (const e of datos.estaticos) {
-    if (e.nueva === undefined) continue;
+    if (e.nueva === undefined || e.tabla) continue;
     for (const [archivo, pos] of e.especie) poner16(narcs.scripts.archivos[archivo], pos, e.nueva);
     for (const [archivo, pos] of e.forma) narcs.scripts.archivos[archivo][pos] = 0;
   }
+  escribirErrantesBW(rom, narcs, datos.estaticos.filter((e) => e.tabla === "erranteBW"));
 
   // Intercambios (la naturaleza, al azar del juego; la forma, la normal)
   for (const t of datos.intercambios) {
@@ -477,6 +565,7 @@ export function escribirBW2(rom, datos) {
     if (t.da !== t.daOriginal) {
       poner32(a, 4, t.da);
       poner32(a, 8, 0);
+      poner32(a, 0x2c, 0xff); // naturaleza al azar (como en UPR-ZX)
     }
     t.ivs.forEach((iv, k) => poner32(a, 0x10 + k * 4, iv));
     poner32(a, 0x4c, t.objeto);
@@ -523,6 +612,8 @@ export function escribirBW2(rom, datos) {
     const o = narcs.objetos.archivos[id];
     if (o && o.length >= 2) poner16(o, 0, precio);
   });
+  // (después de las tiendas: en Negro y Blanco van en el mismo overlay)
+  escribirEnjambres(rom, perfil, datos.salvajes.filter((a) => a.enjambre));
 
   for (const [nombre, ruta] of Object.entries(perfil.rutas)) {
     if (!ruta) continue;
@@ -679,6 +770,8 @@ const DE_ESPERA_A_SIGUIENTE = 0xb8;
 export function ponerTextoRapido(rom) {
   const arm9 = rom.leerArm9();
   if (!perfilDe(rom).textoRapido) return;
+  // (una ROM ya randomizada con el texto instantáneo)
+  if (buscar(arm9, hex("a87f0028c046c046")) >= 0) return;
   const sitio = buscar(arm9, ESPERA_TEXTO) + 4;
   const salto = sitio + DE_ESPERA_A_SIGUIENTE;
   if (sitio < 4 || arm9[salto] !== 0x02 || arm9[salto + 1] !== 0xd1) throw new Error("No se ha encontrado la rutina del texto.");
@@ -694,6 +787,8 @@ export function ponerTextoRapido(rom) {
 // que solo mire al entrenador que toca al elegir la caja de texto.
 export function ponerCombatesDobles(rom, yaDobles) {
   const { cajas: CAJAS_ENTRENADORES, overlay: OVERLAY_CAMPO, ...prefijos } = perfilDe(rom).dobles;
+  // Una ROM ya randomizada con combates dobles: ya está todo hecho (las marcas son parte de lo que se cambia)
+  if (buscar(rom.leerArm9(), hex(prefijos.textoCaja)) < 0 && buscar(rom.leerOverlay(OVERLAY_CAMPO), hex(prefijos.caja)) < 0) return;
   const cajas = leerNarc(rom.archivo(CAJAS_ENTRENADORES));
   const lista = cajas.archivos[0];
   const CAMBIO = { 3: 0, 5: 2, 6: 0x18 };

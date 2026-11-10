@@ -1,6 +1,7 @@
 // ---------- Diamante Brillante y Perla Reluciente ----------
 //
-// Los datos van en bundles de Unity (ver ./unity.js) dentro de la carpeta «romfs»:
+// Los datos van en bundles de Unity (ver ./unity.js) dentro de la carpeta «romfs» (los intercambios, en
+// Dpr/masterdatas LocalKoukanData; el Gran Subsuelo, en UnderGround/data/ugdata):
 //   Pml/personal_masterdatas   PersonalTable (estadísticas, tipos, habilidades, objetos, MT en machine1-4),
 //                              EvolveTable (de 5 en 5: método, dato, especie, forma, nivel), WazaOboeTable
 //                              (de 2 en 2: nivel, ataque), WazaTable (los ataques) e ItemTable (precios y qué
@@ -9,7 +10,8 @@
 //   Dpr/scriptableobjects/gamesettings   FieldEncountTable_d y _p: los salvajes de cada zona y los legendarios
 //   Dpr/ev_script              fld_item: los objetos del suelo (el objeto va como un float en el script)
 //   Message/                   los textos (el diálogo de elegir inicial)
-// Las iniciales van en el programa: se cambian con un parche IPS (exefs) por versión. Los intercambios, en los scripts.
+// Las iniciales van en el programa: se cambian con un parche IPS (exefs) por versión. También van en el programa el Eevee
+// que regala Bebe y los errantes Mesprit y Cresselia (no se cambian: ningún randomizer sabe dónde están)
 
 import { abrirBundle, leerPorNombre, leerOriginal, cambiarPorNombre, guardarBundle } from "./unity.js";
 import { bolsilloBDSP } from "../partida/bdsp.js";
@@ -45,8 +47,13 @@ const RUTAS = {
   personal: BASE + "Pml/personal_masterdatas",
   datos: BASE + "Dpr/masterdatas",
   ajustes: BASE + "Dpr/scriptableobjects/gamesettings",
-  scripts: BASE + "Dpr/ev_script"
+  scripts: BASE + "Dpr/ev_script",
+  // El Gran Subsuelo (si está en la carpeta): los de cada tipo de escondite (UgEncount_02 a _12), los Diglett y Dugtrio de
+  // los túneles (_20) y los especiales de cada escondite (UgSpecialPokemon). Como en Ai0796/BDSP-Randomizers
+  subsuelo: BASE + "UnderGround/data/ugdata"
 };
+const OPCIONALES = new Set([RUTAS.subsuelo]);
+const TABLAS_SUBSUELO = [...Array.from({ length: 11 }, (_, k) => `UgEncount_${String(k + 2).padStart(2, "0")}`), "UgEncount_20"];
 // Los textos: los nombres y las categorías de cada idioma, en common_msbt; los diálogos, en el bundle de cada idioma
 const MENSAJES = BASE + "Message/";
 
@@ -80,7 +87,7 @@ const abiertos = new WeakMap();
 function bundles(sesion) {
   if (!abiertos.has(sesion)) {
     const b = {};
-    for (const [k, ruta] of Object.entries(RUTAS)) b[k] = abrirBundle(sesion.archivo(ruta));
+    for (const [k, ruta] of Object.entries(RUTAS)) if (!OPCIONALES.has(ruta) || sesion.tiene(ruta)) b[k] = abrirBundle(sesion.archivo(ruta));
     abiertos.set(sesion, b);
   }
   return abiertos.get(sesion);
@@ -88,6 +95,7 @@ function bundles(sesion) {
 
 // Guarda en la sesión el bundle (si algo ha cambiado)
 function guardar(sesion, clave) {
+  if (!bundles(sesion)[clave]) return;
   const bytes = guardarBundle(bundles(sesion)[clave]);
   if (bytes) sesion.cambiar(RUTAS[clave], bytes);
 }
@@ -101,6 +109,8 @@ export function perfilDe(sesion) {
     ultimoObjeto: 959, objetosGen: 7,
     tipos: TIPOS,
     habilidadesNunca: [176, 197, 208, 209, 210, 211, 225, 241, 248, 258, 266, 267],
+    // Brecha Negra: solo la puede usar Darkrai
+    ataquesNunca: [464],
     legendarios: [],
     maxEvoluciones: 8,
     sinMT: false, bitsMT: { tm: 100, hm: 0, extra: 0 }, bloquesMT: 13,
@@ -112,7 +122,7 @@ export function perfilDe(sesion) {
 }
 
 export async function prepararRom(sesion) {
-  await sesion.cargar(Object.values(RUTAS));
+  await sesion.cargar(Object.values(RUTAS).filter((r) => !OPCIONALES.has(r) || sesion.tiene(r)));
   // Los textos (para el diálogo de elegir inicial), si están en la carpeta
   const textos = [MENSAJES + "common_msbt", ...IDIOMAS.map((i) => MENSAJES + i)].filter((r) => sesion.tiene(r));
   await sesion.cargar(textos);
@@ -199,6 +209,46 @@ function leerSalvajes(tablas) {
     extra("miel-raro", t.honeytree, "Rare");
   }
   return salvajes;
+}
+
+// El Gran Subsuelo: un área por tabla (lo demás de cada fila, la versión y si hace falta la Nacional, como estaba)
+function leerSubsuelo(ab) {
+  if (!ab) return { areas: [], tablas: {} };
+  const tablas = {};
+  const areas = [];
+  for (const nombre of [...TABLAS_SUBSUELO, "UgSpecialPokemon"]) {
+    let o;
+    try {
+      o = leerPorNombre(ab, nombre);
+    } catch (e) {
+      continue;
+    }
+    const copia = structuredClone(o);
+    tablas[nombre] = { original: o, copia };
+    const filas = copia.table || copia.Sheet1 || [];
+    const huecos = filas.map((m) => ({ especie: m.monsno, forma: 0, min: 0, max: 0, vacio: !m.monsno || m.monsno > ULTIMA_ESPECIE, m, campo: "monsno" }));
+    if (huecos.some((h) => !h.vacio)) areas.push({ archivo: `subsuelo:${nombre}`, subsuelo: nombre, estaciones: [[{ zona: "subsuelo", huecos }]] });
+  }
+  return { areas, tablas };
+}
+
+// Los intercambios (LocalKoukanData): la especie que dan (monsno), la que piden (target), su objeto y sus ataques
+function leerIntercambios(md) {
+  let o;
+  try {
+    o = leerPorNombre(md, "LocalKoukanData");
+  } catch (e) {
+    return { lista: [], original: null };
+  }
+  // (la tabla repite cada intercambio una vez por idioma: todas sus copias, el mismo cambio)
+  const porClave = new Map();
+  o.data.forEach((t, i) => {
+    const clave = `${t.name_label}|${t.monsno}|${t.target}`;
+    if (!porClave.has(clave)) porClave.set(clave, { indice: i, copias: [], da: t.monsno, daOriginal: t.monsno, pide: t.target, pideOriginal: t.target, objeto: t.itemno, objetoOriginal: t.itemno, ivs: [] });
+    porClave.get(clave).copias.push(i);
+  });
+  const lista = [...porClave.values()].filter((t) => t.da > 0 && t.da <= ULTIMA_ESPECIE);
+  return { lista, original: o };
 }
 
 // Los estáticos y los huevos que se regalan van en los scripts: el combate (401 y 402: especie y nivel) y el huevo (219:
@@ -347,11 +397,13 @@ export function leerBW2(sesion) {
   const t = leerTiendas(shop);
   perfil.tiendas = t.tipo;
   const est = leerEstaticos(b.scripts);
+  const subsuelo = leerSubsuelo(b.subsuelo);
+  const trueques = leerIntercambios(b.datos);
   return {
-    perfil, especies, aprende, ataques, salvajes: leerSalvajes(tablas), entrenadores: leerEntrenadores(entrenadores, perfil),
-    iniciales: INICIALES.slice(), inicialesOriginales: INICIALES.slice(), estaticos: est.estaticos, intercambios: [], totems: [],
+    perfil, especies, aprende, ataques, salvajes: [...leerSalvajes(tablas), ...subsuelo.areas], entrenadores: leerEntrenadores(entrenadores, perfil),
+    iniciales: INICIALES.slice(), inicialesOriginales: INICIALES.slice(), estaticos: est.estaticos, intercambios: trueques.lista, totems: [],
     precios, tiendas: t.tiendas, objetosSuelo: fld ? leerObjetosSuelo(fld) : [], claros: null,
-    bd: { personal, evolucion, oboe, waza, items, entrenadores, shop, tablas, fld, maquinas, estaticos: est }
+    bd: { personal, evolucion, oboe, waza, items, entrenadores, shop, tablas, fld, maquinas, estaticos: est, subsuelo, trueques }
   };
 }
 
@@ -419,6 +471,30 @@ export function escribirBW2(sesion, datos) {
 
   escribirEntrenadores(datos, b, copia, poner);
   escribirSalvajes(datos, b, copia, poner);
+  // El Gran Subsuelo
+  for (const [nombre, { original, copia: nuevo }] of Object.entries(bd.subsuelo.tablas)) poner(b.subsuelo, nombre, nuevo, original);
+  // Los intercambios: si cambia la especie, sus ataques (los cuatro últimos que aprende a su nivel) y el género (si el de
+  // antes no puede ser)
+  if (bd.trueques.original) {
+    const k = copia(bd.trueques.original);
+    for (const t of datos.intercambios) for (const indice of t.copias) {
+      const f = k.data[indice];
+      if (t.da !== t.daOriginal) {
+        f.monsno = t.da;
+        const sabe = [];
+        for (const [ataque, nivel] of datos.aprende[t.da] || []) if (nivel <= f.level && !sabe.includes(ataque)) sabe.push(ataque);
+        f.waza = [...sabe.slice(-4), 0, 0, 0, 0].slice(0, 4);
+        const g = datos.especies[t.da] ? datos.especies[t.da].genero : 127;
+        if (g === 255) f.sex = 2;
+        else if (g === 254) f.sex = 1;
+        else if (g === 0) f.sex = 0;
+        else if (f.sex === 2) f.sex = 0;
+      }
+      f.target = t.pide;
+      f.itemno = t.objeto;
+    }
+    poner(b.datos, "LocalKoukanData", k, bd.trueques.original);
+  }
   escribirEstaticos(datos, b);
   escribirTiendas(datos, b, copia, poner);
 

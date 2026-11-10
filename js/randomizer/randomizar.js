@@ -10,6 +10,7 @@ import { RomGBA, esRomGBA } from "./rom-gba.js";
 import { crearAzar } from "./azar.js";
 import { completarReglas } from "./reglas.js";
 import { cargarDatosRandomizer, montarDatosRandomizer, clasificarObjetos, deGeneracion } from "./datos.js";
+import { multiplesDe } from "./multiples.js";
 import { TIPOS_ES } from "../comun/tipos.js"; // en español: van dentro del juego
 import { ULTIMA_ESPECIE, ULTIMO_ATAQUE, ULTIMA_HABILIDAD, EVO, TIPOS } from "./juego-gen5.js";
 import { esGen4 } from "./juego-gen4-ident.js";
@@ -51,6 +52,7 @@ const PRECIO_CARAMELO = 10; // en decenas: 100
 const NINCADA = 290;
 const SHEDINJA = 292;
 const MAX_EQUIPO = 6;
+const MAX_EN_PAREJA = 3;
 // En los claros ocultos solo caben los de antes de gen 5 y estos de Teselia (el juego no admite otros)
 const DE_TESELIA_EN_CLAROS = new Set([
   505, 507, 510, 511, 513, 515, 519, 523, 525, 527, 529, 531, 533, 535, 538, 539, 542, 545, 546, 548, 550, 553, 556, 558,
@@ -413,10 +415,15 @@ function randomizarTotems(datos, reglas, azar) {
 function randomizarEstaticos(datos, reglas, azar) {
   const lista = todas(datos);
   for (const e of datos.estaticos) {
-    if (e.huevo || e.ignorar || e.copiaDe !== undefined) continue; // el huevo que se da en el juego se queda como está
+    if (e.ignorar || e.copiaDe !== undefined) continue;
     const original = datos.especies[e.actual];
-    // (soloBase: los huevos que se regalan, de una que no venga de otra)
-    e.nueva = sustituta(azar, original, e.soloBase ? lista.filter((x) => !x.previa) : lista, reglas.estaticos.modo).id;
+    // Los huevos que se regalan, de una que no venga de otra (para que nazca algo con sentido); «maximo»: los que el juego
+    // guarda en un byte (el huevo misterioso de HG/SS)
+    let posibles = e.soloBase || e.huevo ? lista.filter((x) => !x.previa) : lista;
+    if (e.maximo) posibles = posibles.filter((x) => x.id <= e.maximo);
+    // (Kubfu y los regalos que se gigamaxizan, en Espada y Escudo: por otro que también pueda)
+    if (e.soloGigamax && datos.perfil.gigamax) posibles = posibles.filter((x) => datos.perfil.gigamax.has(x.id));
+    e.nueva = sustituta(azar, original, posibles, reglas.estaticos.modo).id;
   }
   // Los que son el mismo Pokémon que otro, igual que él
   for (const e of datos.estaticos) if (e.copiaDe !== undefined) e.nueva = datos.estaticos[e.copiaDe].nueva;
@@ -456,7 +463,7 @@ function ataquesPosibles(datos) {
   const porTipo = new Map();
   const sueltos = [];
   for (const a of datos.ataques) {
-    if (!a || ATAQUES_MALOS.has(a.id)) continue;
+    if (!a || ATAQUES_MALOS.has(a.id) || (datos.perfil.ataquesNunca || []).includes(a.id)) continue;
     sueltos.push(a);
     if (!porTipo.has(a.tipo)) porTipo.set(a.tipo, []);
     porTipo.get(a.tipo).push(a);
@@ -500,6 +507,14 @@ function randomizarAtaques(datos, reglas, azar) {
         const a = ataqueAlAzar(azar, e, pos, tipo, new Set(nuevos.map((x) => x.id)));
         nuevos.push({ id: a.id, nivel: 1, potencia: a.potencia });
         enNivelUno++;
+      }
+      // Con la lista ya llena no caben más: los primeros que aprende pasan a nivel 1
+      for (const a of nuevos.slice().sort((x, y) => x.nivel - y.nivel)) {
+        if (enNivelUno >= inicio) break;
+        if (a.nivel > 1) {
+          a.nivel = 1;
+          enNivelUno++;
+        }
       }
     }
     nuevos.sort((a, b) => a.nivel - b.nivel);
@@ -659,6 +674,10 @@ function randomizarEntrenadores(datos, reglas, azar, lineas, objetos, azarJefes)
   // cualquiera)
   const gigamax = datos.perfil.gigamax;
   const conGigamax = (especies) => (gigamax ? especies.filter((e) => gigamax.has(e.id)) : []);
+  // Los que combaten en pareja: como mucho tres Pokémon cada uno (seis entre los dos)
+  const enPareja = new Set([...datos.multiples.siempre, ...datos.multiples.posibles]);
+  const siempreEnPareja = new Set(datos.multiples.siempre);
+  const topeEquipo = (t) => (enPareja.has(t.indice) ? MAX_EN_PAREJA : MAX_EQUIPO);
   const gigamaxTodos = conGigamax(lista);
   const candidatasDe = (poke, suyos) => {
     if (!poke.gigamax || !gigamax) return suyos;
@@ -693,13 +712,14 @@ function randomizarEntrenadores(datos, reglas, azar, lineas, objetos, azarJefes)
     // Pokémon extra (hasta seis en total), con el nivel del último. El primer combate contra el
     // rival, no: tú solo tienes un Pokémon
     if (delGrupo(r.extras, datos, t) && !primerCombate) {
-      for (let k = 0; k < r.cuantos && t.pokemon.length && t.pokemon.length < MAX_EQUIPO; k++) anadir();
+      for (let k = 0; k < r.cuantos && t.pokemon.length && t.pokemon.length < topeEquipo(t); k++) anadir();
     }
 
     // Todos los combates dobles: los de un solo Pokémon, uno más
     if (r.dobles && t.combate === 0 && !datos.perfil.sinDobles.includes(t.indice) && t.pokemon.length) {
       t.combate = 1;
-      if (t.pokemon.length === 1) anadir();
+      // (los que van siempre en pareja ya tienen a su compañero)
+      if (t.pokemon.length === 1 && !siempreEnPareja.has(t.indice)) anadir();
     }
 
     // Completamente evolucionados a partir de cierto nivel
@@ -848,8 +868,8 @@ function randomizarObjetosSuelo(datos, reglas, azar, objetos) {
 function randomizarTiendas(datos, reglas, azar, objetos) {
   const mts = objetosMT(datos);
   const esMT = new Set(mts);
-  // Sin lo que ya venden las tiendas normales, si se pide
-  const normales = new Set(reglas.objetos.sinNormales ? datos.tiendas.filter((t) => datos.perfil.tiendas.normales.includes(t.indice)).flatMap((t) => t.objetos) : []);
+  // Sin lo que ya venden las tiendas normales, si se pide (en la 4.ª generación esas tiendas no están en la lista: perfil.tiendas.objetosNormales)
+  const normales = new Set(reglas.objetos.sinNormales ? [...(datos.perfil.tiendas.objetosNormales || []), ...datos.tiendas.filter((t) => datos.perfil.tiendas.normales.includes(t.indice)).flatMap((t) => t.objetos)] : []);
   const lista = objetos.usables.filter((id) => !(reglas.objetos.sinMalos && objetos.malos.has(id)) && !normales.has(id));
   for (const t of datos.tiendas) {
     if (datos.perfil.tiendas.normales.includes(t.indice)) continue;
@@ -861,26 +881,31 @@ function randomizarTiendas(datos, reglas, azar, objetos) {
 
 // Que estos objetos se vendan en alguna tienda especial de las de la historia (si no está ya, en
 // el sitio de otro objeto). primera: una tienda concreta (aunque sea una normal), si se quiere.
-// Lo que pone una llamada no lo quita la siguiente: los Caramelos Raros no pisan una piedra.
+// Lo que pone una llamada no lo quita la siguiente: las piedras no pisan un Caramelo Raro.
 // Si el juego lo dice (perfil.tiendas): en el sitio de uno de «sacrificables» y nunca en el de uno de «protegidos»
-function venderSiempre(datos, azar, ids, primera) {
+// Los que no existen en el juego (las Piedras Día, Noche y Alba en la 3.ª generación) no se venden
+function venderSiempre(datos, azar, pedidos, primera) {
   const { sacrificables = [], protegidos = new Set() } = datos.perfil.tiendas;
+  const noExiste = datos.perfil.objetosInexistentes || (() => false);
+  const ids = pedidos.filter((id) => !noExiste(id));
   const tiendas = datos.tiendas.filter((t) => datos.perfil.tiendas.historia.includes(t.indice) && t.objetos.length);
   if (!datos.fijosTiendas) datos.fijosTiendas = new Set(); // «tienda:hueco» ya ocupados por uno de estos
   const fijos = datos.fijosTiendas;
   const concreta = primera !== undefined && datos.tiendas.find((t) => t.indice === primera && t.objetos.length);
   for (const id of ids) {
     if ((concreta ? [concreta] : tiendas).some((t) => t.objetos.includes(id))) continue;
-    const donde = concreta || azar.elegir(tiendas);
-    if (!donde) continue;
-    const libres = donde.objetos.map((_, k) => k).filter((k) => !fijos.has(`${donde.indice}:${k}`) && !ids.includes(donde.objetos[k]) && !protegidos.has(donde.objetos[k]));
-    if (!libres.length) continue;
-    // Mejor en un hueco libre (0) que en el sitio de otro objeto
-    const vacios = libres.filter((k) => !donde.objetos[k]);
-    const sacrificado = sacrificables.find((o) => libres.some((k) => donde.objetos[k] === o));
-    const k = vacios.length ? azar.elegir(vacios) : sacrificado !== undefined ? donde.objetos.indexOf(sacrificado) : azar.elegir(libres);
-    donde.objetos[k] = id;
-    fijos.add(`${donde.indice}:${k}`);
+    // En la que toque o, si ahí ya no queda sitio (las hay de un solo hueco), en otra
+    for (const donde of concreta ? [concreta] : azar.barajar(tiendas)) {
+      const libres = donde.objetos.map((_, k) => k).filter((k) => !fijos.has(`${donde.indice}:${k}`) && !ids.includes(donde.objetos[k]) && !protegidos.has(donde.objetos[k]));
+      if (!libres.length) continue;
+      // Mejor en un hueco libre (0) que en el sitio de otro objeto
+      const vacios = libres.filter((k) => !donde.objetos[k]);
+      const sacrificado = sacrificables.find((o) => libres.some((k) => donde.objetos[k] === o));
+      const k = vacios.length ? azar.elegir(vacios) : sacrificado !== undefined ? donde.objetos.indexOf(sacrificado) : azar.elegir(libres);
+      donde.objetos[k] = id;
+      fijos.add(`${donde.indice}:${k}`);
+      break;
+    }
   }
 }
 
@@ -910,6 +935,7 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
   // (en 3DS carga antes lo que le falta: puede tardar)
   const conHierba = reglas.salvajes.pueblos && M.ponerHierbaEnPueblos ? (await M.ponerHierbaEnPueblos(rom)).length > 0 : false;
   const datos = M.leerBW2(rom);
+  datos.multiples = multiplesDe(datos.perfil, rom.codigo);
   for (const id of datos.perfil.legendarios || []) LEGENDARIOS.add(id);
   let datosObjetos = await cargarDatosRandomizer();
   // Un datos/randomizer.json viejo (de la caché) no trae estadísticas ni ataques: a PokeAPI
@@ -1005,12 +1031,16 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
   hacer("MO para todos", r.mt.mo && !datos.perfil.sinMT, () => moParaTodos(datos));
   hacer("objetos del suelo", r.objetos.suelo && !datos.perfil.sinObjetos && !datos.perfil.sinObjetosSuelo, () => randomizarObjetosSuelo(datos, reglas, azar("suelo"), objetos));
   hacer("tiendas", r.objetos.tiendas && !datos.perfil.sinObjetos, () => randomizarTiendas(datos, reglas, azar("tiendas"), objetos));
-  hacer("piedras en las tiendas", r.objetos.piedras && !datos.perfil.sinObjetos, () => venderSiempre(datos, azar("piedras"), PIEDRAS_EVOLUTIVAS));
-  hacer("precios", r.objetos.precios && !datos.perfil.sinObjetos, () => equilibrarPrecios(datos, objetos));
-  hacer("Caramelos Raros baratos", r.objetos.caramelos && !datos.perfil.sinObjetos, () => {
-    // (una tienda o, si sus existencias cambian con las medallas, todas sus listas)
+  // Los Caramelos Raros antes que las piedras: su tienda puede tener solo dos huecos (en la 4.ª generación) y si las piedras
+  // los cogen, ya no caben. (Una tienda o, si sus existencias cambian con las medallas, todas sus listas)
+  const caramelos = r.objetos.caramelos && !datos.perfil.sinObjetos;
+  if (caramelos) {
     const azarCaramelos = azar("caramelos");
     for (const tienda of [].concat(datos.perfil.tiendas.primera)) venderSiempre(datos, azarCaramelos, [CARAMELO_RARO], tienda);
+  }
+  hacer("piedras en las tiendas", r.objetos.piedras && !datos.perfil.sinObjetos, () => venderSiempre(datos, azar("piedras"), PIEDRAS_EVOLUTIVAS));
+  hacer("precios", r.objetos.precios && !datos.perfil.sinObjetos, () => equilibrarPrecios(datos, objetos));
+  hacer("Caramelos Raros baratos", caramelos, () => {
     datos.precios[CARAMELO_RARO] = datos.perfil.preciosEnDecenas === false ? PRECIO_CARAMELO * 10 : PRECIO_CARAMELO;
   });
   // (antes de escribir los scripts)

@@ -45,5 +45,8 @@ export const ESTATICOS_BW2 = [
   { nombre: "Lileep", especie: [[1253, 0x69a]], nivel: [[1253, 0x3d6]], forma: [] },
   { nombre: "Tirtouga", especie: [[1253, 0x6b9]], nivel: [[1253, 0x3d6]], forma: [] },
   { nombre: "Archen", especie: [[1253, 0x6d8]], nivel: [[1253, 0x3d6]], forma: [] },
-  { nombre: "Zorua", especie: [[208, 0x5a6]], nivel: [[208, 0x5a8]], forma: [] }
+  { nombre: "Zorua", especie: [[208, 0x5a6]], nivel: [[208, 0x5a8]], forma: [] },
+  // Los que se hacen pasar por un objeto en el suelo (StaticPokemonFakeBall de UPR-ZX)
+  { nombre: "Foongus (objeto)", especie: [[1273, 0x45]], nivel: [[500, 0x46e], [500, 0x492], [500, 0x4b6], [506, 0x42a], [506, 0x44e]], forma: [] },
+  { nombre: "Amoonguss (objeto)", especie: [[1273, 0xc7]], nivel: [[534, 0x2f2], [534, 0x316], [562, 0x3fe], [562, 0x422], [563, 0x742], [563, 0x766], [563, 0x78a]], forma: [] }
 ];

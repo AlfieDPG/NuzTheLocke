@@ -79,6 +79,65 @@ const POKEDEX = {
   ayudantes: "00B5064800880028"
 };
 
+// Los perros legendarios errantes (sale uno, según la inicial: Entei, Suicune o Raikou). El juego elige la especie en el
+// código («movs r6, #especie», que no admite más de 255); se cambia como el parche de UPR-ZX (roamers/fr_roamers_10): una
+// llamada a una función nueva, en el espacio libre, que devuelve la especie de una tabla. Además, otra tabla con las tres
+// especies (de 4 en 4 bytes). Se busca por su forma: vale para todas las versiones
+const CODIGO_ERRANTES = "0004000C012806D0042806D0F32605E0";
+const CODIGO_ERRANTES_HECHO = "00F002F8061C09E0014A10470000";
+const ERRANTES_ORDEN = [244, 245, 243]; // Entei, Suicune, Raikou (las tres opciones de la tabla nueva)
+const SITIO_ERRANTE = [0x16, 0x1a, 0x0c]; // dónde va cada «movs» en el código del juego
+const NIVELES_ERRANTES = [0x2a, 0x3e];
+// push {r7, lr}; si la inicial es 1, la primera; si es 4, la segunda; si no, la tercera; pop {r7, pc}; y las tres especies (u32)
+const FUNCION_ERRANTES = "80B5011C012902D0042902D003E0034802E0034800E0034880BD0000";
+// El Huevo de Togepi del Laberinto Acuático (giveegg Togepi en los guiones)
+const HUEVO_TOGEPI = "7AAF00";
+
+function leerErrantes(rom) {
+  const b = rom.bytes;
+  const lista = [];
+  const original = buscar(b, CODIGO_ERRANTES);
+  const hecho = buscar(b, CODIGO_ERRANTES_HECHO);
+  let especies = null;
+  let base = -1;
+  if (original.length === 1) {
+    base = original[0];
+    especies = SITIO_ERRANTE.map((d) => b[base + d]);
+  } else if (hecho.length === 1) {
+    base = hecho[0];
+    const tabla = puntero(b, base + 0x0e) - 1 + 0x1c;
+    especies = [0, 1, 2].map((k) => u16(b, tabla + k * 4));
+  }
+  if (!especies) return lista;
+  const tabla2 = buscar(b, Uint8Array.of(244, 0, 1, 0, 245, 0, 4, 0, 243, 0, 7, 0));
+  especies.forEach((interna, k) => {
+    lista.push({ tabla: "errante", cual: k, base, ya: original.length !== 1, tabla2: tabla2.length === 1 ? tabla2[0] + k * 4 : -1, actual: nacionalDe(interna), nivelActual: b[base + NIVELES_ERRANTES[0]], lugares: [] });
+  });
+  return lista;
+}
+
+function escribirErrantes(rom, errantes) {
+  const b = rom.bytes;
+  if (!errantes.length || errantes.every((e) => e.nueva === undefined || e.nueva === e.actual)) return;
+  const especie = (e) => internaDe(e.nueva !== undefined ? e.nueva : e.actual);
+  const base = errantes[0].base;
+  let tabla;
+  if (errantes[0].ya) tabla = puntero(b, base + 0x0e) - 1 + 0x1c;
+  else {
+    const funcion = rom.reservar(0x28);
+    b.set(deHex(FUNCION_ERRANTES), funcion);
+    tabla = funcion + 0x1c;
+    // La llamada (bl a «ldr r2, =función; bx r2»), mov r6, r0 y el salto a lo que seguía
+    b.set(deHex("F002F8061C09E0014A10470000"), base + 1);
+    ponerPuntero(b, base + 0x0e, funcion + 1);
+  }
+  errantes.forEach((e, k) => {
+    poner32(b, tabla + k * 4, especie(e));
+    if (e.tabla2 >= 0) poner16(b, e.tabla2, especie(e));
+  });
+  rom.cambiados.add("estáticos");
+}
+
 // ---------- Bytes ----------
 
 const u16 = (b, i) => b[i] | (b[i + 1] << 8);
@@ -373,7 +432,7 @@ function leerTiendas(rom) {
     const punteros = buscar(zona, aguja).map((x) => x + Math.max(0, sitio - 0x4000));
     const libres = punteros.length === 1 ? HUECOS_LIBRES : 0;
     return {
-      indice, sitio, puntero: punteros.length === 1 ? punteros[0] : -1, cuantos: originales.length,
+      indice, sitio, puntero: punteros.length === 1 ? punteros[0] : -1, cuantos: originales.length, originales,
       objetos: [...originales.map(objetoWeb), ...new Array(libres).fill(0)]
     };
   });
@@ -408,6 +467,10 @@ export function leerBW2(rom) {
   const mapas = cabecerasDeMapas(rom);
   const iniciales = [v.iniciales, v.iniciales + 515, v.iniciales + 461].map((o) => nacionalDe(u16(b, o)));
   const estaticos = v.estaticos.map(([lugares, niveles]) => ({ actual: nacionalDe(u16(b, lugares[0])), nivelActual: niveles.length ? b[niveles[0]] : 0, lugares }));
+  // El Huevo de Togepi (de una especie que no venga de otra) y los errantes
+  const togepi = buscar(b, HUEVO_TOGEPI).filter((x) => x >= 0x160000 && x < 0x180000);
+  if (togepi.length === 1) estaticos.push({ actual: 175, nivelActual: 5, lugares: [togepi[0] + 1], soloBase: true });
+  estaticos.push(...leerErrantes(rom));
   return {
     perfil, especies, aprende, ataques: leerAtaques(rom), salvajes: leerSalvajes(rom, mapas), entrenadores: leerEntrenadores(rom, perfil),
     iniciales, inicialesOriginales: iniciales.slice(), estaticos, intercambios: leerIntercambios(rom), totems: [],
@@ -532,7 +595,8 @@ function escribirSalvajes(rom, datos) {
 function escribirTiendas(rom, datos) {
   const b = rom.bytes;
   for (const t of datos.tiendas) {
-    const objetos = t.objetos.map(objetoJuego).filter(Boolean);
+    // (lo que la web no conoce, las cartas, se queda como estaba)
+    const objetos = t.objetos.map((id, k) => (id ? objetoJuego(id) : t.originales[k] || 0)).filter(Boolean);
     let sitio = t.sitio;
     if (objetos.length > t.cuantos) {
       if (t.puntero < 0) objetos.length = t.cuantos;
@@ -605,10 +669,11 @@ export function escribirBW2(rom, datos) {
   escribirEntrenadores(rom, datos);
   escribirSalvajes(rom, datos);
   for (const e of datos.estaticos) {
-    if (e.nueva === undefined || e.nueva === e.actual) continue;
+    if (e.nueva === undefined || e.nueva === e.actual || e.tabla) continue;
     for (const lugar of e.lugares) poner16(b, lugar, internaDe(e.nueva));
     rom.cambiados.add("estáticos");
   }
+  escribirErrantes(rom, datos.estaticos.filter((e) => e.tabla === "errante"));
   if (datos.iniciales.some((id, k) => id !== datos.inicialesOriginales[k])) escribirIniciales(rom, datos.iniciales);
   for (const x of datos.intercambios) {
     poner16(b, x.sitio + 12, internaDe(x.da));

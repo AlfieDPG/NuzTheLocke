@@ -48,8 +48,7 @@ const SWITCH = ["swsh", "bdsp"];
 // Lo que no tiene cada juego (no sale en su pestaña): no tienen tutores de ataques Negro y Blanco, Diamante y Perla,
 // X e Y, y Sol y Luna
 const SIN_PESTANAS = {};
-// En Diamante Brillante y Perla Reluciente, los intercambios van en los scripts
-const SIN_APARTADOS = { bw: ["tutores"], dp: ["tutores"], xy: ["tutores"], oras: [], sm: ["tutores"], usum: [], bdsp: ["tutores", "intercambios"] };
+const SIN_APARTADOS = { bw: ["tutores"], dp: ["tutores"], xy: ["tutores"], oras: [], sm: ["tutores"], usum: [], bdsp: ["tutores"] };
 
 const PARECIDA_ALEATORIO = [["no", "Sin cambios"], ["parecida", "Fuerza parecida"], ["cualquiera", "Aleatorio"]];
 // A quién: se marcan sueltos, ninguno es nadie
@@ -149,7 +148,7 @@ const PESTANAS = [
               { k: "tipo", tipo: "barra", texto: "Las de su tipo", min: 50, max: 100, paso: 5, formato: (v) => `${v} %`, si: (r) => r.mt.deSuTipo }
             ]
           },
-          { k: "mo", tipo: "casilla", texto: "Todos aprenden las MO", si: (r) => r.mt.compat !== "total", no: SWITCH }
+          { k: "mo", tipo: "casilla", texto: "Todos aprenden las MO", si: (r) => r.mt.compat !== "total", no: [...SWITCH, "sm", "usum"] }
         ]
       },
       {

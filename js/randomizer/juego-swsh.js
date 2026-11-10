@@ -20,7 +20,7 @@
 
 import { leerFB, escribirFB, raizFB, campoFB, refFB, tablasFB } from "./flatbuffers.js";
 import { leerGfpak, escribirGfpak } from "./gfpak.js";
-import { SALVAJES, ESTATICOS, REGALOS, INTERCAMBIOS, TIENDAS, ATAQUE } from "./esquemas-swsh.js";
+import { SALVAJES, ESTATICOS, REGALOS, INTERCAMBIOS, TIENDAS, ATAQUE, NIDOS, AVENTURAS } from "./esquemas-swsh.js";
 import { leerTextos6, escribirTextos6, aTexto } from "./textos-3ds.js";
 
 export const ULTIMA_ESPECIE = 898;
@@ -49,7 +49,9 @@ const RUTAS = {
   estaticos: "bin/script_event_data/event_encount_data.bin",
   regalos: "bin/script_event_data/add_poke.bin",
   intercambios: "bin/script_event_data/field_trade.bin",
-  tiendas: "bin/appli/shop/bin/shop_data.bin"
+  tiendas: "bin/appli/shop/bin/shop_data.bin",
+  // (solo con la expansión: si no está, no pasa nada)
+  aventura: "bin/appli/chika/data_table/underground_exploration_poke.bin"
 };
 const rutaEvo = (i) => `bin/pml/evolution/evo_${String(i).padStart(3, "0")}.bin`;
 const rutaAtaque = (i) => `bin/pml/waza/waza${String(i).padStart(4, "0")}.wazabin`;
@@ -112,12 +114,11 @@ const TIENDAS_HISTORIA = [0xcbd67969d873539bn, 0xcbd67869d87351e8n, 0x00cbd669d8
 // Huecos libres al final de las especiales (para añadir sin quitar nada: piedras, Caramelos Raros...)
 const HUECOS_LIBRES = 4;
 
-// Estáticos que no se tocan: los de escenas especiales (Eternatus, la niebla, los combates de Zacian y Zamazenta,
-// Calyrex y sus corceles) y las incursiones
-const ESCENARIOS_NO = new Set([4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]);
+// Estáticos que no se tocan, como en pkNX: Eternatus (cambiado, el juego se cuelga) y Zacian y Zamazenta (los del combate
+// final, contra Eternatus). Todos los demás, también los de escena (la niebla, Calyrex y sus corceles, los regis...), sí
 const ESPECIES_NO = new Set([888, 889, 890]);
-// Regalos que no se tocan: Kubfu (las torres) y los corceles de Calyrex
-const REGALOS_NO = new Set([891, 896, 897]);
+// Kubfu y los regalos que pueden gigamaxizarse: por otro que también pueda (como en pkNX)
+const KUBFU = 891;
 // Las iniciales: los regalos 0, 3 y 4 (Grookey, Scorbunny y Sobble); en la mesa del principio, los Pokémon 3, 1 y 2
 const INICIALES = [0, 3, 4];
 const INICIALES_MESA = { archivo: "a_0101.bin", pokemon: [3, 1, 2] };
@@ -306,7 +307,21 @@ function leerSalvajes(sesion) {
       if (zonas.length) salvajes.push({ archivo: `${nombre}:${z}`, estaciones: [zonas], campo: nombre.includes("symbol") });
     });
   }
-  return { pack, archivos, salvajes };
+  // Las incursiones Dinamax: cada nido (de cada versión), un área. Como en pkNX: otra especie, su forma normal, cualquier
+  // habilidad y género; Gigamax solo si la nueva puede
+  const nidos = leerFB(pack.porNombre("nest_hole_encount.bin"), NIDOS);
+  nidos.Table.forEach((t, i) => {
+    const huecos = t.Entries.map((e) => ({ especie: e.Species, forma: e.Form, min: 0, max: 0, vacio: !e.Species || e.Species > ULTIMA_ESPECIE, entrada: e }));
+    if (huecos.some((h) => !h.vacio)) salvajes.push({ archivo: `nido:${i}`, nido: true, estaciones: [[{ zona: "incursion", clase: "incursion", huecos }]] });
+  });
+  // La Aventura Dinamax (con la expansión): todos en un área. Otra especie, su forma normal y sus propios ataques
+  let aventura = null;
+  if (sesion.tiene(RUTAS.aventura)) {
+    aventura = leerFB(sesion.archivo(RUTAS.aventura), AVENTURAS);
+    const huecos = aventura.Table.map((e) => ({ especie: e.Species, forma: e.Form, min: e.Level, max: e.Level, vacio: !e.Species || e.Species > ULTIMA_ESPECIE, entrada: e }));
+    if (huecos.length) salvajes.push({ archivo: "aventura", aventura: true, estaciones: [[{ zona: "aventura", clase: "aventura", huecos }]] });
+  }
+  return { pack, archivos, salvajes, nidos, aventura };
 }
 
 function leerEstaticos(sesion) {
@@ -317,12 +332,12 @@ function leerEstaticos(sesion) {
   const fuera = (id) => !id || id > ULTIMA_ESPECIE;
   regalos.Table.forEach((r, i) => {
     if (INICIALES.includes(i)) return;
-    estaticos.push({ tabla: "regalo", fb: r, actual: r.Species, nivelActual: r.Level, huevo: Boolean(r.IsEgg), ignorar: fuera(r.Species) || REGALOS_NO.has(r.Species) });
+    estaticos.push({ tabla: "regalo", fb: r, actual: r.Species, nivelActual: r.Level, huevo: Boolean(r.IsEgg), ignorar: fuera(r.Species), soloGigamax: r.CanGigantamax || r.Species === KUBFU });
   });
   fijos.Table.forEach((f) => {
     estaticos.push({
       tabla: "fijo", fb: f, actual: f.Species, nivelActual: f.Level,
-      ignorar: fuera(f.Species) || ESPECIES_NO.has(f.Species) || ESCENARIOS_NO.has(f.EncounterScenario)
+      ignorar: fuera(f.Species) || ESPECIES_NO.has(f.Species)
     });
   });
   const intercambios = trueques.Table.map((t, indice) => {
@@ -610,7 +625,26 @@ function escribirEntrenadores(sesion, datos) {
 function escribirSalvajes(sesion, datos) {
   const { pack, archivos } = datos.sw.salvajes;
   // Lo de cada hueco y cada tabla, de vuelta a los FlatBuffers (el nivel de la tabla, el del primer hueco)
+  const { nidos, aventura } = datos.sw.salvajes;
   for (const area of datos.salvajes) {
+    if (area.nido || area.aventura) {
+      for (const h of area.estaciones[0][0].huecos) {
+        if (h.vacio || h.especie === h.entrada.Species) continue;
+        const e = h.entrada;
+        e.Species = h.especie;
+        e.Form = 0;
+        if (area.nido) {
+          e.Ability = 4; // cualquiera (1, 2 u oculta)
+          e.Gender = 0;
+          e.IsGigantamax = e.IsGigantamax && GIGAMAX.has(h.especie);
+        } else {
+          e.Level = Math.max(1, Math.min(100, h.min));
+          e.GigantamaxState = 0;
+          e.Move0 = e.Move1 = e.Move2 = e.Move3 = 0;
+        }
+      }
+      continue;
+    }
     for (const z of area.estaciones[0]) {
       const vivo = z.huecos.find((h) => !h.vacio);
       if (vivo) {
@@ -630,19 +664,27 @@ function escribirSalvajes(sesion, datos) {
     const bytes = escribirFB(fb, SALVAJES);
     if (!igual(bytes, escribirFB(leerFB(pack.archivo(i), SALVAJES), SALVAJES))) nuevos[i] = bytes;
   }
+  const iNidos = pack.indice("nest_hole_encount.bin");
+  const bytesNidos = escribirFB(nidos, NIDOS);
+  if (!igual(bytesNidos, escribirFB(leerFB(pack.archivo(iNidos), NIDOS), NIDOS))) nuevos[iNidos] = bytesNidos;
   if (Object.keys(nuevos).length) sesion.cambiar(RUTAS.salvajes, escribirGfpak(pack, nuevos));
+  if (aventura) {
+    const bytes = escribirFB(aventura, AVENTURAS);
+    if (!igual(bytes, escribirFB(leerFB(sesion.archivo(RUTAS.aventura), AVENTURAS), AVENTURAS))) sesion.cambiar(RUTAS.aventura, bytes);
+  }
 }
 
 function escribirEstaticos(sesion, datos) {
   const { est } = datos.sw;
   const cambio = { fijos: false, regalos: false, trueques: false };
   for (const e of datos.estaticos) {
-    if (e.nueva === undefined || e.nueva === e.actual || e.ignorar || e.huevo) continue;
+    if (e.nueva === undefined || e.nueva === e.actual || e.ignorar) continue;
     const f = e.fb;
     f.Species = e.nueva;
     f.Form = 0;
     f.Gender = 0;
     if (!GIGAMAX.has(e.nueva)) f.CanGigantamax = false;
+    else if (e.soloGigamax) f.CanGigantamax = true;
     // Los ataques que traían ya no valen: que use los suyos
     if (e.tabla === "fijo") {
       f.Move0 = f.Move1 = f.Move2 = f.Move3 = 0;

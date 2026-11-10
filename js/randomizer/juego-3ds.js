@@ -87,7 +87,11 @@ const XY = {
       // Los de los cubos de basura: 24 de 16 bytes en el programa (especie, forma, nivel); [desde, cuántos, juntar los de la misma especie]
       basuras: { marca: "4028100000", conjuntos: [[0, 6, true], [6, 6, true], [12, 3, true], [15, 3, true], [18, 6, false]] }
     },
-    regalos: { desde: 0xf805c, tam: 0x18, cuantos: 19, saltar: [0, 1, 2, 3, 4, 5] },
+    // (los de Kanto, 3 a 5, se ven también en la pantalla de elegir: en sus puestos 3 a 5, como en UPR-ZX)
+    regalos: { desde: 0xf805c, tam: 0x18, cuantos: 19, saltar: [0, 1, 2], pantalla: { 3: 3, 4: 4, 5: 5 } },
+    // Los que caen del techo o del cielo y los de los arbustos que se mueven: en el DllField.cro, grupos de 0x3C bytes con 7
+    // huecos de 8 bytes desde el 4 (especie u16 y nivel en el +4). Como en UPR-ZX (Gen6Constants.fallingEncounterOffset)
+    caidos: [{ desde: 0xf4270, cuantos: 55, nombre: "caen" }, { desde: 0xf40cc, cuantos: 7, nombre: "arbustos" }],
     trueques: { prefijo: "BA0A02015E000100BC0A150069000100", cuantos: 9, texto: 113, extra: 0 },
     historia: ["a/0/8/0", "a/0/8/1", "a/0/8/2", "a/0/8/3", "a/0/8/4", "a/0/8/5", "a/0/8/6", "a/0/8/7"], dialogos: { 1: 129, 8: 349 }
   },
@@ -136,14 +140,19 @@ const ORAS = {
     // Rayquaza: su script (el 31 de los scripts) y tres comparaciones del DllField.cro
     especiales: { rayquaza: { entrada: 28, ruta: "a/0/2/9", archivo: 31, offsets: [3334, 14734], funcion: "0900A0E1F08FBDE8", codigo: [136, 292, 576] } },
     enlazados: [[26, 49], [27, 50], [29, 58], [80, 56], [81, 57], [75, 76]],
-    regalos: { desde: 0xf906c, tam: 0x24, cuantos: 0x25, saltar: [0, 1, 2, 28, 29, 30, 31, 32, 33, 34, 35, 36], huevo: 18 },
+    // (los de 2.ª a 5.ª generación que da Abedul al final, 28 a 36, se ven también en la pantalla de elegir: puestos 3 a 11)
+    regalos: {
+      desde: 0xf906c, tam: 0x24, cuantos: 0x25, saltar: [0, 1, 2], huevo: 18,
+      pantalla: { 28: 3, 29: 4, 30: 5, 31: 6, 32: 7, 33: 8, 34: 9, 35: 10, 36: 11 }
+    },
     trueques: { prefijo: "810B7A0097000A00000047006B000A00", cuantos: 3, texto: 132, extra: 18 },
     historia: ["a/0/7/9", "a/0/8/0", "a/0/8/1", "a/0/8/2", "a/0/8/3", "a/0/8/4", "a/0/8/5", "a/0/8/6"], dialogos: {}
   },
   // Los tutores: la lista de ataques en el programa (con un 0x26E que separa los cuatro grupos) y la tienda de PB, igual,
   // con 8 bytes por ataque; en los datos de cada especie, 4 bytes por grupo desde el 64
   tutores: {
-    lista: { localizador: "C2015701A20012024401BA01", desde: 0, separador: 0x26e },
+    // (la segunda marca, los textos que hay justo antes de la lista: por si se randomiza una ROM ya randomizada)
+    lista: { localizador: "C2015701A20012024401BA01", localizadorRandom: "466F726D617454797065000045646765494400FF", desde: 0, separador: 0x26e },
     tienda: { prefijo: "8A02000030000000", paso: 8, cuantas: 64 }, grupos: [15, 17, 16, 15], compat: 64
   },
   // Igual, con dos MO más (Golpe Roca y Buceo, en otro sitio de la lista de MO)
@@ -212,7 +221,9 @@ const SM = {
   // Las 100 MT, seguidas, tras esta marca del programa (que en Sol y Luna viene sin comprimir)
   tm: { prefijo: "034003410342034303", dos: 92, hm: 0, descObjetos: 35, descAtaques: 112 },
   // Cambio de Táctica, Disfraz, Unión (Greninja), Escudo Limitado, Dominio de Poder, Sistema Alfa
-  habilidadesNunca: [176, 197, 208, 209, 210, 211, 225]
+  habilidadesNunca: [176, 197, 208, 209, 210, 211, 225],
+  // Brecha Negra: desde la 7.ª generación solo la puede usar Darkrai
+  ataquesNunca: [464]
 };
 
 // Ultrasol y Ultraluna: casi igual que Sol y Luna, con otros números de archivo, de línea de texto y de entrenador
@@ -281,7 +292,7 @@ export function perfilDe(sesion) {
     id: base.id, gen: base.gen, base,
     nombre: sesion.nombreJuego || codigo,
     ultimaEspecie: base.ultimaEspecie, ultimoAtaque: base.ultimoAtaque, ultimaHabilidad: base.ultimaHabilidad, ultimoObjeto: base.ultimoObjeto,
-    tipos: TIPOS, habilidadesNunca: base.habilidadesNunca, legendarios: base.legendarios, primerosCombates: base.primerosCombates,
+    tipos: TIPOS, habilidadesNunca: base.habilidadesNunca, ataquesNunca: base.ataquesNunca, legendarios: base.legendarios, primerosCombates: base.primerosCombates,
     // Lo que todavía no se hace en 3DS
     sinObjetos: !base.objetos, sinMT: !base.tm, tutores: Boolean(base.tutores), tutorInfo: base.tutores ? { cuantos: totalTutores(base), bytes: Math.ceil(totalTutores(base) / 8), fijos: [] } : null, claros: false, iniciales,
     // Los objetos de las MT: 92 desde el 328, 3 desde el 618 y 5 desde el 690
@@ -555,6 +566,69 @@ function leerSalvajesSM(sesion, perfil) {
   return { salvajes, entradas };
 }
 
+// X e Y: los que caen y los de los arbustos (un área por grupo). Por si en otra versión el sitio no es el mismo, se busca cerca
+// el desplazamiento con el que todos los grupos tienen sentido
+function leerCaidos(sesion, perfil) {
+  const c = perfil.base.estaticos6 && perfil.base.estaticos6.caidos;
+  if (!c) return [];
+  const cro = sesion.archivo(perfil.base.estaticos6.cro);
+  const grupoVale = (o) => {
+    for (let i = 0; i < 7; i++) {
+      const especie = u16(cro, o + 4 + i * 8);
+      const nivel = cro[o + 8 + i * 8];
+      if (especie && (especie > perfil.ultimaEspecie || !nivel || nivel > 100)) return false;
+    }
+    return true;
+  };
+  const conAlgo = (o) => [0, 1, 2, 3, 4, 5, 6].some((i) => u16(cro, o + 4 + i * 8));
+  const vale = (d) => c.every(({ desde, cuantos }) => {
+    let llenos = 0;
+    for (let g = 0; g < cuantos; g++) {
+      const o = desde + d + g * 0x3c;
+      if (o < 0 || o + 0x3c > cro.length || !grupoVale(o)) return false;
+      if (conAlgo(o)) llenos++;
+    }
+    return llenos * 2 > cuantos && conAlgo(desde + d);
+  });
+  // (correr un grupo entero también «vale»: el más cercano al sitio de UPR-ZX)
+  const buenos = [];
+  for (let d = -0x200; d <= 0x200; d += 4) if (vale(d)) buenos.push(d);
+  buenos.sort((x, y) => Math.abs(x) - Math.abs(y));
+  if (!buenos.length) return [];
+  const areas = [];
+  for (const { desde: original, cuantos, nombre } of c) {
+    const desde = original + buenos[0];
+    for (let g = 0; g < cuantos; g++) {
+      const huecos = [];
+      for (let i = 0; i < 7; i++) {
+        const pos = desde + g * 0x3c + 4 + i * 8;
+        const especie = u16(cro, pos);
+        huecos.push({ especie, forma: 0, min: cro[pos + 4], max: cro[pos + 4], vacio: !especie, pos });
+      }
+      const vivos = huecos.filter((h) => !h.vacio);
+      if (!vivos.length) continue;
+      if (vivos.some((h) => h.especie > perfil.ultimaEspecie || !h.min || h.min > 100)) return [];
+      areas.push({ archivo: `${nombre}-${g}`, caido: true, estaciones: [[{ zona: nombre, clase: "extra", huecos }]] });
+    }
+  }
+  return areas;
+}
+
+function escribirCaidos(sesion, perfil, areas) {
+  if (!areas.length) return;
+  const ruta = perfil.base.estaticos6.cro;
+  const cro = sesion.archivo(ruta);
+  const antes = cro.slice();
+  for (const a of areas) {
+    for (const h of a.estaciones[0][0].huecos) {
+      if (h.vacio) continue;
+      poner16(cro, h.pos, h.especie);
+      cro[h.pos + 4] = h.min;
+    }
+  }
+  if (cro.some((v, i) => v !== antes[i])) sesion.cambiar(ruta, cro);
+}
+
 // Las tres iniciales
 function leerIniciales(sesion, perfil) {
   const b = perfil.base;
@@ -747,7 +821,7 @@ export function leerBW2(sesion) {
   }
   return {
     perfil, garcs, especies, aprende, ataques,
-    salvajes: salvajesSM ? salvajesSM.salvajes : garcs.salvajes ? leerSalvajes(garcs.salvajes, perfil) : [],
+    salvajes: [...(salvajesSM ? salvajesSM.salvajes : garcs.salvajes ? leerSalvajes(garcs.salvajes, perfil) : []), ...leerCaidos(sesion, perfil)],
     entrenadores: leerEntrenadores(garcs.entrenadores, garcs.equipos, perfil),
     iniciales: leerIniciales(sesion, perfil), inicialesOriginales: leerIniciales(sesion, perfil),
     estaticos: [], intercambios: [], ...leerEstaticos(sesion, perfil), ...leerObjetos(sesion, perfil), claros: null
@@ -1035,7 +1109,8 @@ export function escribirBW2(sesion, datos) {
   if (perfil.gen === 6) {
     const nuevosSalvajes = {};
     const almacen = perfil.id === "oras" ? garcs.salvajes.archivos[garcs.salvajes.archivos.length - 1].slice() : null;
-    for (const { archivo, estaciones } of datos.salvajes) {
+    escribirCaidos(sesion, perfil, datos.salvajes.filter((a) => a.caido));
+    for (const { archivo, estaciones } of datos.salvajes.filter((a) => !a.caido)) {
       const b = garcs.salvajes.archivos[archivo].slice();
       const antes = b.slice();
       const sitio = sitioSalvajes(b, perfil);
@@ -1108,7 +1183,7 @@ function leerEstaticos6(sesion, perfil) {
     const pos = est.regalos.desde + i * est.regalos.tam;
     const actual = u16(cro, pos);
     const huevo = est.regalos.huevo !== undefined && u16(cro, pos + est.regalos.huevo) === 0xea64;
-    estaticos.push({ tabla: "regalo6", pos, actual, nivelActual: cro[pos + 5], huevo, ignorar: !valida(actual) });
+    estaticos.push({ tabla: "regalo6", pos, actual, nivelActual: cro[pos + 5], huevo, ignorar: !valida(actual), pantalla: (est.regalos.pantalla || {})[i] });
   }
   for (const [base, copia] of est.enlazados) if (estaticos[copia]) estaticos[copia].copiaDe = base;
   // Los cubos de basura de X e Y: los de la misma especie de cada sitio, juntos
@@ -1246,7 +1321,7 @@ function escribirEstaticos6(sesion, datos) {
   let cambiado = false;
   datos.estaticos.forEach((e) => {
     const nueva = e.copiaDe !== undefined ? datos.estaticos[e.copiaDe].nueva : e.nueva;
-    if (nueva === undefined || nueva === e.actual || e.ignorar || e.huevo) return;
+    if (nueva === undefined || nueva === e.actual || e.ignorar) return;
     if (e.tabla === "basura") {
       poner32(sesion.code, e.pos, nueva);
       poner32(sesion.code, e.pos + 4, 0);
@@ -1255,6 +1330,15 @@ function escribirEstaticos6(sesion, datos) {
     poner16(cro, e.pos, nueva);
     cro[e.pos + (e.tabla === "fijo6" ? 2 : 4)] = 0; // sin forma especial
     cambiado = true;
+    // Los que se eligen en la misma pantalla que las iniciales
+    if (e.pantalla !== undefined && datos.perfil.base.iniciales) {
+      const ini = datos.perfil.base.iniciales;
+      const pantalla = sesion.archivo(ini.pantalla);
+      const o = u16(pantalla, 0xb8) + ini.extra + e.pantalla * 0x54;
+      poner16(pantalla, o, nueva);
+      pantalla[o + 2] = 0;
+      sesion.cambiar(ini.pantalla, pantalla);
+    }
   });
   const antes = cro.slice();
   escribirEspeciales6(sesion, datos, cro);
@@ -1276,7 +1360,7 @@ function escribirEstaticos(sesion, datos) {
   const archivo = (i) => nuevos[i] || (nuevos[i] = garc.archivos[i].slice());
   datos.estaticos.forEach((e) => {
     const nueva = e.copiaDe !== undefined ? datos.estaticos[e.copiaDe].nueva : e.nueva;
-    if (nueva === undefined || nueva === e.actual || e.ignorar || e.huevo) return;
+    if (nueva === undefined || nueva === e.actual || e.ignorar) return;
     if (e.tabla === "zygarde") {
       // La especie, y la forma como «mov r0, #0»
       poner16(sesion.code, e.pos, nueva);
@@ -1417,11 +1501,16 @@ export function leerMovimientos(sesion) {
 function leerTutores(sesion, perfil) {
   const t = perfil.base.tutores;
   if (!t) return { tutor: [] };
-  const marca = buscarCodigo(sesion.code, t.lista.localizador);
+  let marca = buscarCodigo(sesion.code, t.lista.localizador);
+  let desde = t.lista.desde;
+  if (marca < 0 && t.lista.localizadorRandom) {
+    marca = buscarCodigo(sesion.code, t.lista.localizadorRandom);
+    desde = t.lista.localizadorRandom.length / 2;
+  }
   if (marca < 0) throw new Error("No se han encontrado los tutores.");
   const tutor = [];
   const tutorPos = [];
-  for (let pos = marca + t.lista.desde; ; pos += 2) {
+  for (let pos = marca + desde; ; pos += 2) {
     const v = u16(sesion.code, pos);
     if (v === 0xffff) break;
     if (v === t.lista.separador) continue;

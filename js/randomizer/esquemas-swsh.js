@@ -10,6 +10,23 @@ const SUBTABLA = [["LevelMin", "u8"], ["LevelMax", "u8"], ["Slots", { vector: SL
 const TABLA_SALVAJES = [["ZoneID", "u64"], ["SubTables", { vector: SUBTABLA }]];
 export const SALVAJES = [["Field_00", "u32"], ["EncounterTables", { vector: TABLA_SALVAJES }]];
 
+// Las incursiones Dinamax (nest_hole_encount.bin, dentro de data_table.gfpak): una tabla por nido y versión
+const NIDO = [
+  ["EntryIndex", "i32"], ["Species", "i32"], ["Form", "i32"], ["LevelTableID", "u64"], ["Ability", "u8"], ["IsGigantamax", "bool"],
+  ["DropTableID", "u64"], ["BonusTableID", "u64"], ["Probabilities", { vector: "u32" }], ["Gender", "i8"], ["FlawlessIVs", "i8"]
+];
+const TABLA_NIDO = [["TableID", "u64"], ["GameVersion", "i32"], ["Entries", { vector: NIDO }]];
+export const NIDOS = [["Table", { vector: TABLA_NIDO }]];
+
+// La Aventura Dinamax (appli/chika/data_table/underground_exploration_poke.bin)
+const AVENTURA = [
+  ["IsSingleCapture", "bool"], ["SingleCaptureFlagBlock", "u64"], ["Field_02", "u8"], ["Form", "u8"], ["GigantamaxState", "u32"],
+  ["Ball", "u32"], ["IndexNum", "u32"], ["Level", "u32"], ["Species", "i32"], ["UiMessageID", "u64"], ["OT_Gender", "u32"],
+  ["Version", "u8"], ["Shiny", "u32"], ...IVS, ["Ability", "u32"], ["IsStoryProgressGated", "bool"],
+  ["Move0", "u32"], ["Move1", "u32"], ["Move2", "u32"], ["Move3", "u32"]
+];
+export const AVENTURAS = [["Table", { vector: AVENTURA }]];
+
 // Estáticos (script_event_data/event_encount_data.bin)
 const ESTATICO = [
   ["BackgroundFarTypeID", "u64"], ["BackgroundNearTypeID", "u64"],
