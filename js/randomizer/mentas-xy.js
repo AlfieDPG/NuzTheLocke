@@ -1,4 +1,4 @@
-// ---------- Las mentas en X e Y y en Rubí Omega y Zafiro Alfa ----------
+// ---------- Las mentas en 3DS: X e Y, Rubí Omega y Zafiro Alfa, Sol y Luna, Ultrasol y Ultraluna ----------
 //
 // Como ./mentas-gen5.js para la 3DS: 21 objetos nuevos que cambian la naturaleza de un Pokémon del equipo, en los
 // huecos sin usar del 505 al 525 (las Tarjetas de datos de HeartGold y SoulSilver: en X e Y, objetos vacíos con el
@@ -37,7 +37,8 @@ export const ARCHIVOS_MENTAS = {
   oras: { modulo: "DllBag.cro", datos: "a/1/9/7", iconos: "a/0/9/2", nombres: [113, 114, 115, 116], descripcion: 117, bolsa: 164, modelo: 120 },
   // (en Sol y Luna, además, la tabla del bolsillo de cada objeto: medio byte por objeto; la Bolsa busca ahí el objeto para
   // quitarlo al usarlo: sin esto, la menta no se gasta)
-  sm: { modulo: "Bag.cro", datos: "a/0/1/9", iconos: "a/0/6/1", nombres: [36, 37, 38], descripcion: 35, bolsa: 1, modelo: 71, flim: true, bolsillos: "a/1/0/2" }
+  sm: { modulo: "Bag.cro", datos: "a/0/1/9", iconos: "a/0/6/1", nombres: [36, 37, 38], descripcion: 35, bolsa: 1, modelo: 71, flim: true, bolsillos: "a/1/0/2" },
+  usum: { modulo: "Bag.cro", datos: "a/0/1/9", iconos: "a/0/6/1", nombres: [40, 41, 42], descripcion: 39, bolsa: 1, modelo: 71, flim: true, bolsillos: "a/1/0/3" }
 };
 // Los GARC de textos, por idioma (como textoRutas en ./juego-3ds.js): japonés (dos), inglés, francés, italiano, alemán,
 // español, coreano y, en Sol y Luna, chino (dos)
@@ -376,7 +377,7 @@ function iconoMentaFlim(colores, modelo) {
 
 // ---------- Ponerlas ----------
 
-// En la sesión (./rom-3ds.js: Sesion3DS, con el programa y los archivos ya cargados). juego: «xy», «oras» o «sm». Devuelve
+// En la sesión (./rom-3ds.js: Sesion3DS, con el programa y los archivos ya cargados). juego: «xy», «oras», «sm» o «usum». Devuelve
 // false si no se puede
 export function ponerMentasXY(sesion, juego, textoRutas, precio = PRECIO_MENTA_GEN4) {
   const A = ARCHIVOS_MENTAS[juego];

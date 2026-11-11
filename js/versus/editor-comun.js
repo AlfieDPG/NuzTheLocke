@@ -134,10 +134,10 @@ export function objetosDe(juego) {
       // (en la 5.ª, del 505 al 531 no hay nada: eran de HeartGold y SoulSilver, y ahí van las mentas)
       // (en la 5.ª y en 3DS, del 505 al 531 no hay nada: eran de HeartGold y SoulSilver, y ahí van las mentas)
       : genDe(juego) === 5 || genDe(juego) === 6 || genDe(juego) === 7 ? (id) => id < 505 || id > 531 : () => true;
-    // En la 4.ª y la 5.ª generación, X / Y, Rubí Omega / Zafiro Alfa y Sol / Luna, también las mentas que pone el randomizer
+    // De la 4.ª a la 7.ª generación (DS y 3DS), también las mentas que pone el randomizer
     // (js/randomizer/mentas-gen4.js, mentas-gen5.js y mentas-xy.js)
     const ids = [...OBJETOS_EN.keys()].slice(0, LIMITES[juego].objetos + 1);
-    if (genDe(juego) === 4 || genDe(juego) === 5 || juego === "xy" || juego === "oras" || juego === "sm") for (let id = PRIMERA_MENTA; id < PRIMERA_MENTA + 21; id++) ids.push(id);
+    if (genDe(juego) === 4 || genDe(juego) === 5 || genDe(juego) === 6 || genDe(juego) === 7) for (let id = PRIMERA_MENTA; id < PRIMERA_MENTA + 21; id++) ids.push(id);
     ids.forEach((id) => {
       const en = OBJETOS_EN[id];
       if (!id || !en || vistos.has(en) || !existe(id)) return;
@@ -302,9 +302,8 @@ export function bolsilloDe(objetoId, juego = "xy") {
   if (esVitro(juego)) return bolsilloVitro(objetoId) || "objetos";
   const gen = genDe(juego);
   if (gen === 3) return BOLSILLO_GEN3[((delEditor && delEditor.bolsillos) || {})[objetoId]] || "objetos";
-  // Las mentas de la 4.ª y la 5.ª generación, X / Y, Rubí Omega / Zafiro Alfa y Sol / Luna son como el Caramelo Raro: van con
-  // las medicinas
-  if ((gen === 4 || gen === 5 || juego === "xy" || juego === "oras" || juego === "sm") && objetoId >= PRIMERA_MENTA && objetoId < PRIMERA_MENTA + 21) return "medicinas";
+  // Las mentas de la 4.ª a la 7.ª generación son como el Caramelo Raro: van con las medicinas
+  if (gen >= 4 && gen <= 7 && objetoId >= PRIMERA_MENTA && objetoId < PRIMERA_MENTA + 21) return "medicinas";
   if (BOLSILLO_SWITCH[juego]) return BOLSILLO_SWITCH[juego](objetoId) || "objetos";
   const dePokeAPI = ((delEditor && delEditor.bolsillos) || {})[objetoId];
   if (gen === 7 && /ium Z$/.test(OBJETOS_EN[objetoId] || "")) return "cristales";

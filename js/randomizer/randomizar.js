@@ -1101,7 +1101,7 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
   const textoIniciales = r.iniciales.modo !== "no" || r.tipos.modo !== "no";
   M.actualizarTextos(rom, {
     mt: movimientos && r.mt.ataques && !datos.perfil.mtFijas ? movimientos.mt : null,
-    iniciales: textoIniciales ? Object.assign(datos.iniciales.map((id) => ({ tipo: TIPOS_ES[datos.especies[id].tipos[0]] })), { antes: inicialesAntes, ahora: datos.iniciales }) : null,
+    iniciales: textoIniciales ? Object.assign(datos.iniciales.map((id) => ({ tipo: TIPOS_ES[datos.especies[id].tipos[0]], clave: datos.especies[id].tipos[0] })), { antes: inicialesAntes, ahora: datos.iniciales }) : null,
     intercambios: cambiosIntercambio,
     entrenadores: nombresEntrenadores
   });

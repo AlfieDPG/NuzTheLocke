@@ -60,7 +60,7 @@ const XY = {
   // Los textos de todos los idiomas (japonés, japonés, inglés, francés, italiano, alemán, español, coreano)
   textoRutas: ["a/0/7/2", "a/0/7/3", "a/0/7/4", "a/0/7/5", "a/0/7/6", "a/0/7/7", "a/0/7/8", "a/0/7/9"],
   ultimaEspecie: 721, tamDatos: 0x40, ultimoAtaque: 617, ultimaHabilidad: 188, ultimoObjeto: 717,
-  textos: { especies: 80, ataques: 13, habilidades: 34, entrenadores: 21, clases: 20, objetos: 96 },
+  textos: { especies: 80, ataques: 13, habilidades: 34, entrenadores: 21, clases: 20, objetos: 96, tipos: 17 },
   lideres: [6, 76, 21, 22, 23, 24, 25, 26, 269, 271, 187, 270, 276, 303, 525, 526],
   rivales: [...[596, 575, 581, 578, 584, 607, 587, 590, 593, 599, 435, 130, 329, 184, 332, 604, 335, 338, 341, 519, 137, 321].flatMap(tres)],
   grupos: [
@@ -123,7 +123,7 @@ const ORAS = {
   },
   textoRutas: ["a/0/7/1", "a/0/7/2", "a/0/7/3", "a/0/7/4", "a/0/7/5", "a/0/7/6", "a/0/7/7", "a/0/7/8"],
   ultimaEspecie: 721, tamDatos: 0x50, ultimoAtaque: 621, ultimaHabilidad: 191, ultimoObjeto: 775,
-  textos: { especies: 98, ataques: 14, habilidades: 37, entrenadores: 22, clases: 21, objetos: 114 },
+  textos: { especies: 98, ataques: 14, habilidades: 37, entrenadores: 22, clases: 21, objetos: 114, tipos: 18 },
   lideres: [561, 563, 567, 569, 570, 571, 552, 572, 943, 553, 554, 555, 556, 557, 909, 910, 911, 912, 913, 680, 942, 235, 236, 271, 178, 231, 266],
   rivales: [1, 289, 674, 292, 527, 699, 4, 295, 677, 298, 530, 906].flatMap(tres),
   grupos: [
@@ -188,7 +188,7 @@ const SM = {
   },
   textoRutas: ["a/0/3/0", "a/0/3/1", "a/0/3/2", "a/0/3/3", "a/0/3/4", "a/0/3/5", "a/0/3/6", "a/0/3/7", "a/0/3/8", "a/0/3/9"],
   ultimaEspecie: 802, tamDatos: 0x54, ultimoAtaque: 719, ultimaHabilidad: 232, ultimoObjeto: 920, salvajesGrande: "a/0/8/3",
-  textos: { especies: 55, ataques: 113, habilidades: 96, entrenadores: 105, clases: 106, objetos: 36 },
+  textos: { especies: 55, ataques: 113, habilidades: 96, entrenadores: 105, clases: 106, objetos: 36, tipos: 107 },
   lideres: [23, 152, 349, 90, 153, 351, 154, 403, 155, 359, 149, 350, 156, 352, 129, 413, 414, 138, 235, 236, 400, 131, 158],
   rivales: [477, 6, 9, 12, 76, 82, 438, 217, 220, 447, 450, 482, 356].flatMap(tres),
   grupos: [[23, 152, 349], [90, 153, 351], [154, 403], [155, 359], [149, 350], [156, 352]],
@@ -196,7 +196,8 @@ const SM = {
   // Tipo Nulo y Silvally, los Ultraentes, los Tapus, Cosmog y sus evoluciones, Necrozma, Magearna y Marshadow
   legendarios: [772, 773, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802],
   // Las iniciales: los tres primeros regalos del GARC de estáticos (cada 0x14 bytes: especie u16, forma +2, nivel +3)
-  inicialesGarc: { ruta: "a/1/5/5", tam: 0x14, forma: 2, textoHistoria: "a/0/4/6", texto: 41 },
+  // (los textos, en las historias de cada idioma: el 41 es la pantalla de elegir; en el 40, Kukui las presenta)
+  inicialesGarc: { ruta: "a/1/5/5", tam: 0x14, forma: 2, historias: ["a/0/4/0", "a/0/4/1", "a/0/4/2", "a/0/4/3", "a/0/4/4", "a/0/4/5", "a/0/4/6", "a/0/4/7", "a/0/4/8", "a/0/4/9"], texto: 41, pista: true, presentar: { texto: 40, lineas: [15, 17, 19] } },
   // Los estáticos, en el mismo GARC: los regalos (0x14 bytes cada uno; los tres primeros son las iniciales), los
   // encuentros (0x38) sin los tótems ni los aliados, y los intercambios (0x34). «enlazados»: [base, copia] en la
   // lista (regalos y encuentros seguidos), dos entradas que son el mismo Pokémon
@@ -240,7 +241,7 @@ const USUM = {
     ataques: "a/0/1/1", aprende: "a/0/1/3", evoluciones: "a/0/1/4", datos: "a/0/1/7"
   },
   ultimaEspecie: 807, ultimoAtaque: 728, ultimaHabilidad: 233, ultimoObjeto: 959, lusamina: null,
-  textos: { especies: 60, ataques: 118, habilidades: 101, entrenadores: 110, clases: 111, objetos: 40 },
+  textos: { especies: 60, ataques: 118, habilidades: 101, entrenadores: 110, clases: 111, objetos: 40, tipos: 112 },
   lideres: [23, 650, 90, 153, 351, 154, 508, 359, 497, 489, 490, 149, 350, 156, 352, 138, 235, 236, 558, 647, 131, 644],
   rivales: [491, 9, 12, 76, 82, 438, 217, 220, 447, 450, 494, 356, 477].flatMap(tres),
   grupos: [[23, 650], [90, 153, 351], [154, 508], [359, 497], [489, 490], [149, 350], [156, 352]],
@@ -251,7 +252,12 @@ const USUM = {
   // Los de Sol y Luna y Poipole, Naganadel, Stakataka, Blacephalon y Zeraora
   legendarios: [...SM.legendarios, 803, 804, 805, 806, 807],
   habilidadesNunca: [...SM.habilidadesNunca, 232, 233],
-  inicialesGarc: { ruta: "a/1/5/9", tam: 0x14, forma: 2, textoHistoria: "a/0/4/6", texto: 39, lineas: { grito: 4, confirmar: 7, nombre: 14 } },
+  // Las iniciales: en el texto 39, lo que dice Kukui de cada una, sus gritos, la confirmación y los nombres; el 51 es la
+  // pantalla de elegir de Sol y Luna (no se usa: de molde para «Rowlet, de tipo Planta» en cada idioma); en el 38 las presenta
+  inicialesGarc: {
+    ...SM.inicialesGarc, ruta: "a/1/5/9", texto: 39, pista: false, lineas: { grito: 4, confirmar: 7, nombre: 14 }, molde: 51,
+    presentar: { texto: 38, lineas: [11, 13, 15] }
+  },
   estaticos: {
     ruta: "a/1/5/9", textoIntercambios: 14, historia: STORY7,
     saltar: [
@@ -344,7 +350,7 @@ export async function prepararRom(sesion) {
   if (perfil.base.objetos) await sesion.cargar([perfil.base.objetos.datos, ...(perfil.base.objetos.cro ? [perfil.base.objetos.cro] : []), ...(perfil.base.objetos.amx ? [perfil.base.objetos.amx.scripts] : [])]);
   // Los textos de todos los idiomas (para los nombres de los entrenadores)
   await sesion.cargar(perfil.base.textoRutas);
-  if (perfil.base.inicialesGarc) await sesion.cargar([perfil.base.inicialesGarc.ruta, perfil.base.inicialesGarc.textoHistoria]);
+  if (perfil.base.inicialesGarc) await sesion.cargar([perfil.base.inicialesGarc.ruta, ...perfil.base.inicialesGarc.historias]);
   if (perfil.base.estaticos) await sesion.cargar([perfil.base.estaticos.ruta, ...perfil.base.estaticos.historia]);
   if (perfil.base.lusamina) await sesion.cargar([perfil.base.lusamina.cro]);
   if (perfil.base.estaticos6) await sesion.cargar([perfil.base.estaticos6.cro, ...perfil.base.estaticos6.historia]);
@@ -1567,14 +1573,6 @@ export function leerNombresEntrenadores(sesion) {
   const n = nombresDe(sesion, perfil, "entrenadores").length;
   return { nombres: Array.from({ length: n + 1 }, (_, i) => i), clases: Array.from({ length: nombresDe(sesion, perfil, "clases").length }, (_, i) => i) };
 }
-// Cambia unas líneas de un archivo de texto (en español) de un GARC de textos: cambios(lineas) las modifica
-function cambiarTexto(sesion, ruta, indice, cambios) {
-  const garc = leerGarc(sesion.archivo(ruta));
-  const lineas = leerTextos6(garc.archivos[indice]).lineas;
-  cambios(lineas);
-  sesion.cambiar(ruta, crearGarc(sesion.archivo(ruta), { [indice]: escribirTextos6(garc.archivos[indice], lineas) }));
-}
-
 // Que lo que se lee cuadre: las iniciales (nombre y tipo, en la pantalla de elegir) y la descripción de cada MT
 export function actualizarTextos(sesion, { iniciales, mt, entrenadores }) {
   const perfil = perfilDe(sesion);
@@ -1610,42 +1608,95 @@ export function actualizarTextos(sesion, { iniciales, mt, entrenadores }) {
     }));
   }
   if (!iniciales || !iniciales.length || !(b.iniciales || b.inicialesGarc)) return;
-  const nombres = nombresPokemon(sesion);
-  const nuevas = iniciales.ahora.map((id) => nombres[id] || "");
-  if (b.iniciales) {
-    // «Nombre, Pokémon de tipo Planta» (el nombre va como variable; solo cambia el tipo)
-    cambiarTexto(sesion, b.rutas.textoEs, b.iniciales.texto, (t) => {
-      for (let k = 0; k < 3; k++) t[1 + k] = t[1 + k].replace(/tipo \S+$/, `tipo ${iniciales[k].tipo}`);
-    });
-  } else {
-    const hist = b.inicialesGarc;
-    // En la confirmación («¿Te decantas por X, el Pokémon de tipo...?», con la opción de volver atrás) el nombre es una
-    // variable que el script rellena con la especie de siempre: va el nombre de la nueva, escrito
-    const VARIABLE_NOMBRE = /\u0010\u0002ā[\s\S]/;
-    cambiarTexto(sesion, hist.textoHistoria, hist.texto, (t) => {
-      for (let k = 0; k < 3; k++) {
-        t[1 + k] = `${nuevas[k]}, de tipo ${iniciales[k].tipo}`;
-        if (hist.lineas) {
-          // Ultrasol y Ultraluna: gritos, confirmaciones y nombres en otras líneas
-          t[hist.lineas.grito + k] = `¡${nuevas[k]}!`;
-          t[hist.lineas.confirmar + k] = t[hist.lineas.confirmar + k].replace(/de tipo [^\u0000-\u001f?]+\?/, `de tipo ${iniciales[k].tipo}?`).replace(VARIABLE_NOMBRE, nuevas[k]);
-          t[hist.lineas.nombre + k] = nuevas[k];
-          continue;
+  textosIniciales(sesion, b, iniciales);
+}
+
+// Los textos de las iniciales, en todos los idiomas (el juego sale en el de la consola): en cada frase, el nombre y el
+// tipo de la de siempre pasan a ser los de la nueva, sacados de los textos de ese idioma
+const IDIOMA_ES = 6;
+const TIPOS_ANTES = [11, 9, 10]; // Planta, Fuego y Agua
+// (en alemán, delante de «-Pokémon», unos van de otra forma: «das Pflanzen-Pokémon»; si la de siempre iba así, la nueva
+// también)
+const FORMAS_TIPO = { Pflanze: ["Pflanzen"], Drache: ["Drachen"], Fee: ["Feen"] };
+// Sol y Luna: la escena de elegir enseña los modelos de siempre (van en la escena, no se pueden cambiar) y la pregunta del
+// principio dice cuál es cuál
+const PISTA = { 2: "Who will you choose? ", 3: "Qui choisis-tu ? ", 4: "Chi scegli? ", 5: "Wen wählst du? ", 6: "¿Quién te acompañará? " };
+// El nombre como variable, que el script rellena con la especie de siempre (en la confirmación, con la opción de volver
+// atrás): va el de la nueva, escrito
+const VARIABLE_NOMBRE = /\u0010\u0002\u0101[\s\S]/;
+const codigosDelFinal = (linea) => (linea.match(/\u0010[\s\S]*$/) || [""])[0];
+
+function textosIniciales(sesion, b, iniciales) {
+  const hist = b.inicialesGarc;
+  b.textoRutas.forEach((ruta, idioma) => {
+    const juego = leerGarc(sesion.archivo(ruta));
+    const especies = leerTextos6(juego.archivos[b.textos.especies]).lineas;
+    const tipos = leerTextos6(juego.archivos[b.textos.tipos]).lineas;
+    const antes = iniciales.antes.map((id) => especies[id] || "");
+    const nuevas = iniciales.ahora.map((id) => especies[id] || "");
+    const tipoAntes = TIPOS_ANTES.map((t) => tipos[t] || "");
+    const tipoNuevo = iniciales.map((x) => tipos[TIPOS.indexOf(x.clave)] || "");
+    const es = idioma === IDIOMA_ES;
+    // (con marcas de por medio, para que un nombre nuevo no se tome por un tipo, ni al revés)
+    const cambiar = (linea, k, variable = true) => {
+      if (typeof linea !== "string") return linea;
+      let s = linea;
+      const forma = [tipoAntes[k], ...(FORMAS_TIPO[tipoAntes[k]] || [])].filter(Boolean).reverse().find((f) => s.includes(f));
+      const tipo = forma === tipoAntes[k] ? tipoNuevo[k] : (FORMAS_TIPO[tipoNuevo[k]] || [])[0] || tipoNuevo[k];
+      if (forma && tipoNuevo[k]) s = s.split(forma).join("\uf8f0");
+      if (antes[k] && nuevas[k]) s = s.split(antes[k]).join("\uf8f1");
+      if (variable && nuevas[k]) s = s.replace(VARIABLE_NOMBRE, "\uf8f1");
+      return s.split("\uf8f0").join(tipo).split("\uf8f1").join(nuevas[k]);
+    };
+    if (b.iniciales) {
+      // X/Y y ROZA: «Nombre, Pokémon de tipo Planta» (el nombre va como variable y sale bien: solo cambia el tipo)
+      cambiarTextos(sesion, ruta, { [b.iniciales.texto]: (t) => { for (let k = 0; k < 3; k++) t[1 + k] = cambiar(t[1 + k], k, false); } });
+      return;
+    }
+    const historia = hist.historias[idioma];
+    if (!historia) return;
+    const garc = leerGarc(sesion.archivo(historia));
+    const molde = hist.molde !== undefined ? leerTextos6(garc.archivos[hist.molde]).lineas : null;
+    cambiarTextos(sesion, historia, {
+      [hist.texto]: (t) => {
+        for (let k = 0; k < 3; k++) {
+          if (hist.lineas) {
+            // Ultrasol y Ultraluna: lo que dice Kukui al pasar por cada una, «Rowlet, de tipo Planta» (con el código
+            // del final, el de esperar a que pulses), gritos, confirmaciones y nombres
+            if (molde && typeof t[1 + k] === "string") t[1 + k] = cambiar(molde[1 + k], k) + codigosDelFinal(t[1 + k]);
+            if (es) t[hist.lineas.grito + k] = `¡${nuevas[k]}!`;
+            t[hist.lineas.confirmar + k] = cambiar(t[hist.lineas.confirmar + k], k);
+            if (typeof t[hist.lineas.nombre + k] === "string") t[hist.lineas.nombre + k] = nuevas[k];
+            continue;
+          }
+          t[1 + k] = cambiar(t[1 + k], k);
+          t[4 + k] = cambiar(t[4 + k], k);
+          t[11 + k] = cambiar(t[11 + k], k);
+          if (es) {
+            t[14 + k] = `${nuevas[k].slice(0, 3)}...`;
+            t[17 + k] = `¡${nuevas[k]}!`;
+          }
         }
-        t[4 + k] = t[4 + k].replace(/de tipo [^\u0000-\u001f?]+\?/, `de tipo ${iniciales[k].tipo}?`).replace(VARIABLE_NOMBRE, nuevas[k]);
-        t[11 + k] = `¡${nuevas[k]} te está mirando fijamente!`;
-        t[14 + k] = `${nuevas[k].slice(0, 3)}...`;
-        t[17 + k] = `¡${nuevas[k]}!`;
-      }
-      // Sol y Luna: la escena de elegir enseña los modelos de siempre (Rowlet, Litten y Popplio: van en la escena, no se
-      // pueden cambiar) y el nombre de verdad solo sale al confirmar. Así que la pregunta de Kukui dice cuál es cuál (con los
-      // códigos del final, los de esperar a que pulses, como estaban)
-      if (!hist.lineas && /^¿Qué Pokémon/.test(t[0] || "")) {
-        const codigos = (t[0].match(/\u0010[\s\S]*$/) || [""])[0];
-        t[0] = `¿Quién te acompañará? Rowlet: ${nuevas[0]},\nLitten: ${nuevas[1]}, Popplio: ${nuevas[2]}${codigos}`;
-      }
+        if (hist.pista && typeof t[0] === "string") {
+          t[0] = `${PISTA[idioma] || ""}${antes[0]}: ${nuevas[0]},\n${antes[1]}: ${nuevas[1]}, ${antes[2]}: ${nuevas[2]}${codigosDelFinal(t[0])}`;
+        }
+      },
+      // Cuando las presenta: «Ese es Rowlet, un Pokémon de tipo Planta»
+      ...(hist.presentar ? { [hist.presentar.texto]: (t) => hist.presentar.lineas.forEach((l, k) => { t[l] = cambiar(t[l], k); }) } : {})
     });
+  });
+}
+
+// Cambia unas líneas de unos archivos de un GARC de textos: cambios = { archivo: (lineas) => las modifica }
+function cambiarTextos(sesion, ruta, cambios) {
+  const garc = leerGarc(sesion.archivo(ruta));
+  const nuevos = {};
+  for (const [indice, cambio] of Object.entries(cambios)) {
+    const lineas = leerTextos6(garc.archivos[indice]).lineas;
+    cambio(lineas);
+    nuevos[indice] = escribirTextos6(garc.archivos[indice], lineas);
   }
+  sesion.cambiar(ruta, crearGarc(sesion.archivo(ruta), nuevos));
 }
 // Las mentas en la ROM (si la versión lo permite: perfil.mentas)
 export function ponerMentas(sesion) {

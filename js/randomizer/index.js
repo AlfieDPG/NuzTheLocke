@@ -56,8 +56,9 @@ const QUIEN = [["lideres", "Líderes"], ["rivales", "Rivales"], ["normales", "En
 const COMPAT = [["no", "Sin cambios"], ["aleatoria", "Aleatorio"], ["total", "Todos"]];
 const ALEATORIO = [["no", "Sin cambios"], ["azar", "Aleatorio"]];
 const SI_NO = [[false, "Sin cambios"], [true, "Aleatorio"]];
-// Las mentas (objetos de la 8.ª generación que se añaden al juego): de momento, en Rojo Fuego / Verde Hoja, la 4.ª y la 5.ª generación, X / Y, Rubí Omega / Zafiro Alfa y Sol / Luna
-const SIN_MENTAS = ["usum", ...SWITCH];
+// Las mentas (objetos de la 8.ª generación que se añaden al juego): de momento, en Rojo Fuego / Verde Hoja, la 4.ª y la 5.ª generación, X / Y, Rubí Omega / Zafiro Alfa, Sol / Luna y Ultrasol / Ultraluna (en Espada / Escudo y
+// Diamante Brillante / Perla Reluciente ya están)
+const SIN_MENTAS = [...SWITCH];
 // Solo Sol, Luna, Ultrasol y Ultraluna tienen tótems
 const SIN_TOTEMS = ["frlg", "dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", ...SWITCH];
 // Las generaciones a las que se puede actualizar (las de después del juego)
@@ -300,7 +301,7 @@ const PESTANAS = [
         campos: [
           {
             k: "mentas", tipo: "casilla", texto: "Mentas", no: SIN_MENTAS,
-            ayuda: "Añade al juego las 21 mentas de Espada y Escudo: cambian la naturaleza de un Pokémon del equipo (se usan desde la Mochila, como un Caramelo Raro). En Rojo Fuego y Verde Hoja se venden todas en la 5.ª planta del Centro Comercial de Azulona, junto a las vitaminas, a 20.000 ₽ cada una; en Diamante, Perla, Platino, HeartGold, SoulSilver, Negro, Blanco, Negro 2, Blanco 2, X, Y, Rubí Omega, Zafiro Alfa, Sol y Luna, cada una aparece una vez por el camino, en el sitio de otro objeto. Si los objetos del suelo son aleatorios, además sale alguna más."
+            ayuda: "Añade al juego las 21 mentas de Espada y Escudo: cambian la naturaleza de un Pokémon del equipo (se usan desde la Mochila, como un Caramelo Raro). En Rojo Fuego y Verde Hoja se venden todas en la 5.ª planta del Centro Comercial de Azulona, junto a las vitaminas, a 20.000 ₽ cada una; en Diamante, Perla, Platino, HeartGold, SoulSilver, Negro, Blanco, Negro 2, Blanco 2, X, Y, Rubí Omega, Zafiro Alfa, Sol, Luna, Ultrasol y Ultraluna, cada una aparece una vez por el camino, en el sitio de otro objeto. Si los objetos del suelo son aleatorios, además sale alguna más."
           }
         ]
       }
