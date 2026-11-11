@@ -15,7 +15,10 @@ import { JUEGOS_EDITABLES, sePuedeEditar, leerHueco, huecoVacio, editarHuecos } 
 import * as pk3ds from "./pokemon3ds.js";
 import { bolsillosDe, leerMochila, escribirMochila } from "./mochila3ds.js";
 import { mapaDS, leerPartidaDS, entrenadorDS } from "./nds.js";
-import { esPartidaGBA, leerPartidaGBA, CAJAS_GBA } from "./gba.js";
+import { esPartidaGBA, leerPartidaGBA, prepararGBA, CAJAS_GBA } from "./gba.js";
+import { sePuedeEditarGBA, leerHuecoGBA, huecoVacioGBA, editarHuecosGBA, cuantosEquipoGBA, entrenadorGBA } from "./escribirgba.js";
+import { POKEMON_GBA } from "./pokemongba.js";
+import { bolsillosGBA, leerMochilaGBA, escribirMochilaGBA } from "./mochilagba.js";
 import { esPartidaVitro, leerPartidaVitro, prepararVitro, CAJAS_VITRO } from "./vitro.js";
 import {
   POKEMON_VITRO, leerHuecoVitro, huecoVacioVitro, editarHuecosVitro, cuantosEquipoVitro, entrenadorVitro, sePuedeEditarVitro,
@@ -36,7 +39,7 @@ import {
 } from "./bdsp.js";
 
 // Los juegos en los que se puede editar la partida (ids de js/comun/juegos.js)
-export const EDITABLES = [...JUEGOS_EDITABLES, ...JUEGOS_EDITABLES_DS, ...JUEGOS_EDITABLES_SWITCH, "bdsp", "vitro"];
+export const EDITABLES = [...JUEGOS_EDITABLES, ...JUEGOS_EDITABLES_DS, ...JUEGOS_EDITABLES_SWITCH, "bdsp", "vitro", "frlg"];
 
 export const CARAMELO_RARO = 50;
 
@@ -108,9 +111,25 @@ export function formatoDe(bytes) {
       mochila: { bolsillosDe: bolsillosBDSP, leerMochila: leerMochilaBDSP, escribirMochila: escribirMochilaBDSP }
     };
   }
-  // GBA: solo leer (la ventana «Partida» exporta las cajas desde aquí)
+  // GBA (Rojo Fuego / Verde Hoja: ./gba.js, ./escribirgba.js). Antes de leer, await preparar() (géneros, habilidades
+  // y nombres de las especies)
   if (esPartidaGBA(bytes)) {
-    return { id: "frlg", gen: 3, cajas: CAJAS_GBA, cajasAbiertas: () => CAJAS_GBA, leer: leerPartidaGBA, sePuedeEditar: () => false };
+    return {
+      id: "frlg",
+      preparar: prepararGBA,
+      gen: 3,
+      cajas: CAJAS_GBA,
+      cajasAbiertas: () => CAJAS_GBA,
+      leer: leerPartidaGBA,
+      sePuedeEditar: sePuedeEditarGBA,
+      leerHueco: leerHuecoGBA,
+      huecoVacio: huecoVacioGBA,
+      editarHuecos: editarHuecosGBA,
+      cuantosEquipo: cuantosEquipoGBA,
+      entrenadorDe: entrenadorGBA,
+      pokemon: POKEMON_GBA,
+      mochila: { bolsillosDe: bolsillosGBA, leerMochila: leerMochilaGBA, escribirMochila: escribirMochilaGBA }
+    };
   }
   // GS Vitro (fangame de PC, ver ./vitro.js y ./escribirvitro.js). Antes de leer, await preparar()
   if (esPartidaVitro(bytes)) {

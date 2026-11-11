@@ -42,9 +42,11 @@ export function leerTextos6(b) {
   return { lineas };
 }
 
-// El archivo con las líneas nuevas (una cadena por línea, como las de leerTextos6)
+// El archivo con las líneas nuevas (una cadena por línea, como las de leerTextos6). Si hay más textos que líneas, se
+// añaden al final (los mensajes de las mentas: ./mentas-xy.js)
 export function escribirTextos6(original, textos) {
-  const cuantas = u16(original, 2);
+  const antes = u16(original, 2);
+  const cuantas = Math.max(antes, textos.length);
   const todas = Array.from({ length: cuantas }, (_, i) => {
     const c = [...(textos[i] ?? "")].map((x) => x.charCodeAt(0));
     c.push(0);
@@ -64,7 +66,7 @@ export function escribirTextos6(original, textos) {
   todas.forEach((c, i) => {
     poner32(salida, 0x10 + 4 + i * 8, donde);
     poner16(salida, 0x10 + 8 + i * 8, c.length);
-    poner16(salida, 0x10 + 10 + i * 8, u16(original, u32(original, 0x0c) + 10 + i * 8)); // lo que venga detrás, como estaba
+    poner16(salida, 0x10 + 10 + i * 8, i < antes ? u16(original, u32(original, 0x0c) + 10 + i * 8) : 0); // lo que venga detrás, como estaba
     let clave = (0x7c89 + i * 0x2983) & 0xffff;
     c.forEach((x, j) => {
       poner16(salida, 0x10 + donde + j * 2, x ^ clave);

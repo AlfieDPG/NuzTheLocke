@@ -79,7 +79,7 @@ export async function pintarBolsa(contenedor, idLocke) {
     // Los de este bolsillo que existen en el juego y no están ya
     const ya = new Set(lista.map((e) => e.objeto));
     const opciones = objetosDe(juego)
-      .filter((o) => o.id <= LIMITES[juego].objetos && !ya.has(o.id) && bolsilloDe(o.id, juego) === elegido)
+      .filter((o) => !ya.has(o.id) && bolsilloDe(o.id, juego) === elegido)
       .map((o) => {
         // Con el ataque de las MT («MT26 Terremoto»), en el idioma de la web
         const nombre = nombreObjeto(o.id, juego);
@@ -109,12 +109,12 @@ function cambiar(idLocke, hacer, contenedor) {
 }
 
 // Atajo: 999 Caramelos Raros, sin preguntar (van en su bolsillo, que pasa a verse: las medicinas
-// o, en los de Switch, los objetos)
+// o, en los de Switch y en Rojo Fuego, los objetos)
 const CARAMELOS = 999;
 
 async function caramelos(contenedor, idLocke) {
   const juego = formatoDeSeguro(await partidaDeTrabajo(idLocke)).id;
-  elegido = LIMITES[juego].gen === 8 ? bolsilloDe(CARAMELO_RARO, juego) : "medicinas";
+  elegido = LIMITES[juego].gen === 8 || LIMITES[juego].gen === 3 ? bolsilloDe(CARAMELO_RARO, juego) : "medicinas";
   cambiar(idLocke, (m) => {
     const suyo = m[elegido].find((e) => e.objeto === CARAMELO_RARO);
     if (suyo) suyo.cantidad = CARAMELOS;

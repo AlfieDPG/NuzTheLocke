@@ -8,7 +8,7 @@
 // Los offsets son los de los Pokémon de gen 6 y 7 (232 bytes en caja y 260 en el equipo), los
 // mismos que ya lee js/partida/tresds.js.
 
-import { TAM_POKEMON, TAM_POKEMON_EQUIPO } from "./tresds.js";
+import { TAM_POKEMON, TAM_POKEMON_EQUIPO, objetoWeb3DS, objetoJuego3DS } from "./tresds.js";
 import { ritmoDe, experienciaPara, nivelDe } from "./convertir.js";
 
 // Orden de la web (PS, Ataque, Defensa, At. Esp., Def. Esp., Velocidad) -> sitio en el Pokémon
@@ -80,7 +80,7 @@ export function leerEditable(crudo) {
     apodado,
     mote: apodado && !huevo ? texto(v, 0x40, MAX_MOTE) : "", // el de los huevos es «Huevo»
     shiny: esShiny(v),
-    objeto: v.getUint16(0x0a, true),
+    objeto: objetoWeb3DS(v.getUint16(0x0a, true)),
     habilidad: crudo[0x14],
     numHabilidad: crudo[0x15] & 7, // 1, 2 o 4 (la oculta)
     naturaleza: crudo[0x1c],
@@ -125,7 +125,7 @@ export function aplicarEditable(crudo, editable, { base, nombreEspecie, nombreHu
   const hoy = new Date();
 
   v.setUint16(0x08, e.especie, true);
-  v.setUint16(0x0a, e.objeto || 0, true);
+  v.setUint16(0x0a, objetoJuego3DS(e.objeto || 0), true);
   datos[0x14] = e.habilidad;
   datos[0x15] = (datos[0x15] & ~7) | e.numHabilidad;
   datos[0x1c] = e.naturaleza;

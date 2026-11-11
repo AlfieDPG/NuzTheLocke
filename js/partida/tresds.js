@@ -10,6 +10,11 @@ export const TAM_POKEMON = 0xe8; // en las cajas
 export const TAM_POKEMON_EQUIPO = 0x104; // en el equipo (con nivel, PS, estado...)
 export const POR_CAJA = 30;
 
+// Las mentas del randomizer (js/randomizer/mentas-xy.js): en la web, 1231-1251; en el juego, del 505 al 525 (en 3DS no
+// hay nada ahí: eran las Tarjetas de datos de HeartGold y SoulSilver)
+export const objetoWeb3DS = (id) => (id >= 505 && id <= 525 ? 1231 + id - 505 : id);
+export const objetoJuego3DS = (id) => (id >= 1231 && id <= 1251 ? 505 + id - 1231 : id);
+
 // Juegos por tamaño del archivo (id: el de js/comun/juegos.js). Los bloques, por su número
 // en la tabla. firma: dónde va la firma de las partidas de gen 7 (ver escribir3ds.js).
 export const JUEGOS = {
@@ -135,7 +140,7 @@ export function interpretar(v, enEquipo) {
     mote: (ivs >>> 31) ? texto(v, 0x40, 12) : "",
     huevo: Boolean((ivs >>> 30) & 1),
     shiny: (tid ^ sid ^ (pid >>> 16) ^ (pid & 0xffff)) < 16,
-    objeto: v.getUint16(0x0a, true),
+    objeto: objetoWeb3DS(v.getUint16(0x0a, true)),
     habilidad: v.getUint8(0x14),
     naturaleza: v.getUint8(0x1c),
     experiencia: v.getUint32(0x10, true),

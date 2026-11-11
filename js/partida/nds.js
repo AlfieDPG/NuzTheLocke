@@ -240,6 +240,27 @@ export function formaJuego(especie, forma) {
 }
 
 // Lo que se usa de un Pokémon descifrado (como interpretar en tresds.js)
+// Las mentas que pone el randomizer en la 4.ª generación (js/randomizer/mentas-gen4.js): en el juego, los huecos del 113
+// al 133; en la web, 1231-1251. Los demás objetos, con el mismo número
+// Las mentas del randomizer: en la web, 1231-1251; en el juego, del 113 al 133 en la 4.ª generación
+// (js/randomizer/mentas-gen4.js) y del 505 al 525 en la 5.ª (js/randomizer/mentas-gen5.js)
+const PRIMERA_MENTA_DS = { 4: 113, 5: 505 };
+export const objetoWebDS = (gen, id) => {
+  const primera = PRIMERA_MENTA_DS[gen];
+  return primera && id >= primera && id < primera + 21 ? 1231 + id - primera : id;
+};
+export const objetoJuegoDS = (gen, id) => (PRIMERA_MENTA_DS[gen] && id >= 1231 && id <= 1251 ? PRIMERA_MENTA_DS[gen] + id - 1231 : id);
+
+// En la 4.ª generación la naturaleza es el PID % 25 y la menta cambia el PID (la llave): lo que no cambia (entrenador,
+// IV, origen, el byte bajo del PID) es su huella, para reconocerlo (js/partida/partidas.js)
+function huellaDS(v) {
+  let h = 0x811c9dc5;
+  for (const valor of [v.getUint32(0x0c, true), v.getUint32(0x38, true), v.getUint16(0x80, true), v.getUint16(0x46, true), v.getUint16(0x83, true), v.getUint8(0)]) {
+    for (let k = 0; k < 4; k++) h = Math.imul(h ^ ((valor >>> (k * 8)) & 0xff), 0x01000193) >>> 0;
+  }
+  return h;
+}
+
 export function interpretarDS(v, gen, enEquipo) {
   const especie = v.getUint16(0x08, true);
   if (!especie) return null;
@@ -262,7 +283,7 @@ export function interpretarDS(v, gen, enEquipo) {
     mote: (ivs >>> 31) ? texto(v, 0x48, 11) : "",
     huevo: Boolean((ivs >>> 30) & 1),
     shiny: (tid ^ sid ^ (pid >>> 16) ^ (pid & 0xffff)) < 8,
-    objeto: v.getUint16(0x0a, true),
+    objeto: objetoWebDS(gen, v.getUint16(0x0a, true)),
     habilidad: v.getUint8(0x15),
     naturaleza: gen === 4 ? pid % 25 : v.getUint8(0x41),
     experiencia: v.getUint32(0x10, true),
@@ -276,7 +297,8 @@ export function interpretarDS(v, gen, enEquipo) {
     ball: v.getUint8(0x86) || v.getUint8(0x83),
     origen: VERSIONES[v.getUint8(0x5f)] || "",
     entrenador: texto(v, 0x68, 8),
-    llave: pid
+    llave: pid,
+    ...(gen === 4 ? { huella: huellaDS(v) } : {})
   };
   if (enEquipo) {
     p.nivel = v.getUint8(0x8c);

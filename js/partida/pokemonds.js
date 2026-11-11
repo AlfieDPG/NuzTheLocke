@@ -9,7 +9,7 @@
 // que cuadre con todo; y como el PID es también la llave del Pokémon, para la web pasa a ser
 // otro (el editor lo apunta como metido).
 
-import { TAM_POKEMON, formaWeb, formaJuego, codigosTexto, textoGen4, textoGen5 } from "./nds.js";
+import { TAM_POKEMON, formaWeb, formaJuego, codigosTexto, textoGen4, textoGen5, objetoWebDS, objetoJuegoDS } from "./nds.js";
 import { estadisticas } from "./pokemon3ds.js";
 import { ritmoDe, experienciaPara, nivelDe } from "./convertir.js";
 
@@ -123,7 +123,7 @@ export function pokemonDS(juego) {
       apodado,
       mote: apodado && !huevo ? texto(v, 0x48, 11) : "",
       shiny: esShiny(v),
-      objeto: v.getUint16(0x0a, true),
+      objeto: objetoWebDS(gen, v.getUint16(0x0a, true)),
       habilidad: crudo[0x15],
       numHabilidad: numHabilidad(v),
       naturaleza: gen === 4 ? pid % 25 : crudo[0x41],
@@ -154,7 +154,7 @@ export function pokemonDS(juego) {
     const hoy = new Date();
 
     v.setUint16(0x08, e.especie, true);
-    v.setUint16(0x0a, e.objeto || 0, true);
+    v.setUint16(0x0a, objetoJuegoDS(gen, e.objeto || 0), true);
     datos[0x15] = e.habilidad;
     if (gen === 5) {
       datos[0x41] = e.naturaleza;

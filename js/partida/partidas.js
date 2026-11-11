@@ -15,7 +15,7 @@ import { leerPartida3DS, esPartida3DS } from "./tresds.js";
 import { leerPartidaDS, esPartidaDS } from "./nds.js";
 import { leerPartidaSwSh, esPartidaSwSh } from "./switch.js";
 import { leerPartidaBDSP, esPartidaBDSP } from "./bdsp.js";
-import { leerPartidaGBA, esPartidaGBA, prepararGBA } from "./gba.js";
+import { leerPartidaGBA, esPartidaGBA, prepararGBA, avisoGBA } from "./gba.js";
 import { leerPartidaVitro, esPartidaVitro, prepararVitro } from "./vitro.js";
 import { convertirPartida } from "./convertir.js";
 import { cargarPokedex } from "../pokedex/datos.js";
@@ -114,6 +114,35 @@ async function datosDelArbitro() {
   return datos;
 }
 
+// En Rojo Fuego, el PID (la llave de cada Pokémon) cambia al usar una menta del randomizer (el juego le busca otro
+// con la naturaleza nueva: js/randomizer/mentas-gba.js). Si uno ha desaparecido y hay uno nuevo con su misma huella
+// (lo que no cambia: entrenador, IV, origen... ver huellaGen3 en ./gba.js), es el mismo: lo apuntado con la llave
+// vieja (capturas miradas, muertos, creados en la web, lo del árbitro) pasa a la nueva.
+function conLlavesHeredadas(anterior, nueva) {
+  const todos = (p) => [...(p.equipo || []), ...(p.cajas || []).flatMap((caja) => caja.pokemon || [])];
+  const antes = todos(anterior).filter((p) => p.huella);
+  if (!antes.length) return anterior;
+  const ahora = todos(nueva);
+  const llavesAhora = new Set(ahora.map((p) => p.llave));
+  const llavesAntes = new Set(todos(anterior).map((p) => p.llave));
+  const idos = new Map(); // huella -> llave de uno que ya no está
+  for (const p of antes) if (!llavesAhora.has(p.llave)) idos.set(p.huella, p.llave);
+  const cambio = new Map(); // llave vieja -> nueva
+  for (const p of ahora) {
+    if (!p.huella || llavesAntes.has(p.llave) || !idos.has(p.huella)) continue;
+    cambio.set(idos.get(p.huella), p.llave);
+    idos.delete(p.huella);
+  }
+  if (!cambio.size) return anterior;
+  const llave = (l) => (cambio.has(l) ? cambio.get(l) : l);
+  // Las del árbitro: «mote|llave», «nivel|llave|tope»...
+  const enTexto = (texto) => String(texto).split("|").map((parte) => (cambio.has(Number(parte)) && /^\d+$/.test(parte) ? String(cambio.get(Number(parte))) : parte)).join("|");
+  const salida = { ...anterior };
+  for (const campo of ["mirados", "muertosVistos", "creados", "arbitroSinMote"]) if (anterior[campo]) salida[campo] = anterior[campo].map(llave);
+  if (anterior.arbitroVistas) salida.arbitroVistas = anterior.arbitroVistas.map(enTexto);
+  return salida;
+}
+
 // Lee el archivo y lo guarda. Devuelve { partida } o { error } (texto para enseñar; con
 // reintentar o dudoso, puede que a la próxima sí se pueda).
 // enVivo: jugando en la web (js/jugar), { equipo, base }: el equipo de ahora mismo, leído de la
@@ -122,6 +151,9 @@ async function datosDelArbitro() {
 export async function procesarArchivo(locke, bytes, archivo = "", enVivo = null) {
   let leida = null;
   if (bytes) {
+    // Una de No$GBA comprimida con el método que no se sabe leer: qué hacer, sin reintentar
+    const aviso = avisoGBA(bytes);
+    if (aviso) return { error: t(aviso) };
     const lector = lectorDe(bytes);
     // dudoso: puede ser una partida a medio guardar (el emulador escribiendo justo entonces)
     if (!lector) return { error: t("Ese archivo no es una partida que se sepa leer."), dudoso: true };
@@ -140,7 +172,7 @@ export async function procesarArchivo(locke, bytes, archivo = "", enVivo = null)
   }
 
   const nueva = await convertirPartida(leida);
-  const anterior = partidaDe(locke.id) || {};
+  const anterior = conLlavesHeredadas(partidaDe(locke.id) || {}, nueva);
   const cajasMuertos = anterior.juego
     ? cajasMuertosDe(anterior)
     : nueva.cajas.flatMap((caja, i) => (NOMBRE_CEMENTERIO.test(caja.nombre) ? [i] : []));

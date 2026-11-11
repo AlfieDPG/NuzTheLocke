@@ -122,6 +122,10 @@ export default {
   "Siempre hay piedras evolutivas": "Evolution stones always available",
   "Caramelos Raros baratos": "Cheap Rare Candies",
   "Precios equilibrados": "Balanced prices",
+  "Objetos de otras generaciones": "Items from other generations",
+  "Mentas": "Mints",
+  "Añade al juego las 21 mentas de Espada y Escudo: cambian la naturaleza de un Pokémon del equipo (se usan desde la Mochila, como un Caramelo Raro). En Rojo Fuego y Verde Hoja se venden todas en la 5.ª planta del Centro Comercial de Azulona, junto a las vitaminas, a 20.000 ₽ cada una; en Diamante, Perla, Platino, HeartGold, SoulSilver, Negro, Blanco, Negro 2, Blanco 2, X, Y, Rubí Omega, Zafiro Alfa, Sol y Luna, cada una aparece una vez por el camino, en el sitio de otro objeto. Si los objetos del suelo son aleatorios, además sale alguna más.":
+    "Adds the 21 mints from Sword and Shield to the game: they change the nature of a Pokémon in your party (used from the Bag, like a Rare Candy). In FireRed and LeafGreen they're all sold on the 5th floor of the Celadon Dept. Store, next to the vitamins, for ₽20,000 each; in Diamond, Pearl, Platinum, HeartGold, SoulSilver, Black, White, Black 2, White 2, X, Y, Omega Ruby, Alpha Sapphire, Sun and Moon, each one turns up once along the way, in place of another item. If ground items are random, a few more also turn up.",
   "Varios": "Miscellaneous",
   "Pokédex Nacional desde el principio": "National Pokédex from the start",
   "Texto instantáneo": "Instant text",

@@ -6,7 +6,7 @@
 // en HGSS, desde las MT, todo va 4 bytes más adelante que en Platino). Diamante / Perla, como
 // Platino (lo dice PKHeX). Los números de los objetos son los mismos que en gen 6.
 
-import { mapaDS } from "./nds.js";
+import { mapaDS, objetoWebDS, objetoJuegoDS } from "./nds.js";
 import { sePuedeEditarDS, cerrarCambiosDS } from "./escribirds.js";
 
 // id, dónde empieza (desde el principio de la bolsa), cuántos caben y cuántos de cada objeto
@@ -39,7 +39,7 @@ export function bolsillosDS(bytes) {
 }
 
 export function leerMochilaDS(bytes) {
-  const base = mapaDS(bytes).bolsa;
+  const { bolsa: base, gen } = mapaDS(bytes);
   const mochila = {};
   for (const b of bolsillosDS(bytes)) {
     const lista = [];
@@ -47,7 +47,7 @@ export function leerMochilaDS(bytes) {
       const o = base + b.inicio + i * 4;
       const objeto = bytes[o] | (bytes[o + 1] << 8);
       if (!objeto) break;
-      lista.push({ objeto, cantidad: bytes[o + 2] | (bytes[o + 3] << 8) });
+      lista.push({ objeto: objetoWebDS(gen, objeto), cantidad: bytes[o + 2] | (bytes[o + 3] << 8) });
     }
     mochila[b.id] = lista;
   }
@@ -60,7 +60,8 @@ export function escribirMochilaDS(original, mochila) {
 
   const nuevo = original.slice();
   const vista = new DataView(nuevo.buffer, nuevo.byteOffset, nuevo.byteLength);
-  const base = mapaDS(nuevo).bolsa;
+  // El mapa, antes de tocar nada (en cuanto cambia un bolsillo, el checksum ya no cuadra hasta cerrarCambiosDS)
+  const { bolsa: base, gen } = mapaDS(nuevo);
   const tocados = [];
   const limpia = {};
   for (const b of bolsillosDS(nuevo)) {
@@ -71,7 +72,7 @@ export function escribirMochilaDS(original, mochila) {
     if (lista.length > b.caben) throw new Error("No cabe tanto en ese bolsillo.");
     for (let i = 0; i < b.caben; i++) {
       const e = lista[i] || { objeto: 0, cantidad: 0 };
-      vista.setUint16(base + b.inicio + i * 4, e.objeto, true);
+      vista.setUint16(base + b.inicio + i * 4, objetoJuegoDS(gen, e.objeto), true);
       vista.setUint16(base + b.inicio + i * 4 + 2, e.cantidad, true);
     }
     limpia[b.id] = lista;

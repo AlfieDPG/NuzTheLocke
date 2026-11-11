@@ -846,11 +846,15 @@ function sacoDeMT(azar, mts) {
 // Lo que hay por el camino (como el UPR): donde había una MT, otra MT, sin repetir mientras se pueda; en
 // cualquier otro sitio, cualquier objeto que no sea MT (así hay las mismas MT que en el juego), menos los
 // clave (los de la historia, que ni salen ni se mueven) y, si se pide, los inútiles
+// Con las mentas (Rojo Fuego), de vez en cuando una de ellas (las 21 juntas cuentan como una de cada PROB_MENTA)
+const PROB_MENTA = 30;
+
 function randomizarObjetosSuelo(datos, reglas, azar, objetos) {
   const mts = objetosMT(datos);
   const esMT = new Set(mts);
   const otraMT = sacoDeMT(azar, mts);
   const lista = objetos.usables.filter((id) => !(reglas.objetos.sinMalos && objetos.malos.has(id)));
+  const mentas = datos.mentasPuestas || [];
   for (const o of datos.objetosSuelo) {
     const actual = objetos.categoria(o.objeto);
     if (!actual || objetos.clave(o.objeto) || actual === "plot-advancement" || actual === "event-items" || actual === "gameplay") continue;
@@ -859,8 +863,25 @@ function randomizarObjetosSuelo(datos, reglas, azar, objetos) {
       if (esMT.has(o.objeto)) o.objeto = otraMT();
       continue;
     }
-    o.objeto = azar.elegir(lista);
+    o.objeto = mentas.length && azar.entero(PROB_MENTA) === 0 ? azar.elegir(mentas) : azar.elegir(lista);
   }
+}
+
+// Las mentas en la 4.ª generación (./mentas-gen4.js): sus tiendas no tienen sitio para más, así que cada una va al
+// suelo, en el sitio de un objeto normal (nunca uno clave ni una MT)
+function esparcirMentas(datos, azar, objetos) {
+  const NO = new Set(["plot-advancement", "event-items", "gameplay", "all-machines"]);
+  const sitios = datos.objetosSuelo.filter((o) => {
+    const categoria = objetos.categoria(o.objeto);
+    return categoria && !NO.has(categoria) && !objetos.clave(o.objeto) && !datos.mentasPuestas.includes(o.objeto);
+  });
+  azar.barajar(sitios).slice(0, datos.mentasPuestas.length).forEach((o, k) => (o.objeto = datos.mentasPuestas[k]));
+}
+
+// Las mentas (objetos de otra generación: en Rojo Fuego, ver ./mentas-gba.js), todas en su tienda (al final de la lista)
+function venderMentas(datos) {
+  const tienda = datos.tiendas.find((t) => t.indice === datos.perfil.tiendaMentas);
+  if (tienda) tienda.objetos = [...tienda.objetos.filter((id) => id && !datos.mentasPuestas.includes(id)), ...datos.mentasPuestas];
 }
 
 // Las tiendas especiales de la historia y las de MT (las normales no se tocan). Donde se vendía una
@@ -1029,6 +1050,9 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
     if (mtAtaques || tutoresAtaques) M.escribirMovimientos(rom, movimientos, datos.ataques);
   }
   hacer("MO para todos", r.mt.mo && !datos.perfil.sinMT, () => moParaTodos(datos));
+  // Las mentas: antes de repartir lo del suelo (pueden salir ahí)
+  const mentas = r.objetos.mentas && Boolean(datos.perfil.mentas) && !datos.perfil.sinObjetos;
+  if (mentas) datos.mentasPuestas = datos.perfil.mentas;
   hacer("objetos del suelo", r.objetos.suelo && !datos.perfil.sinObjetos && !datos.perfil.sinObjetosSuelo, () => randomizarObjetosSuelo(datos, reglas, azar("suelo"), objetos));
   hacer("tiendas", r.objetos.tiendas && !datos.perfil.sinObjetos, () => randomizarTiendas(datos, reglas, azar("tiendas"), objetos));
   // Los Caramelos Raros antes que las piedras: su tienda puede tener solo dos huecos (en la 4.ª generación) y si las piedras
@@ -1039,6 +1063,7 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
     for (const tienda of [].concat(datos.perfil.tiendas.primera)) venderSiempre(datos, azarCaramelos, [CARAMELO_RARO], tienda);
   }
   hacer("piedras en las tiendas", r.objetos.piedras && !datos.perfil.sinObjetos, () => venderSiempre(datos, azar("piedras"), PIEDRAS_EVOLUTIVAS));
+  hacer("mentas", mentas, () => (datos.perfil.mentasEnSuelo ? esparcirMentas(datos, azar("mentas"), objetos) : venderMentas(datos)));
   hacer("precios", r.objetos.precios && !datos.perfil.sinObjetos, () => equilibrarPrecios(datos, objetos));
   hacer("Caramelos Raros baratos", caramelos, () => {
     datos.precios[CARAMELO_RARO] = datos.perfil.preciosEnDecenas === false ? PRECIO_CARAMELO * 10 : PRECIO_CARAMELO;
@@ -1046,6 +1071,7 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
   // (antes de escribir los scripts)
   hacer("Pokédex Nacional", r.varios.pokedex, () => M.ponerPokedexNacional(datos));
   M.escribirBW2(rom, datos);
+  if (mentas) M.ponerMentas(rom);
 
   // Los nombres de los entrenadores (se escriben con los demás textos, al final)
   let nombresEntrenadores = null;

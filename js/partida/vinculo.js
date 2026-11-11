@@ -51,6 +51,7 @@ let alCambiarEstado = () => {};
 let temporizador = null;
 
 export function estadoVinculo(idLocke) {
+  if (fuentes.has(idLocke)) return "vigilando";
   const vinculo = vinculos.get(idLocke);
   if (!vinculo) return "";
   if (vinculo.leyendo) return "leyendo"; // recién elegido, la primera lectura aún no ha acabado
@@ -166,6 +167,15 @@ export async function pedirPermiso(idLocke) {
 }
 
 export async function escribirPartida(idLocke, editar) {
+  const fuente = fuentes.get(idLocke);
+  if (fuente) {
+    const original = await fuente.leer();
+    const nuevo = await editar(original);
+    await guardarCopia(idLocke, original, fuente.nombre || "");
+    await fuente.escribir(nuevo);
+    alCambiarEstado();
+    return nuevo;
+  }
   const vinculo = await pedirPermiso(idLocke);
   const archivo = await vinculo.archivo.getFile();
   const original = new Uint8Array(await archivo.arrayBuffer());
@@ -181,8 +191,35 @@ export async function escribirPartida(idLocke, editar) {
   return nuevo;
 }
 
+// ---------- Partidas que no vienen de un archivo ----------
+//
+// La del emulador de la web (js/jugar): se edita con la misma ventana y el mismo editor que una vinculada, con un
+// id propio («jugar:...»). fuente: { leer: async () => bytes, escribir: async (bytes), idLocke (el locke que sigue
+// esa partida, o ""), nombre }. Para la web está siempre «vigilando» (se puede editar).
+
+const fuentes = new Map();
+
+export function registrarFuente(id, fuente) {
+  fuentes.set(id, fuente);
+}
+
+export function quitarFuente(id) {
+  fuentes.delete(id);
+}
+
+export function fuenteDe(id) {
+  return fuentes.get(id) || null;
+}
+
+// El locke al que va lo de esa partida (lo apuntado, la actividad): el mismo id o, en una fuente, el suyo ("" sin locke)
+export function lockeDeLaPartida(id) {
+  const fuente = fuentes.get(id);
+  return fuente ? fuente.idLocke || "" : id;
+}
+
 // La partida tal y como está ahora en el disco (para el editor, que siempre parte de ella)
 export async function leerArchivo(idLocke) {
+  if (fuentes.has(idLocke)) return fuentes.get(idLocke).leer();
   const vinculo = vinculos.get(idLocke);
   if (!vinculo || vinculo.permiso !== "granted") throw new Error("La partida no está vinculada.");
   return new Uint8Array(await (await vinculo.archivo.getFile()).arrayBuffer());

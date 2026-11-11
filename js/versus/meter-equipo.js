@@ -9,8 +9,8 @@ import { escaparHTML } from "../comun/utilidades.js";
 import { icono } from "../comun/iconos.js";
 import { carasDeEquipo, elegirEquipo } from "../comun/elegir-equipo.js";
 import { poner, huecoLibre, llaveDe } from "../partida/huecos.js";
-import { partidaDe } from "../partida/partidas.js";
-import { prepararDatos, nombreEspecie, nombreHuevo, editableDeEquipo, cambiarHuecos } from "./editor-comun.js";
+import { formatoDeSeguro } from "../partida/formato.js";
+import { prepararDatos, nombreEspecie, nombreHuevo, editableDeEquipo, cambiarHuecos, partidaDeTrabajo } from "./editor-comun.js";
 import { confirmar } from "../comun/ventanas.js";
 import { t } from "../comun/idioma.js";
 
@@ -51,8 +51,8 @@ async function leerEquipo() {
 }
 
 async function meter() {
-  const juego = (partidaDe(idLocke) || {}).juego;
   await prepararDatos();
+  const juego = formatoDeSeguro(await partidaDeTrabajo(idLocke)).id;
   const equipo = await leerEquipo();
   const problemas = [...equipo.problemas];
   const listos = [];

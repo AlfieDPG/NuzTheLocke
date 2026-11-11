@@ -43,6 +43,11 @@ export default {
   "Emulador de la web": "Site emulator",
   "No se ha podido arrancar el emulador.": "Couldn't start the emulator.",
   "Todavía no hay partida guardada: guarda en el juego primero.": "There's no save yet: save in the game first.",
+  "Se edita la partida tal y como la guardaste por última vez en el juego. Al guardar los cambios, el juego vuelve a empezar desde ella: lo que hayas jugado sin guardar se pierde.":
+    "You'll edit the save as you last saved it in the game. When you save the changes, the game restarts from it: anything you played without saving is lost.",
+  "El juego se ha cerrado: vuelve a abrirlo y edita otra vez.": "The game was closed: open it again and edit again.",
+  "Las mentas no funcionan con esta ROM: en el juego saldrán como un objeto desconocido.": "Mints don't work with this ROM: in the game they'll show up as an unknown item.",
+  "No se ha podido abrir la partida.": "Couldn't open the save.",
   "La partida que hay ahora se cambiará por la del archivo y el juego volverá a empezar. ¿Seguro?":
     "The current save will be replaced by the one in the file and the game will restart. Are you sure?",
   "Nueva partida": "New game",

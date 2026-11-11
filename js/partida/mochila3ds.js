@@ -12,7 +12,7 @@
 // Como en ./escribir3ds.js, nada se da por bueno: se vuelve a leer y fuera de los bolsillos (y
 // de los checksums de la tabla) no puede haber cambiado nada.
 
-import { JUEGOS, bloques, leerPartida3DS } from "./tresds.js";
+import { JUEGOS, bloques, leerPartida3DS, objetoWeb3DS, objetoJuego3DS } from "./tresds.js";
 import { sePuedeEditar, checksumsBien, arreglarChecksums, zonasDeChecksums } from "./escribir3ds.js";
 
 // id, dónde empieza, cuántos caben y cuántos de cada objeto como mucho
@@ -65,16 +65,16 @@ function inicioBloque(bytes) {
 
 // Cada hueco: { objeto, cantidad, resto } (resto: los bits de encima, solo en gen 7)
 function leerHueco(vista, posicion, gen) {
-  if (gen !== 7) return { objeto: vista.getUint16(posicion, true), cantidad: vista.getUint16(posicion + 2, true), resto: 0 };
+  if (gen !== 7) return { objeto: objetoWeb3DS(vista.getUint16(posicion, true)), cantidad: vista.getUint16(posicion + 2, true), resto: 0 };
   const x = vista.getUint32(posicion, true);
-  return { objeto: x & 0x3ff, cantidad: (x >>> 10) & 0x3ff, resto: x & 0xfff00000 };
+  return { objeto: objetoWeb3DS(x & 0x3ff), cantidad: (x >>> 10) & 0x3ff, resto: x & 0xfff00000 };
 }
 
 function ponerHueco(vista, posicion, gen, { objeto, cantidad, resto = 0 }) {
   if (gen !== 7) {
-    vista.setUint16(posicion, objeto, true);
+    vista.setUint16(posicion, objetoJuego3DS(objeto), true);
     vista.setUint16(posicion + 2, cantidad, true);
-  } else vista.setUint32(posicion, objeto ? (objeto | (cantidad << 10) | resto) >>> 0 : 0, true);
+  } else vista.setUint32(posicion, objeto ? (objetoJuego3DS(objeto) | (cantidad << 10) | resto) >>> 0 : 0, true);
 }
 
 // { objetos: [{ objeto, cantidad }], medicinas: [...], ... } en el orden en que están

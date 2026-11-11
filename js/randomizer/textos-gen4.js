@@ -39,7 +39,7 @@ const LARGO_MAXIMO = Math.max(...[...A_CODIGO.keys()].map((t) => t.length));
 export function aCodigos(texto) {
   let salida = "";
   for (let i = 0; i < texto.length; ) {
-    if (texto[i] === "`n") {
+    if (texto[i] === "\n") {
       salida += String.fromCharCode(0xe000);
       i++;
       continue;
@@ -114,9 +114,10 @@ export function leerTextos4(datos) {
   return { entradas, clave };
 }
 
-// El archivo con los textos nuevos: una cadena por entrada (como las de leerTextos4). Nunca comprime.
+// El archivo con los textos nuevos: una cadena por entrada (como las de leerTextos4). Nunca comprime. Si hay más
+// textos que entradas tenía, se añaden al final (los mensajes de las mentas: ./mentas-gen4.js)
 export function escribirTextos4(original, textos) {
-  const cuantas = u16(original, 0);
+  const cuantas = Math.max(u16(original, 0), textos.length);
   const todos = Array.from({ length: cuantas }, (_, i) => {
     const codigos = [...(textos[i] ?? "")].map((c) => c.charCodeAt(0));
     codigos.push(0xffff);

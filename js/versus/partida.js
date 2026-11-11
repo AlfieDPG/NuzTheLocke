@@ -26,7 +26,7 @@ import { tieneMedallas } from "../comun/medallas.js";
 import { textoInfraccion } from "../partida/infracciones.js";
 import {
   sePuedeVigilar, cargarVinculos, vincular, reanudar, desvincular, leerUnaVez, estadoVinculo,
-  copiasDe, restaurarCopia
+  copiasDe, restaurarCopia, fuenteDe, lockeDeLaPartida
 } from "../partida/vinculo.js";
 import { EDITABLES, formatoDeSeguro } from "../partida/formato.js";
 import { POR_CAJA } from "../partida/tresds.js";
@@ -38,7 +38,7 @@ import { iniciarEditor, abrirEditor, cerrarEditor, editorEnLado, sitioEditando, 
 import { iniciarMeter, abrirMeter } from "./meter-equipo.js";
 import {
   prepararDatos, cambiarHuecos, comprobarSitio, hayCambios, cuantosCambios, vistaConCambios, guardarCambios, descartarCambios, alCambiarBorrador,
-  bytesComoSeVen
+  bytesComoSeVen, leerPartidaSuelta, partidaGuardada
 } from "./editor-comun.js";
 import {
   sePuedeLeer, partidaDe, procesarArchivo, olvidarPartida, cajasMuertosDe, alternarCajaMuertos, muertosSinApuntar,
@@ -55,6 +55,7 @@ let idAbierto = null; // locke de la ventana «Partida»
 let idMuertos = null; // locke de la ventana de los muertos
 let propuestos = [];
 let pestana = "cajas"; // en la ventana «Partida»: «cajas» o «bolsa»
+let alCerrarSuelta = null; // con una partida suelta (la de «Jugar»), lo que se hace al cerrar la ventana
 
 function misMuertos(locke) {
   return muertosDe(locke, usuarioActual().uid);
@@ -239,17 +240,20 @@ function textoSitio(sitio) {
 }
 
 function pintarPartida() {
-  const guardada = partidaDe(idAbierto);
+  const guardada = partidaGuardada(idAbierto);
   const locke = lockePorId(idAbierto);
-  if (!guardada || !locke) {
+  // Suelta: la del emulador de la web («Jugar»), sin archivo vinculado ni cajas de muertos; se edita siempre
+  const suelta = Boolean(fuenteDe(idAbierto));
+  if (!guardada || (!locke && !suelta)) {
     dialogo.close();
     return;
   }
+  for (const clase of [".partida-vincular", ".partida-desvincular", ".partida-buscar"]) dialogo.querySelector(clase).hidden = suelta;
   // Con cambios sin guardar, se ve la partida con ellos (las cajas de muertos, las de siempre)
   const conCambios = vistaConCambios(idAbierto);
   const partida = conCambios ? { ...guardada, ...conCambios, cajasMuertos: cajasMuertosDe(guardada) } : guardada;
 
-  const conSitio = editable(locke);
+  const conSitio = suelta ? EDITABLES.includes(guardada.juego) : editable(locke);
   if (!conSitio) pestana = "cajas";
   // El hueco del editor, a la derecha de las cajas, ya desde que se abre (en la bolsa no hace falta)
   reservarEditor(conSitio && pestana === "cajas");
@@ -273,9 +277,11 @@ function pintarPartida() {
   // Cambios sin guardar: se guardan al cerrar (o se descartan)
   const pendientes = cuantosCambios(idAbierto);
   dialogo.classList.toggle("con-cambios", pendientes > 0);
-  dialogo.querySelector(".partida-pendientes").textContent = pendientes
-    ? t(pendientes === 1 ? "{n} cambio sin guardar: se guardan al cerrar (con el juego cerrado)" : "{n} cambios sin guardar: se guardan al cerrar (con el juego cerrado)", { n: pendientes })
-    : "";
+  dialogo.querySelector(".partida-pendientes").textContent = !pendientes
+    ? ""
+    : suelta
+      ? t(pendientes === 1 ? "{n} cambio sin guardar: al cerrar se guarda y el juego vuelve a empezar" : "{n} cambios sin guardar: al cerrar se guardan y el juego vuelve a empezar", { n: pendientes })
+      : t(pendientes === 1 ? "{n} cambio sin guardar: se guardan al cerrar (con el juego cerrado)" : "{n} cambios sin guardar: se guardan al cerrar (con el juego cerrado)", { n: pendientes });
   // Con cambios, el botón de cerrar pasa a ser uno de guardar (icono y texto): así se ve que es
   // por donde se guardan; sin cambios, la ✕ de siempre
   const cerrar = dialogo.querySelector(".partida-cerrar");
@@ -313,8 +319,8 @@ function pintarPartida() {
             ${bloqueada ? `<span class="partida-candado" title="${t("Bloqueada en el juego")}">${icono("candado")}</span>` : ""}
             ${escaparHTML(caja.nombre)} <small>${caja.pokemon.length}</small>
             ${caja.pokemon.length ? `<button class="partida-exportar" data-caja="${i}" title="${t("Copiar la caja como paste de Showdown")}">${icono("copiar")} ${t("Exportar")}</button>` : ""}
-            <button class="partida-marcar-muertos ${muertos ? "activa" : ""}" data-caja="${i}" aria-pressed="${muertos}"
-                    title="${muertos ? t("Ya no es caja de muertos") : t("Marcar como caja de muertos")}">${icono("calavera")} ${t("Muertos")}</button>
+            ${suelta ? "" : `<button class="partida-marcar-muertos ${muertos ? "activa" : ""}" data-caja="${i}" aria-pressed="${muertos}"
+                    title="${muertos ? t("Ya no es caja de muertos") : t("Marcar como caja de muertos")}">${icono("calavera")} ${t("Muertos")}</button>`}
           </h3>
           <div class="partida-pokemon">
             ${caja.pokemon.map((p) => ficha(p, conSitio ? `c${i}-${p.hueco}` : "")).join("")}
@@ -416,9 +422,17 @@ export function abrirPartida(id) {
   if (!dialogo.open) pestana = "cajas";
   idAbierto = id;
   pintarPartida();
-  if (partidaDe(id) && !dialogo.open) dialogo.showModal();
+  if (partidaGuardada(id) && !dialogo.open) dialogo.showModal();
   // Lo que necesita el editor, ya mientras se miran las cajas: así el primero abre al momento
   prepararDatos().catch((error) => console.error(error));
+}
+
+// Una partida suelta (la del emulador de la web: js/jugar), ya registrada como fuente en js/partida/vinculo.js.
+// alCerrar(): al cerrar la ventana (se haya guardado o no)
+export async function abrirPartidaSuelta(id, alCerrar) {
+  await Promise.all([leerPartidaSuelta(id), prepararDatos()]);
+  alCerrarSuelta = alCerrar;
+  abrirPartida(id);
 }
 
 // Guarda los cambios (si hay) y cierra. Si no se puede guardar, se queda abierta.
@@ -468,9 +482,10 @@ async function buscarEquipo() {
 }
 
 async function copiarEquipo() {
-  const partida = partidaDe(idAbierto);
+  const partida = partidaGuardada(idAbierto);
   const locke = lockePorId(idAbierto);
-  if (!partida || !locke) return;
+  const fuente = fuenteDe(idAbierto);
+  if (!partida || (!locke && !fuente)) return;
   const boton = dialogo.querySelector(".partida-copiar");
   boton.disabled = true;
   try {
@@ -480,7 +495,7 @@ async function copiarEquipo() {
       cargarDatos()
     ]);
     await prepararConversion();
-    const { problemas } = await anadirEquipoDesdePaste(pasteDeEquipo(partida.equipo), locke.nombre);
+    const { problemas } = await anadirEquipoDesdePaste(pasteDeEquipo(partida.equipo), locke ? locke.nombre : fuente.nombre);
     sumarContador("copiar-partida"); // para los logros
     avisarVentana(problemas.length
       ? `${t("Copiado a «Mis equipos», pero algunas cosas no se han podido reconocer:")}\n\n• ${problemas.join("\n• ")}`
@@ -515,7 +530,7 @@ async function exportarCaja(boton) {
   boton.disabled = true;
   try {
     await prepararConversion();
-    const vista = vistaConCambios(id) || partidaDe(id);
+    const vista = vistaConCambios(id) || partidaGuardada(id);
     let pokemon = ((vista && vista.cajas[posicion]) || {}).pokemon || [];
     let completa = false;
     if (estadoVinculo(id) === "vigilando") {
@@ -585,7 +600,8 @@ async function restaurar(boton) {
   try {
     await restaurarCopia(id, Number(boton.dataset.clave));
     dialogoCopias.close();
-    await apuntarSuceso(id, "edicion", { detalle: t("vuelta a como estaba el {fecha}", { fecha }) });
+    const idLocke = lockeDeLaPartida(id);
+    if (idLocke) await apuntarSuceso(idLocke, "edicion", { detalle: t("vuelta a como estaba el {fecha}", { fecha }) });
   } catch (error) {
     boton.disabled = false;
     if (error && error.name === "AbortError") return;
@@ -662,6 +678,11 @@ export function iniciarPartida(alRepintar, alAvisar) {
     if (editorEnLado()) cerrarEditor();
     if (hayCambios(idAbierto)) descartarCambios();
     idAbierto = null;
+    if (alCerrarSuelta) {
+      const alCerrar = alCerrarSuelta;
+      alCerrarSuelta = null;
+      alCerrar();
+    }
   });
   dialogo.querySelector(".partida-descartar").addEventListener("click", async () => {
     if (!(await confirmar(t("¿Descartar los cambios sin guardar?")))) return;

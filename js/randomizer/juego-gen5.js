@@ -29,6 +29,11 @@ import { descomprimirLZ } from "./lz.js";
 import { perfilDe, JUEGOS_GEN5 } from "./perfiles-gen5.js";
 import { IPS, aplicarIPS } from "./parches-gen5.js";
 import { ponerHierbaEnPueblos as hierbaEnPueblos } from "./hierba-gen5.js";
+import { ponerMentasGen5, mentasPosiblesGen5, mentasYaPuestasGen5, PRIMERA_MENTA_GEN5, MENTAS_GEN5 } from "./mentas-gen5.js";
+
+// Las mentas (./mentas-gen5.js): en la web, 1231-1251; en el juego, en los huecos del 505 al 525
+const PRIMERA_MENTA_WEB = 1231;
+const objetoAlJuego = (id) => (id >= PRIMERA_MENTA_WEB && id < PRIMERA_MENTA_WEB + MENTAS_GEN5 ? PRIMERA_MENTA_GEN5 + id - PRIMERA_MENTA_WEB : id);
 
 export const ULTIMA_ESPECIE = 649;
 export const ULTIMO_ATAQUE = 559;
@@ -312,7 +317,12 @@ export function leerBW2(rom) {
   const precios = narcs.objetos.archivos.map((o) => (o.length >= 2 ? u16(o, 0) : 0));
 
   return {
-    perfil,
+    // Las mentas, si en esta versión se pueden poner: por el suelo, como en la 4.ª generación
+    perfil: {
+      ...perfil,
+      mentas: mentasYaPuestasGen5(rom) || mentasPosiblesGen5(rom) ? Array.from({ length: MENTAS_GEN5 }, (_, k) => PRIMERA_MENTA_WEB + k) : null,
+      mentasEnSuelo: true
+    },
     narcs,
     especies: leerEspecies(narcs),
     aprende: leerAprende(narcs),
@@ -582,7 +592,7 @@ export function escribirBW2(rom, datos) {
     }
   });
 
-  for (const o of datos.objetosSuelo) poner16(narcs.scripts.archivos[o.archivo], o.pos, o.objeto);
+  for (const o of datos.objetosSuelo) poner16(narcs.scripts.archivos[o.archivo], o.pos, objetoAlJuego(o.objeto));
 
   // Claros ocultos (solo Negro 2 y Blanco 2)
   let clarosCambian = false;
@@ -766,6 +776,11 @@ export function ponerHierbaEnPueblos(rom) {
 // siguiente sin esperar al próximo fotograma (el «bne» de 0xB8 bytes más allá salta atrás).
 const ESPERA_TEXTO = hex("a87f002800d081e0");
 const DE_ESPERA_A_SIGUIENTE = 0xb8;
+
+// Las mentas en la ROM (si la versión lo permite: perfil.mentas)
+export function ponerMentas(rom) {
+  return ponerMentasGen5(rom, { leerNarc, crearNarc, leerTextos, escribirTextos });
+}
 
 export function ponerTextoRapido(rom) {
   const arm9 = rom.leerArm9();

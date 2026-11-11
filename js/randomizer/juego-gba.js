@@ -20,6 +20,7 @@
 //     una apunta a su ratio y a sus huecos (nivel mínimo, máximo y especie)
 
 import { ESPECIES_GEN3, OBJETOS_GEN3, LETRAS_GEN3 } from "../partida/datos-gba.js";
+import { ponerMentas as instalarMentas, direccionesMentas, PRIMERA_MENTA_WEB, MENTAS, TIENDA_MENTAS } from "./mentas-gba.js";
 
 export const ULTIMA_ESPECIE = 386;
 export const ULTIMO_ATAQUE = 354;
@@ -180,7 +181,9 @@ const nacionalDe = (interna) => (interna <= 251 ? interna : ESPECIES_GEN3[intern
 const AL_JUEGO = new Map(); // objeto de la web -> el del juego
 OBJETOS_GEN3.forEach((web, juego) => web && !AL_JUEGO.has(web) && AL_JUEGO.set(web, juego));
 const objetoWeb = (juego) => OBJETOS_GEN3[juego] || 0;
-const objetoJuego = (web) => AL_JUEGO.get(web) || 0;
+// (las mentas, ./mentas-gba.js, solo existen si se ponen: del 226 en adelante, por orden)
+const esMenta = (web) => web >= PRIMERA_MENTA_WEB && web < PRIMERA_MENTA_WEB + MENTAS;
+const objetoJuego = (web) => AL_JUEGO.get(web) || (esMenta(web) ? 226 + web - PRIMERA_MENTA_WEB : 0);
 
 // ---------- Textos ----------
 
@@ -234,7 +237,10 @@ export function perfilDe(rom) {
     sinSalvajes: [201],
     preciosEnDecenas: false,
     tiendas: { normales: TIENDAS_NORMALES, mt: [11], historia: TIENDAS_ESPECIALES, primera: TIENDA_VERDE, saltar: [], cuantas: 23 },
-    objetosInexistentes: (id) => !AL_JUEGO.has(id)
+    objetosInexistentes: (id) => !AL_JUEGO.has(id),
+    // Las mentas (objetos de la 8.ª generación: ./mentas-gba.js), si en esta versión se pueden poner, y dónde se venden
+    mentas: direccionesMentas(rom, tablas(rom).objetos) ? Array.from({ length: MENTAS }, (_, k) => PRIMERA_MENTA_WEB + k) : null,
+    tiendaMentas: TIENDA_MENTAS
   };
 }
 
@@ -771,6 +777,11 @@ export function ponerTextoRapido(rom) {
 // Se pone al escribir (necesita espacio libre)
 export function ponerPokedexNacional(datos) {
   datos.bd.pokedex = true;
+}
+
+// Las mentas en la tabla de objetos, con su dibujo y su programa (si la versión lo permite: perfil.mentas)
+export function ponerMentas(rom) {
+  return instalarMentas(rom, tablas(rom).objetos);
 }
 
 export function ponerAspectoIniciales() {} // el dibujo y el grito salen solos de la especie

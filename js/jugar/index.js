@@ -13,6 +13,8 @@
 //         captura, un nivel, una evolución) también se pasa, sin esperar a que guardes; y si uno se
 //         queda a 0 PS, se avisa al momento para apuntarlo en el cementerio. En DS, mientras no se
 //         encuentre en la memoria, el de la partida guardada (cada vez que guardas en el juego).
+//   · «Editar» (debajo de la pantalla): la partida guardada, en la misma ventana de cajas, bolsa y editor que una
+//     partida vinculada en «Lockes» (js/versus/partida.js), sin locke ni archivo. Ver editarPartida.
 //   · Los controles los pone la web (no los de EmulatorJS, que se esconden): el teclado (./ajustes.js, se puede
 //     cambiar), un mando táctil en el móvil y, debajo de la pantalla, pausa, velocidad, volumen, directo, pantalla
 //     completa y «⋯» (filtro, pantallas de DS, teclas). Los mandos de verdad los sigue llevando EmulatorJS (con los
@@ -35,9 +37,9 @@ import { convertirPartida } from "../partida/convertir.js";
 import { esPartidaDS, leerPartidaDS, equipoEnEstadoDS, buscarEquiposDS } from "../partida/nds.js";
 import { nombreDeJuego } from "../comun/juegos.js";
 import { medallasDelJuego } from "../comun/medallas.js";
-import { entregarPartida } from "../partida/vinculo.js";
+import { entregarPartida, registrarFuente, quitarFuente } from "../partida/vinculo.js";
 import { partidaDe, marcarMuertosVistos } from "../partida/partidas.js";
-import { listaDePartidas, datosDe, romDe, savDe, crearPartida, cambiarPartida, guardarSav, borrarPartida } from "./partidas.js";
+import { listaDePartidas, datosDe, romDe, savDe, crearPartida, cambiarPartida, guardarSav, guardarRom, borrarPartida } from "./partidas.js";
 import { firmwareDS } from "./firmware-ds.js";
 import { emitiendo, empezarDirecto, acabarDirecto, pintarCajaDirecto } from "./directo.js";
 import {
@@ -620,6 +622,7 @@ function pintarControles() {
       <input type="range" min="0" max="1" step="0.05" value="${ajustes.silencio ? 0 : ajustes.volumen}" aria-label="${t("Volumen")}">
     </span>
     <span class="jugar-grupo">
+      ${boton("jugar-editar", "lapiz", t("Editar"), { activo: Boolean(partida.editando) })}
       ${boton("jugar-directo-boton", "directo", emitiendo() ? t("En directo") : t("Emitir"), { activo: emitiendo() })}
       ${boton("jugar-ampliar", "ampliar", t("Pantalla completa"), { soloIcono: true })}
       <button class="jugar-opciones" title="${t("Más opciones")}" aria-label="${t("Más opciones")}" aria-haspopup="true">${icono("puntos")}</button>
@@ -688,6 +691,8 @@ async function empezar(id) {
       avisar(t("No se encuentra esa partida en este navegador."));
       return;
     }
+    // Con mentas metidas desde «Editar» y una ROM que no las tiene: se le ponen
+    await mentasSiHacenFalta(id, rom, await savDe(id), datos.consola || "gba");
     // El locke solo se sigue si es tuyo y está en marcha (si no, se juega igual, sin apuntar nada)
     const sigue = Boolean(datos.idLocke) && lockesJugables().some((locke) => locke.id === datos.idLocke);
     const idLocke = sigue ? datos.idLocke : "";
@@ -1277,6 +1282,11 @@ function alPulsarControl(boton) {
   const emulador = partida && partida.emulador;
   if (!emulador) return;
   if (boton.matches(".jugar-velocidad")) return abrirVelocidades(boton);
+  if (boton.matches(".jugar-editar")) {
+    boton.blur();
+    editarPartida().catch((error) => console.error(error));
+    return;
+  }
   if (boton.matches(".jugar-opciones")) return abrirOpciones(boton);
   if (boton.matches(".jugar-pausa")) {
     partida.pausado = !partida.pausado;
@@ -1300,6 +1310,110 @@ function alPulsarControl(boton) {
   // El foco, fuera del botón: que Espacio o Intro no lo vuelvan a pulsar
   boton.blur();
   pintarControles();
+}
+
+// Si la partida lleva mentas (metidas desde «Editar») y la ROM no las tiene, se le ponen a la ROM y se guarda
+// (./mentas.js: Rojo Fuego y la 4.ª generación). true si la ROM ha cambiado
+async function mentasSiHacenFalta(id, rom, sav, consola) {
+  if (!sav || !rom) return false;
+  const M = await import("./mentas.js");
+  if (!(await M.partidaConMentas(sav, consola)) || (await M.romConMentas(rom.bytes, consola))) return false;
+  const bytes = await M.ponerMentasEnRom(rom.bytes, consola);
+  if (!bytes) {
+    avisar(t("Las mentas no funcionan con esta ROM: en el juego saldrán como un objeto desconocido."));
+    return false;
+  }
+  rom.bytes = bytes;
+  await guardarRom(id, rom);
+  return true;
+}
+
+// ---------- Editar la partida ----------
+//
+// La partida guardada (la que tiene ahora el emulador) se abre en la ventana de cajas, bolsa y editor de «Lockes»
+// (js/versus/partida.js) como una «fuente» (js/partida/vinculo.js): sin archivo ni locke. Mientras, el juego en
+// pausa. Al guardar (al cerrar la ventana), la partida editada entra en el emulador y el juego vuelve a empezar desde
+// ella: lo jugado sin guardar se pierde, como al cargar un .sav. Si la partida sigue un locke, lo editado se apunta en
+// su actividad, y lo metido desde la web no cuenta como captura.
+
+async function editarPartida() {
+  const esta = partida;
+  const emulador = esta && esta.emulador;
+  if (!emulador || esta.editando) return;
+  let sav = null;
+  try {
+    sav = partidaDelEmulador();
+  } catch (error) {
+    console.error(error);
+  }
+  if (!partidaValida(esta.consola, sav)) {
+    avisar(t("Todavía no hay partida guardada: guarda en el juego primero."));
+    return;
+  }
+  soltarTodo();
+  const aviso = t("Se edita la partida tal y como la guardaste por última vez en el juego. Al guardar los cambios, el juego vuelve a empezar desde ella: lo que hayas jugado sin guardar se pierde.");
+  if (!(await confirmar(aviso, { aceptar: t("Editar") }))) return;
+  if (partida !== esta || esta.emulador !== emulador) return;
+
+  const yaEnPausa = esta.pausado;
+  if (!yaEnPausa) {
+    esta.pausado = true;
+    emulador.pause();
+  }
+  esta.editando = true;
+  pintarControles();
+
+  const id = `jugar:${esta.clave}`;
+  let actual = sav.slice();
+  registrarFuente(id, {
+    idLocke: esta.idLocke,
+    nombre: esta.nombre,
+    leer: async () => actual,
+    escribir: async (bytes) => {
+      if (partida !== esta || !esta.emulador) throw new Error(t("El juego se ha cerrado: vuelve a abrirlo y edita otra vez."));
+      actual = bytes.slice();
+      // Con mentas nuevas que la ROM no tiene, se le ponen: el juego vuelve a arrancar entero (con la ROM nueva y esta
+      // partida) al cerrar la ventana
+      if (await mentasSiHacenFalta(esta.clave, await romDe(esta.clave), bytes, esta.consola)) {
+        await guardarSav(esta.clave, bytes);
+        await cambiarPartida(esta.clave, { forzarSav: true });
+        olvidarResumen(esta.clave);
+        resumenGuardado.delete(esta.clave);
+        esta.reiniciar = true;
+        return;
+      }
+      escribirPartidaEnEmulador(esta.emulador.gameManager, bytes);
+      esta.sav = bytes.slice();
+      esta.ultimaSav = bytes.slice();
+      await guardarSav(esta.clave, esta.sav);
+      olvidarResumen(esta.clave);
+      resumenGuardado.delete(esta.clave);
+      entregar();
+    }
+  });
+  const alCerrar = () => {
+    quitarFuente(id);
+    esta.editando = false;
+    if (esta.reiniciar && partida === esta) {
+      parar(false);
+      empezar(esta.clave);
+      return;
+    }
+    if (partida === esta && esta.emulador && !yaEnPausa) {
+      esta.pausado = false;
+      esta.emulador.play();
+    }
+    if (partida === esta) pintarControles();
+  };
+  try {
+    await prepararSeccion("versus");
+    const { abrirPartidaSuelta } = await import("../versus/partida.js");
+    await abrirPartidaSuelta(id, alCerrar);
+  } catch (error) {
+    console.error(error);
+    alCerrar();
+    avisar(t("No se ha podido abrir la partida."));
+  }
 }
 
 // guardarAntes: una última copia de la partida antes de apagar

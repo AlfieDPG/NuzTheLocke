@@ -653,10 +653,16 @@ button.locke-anadir .icono {
   opacity: 0.6;
 }
 
+/* Un poco de aire entre la foto y el nombre (como en las fichas de «Amigos»): los dibujos de
+   algunos marcos sobresalen, y ahí asoma también el adorno izquierdo de algunos títulos */
 .locke-persona {
   display: flex;
   align-items: center;
   gap: 0.7rem;
+}
+
+.locke-persona > .locke-cara {
+  margin-right: 0.35rem;
 }
 
 .locke-pendiente {
@@ -690,12 +696,20 @@ button.locke-anadir .icono {
 /* El nombre y, debajo, su título (si lleva). El título va fuera del nombre para que no se
    tache con él si está eliminado */
 .locke-nombre-caja {
+  position: relative;
+  z-index: 1;   /* (por encima de los dibujos del marco, si llegan) */
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.25rem;
+}
+
+/* La plaquita del título empieza justo donde el nombre, tenga o no adorno a la izquierda (el
+   adorno asoma hacia la foto, sin empujarla) */
+.locke-nombre-caja .perfil-titulo.placa-adornada {
+  margin-inline: 0 var(--adorno-derecha, 0em);
 }
 
 .locke-quien {

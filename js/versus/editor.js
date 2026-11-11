@@ -20,11 +20,10 @@ import { NATURALEZAS, incrustarEntreno, opcionesNaturaleza } from "../equipos/en
 import { mirar, poner, huecoLibre, llaveDe } from "../partida/huecos.js";
 import { ppMaximos } from "../partida/pokemon3ds.js";
 import { formatoDeSeguro } from "../partida/formato.js";
-import { partidaDe } from "../partida/partidas.js";
 import {
   LIMITES, infoAtaques, prepararDatos, nombreEspecie, nombreHuevo, objetosDe, hastaLimite, objeto, habilidad,
   ataque, balls, cargarInfoAtaque, formasDe, datosEspecie, ataquesDeNivel, generoAlAzar, comprobarSitio, cambiarHuecos, partidaDeTrabajo, urlsIconoDe, iconoDe,
-  VERSIONES, versionesDe, lugaresDe, lugarIntercambio, nombreLugar, creadoEnWeb
+  VERSIONES, versionesDe, lugaresDe, lugarIntercambio, nombreLugar, creadoEnWeb, partidaGuardada
 } from "./editor-comun.js";
 import { confirmar } from "../comun/ventanas.js";
 import { t, nombre as nombreDe } from "../comun/idioma.js";
@@ -400,7 +399,7 @@ function sinAceptar() {
 
 // El nivel con el que salen los nuevos: el del más alto del equipo
 function nivelInicial(idLocke) {
-  const equipo = (partidaDe(idLocke) || {}).equipo || [];
+  const equipo = (partidaGuardada(idLocke) || {}).equipo || [];
   return Math.max(5, ...equipo.filter((p) => !p.huevo).map((p) => p.nivel || 0));
 }
 
@@ -446,7 +445,7 @@ export async function abrirEditor(idLocke, sitio, recargar = false) {
     if (!crudo) {
       // Los creados aquí: conocidos «en NuzTheLocke», del entrenador de la partida
       const poke = { especie: 0, mote: "", shiny: false, objeto: 0, huevo: false, ball: 4, ataques: [null, null, null, null] };
-      Object.assign(poke, { lugar: lugarIntercambio(formato.id), version: "lockedex", entrenador: (partidaDe(idLocke) || {}).entrenador || "", creado: true });
+      Object.assign(poke, { lugar: lugarIntercambio(formato.id), version: "lockedex", entrenador: (partidaGuardada(idLocke) || {}).entrenador || "", creado: true });
       abierto = { ...base, llave: 0, antes: null, poke };
       pintar();
       entrar(recargar);
@@ -504,9 +503,13 @@ function editableDe(poke) {
   };
 }
 
+// idioma: el del Pokémon (en Rojo Fuego los huevos son japoneses: se usa el de la partida, que es el que tendrá al
+// nacer)
 function opcionesDe(poke, idioma) {
-  return { base: poke.stats, nombreEspecie: nombreEspecie(poke.especie, idioma), nombreHuevo: nombreHuevo(idioma), generoRatio: poke.generoRatio };
+  return { base: poke.stats, nombreEspecie: nombreEspecie(poke.especie, idioma), nombreHuevo: nombreHuevo(idioma), generoRatio: poke.generoRatio, idioma };
 }
+
+const JAPONES = 1;
 
 // La especie ({ es, en }) por su número
 function especieDatos(id) {
@@ -566,7 +569,7 @@ async function guardar() {
   await cambiarHuecos(idLocke, (h) => {
     comprobarSitio(h, sitio, llave);
     const pk = h.formato.pokemon;
-    const idioma = antes ? antes.idioma : h.formato.entrenadorDe(h.bytes).idioma;
+    const idioma = antes && !(h.formato.gen === 3 && antes.idioma === JAPONES) ? antes.idioma : h.formato.entrenadorDe(h.bytes).idioma;
     const opciones = opcionesDe(poke, idioma);
     if (antes) {
       const cambiado = pk.aplicarEditable(mirar(h, sitio), despues, opciones);

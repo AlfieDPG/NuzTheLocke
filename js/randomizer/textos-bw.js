@@ -96,16 +96,25 @@ function comprimir(codigos) {
   return salida;
 }
 
+// La clave con la que empieza cada entrada (de una a la siguiente, + 0x2983)
+const claveDeEntrada = (j) => (0x7c89 + j * 0x2983) & 0xffff;
+
 // El archivo con los textos nuevos (una cadena por entrada, como las de leerTextos). Lo que no
-// cambia se queda igual; lo que cambia se comprime si lo estaba (así el archivo no crece).
+// cambia se queda igual; lo que cambia se comprime si lo estaba (así el archivo no crece). Si hay
+// más textos que entradas, se añaden al final (los mensajes de las mentas: ./mentas-gen5.js; solo
+// en los archivos de una sección, que son los de todos los idiomas salvo el japonés)
 export function escribirTextos(original, textos) {
   const leido = leerTextos(original);
+  if (textos.length > leido.entradas.length && leido.secciones !== 1) throw new Error("No se pueden añadir textos a este archivo.");
+  for (let j = leido.entradas.length; j < textos.length; j++) {
+    leido.entradas.push({ texto: null, clave: claveDeEntrada(j), algo: 0, comprimido: false, crudo: new Uint8Array(0) });
+  }
   const cuantas = leido.entradas.length;
   const inicio = u32(original, 12);
   const tamOriginal = u32(original, inicio);
 
   const cifradas = leido.entradas.map((e, j) => {
-    const texto = textos[j] ?? e.texto;
+    const texto = textos[j] ?? e.texto ?? "";
     if (texto === e.texto) return Array.from({ length: e.crudo.length / 2 }, (_, k) => u16(e.crudo, k * 2));
     let codigos = [...texto].map((c) => c.charCodeAt(0));
     if (e.comprimido) codigos = comprimir(codigos) || codigos;
@@ -143,6 +152,7 @@ export function escribirTextos(original, textos) {
   salida.set(original.subarray(0, inicio));
   salida.set(seccion, inicio);
   salida.set(original.subarray(inicio + tamOriginal), inicio + tamSeccion);
+  poner16(salida, 2, cuantas);
   poner32(salida, 4, tamSeccion);
   if (leido.secciones === 2) poner32(salida, 16, u32(original, 16) - tamOriginal + tamSeccion);
   return salida;

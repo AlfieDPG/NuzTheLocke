@@ -13,15 +13,16 @@ import { cargarPokedex } from "../pokedex/datos.js";
 import { NATURALEZAS, entrenoDe } from "../equipos/entreno.js";
 import { apuntarSuceso } from "../comun/lockes.js";
 import { sumarContador } from "../comun/contadores.js";
-import { leerArchivo, escribirPartida } from "../partida/vinculo.js";
+import { leerArchivo, escribirPartida, lockeDeLaPartida } from "../partida/vinculo.js";
 import { abrirHuecos, escribirHuecos, mirar, llaveDe } from "../partida/huecos.js";
 import { formatoDeSeguro } from "../partida/formato.js";
-import { marcarMetidos, marcarCreados, esCreado } from "../partida/partidas.js";
+import { marcarMetidos, marcarCreados, esCreado, partidaDe } from "../partida/partidas.js";
 import { FORMAS, convertirPartida, lugarEnIngles } from "../partida/convertir.js";
 import { t, enIngles, nombre as nombreDe } from "../comun/idioma.js";
 import { OBJETOS_EN, LUGARES_GEN6, LUGARES_GEN7 } from "../partida/datos-3ds.js";
 import { LUGARES_GEN4, LUGARES_GEN4_OTROS, LUGARES_GEN5, LUGARES_GEN5_OTROS } from "../partida/datos-ds.js";
 import { LUGARES_GEN8, LUGARES_BDSP, LUGARES_BDSP_OTROS } from "../partida/datos-switch.js";
+import { LUGARES_GEN3, OBJETOS_PARTIDA_GEN3 } from "../partida/datos-gba.js";
 import { bolsilloSwSh } from "../partida/mochilaswitch.js";
 import { bolsilloBDSP } from "../partida/bdsp.js";
 import { cargarDatosEditor, GRUPOS } from "../partida/datos-editor.js";
@@ -32,7 +33,12 @@ import {
 
 // Cada juego que se edita: su generación y lo último que existe en él (números de especie,
 // objeto, ataque, habilidad y ball). lugares: hasta qué número de lugar es suyo (gen 4 y 5).
+const PRIMERA_MENTA = 1231; // las mentas en la web (de la 1231 a la 1251)
+
 export const LIMITES = {
+  // Rojo Fuego / Verde Hoja: los objetos, los que tienen número en el juego (con las mentas del randomizer, que
+  // van del 1231 al 1251: ../partida/datos-gba.js); balls, hasta la Ball Honor
+  frlg: { gen: 3, especies: 386, objetos: 1251, ataques: 354, habilidades: 76, balls: 12, lugares: Infinity },
   dp: { gen: 4, especies: 493, objetos: 464, ataques: 467, habilidades: 123, balls: 16, lugares: 111 },
   platino: { gen: 4, especies: 493, objetos: 467, ataques: 467, habilidades: 123, balls: 16, lugares: 125 },
   hgss: { gen: 4, especies: 493, objetos: 536, ataques: 467, habilidades: 123, balls: 24, lugares: Infinity },
@@ -62,8 +68,9 @@ function genDe(juego) {
   return (LIMITES[juego] || {}).gen || 6;
 }
 
-// Los lugares especiales «intercambio» de cada generación (los creados en la web)
-const INTERCAMBIO = { 4: 2002, 5: 30003, 6: 30001, 7: 30001, 8: 30001 };
+// Los lugares especiales «intercambio» de cada generación (los creados en la web; en la 3.ª, «de un intercambio
+// dentro del juego»)
+const INTERCAMBIO = { 3: 0xfe, 4: 2002, 5: 30003, 6: 30001, 7: 30001, 8: 30001 };
 
 // Hasta gen 6 no se pueden elegir las formas de Alola ni las de gen 7
 const ULTIMA_FORMA_GEN6 = 10090;
@@ -122,8 +129,17 @@ export function objetosDe(juego) {
     // En Espada / Escudo no están todos los de antes (los cristales Z, por ejemplo)
     const existe = BOLSILLO_SWITCH[juego]
       ? (id) => Boolean(BOLSILLO_SWITCH[juego](id))
-      : esVitro(juego) ? (id) => existeEnVitro("objetos", id) : () => true;
-    OBJETOS_EN.slice(0, LIMITES[juego].objetos + 1).forEach((en, id) => {
+      : esVitro(juego) ? (id) => existeEnVitro("objetos", id)
+      : genDe(juego) === 3 ? (id) => OBJETOS_PARTIDA_GEN3.has(id)
+      // (en la 5.ª, del 505 al 531 no hay nada: eran de HeartGold y SoulSilver, y ahí van las mentas)
+      // (en la 5.ª y en 3DS, del 505 al 531 no hay nada: eran de HeartGold y SoulSilver, y ahí van las mentas)
+      : genDe(juego) === 5 || genDe(juego) === 6 || genDe(juego) === 7 ? (id) => id < 505 || id > 531 : () => true;
+    // En la 4.ª y la 5.ª generación, X / Y, Rubí Omega / Zafiro Alfa y Sol / Luna, también las mentas que pone el randomizer
+    // (js/randomizer/mentas-gen4.js, mentas-gen5.js y mentas-xy.js)
+    const ids = [...OBJETOS_EN.keys()].slice(0, LIMITES[juego].objetos + 1);
+    if (genDe(juego) === 4 || genDe(juego) === 5 || juego === "xy" || juego === "oras" || juego === "sm") for (let id = PRIMERA_MENTA; id < PRIMERA_MENTA + 21; id++) ids.push(id);
+    ids.forEach((id) => {
+      const en = OBJETOS_EN[id];
       if (!id || !en || vistos.has(en) || !existe(id)) return;
       vistos.add(en);
       const es = (buscarPorNombreIngles(datos.objetos, en) || {}).es || en;
@@ -206,6 +222,19 @@ export function lugaresDe(juego) {
     lista.push({ id: LUGAR_INTERCAMBIO_VITRO, es: "Intercambio", en: "Link Trade", buscar: "intercambio link trade" });
     listas.set(clave, lista);
   }
+  // Rojo Fuego: los de Kanto y las Islas Sete (sin repetir nombre; el de los intercambios, al final)
+  if (!listas.has(clave) && genDe(juego) === 3) {
+    const vistos = new Set();
+    const lista = [];
+    for (const [numero, es] of Object.entries(LUGARES_GEN3)) {
+      if (Number(numero) === INTERCAMBIO[3] || vistos.has(es)) continue;
+      vistos.add(es);
+      const en = lugarEnIngles(es, juego);
+      lista.push({ id: Number(numero), es, en, buscar: quitarAcentos(`${es} ${en}`) });
+    }
+    lista.push({ id: INTERCAMBIO[3], es: "Intercambio", en: "Link Trade", buscar: "intercambio link trade" });
+    listas.set(clave, lista);
+  }
   if (!listas.has(clave)) {
     const gen = genDe(juego);
     const tabla = juego === "bdsp" ? LUGARES_BDSP : { 4: LUGARES_GEN4, 5: LUGARES_GEN5, 6: LUGARES_GEN6, 7: LUGARES_GEN7, 8: LUGARES_GEN8 }[gen];
@@ -239,6 +268,7 @@ function nombreLugarEs(numero, creado = false, juego = "xy") {
   }
   const gen = genDe(juego);
   if (creado && numero === INTERCAMBIO[gen]) return "NuzTheLocke";
+  if (gen === 3) return LUGARES_GEN3[numero] || (numero ? `Lugar ${numero}` : "");
   if (gen === 4) return LUGARES_GEN4[numero] || LUGARES_GEN4_OTROS[numero] || (numero ? `Lugar ${numero}` : "");
   if (gen === 5) return LUGARES_GEN5[numero] || LUGARES_GEN5_OTROS[numero] || (numero ? `Lugar ${numero}` : "");
   if (numero === INTERCAMBIO[6] || numero === 30002) return "Intercambio";
@@ -252,7 +282,7 @@ function nombreLugarEs(numero, creado = false, juego = "xy") {
 export function creadoEnWeb(idLocke, llave) {
   const b = borrador && borrador.idLocke === idLocke ? borrador : null;
   if (b && b.noCreados.includes(llave)) return false;
-  return Boolean((b && b.creados.includes(llave)) || esCreado(idLocke, llave));
+  return Boolean((b && b.creados.includes(llave)) || esCreado(lockeDeLaPartida(idLocke), llave));
 }
 
 // ---------- Bolsa ----------
@@ -265,9 +295,16 @@ const BOLSILLO_GEN4 = { 3: "balls", 6: "cartas", 7: "combate" };
 // Los que en gen 6 van en otro: Repartir Experiencia (clave) y Caramelo Furia (medicinas)
 const BOLSILLO_EN_GEN6 = { 216: "clave", 504: "medicinas" };
 
+// En Rojo Fuego no hay bolsillo de medicinas, cartas ni objetos de combate: van con los objetos
+const BOLSILLO_GEN3 = { 3: "balls", 4: "mt", 5: "bayas", 8: "clave" };
+
 export function bolsilloDe(objetoId, juego = "xy") {
   if (esVitro(juego)) return bolsilloVitro(objetoId) || "objetos";
   const gen = genDe(juego);
+  if (gen === 3) return BOLSILLO_GEN3[((delEditor && delEditor.bolsillos) || {})[objetoId]] || "objetos";
+  // Las mentas de la 4.ª y la 5.ª generación, X / Y, Rubí Omega / Zafiro Alfa y Sol / Luna son como el Caramelo Raro: van con
+  // las medicinas
+  if ((gen === 4 || gen === 5 || juego === "xy" || juego === "oras" || juego === "sm") && objetoId >= PRIMERA_MENTA && objetoId < PRIMERA_MENTA + 21) return "medicinas";
   if (BOLSILLO_SWITCH[juego]) return BOLSILLO_SWITCH[juego](objetoId) || "objetos";
   const dePokeAPI = ((delEditor && delEditor.bolsillos) || {})[objetoId];
   if (gen === 7 && /ium Z$/.test(OBJETOS_EN[objetoId] || "")) return "cristales";
@@ -352,8 +389,9 @@ function nombreDeForma(fila) {
 // juego: el de la partida (sin él, todas: para las estadísticas de lo que ya está en ella)
 export function formasDe(especie, juego) {
   const lista = [{ forma: 0, texto: "Normal" }];
-  // Vitro numera las formas a su manera: no se eligen (se queda la que tenga)
-  if (esVitro(juego)) return lista;
+  // Vitro numera las formas a su manera: no se eligen (se queda la que tenga). En Rojo Fuego, la letra de Unown
+  // sale del PID y Deoxys cambia según el juego: tampoco
+  if (esVitro(juego) || (juego && genDe(juego) === 3)) return lista;
   if (especie === 493) {
     lista[0].texto = t("Tipo {tipo}", { tipo: tiposEs.normal });
     formasDeTipoDe(493).forEach((f, i) =>
@@ -532,6 +570,26 @@ export async function editableDeEquipo(p, juego) {
   };
 }
 
+// ---------- Partidas sueltas ----------
+//
+// La del emulador de la web (js/jugar, ver «fuentes» en js/partida/vinculo.js) no está guardada con un locke
+// (partidas.js): se lee de sus bytes al abrir la ventana, y así se pinta igual que una vinculada.
+
+const sueltas = new Map(); // id -> la partida convertida (como las de partidas.js)
+
+export async function leerPartidaSuelta(id) {
+  const bytes = await leerArchivo(id);
+  const formato = formatoDeSeguro(bytes);
+  if (formato.preparar) await formato.preparar();
+  sueltas.set(id, { ...(await convertirPartida(formato.leer(bytes))), actualizada: Date.now() });
+  return sueltas.get(id);
+}
+
+// La partida tal y como está guardada (sin los cambios de la ventana): la del locke o la suelta
+export function partidaGuardada(id) {
+  return sueltas.get(id) || partidaDe(id);
+}
+
 // ---------- Cambios sin guardar ----------
 //
 // Los cambios no se escriben uno a uno: se hacen sobre una copia en memoria de la partida (el
@@ -622,17 +680,19 @@ export async function cambiarPartida(idLocke, transformar, detalle = "") {
   alCambiar();
 }
 
-// Escribe todos los cambios en el archivo. Tiene que ser con un clic (el permiso).
-export async function guardarCambios(idLocke) {
-  if (!hayCambios(idLocke)) return;
+// Escribe todos los cambios en el archivo. Tiene que ser con un clic (el permiso). idLocke: el de la partida (en
+// la de «Jugar», «jugar:...»: lo apuntado va a su locke, si sigue uno)
+export async function guardarCambios(idPartida) {
+  if (!hayCambios(idPartida)) return;
+  const idLocke = lockeDeLaPartida(idPartida);
   const b = borrador;
-  await escribirPartida(idLocke, (enDisco) => {
+  await escribirPartida(idPartida, (enDisco) => {
     if (enDisco.length !== b.base.length || enDisco.some((byte, i) => byte !== b.base[i])) {
       throw new Error(t("La partida del disco ha cambiado desde que empezaste (¿has guardado en el juego?). Descarta los cambios y vuelve a hacerlos con el juego cerrado."));
     }
-    if (b.metidos.length) marcarMetidos(idLocke, b.metidos);
-    if (b.creados.length) marcarCreados(idLocke, b.creados);
-    if (b.noCreados.length) marcarCreados(idLocke, b.noCreados, false);
+    if (idLocke && b.metidos.length) marcarMetidos(idLocke, b.metidos);
+    if (idLocke && b.creados.length) marcarCreados(idLocke, b.creados);
+    if (idLocke && b.noCreados.length) marcarCreados(idLocke, b.noCreados, false);
     return b.bytes;
   });
   if (borrador === b) borrador = null;
@@ -645,5 +705,5 @@ export async function guardarCambios(idLocke) {
   const { leerMochila } = formato.mochila;
   const bolsa = b.detalles.includes(BOLSA) ? resumenMochila(leerMochila(b.base), leerMochila(b.bytes), formato.id) : "";
   const detalles = [...new Set(b.detalles.filter((d) => d !== CAMBIOS_DE_SITIO && d !== BOLSA)), ...(bolsa ? [bolsa] : [])];
-  await apuntarSuceso(idLocke, "edicion", { detalle: detalles.length ? detalles.join("; ") : t(CAMBIOS_DE_SITIO) });
+  if (idLocke) await apuntarSuceso(idLocke, "edicion", { detalle: detalles.length ? detalles.join("; ") : t(CAMBIOS_DE_SITIO) });
 }

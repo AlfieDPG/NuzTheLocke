@@ -273,58 +273,82 @@ export function comprimirLZ11(b) {
   return s.subarray(0, p);
 }
 
+// A cuántos bytes va alineado cada archivo de un GARC: en la versión 6 (Sol y Luna), lo dice su cabecera (en 0x20: casi
+// siempre 4, pero 128 en algunos, como el de las zonas: si no se respeta, el juego se queda colgado al cargar el mapa);
+// en la 4, a 4
+function alineacionGarc(b) {
+  return (u16(b, 0x0a) >= 0x0600 && u32(b, 0x20)) || 4;
+}
+
 // Un GARC nuevo a partir del original, con otros archivos (nuevos[i] sustituye al primer subarchivo de la
-// entrada i; el resto de entradas y subarchivos se quedan). Cada archivo, alineado a 4 bytes.
+// entrada i; el resto de entradas y subarchivos se quedan; un i de más, una entrada nueva al final: los iconos de las
+// mentas, ./mentas-xy.js). Cada archivo, alineado como diga el GARC (alineacionGarc).
 export function crearGarc(b, nuevos) {
   const g = leerGarc(b);
-  const cabeza = u32(b, 4);
-  const fato = cabeza;
-  const cuantos = u16(b, fato + 8);
+  const fato = u32(b, 4);
   const fatb = fato + u32(b, fato + 4);
-  const tamFatb = u32(b, fatb + 4);
-  const fimb = fatb + tamFatb;
-  // Los archivos de cada entrada, ya con los cambios
-  const lista = g.entradas.map((subs, i) => subs.map((s, k) => (k === 0 && nuevos[i] ? nuevos[i] : b.subarray(s.desde, s.desde + s.largo))));
+  const fimb = fatb + u32(b, fatb + 4);
+  const original = g.entradas.length;
+  const extra = Object.keys(nuevos).map(Number).filter((i) => i >= original);
+  const cuantos = extra.length ? Math.max(...extra) + 1 : original;
+  if (extra.some((i) => !nuevos[i]) || (extra.length && extra.length !== cuantos - original)) throw new Error("Las entradas nuevas del GARC tienen que ir seguidas.");
+  // Los archivos de cada entrada, ya con los cambios (y los bits de qué subarchivos tiene)
+  const lista = [];
+  const bitsDe = [];
+  let q = fatb + 12;
+  g.entradas.forEach((subs, i) => {
+    bitsDe.push(u32(b, q));
+    q += 4 + subs.length * 12;
+    lista.push(subs.map((x, k) => (k === 0 && nuevos[i] ? nuevos[i] : b.subarray(x.desde, x.desde + x.largo))));
+  });
+  for (let i = original; i < cuantos; i++) {
+    bitsDe.push(1);
+    lista.push([nuevos[i]]);
+  }
+  const alinear = alineacionGarc(b);
   let datos = 0;
   let mayor = 0;
   const posiciones = lista.map((subs) =>
     subs.map((x) => {
-      const p = { desde: datos, fin: datos + x.length, largo: x.length };
-      datos += Math.ceil(x.length / 4) * 4;
-      mayor = Math.max(mayor, Math.ceil(x.length / 4) * 4);
+      const p = { desde: datos, fin: datos + Math.ceil(x.length / alinear) * alinear, largo: x.length }; // (el fin, con el relleno, como en los del juego)
+      datos += Math.ceil(x.length / alinear) * alinear;
+      mayor = Math.max(mayor, Math.ceil(x.length / alinear) * alinear);
       return p;
     })
   );
-  const cabezaFatb = 12;
-  let tamEntradas = 0;
-  g.entradas.forEach((subs) => (tamEntradas += 4 + subs.length * 12));
-  const nuevoTamFatb = cabezaFatb + tamEntradas;
-  const dataOffset = fatb + nuevoTamFatb + 12;
+  const tamFato = 12 + cuantos * 4;
+  const tamFatb = 12 + lista.reduce((t, subs) => t + 4 + subs.length * 12, 0);
+  const nuevoFatb = fato + tamFato;
+  const nuevoFimb = nuevoFatb + tamFatb;
+  const dataOffset = nuevoFimb + 12;
   const total = dataOffset + datos;
   const s = new Uint8Array(total);
-  s.set(b.subarray(0, fato + u32(b, fato + 4) + 12)); // cabecera y FATO (con su cabecera de FATB)
+  s.fill(0xff, dataOffset); // el relleno entre archivos, como en los del juego
+  s.set(b.subarray(0, fato)); // la cabecera
   poner32(s, 0x10, dataOffset);
   poner32(s, 0x14, total);
-  poner32(s, 0x18, mayor);
-  if (u16(b, 0x0a) >= 0x0600) poner32(s, 0x1c, Math.max(...lista.flat().map((x) => x.length)));
+  // El archivo más grande: en la versión 4, sin relleno; en la 6, con relleno (y en 0x1c, sin él)
+  const mayorSinRelleno = Math.max(0, ...lista.flat().map((x) => x.length));
+  if (u16(b, 0x0a) >= 0x0600) {
+    poner32(s, 0x18, mayor);
+    poner32(s, 0x1c, mayorSinRelleno);
+  } else poner32(s, 0x18, mayorSinRelleno);
   // FATO: dónde empieza cada entrada (dentro del FATB)
+  s.set(b.subarray(fato, fato + 12), fato);
+  poner32(s, fato + 4, tamFato);
+  poner16(s, fato + 8, cuantos);
   let rel = 0;
-  g.entradas.forEach((subs, i) => {
+  lista.forEach((subs, i) => {
     poner32(s, fato + 12 + i * 4, rel);
     rel += 4 + subs.length * 12;
   });
   // FATB
-  s.set(b.subarray(fatb, fatb + 8), fatb);
-  poner32(s, fatb + 4, nuevoTamFatb);
-  poner32(s, fatb + 8, cuantos);
-  let p = fatb + 12;
-  g.entradas.forEach((subs, i) => {
-    let bits = 0;
-    // Qué bits tenía (los mismos)
-    let q = fatb + 12;
-    for (let e = 0; e < i; e++) q += 4 + g.entradas[e].length * 12;
-    bits = u32(b, q);
-    poner32(s, p, bits);
+  s.set(b.subarray(fatb, fatb + 4), nuevoFatb);
+  poner32(s, nuevoFatb + 4, tamFatb);
+  poner32(s, nuevoFatb + 8, cuantos);
+  let p = nuevoFatb + 12;
+  lista.forEach((subs, i) => {
+    poner32(s, p, bitsDe[i]);
     p += 4;
     posiciones[i].forEach((pos) => {
       poner32(s, p, pos.desde);
@@ -334,10 +358,9 @@ export function crearGarc(b, nuevos) {
     });
   });
   // FIMB
-  const f2 = fatb + nuevoTamFatb;
-  s.set(b.subarray(fimb, fimb + 4), f2);
-  poner32(s, f2 + 4, 12);
-  poner32(s, f2 + 8, datos);
+  s.set(b.subarray(fimb, fimb + 4), nuevoFimb);
+  poner32(s, nuevoFimb + 4, 12);
+  poner32(s, nuevoFimb + 8, datos);
   lista.forEach((subs, i) =>
     subs.forEach((x, k) => {
       s.set(x, dataOffset + posiciones[i][k].desde);
@@ -519,6 +542,7 @@ export function planGarc(p, nuevos) {
   const cuantos = u16(b, fato + 8);
   const fatb = fato + u32(b, fato + 4);
   const subsPorEntrada = p.entradas.map((subs) => subs.length);
+  const alinear = alineacionGarc(b);
   const partes = [];
   let datos = 0;
   let mayor = 0;
@@ -527,10 +551,10 @@ export function planGarc(p, nuevos) {
     subs.map((s, k) => {
       const nuevo = k === 0 && nuevos[i];
       const largo = nuevo ? nuevo.length : s.largo;
-      const pos = { desde: datos, fin: datos + largo, largo };
+      const pos = { desde: datos, fin: datos + Math.ceil(largo / alinear) * alinear, largo }; // (el fin, con el relleno, como en los del juego)
       partes.push(nuevo ? { bytes: nuevo } : { rango: { desde: p.desde + s.desde, tam: s.largo } });
-      const relleno = Math.ceil(largo / 4) * 4 - largo;
-      if (relleno) partes.push({ bytes: new Uint8Array(relleno) });
+      const relleno = Math.ceil(largo / alinear) * alinear - largo;
+      if (relleno) partes.push({ bytes: new Uint8Array(relleno).fill(0xff) }); // (relleno con 0xFF, como en los del juego)
       datos += largo + relleno;
       mayor = Math.max(mayor, largo + relleno);
       mayorSinRelleno = Math.max(mayorSinRelleno, largo);
@@ -545,8 +569,11 @@ export function planGarc(p, nuevos) {
   s.set(b.subarray(0, fatb + 12));
   poner32(s, 0x10, dataOffset);
   poner32(s, 0x14, total);
-  poner32(s, 0x18, mayor);
-  if (p.version >= 0x0600) poner32(s, 0x1c, mayorSinRelleno);
+  // El archivo más grande: en la versión 4, sin relleno; en la 6, con relleno (y en 0x1c, sin él)
+  if (p.version >= 0x0600) {
+    poner32(s, 0x18, mayor);
+    poner32(s, 0x1c, mayorSinRelleno);
+  } else poner32(s, 0x18, mayorSinRelleno);
   let rel = 0;
   subsPorEntrada.forEach((n, i) => {
     poner32(s, fato + 12 + i * 4, rel);

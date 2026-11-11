@@ -44,8 +44,9 @@
 }
 
 /* Donde el título va centrado (tu ficha del perfil, los títulos para elegir en «Editar perfil», el
-   cara a cara de «Amigos»), el hueco se reserva igual a los dos lados. Si no, con margen fijo a un
-   lado y «auto» al otro, la plaquita se iría hacia un lado. */
+   cara a cara de «Amigos»), el hueco se reserva igual a los dos lados. Si no, con margen fijo a
+   un lado y «auto» al otro, la plaquita se iría hacia un lado. (En las fichas de «Amigos» va
+   pegada a la izquierda: css/amigos.css, .ficha-quien.) */
 :is(.perfil-ficha, .editar-opcion, .luchador) .perfil-titulo.placa-adornada {
   margin-inline: max(var(--adorno-izquierda, 0em), var(--adorno-derecha, 0em));
 }

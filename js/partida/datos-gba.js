@@ -56,6 +56,39 @@ export const OBJETOS_GEN3 = [
   359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377
 ];
 
+// En las partidas (no en el randomizer, que solo reparte los de OBJETOS_GEN3), también las MO (del 339 al 346 en
+// el juego; 420-427 en la web) y las mentas que mete el randomizer (js/randomizer/mentas-gba.js: del 226 al 246
+// en el juego, que en Rojo Fuego son huecos sin usar; 1231-1251 en la web, por orden de naturaleza)
+export const PRIMERA_MO_GEN3 = 339;
+export const PRIMERA_MENTA_GEN3 = 226;
+export const PRIMERA_MENTA_WEB = 1231;
+export const MENTAS = 21;
+
+export function objetoWebGen3(juego) {
+  if (juego >= PRIMERA_MO_GEN3 && juego < PRIMERA_MO_GEN3 + 8) return 420 + juego - PRIMERA_MO_GEN3;
+  if (juego >= PRIMERA_MENTA_GEN3 && juego < PRIMERA_MENTA_GEN3 + MENTAS) return PRIMERA_MENTA_WEB + juego - PRIMERA_MENTA_GEN3;
+  return OBJETOS_GEN3[juego] || 0;
+}
+
+const AL_JUEGO = new Map();
+OBJETOS_GEN3.forEach((web, juego) => web && !AL_JUEGO.has(web) && AL_JUEGO.set(web, juego));
+for (let k = 0; k < 8; k++) AL_JUEGO.set(420 + k, PRIMERA_MO_GEN3 + k);
+for (let k = 0; k < MENTAS; k++) AL_JUEGO.set(PRIMERA_MENTA_WEB + k, PRIMERA_MENTA_GEN3 + k);
+
+// El número en el juego de un objeto de la web (0 si no está en Rojo Fuego)
+export function objetoJuegoGen3(web) {
+  return AL_JUEGO.get(web) || 0;
+}
+
+// Los objetos de la web que caben en una partida de Rojo Fuego
+export const OBJETOS_PARTIDA_GEN3 = new Set(AL_JUEGO.keys());
+
+// Un texto en las letras del juego (lo que no tiene, un espacio)
+const CODIGO = new Map(LETRAS_GEN3.map((letra, i) => [letra, i]).filter(([letra]) => letra).reverse());
+export function codigosGen3(texto) {
+  return [...String(texto)].map((c) => CODIGO.get(c) ?? CODIGO.get(c.normalize("NFD").replace(/[̀-ͯ]/g, "")) ?? 0);
+}
+
 // Dónde se capturó: los lugares de Kanto y las Islas Sete, del 0x58 en adelante ([español,
 // inglés]). Los nombres en español son los de «Rutas» (js/rutas/datos.js) cuando el sitio sale
 // ahí, para que las capturas se marquen solas.

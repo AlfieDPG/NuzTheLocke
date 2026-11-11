@@ -80,6 +80,11 @@ export async function cambiarPartida(id, cambios) {
   await operar("lista", "readwrite", (t) => t.objectStore("lista").put({ ...actual, ...cambios }, id));
 }
 
+// La ROM cambiada (las mentas que se le ponen al editar: ./mentas.js). rom: { nombre, bytes }
+export function guardarRom(id, rom) {
+  return operar("roms", "readwrite", (t) => t.objectStore("roms").put(rom, id));
+}
+
 export function guardarSav(id, bytes) {
   return operar("partidas", "readwrite", (t) => t.objectStore("partidas").put(bytes, id)).catch((error) => console.error(error));
 }

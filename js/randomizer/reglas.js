@@ -38,7 +38,8 @@ export const REGLAS_VACIAS = {
   // compat «aleatoria»: cada uno, cara o cruz (50 %); con deSuTipo, los de su tipo con «tipo» %
   mt: { ataques: false, compat: "no", deSuTipo: false, tipo: 90, mo: false },
   tutores: { ataques: false, compat: "no", deSuTipo: false, tipo: 90 },
-  objetos: { suelo: false, sinMalos: false, tiendas: false, sinNormales: false, piedras: false, caramelos: false, precios: false },
+  // mentas: objetos de otra generación que el juego no tiene (de momento, en Rojo Fuego / Verde Hoja, la 4.ª y la 5.ª generación)
+  objetos: { suelo: false, sinMalos: false, tiendas: false, sinNormales: false, piedras: false, caramelos: false, precios: false, mentas: false },
   varios: { pokedex: false, texto: false }
 };
 

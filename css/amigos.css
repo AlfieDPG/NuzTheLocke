@@ -186,18 +186,30 @@
 }
 
 /* Foto y nombre */
+/* Un poco de aire entre la foto y el nombre: los dibujos de algunos marcos sobresalen, y ahí
+   asoma también el adorno izquierdo de algunos títulos */
 .ficha-cabeza {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 1.35rem;
 }
 
+/* Nombre, título y lo demás, pegados a la izquierda; por encima de los dibujos del marco si llegan */
 .ficha-quien {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.2rem;
   flex: 1;
   min-width: 0;
+}
+
+/* La plaquita del título empieza justo donde el nombre, tenga o no adorno a la izquierda (el
+   adorno asoma hacia la foto, sin empujarla) */
+.ficha-quien .perfil-titulo.placa-adornada {
+  margin-inline: 0 var(--adorno-derecha, 0em);
 }
 
 /* «Tú» o «Conectado», en pequeño bajo el nombre */
@@ -321,6 +333,7 @@
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
+  z-index: 2;   /* (por encima del nombre, que va sobre los dibujos del marco) */
   display: flex;
   gap: 0.3rem;
   opacity: 0;
@@ -432,6 +445,12 @@
   line-height: 1.1;
   text-align: left;
   overflow-wrap: anywhere;
+  color: var(--t-texto-fuerte);
+}
+
+/* Los desconectados, en blanco (negro en el tema Claro): el azul pizarra se perdía en el fondo */
+.ficha-jugador .jugador-foto {
+  border-color: var(--t-texto-fuerte);
 }
 
 .ficha-jugador.mia .jugador-foto {
@@ -598,7 +617,7 @@
 .jugadores.modo-lista .ficha-cabeza {
   flex: 0 0 15rem;
   min-width: 0;
-  gap: 0.7rem;
+  gap: 0.9rem;
 }
 
 .jugadores.modo-lista .ficha-jugador .jugador-foto {

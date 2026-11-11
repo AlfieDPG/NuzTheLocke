@@ -13,6 +13,11 @@
 //   salvajes      huecos de [especie | forma << 11 u16, nivel, nivel máx.] (6.ª), comprimidos (LZ11)
 
 import { leerGarc, crearGarc, leerMini, crearMini, descomprimirLZ11, comprimirLZ11 } from "./rom-3ds.js";
+import { ponerMentasXY, direccionesMentasXY, mentasYaPuestasXY, PRIMERA_MENTA_XY, MENTAS_XY, ESTATICO, ARCHIVOS_MENTAS } from "./mentas-xy.js";
+
+// Las mentas (./mentas-xy.js: X / Y, Rubí Omega / Zafiro Alfa y Sol / Luna): en la web, 1231-1251; en el juego, del 505 al 525
+const PRIMERA_MENTA_WEB = 1231;
+const objetoAlJuego = (id) => (id >= PRIMERA_MENTA_WEB && id < PRIMERA_MENTA_WEB + MENTAS_XY ? PRIMERA_MENTA_XY + id - PRIMERA_MENTA_WEB : id);
 import { leerTextos6, escribirTextos6, aTexto } from "./textos-3ds.js";
 import { leerAmx, escribirAmx, leer16, poner16 as poner16Amx } from "./amx.js";
 import { ponerHierbaEnPueblos as hierbaEnPueblos } from "./hierba-3ds.js";
@@ -309,7 +314,10 @@ export function perfilDe(sesion) {
       // Va en el sitio del Antihielo o, si no lo hay, del Antídoto; nunca en el de una Ball o una poción
       primera: base.objetos ? base.objetos.caramelos : -1, sacrificables: [20, 18], protegidos: OBJETOS_BASICOS, saltar: [], cuantas: 0
     },
-    rutas: base.rutas
+    rutas: base.rutas,
+    // Las mentas, si en esta versión se pueden poner (lo mira prepararRom): por el suelo, como en DS
+    mentas: sesion.mentasXY ? Array.from({ length: MENTAS_XY }, (_, k) => PRIMERA_MENTA_WEB + k) : null,
+    mentasEnSuelo: true
   };
 }
 
@@ -320,7 +328,19 @@ export async function prepararRom(sesion) {
   await sesion.cargar(Object.values(perfil.rutas));
   const ini = perfil.base.iniciales;
   if (ini) await sesion.cargar([ini.cro, ini.pantalla]);
-  if (perfil.base.tm || perfil.base.estaticos6) await sesion.cargarCodigo();
+  const mentas = ARCHIVOS_MENTAS[perfil.id];
+  if (perfil.base.tm || perfil.base.estaticos6 || mentas) await sesion.cargarCodigo();
+  // Las mentas (X / Y, Rubí Omega / Zafiro Alfa y Sol / Luna): el módulo de la Bolsa, lo que exporta el programa a los módulos, y los
+  // datos y los iconos de los objetos
+  if (mentas) {
+    try {
+      await sesion.cargar([mentas.modulo, ESTATICO, mentas.datos, mentas.iconos, ...(mentas.bolsillos ? [mentas.bolsillos] : [])]);
+      const bolsa = sesion.archivo(mentas.modulo);
+      sesion.mentasXY = mentasYaPuestasXY(bolsa) || Boolean(direccionesMentasXY(sesion.code, bolsa, sesion.archivo(ESTATICO)));
+    } catch (error) {
+      sesion.mentasXY = false;
+    }
+  }
   if (perfil.base.objetos) await sesion.cargar([perfil.base.objetos.datos, ...(perfil.base.objetos.cro ? [perfil.base.objetos.cro] : []), ...(perfil.base.objetos.amx ? [perfil.base.objetos.amx.scripts] : [])]);
   // Los textos de todos los idiomas (para los nombres de los entrenadores)
   await sesion.cargar(perfil.base.textoRutas);
@@ -541,6 +561,9 @@ function leerSalvajesSM(sesion, perfil) {
   const salvajes = [];
   const entradas = new Map();
   p.archivos.forEach((comprimido, archivo) => {
+    // Solo las de los encuentros (la 9 de cada 11): las 0 son los datos del mapa (con los objetos del suelo), que también
+    // se cargan; tomadas por tablas de encuentros, se les escribían especies encima y el juego se colgaba al entrar al mapa
+    if (archivo % 11 !== 9) return;
     if (!comprimido || comprimido.length < 5 || comprimido[0] !== 0x11) return;
     const e = descomprimirLZ11(comprimido);
     if (!e.length) return;
@@ -1020,12 +1043,12 @@ export function escribirBW2(sesion, datos) {
     const cambiosScripts = {};
     for (const o of datos.objetosSuelo) {
       if (o.script !== undefined) {
-        if (leer16(datos.scripts.get(o.script), o.pos) !== o.objeto) {
-          poner16Amx(datos.scripts.get(o.script), o.pos, o.objeto);
+        if (leer16(datos.scripts.get(o.script), o.pos) !== objetoAlJuego(o.objeto)) {
+          poner16Amx(datos.scripts.get(o.script), o.pos, objetoAlJuego(o.objeto));
           cambiosScripts[o.script] = true;
         }
-      } else if (o.entrada === undefined) poner16(sesion.code, o.pos, o.objeto);
-      else poner16(datos.campo.entradas.get(o.entrada).e, o.pos, o.objeto);
+      } else if (o.entrada === undefined) poner16(sesion.code, o.pos, objetoAlJuego(o.objeto));
+      else poner16(datos.campo.entradas.get(o.entrada).e, o.pos, objetoAlJuego(o.objeto));
     }
     const nuevosScripts = {};
     for (const archivo of Object.keys(cambiosScripts)) nuevosScripts[archivo] = escribirAmx(datos.scripts.get(Number(archivo)));
@@ -1596,24 +1619,40 @@ export function actualizarTextos(sesion, { iniciales, mt, entrenadores }) {
     });
   } else {
     const hist = b.inicialesGarc;
+    // En la confirmación («¿Te decantas por X, el Pokémon de tipo...?», con la opción de volver atrás) el nombre es una
+    // variable que el script rellena con la especie de siempre: va el nombre de la nueva, escrito
+    const VARIABLE_NOMBRE = /\u0010\u0002ā[\s\S]/;
     cambiarTexto(sesion, hist.textoHistoria, hist.texto, (t) => {
       for (let k = 0; k < 3; k++) {
         t[1 + k] = `${nuevas[k]}, de tipo ${iniciales[k].tipo}`;
         if (hist.lineas) {
           // Ultrasol y Ultraluna: gritos, confirmaciones y nombres en otras líneas
           t[hist.lineas.grito + k] = `¡${nuevas[k]}!`;
-          t[hist.lineas.confirmar + k] = t[hist.lineas.confirmar + k].replace(/de tipo [^\u0000-\u001f?]+\?/, `de tipo ${iniciales[k].tipo}?`);
+          t[hist.lineas.confirmar + k] = t[hist.lineas.confirmar + k].replace(/de tipo [^\u0000-\u001f?]+\?/, `de tipo ${iniciales[k].tipo}?`).replace(VARIABLE_NOMBRE, nuevas[k]);
           t[hist.lineas.nombre + k] = nuevas[k];
           continue;
         }
-        t[4 + k] = t[4 + k].replace(/de tipo [^\u0000-\u001f?]+\?/, `de tipo ${iniciales[k].tipo}?`);
+        t[4 + k] = t[4 + k].replace(/de tipo [^\u0000-\u001f?]+\?/, `de tipo ${iniciales[k].tipo}?`).replace(VARIABLE_NOMBRE, nuevas[k]);
         t[11 + k] = `¡${nuevas[k]} te está mirando fijamente!`;
         t[14 + k] = `${nuevas[k].slice(0, 3)}...`;
         t[17 + k] = `¡${nuevas[k]}!`;
       }
+      // Sol y Luna: la escena de elegir enseña los modelos de siempre (Rowlet, Litten y Popplio: van en la escena, no se
+      // pueden cambiar) y el nombre de verdad solo sale al confirmar. Así que la pregunta de Kukui dice cuál es cuál (con los
+      // códigos del final, los de esperar a que pulses, como estaban)
+      if (!hist.lineas && /^¿Qué Pokémon/.test(t[0] || "")) {
+        const codigos = (t[0].match(/\u0010[\s\S]*$/) || [""])[0];
+        t[0] = `¿Quién te acompañará? Rowlet: ${nuevas[0]},\nLitten: ${nuevas[1]}, Popplio: ${nuevas[2]}${codigos}`;
+      }
     });
   }
 }
+// Las mentas en la ROM (si la versión lo permite: perfil.mentas)
+export function ponerMentas(sesion) {
+  const perfil = perfilDe(sesion);
+  return ponerMentasXY(sesion, perfil.id, perfil.base.textoRutas);
+}
+
 export function ponerAspectoIniciales() {}
 export function ponerCombatesDobles() {}
 

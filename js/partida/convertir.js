@@ -178,6 +178,7 @@ function convertir(p, gen, conDetalle, juego) {
   salida.fecha = p.fechaCaptura;
   if (p.nivelCaptura) salida.nivelCaptura = p.nivelCaptura; // a qué nivel se conoció (la inicial, a 5: ver ./rutas.js)
   if (p.huevo) salida.huevo = true;
+  if (p.huella) salida.huella = p.huella; // Rojo Fuego: para reconocerlo si el juego le cambia el PID (./partidas.js)
 
   if (conDetalle) {
     Object.assign(salida, {

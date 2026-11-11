@@ -25,6 +25,11 @@ import { IPS, aplicarIPS, largoConIPS } from "./parches-gen5.js";
 import { ENTRADAS_GEN4 } from "./datos-gen4.js";
 import { leerTextos4, escribirTextos4, aCodigos, deCodigos } from "./textos-gen4.js";
 import { ponerHierbaEnPueblos as hierbaEnPueblos } from "./hierba-gen4.js";
+import { ponerMentasGen4, mentasPosiblesGen4, mentasYaPuestasGen4, PRIMERA_MENTA_GEN4, MENTAS_GEN4 } from "./mentas-gen4.js";
+
+// Las mentas (./mentas-gen4.js): en la web, 1231-1251; en el juego, en los huecos del 113 al 133
+const PRIMERA_MENTA_WEB = 1231;
+const objetoAlJuego = (id) => (id >= PRIMERA_MENTA_WEB && id < PRIMERA_MENTA_WEB + MENTAS_GEN4 ? PRIMERA_MENTA_GEN4 + id - PRIMERA_MENTA_WEB : id);
 
 export const ULTIMA_ESPECIE = 493;
 export const ULTIMO_ATAQUE = 467;
@@ -334,8 +339,21 @@ export function perfilDe(rom) {
       objetosNormales: OBJETOS_TIENDA_NORMAL,
       saltar: lis.SkipShops || [], cuantas: num.ShopCount || 0
     },
-    num, lis, textos: entrada.textos, archivos: entrada.archivos
+    num, lis, textos: entrada.textos, archivos: entrada.archivos,
+    // Las mentas, si en esta versión se pueden poner: por el suelo (las tiendas no tienen sitio para más)
+    mentas: mentasYaPuestasGen4(rom) || mentasPosiblesGen4(rom) ? Array.from({ length: MENTAS_GEN4 }, (_, k) => PRIMERA_MENTA_WEB + k) : null,
+    mentasEnSuelo: true
   };
+}
+
+// Las mentas en la ROM (si la versión lo permite: perfil.mentas)
+export function ponerMentas(rom) {
+  const perfil = perfilDe(rom);
+  return ponerMentasGen4(rom, {
+    tipo: perfil.id,
+    rutas: { datos: perfil.archivos.ItemData, textos: perfil.archivos.Text },
+    bancos: { nombres: perfil.num.ItemNamesTextOffset, descripciones: perfil.num.ItemDescriptionsTextOffset }
+  }, { leerNarc, crearNarc, leerTextos4, escribirTextos4, aCodigos });
 }
 
 // ---------- Leer ----------
@@ -965,8 +983,8 @@ export function escribirBW2(rom, datos) {
   }
 
   for (const o of datos.objetosSuelo) {
-    if (o.arm9) poner16(arm9, o.pos, o.objeto);
-    else poner16(narcs.scripts.archivos[o.archivo], o.pos, o.objeto);
+    if (o.arm9) poner16(arm9, o.pos, objetoAlJuego(o.objeto));
+    else poner16(narcs.scripts.archivos[o.archivo], o.pos, objetoAlJuego(o.objeto));
   }
 
   for (const t of datos.tiendas) t.huecos.forEach((pos, k) => poner16(arm9, pos, t.objetos[k]));
