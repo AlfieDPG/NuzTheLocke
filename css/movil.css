@@ -225,10 +225,12 @@
     }
   }
 
+  /* Por debajo de la barra de arriba (z-index 40), que es donde está la hoja (su capa entera sube a
+     la vez): si el fondo quedara por encima, taparía la hoja y los toques irían al fondo (cerrarla). */
   .hoja-fondo:not([hidden]) {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 39;
     display: block;
     background: rgba(0, 0, 0, 0.5);
     animation: hoja-fondo 0.2s ease-out;
