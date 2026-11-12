@@ -28,11 +28,6 @@
   src: url("../fuentes/baloo2.woff2") format("woff2");
 }
 
-:root {
-  --letra: "Nunito", Arial, sans-serif;
-  --letra-titulos: "Baloo 2", "Nunito", Arial, sans-serif;
-}
-
 /* ---------- Colores del tema ----------
    Tres temas (los pone js/comun/ajustes.js en <html data-tema>):
    · Atardecer, el de por defecto, en :root sin más: un negro carbón, un pelín cálido en lo
@@ -137,6 +132,8 @@
    Inicio, los corazones de las vidas, el aro de tu foto) no van aquí: no cambian.
    Para algo nuevo que esté bien o mal, estos, no un color escrito a mano. */
 :root {
+  --letra: "Nunito", Arial, sans-serif;
+  --letra-titulos: "Baloo 2", "Nunito", Arial, sans-serif;
   --t-bien: #2ecc71;
   --t-bien-rgb: 46, 204, 113;
   --t-bien-oscuro: #27ae60; /* botones de aceptar o guardar */

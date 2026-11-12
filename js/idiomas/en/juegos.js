@@ -24,8 +24,6 @@ export default {
   "Juega mañana también: la racha da Pokédólares extra": "Play again tomorrow: streaks give bonus Pokédollars",
   "Inicia sesión para ganar Pokédólares con los retos y los logros, y gastarlos en la Tienda.":
     "Sign in to earn Pokédollars from challenges and achievements, and spend them in the Shop.",
-  "Los retos cambian cada día a medianoche (hora de España) y son los mismos para todo el mundo.":
-    "Challenges change every day at midnight (Spanish time) and are the same for everyone.",
   "No se han podido cargar los juegos. Comprueba la conexión y vuelve a entrar.":
     "The games couldn't be loaded. Check your connection and come back.",
 
@@ -108,7 +106,6 @@ export default {
   "Esta semana": "This week",
   "Los Pokédólares ganados en los retos desde el lunes (los de los logros no cuentan). Se reinicia cada lunes.":
     "Pokédollars earned in challenges since Monday (achievements don't count). It resets every Monday.",
-  "Añade amigos en «Amigos» para competir con ellos.": "Add friends in “Friends” to compete with them.",
 
   // Fase 3: Locke del día
   "Locke del día": "Locke of the day",
@@ -181,8 +178,6 @@ export default {
   "lo que tiene el del día comparado con el tuyo": "what today's Pokémon has compared with yours",
   "¿Cuánto tiene?": "How much?",
   "Tiene": "Has",
-  "Tiene más": "Has more",
-  "Tiene menos": "Has less",
   "¡Bien!": "Correct!",
   "Fallo": "Wrong",
   "contra": "vs",
@@ -236,6 +231,13 @@ export default {
   "Fácil": "Easy",
   "Media": "Medium",
   "Difícil": "Hard",
+  "Experto": "Expert",
+  "¡Correcto! +{n}": "Correct! +{n}",
+  "¡Correcto!": "Correct!",
+  "¡Fallaste!": "Missed!",
+  "Se acabaron los intentos": "Out of guesses",
+  "Sin pistas": "No clues",
+  "En Experto no hay pistas: puede ser de cualquier generación.": "Expert has no clues: it can be from any generation.",
   "Ahora": "Now",
   "{n} intentos": "{n} attempts",
   "Gen. {desde}-{hasta}": "Gen. {desde}-{hasta}",
@@ -264,8 +266,9 @@ export default {
   "{n} shiny": "{n} shiny",
   "Abrir 1 huevo": "Open 1 egg",
   "Abrir 10 huevos": "Open 10 eggs",
-  "De cada huevo sale una especie al azar (1 de cada {n}, shiny; los legendarios y singulares, más difíciles). Los repetidos se cambian solos por {normal} Pokédólares ({shiny} si es shiny).":
-    "Each egg hatches a random species (1 in {n} is shiny; legendaries and mythicals are harder). Duplicates are automatically traded for {normal} Pokédollars ({shiny} if shiny).",
+  "De cada huevo sale una especie al azar (1 de cada {n}, shiny; los legendarios y singulares, más difíciles). Los repetidos se cambian solos por {normal} Pokédólares ({shiny} si es shiny). Pulsa uno de los tuyos para elegir su cara (y, si lo tienes shiny, verlo en shiny).":
+    "Each egg hatches a random species (1 in {n} is shiny; legendaries and mythicals are harder). Duplicates are automatically traded for {normal} Pokédollars ({shiny} if shiny). Click one of yours to pick its face (and, if you have it shiny, show it shiny).",
+  "Cómo funcionan los huevos": "How eggs work",
   "¡Shiny!": "Shiny!",
   "¡Nuevo!": "New!",
   "Repetido: +{n}": "Duplicate: +{n}",
@@ -406,13 +409,9 @@ export default {
   "Siempre": "All time",
   "con amigos": "with friends",
   "Qué Pokédólares contar": "Which Pokédollars to count",
-  "Lo ganado en los retos desde el lunes. Se reinicia cada lunes.": "Earned in challenges since Monday. Resets every Monday.",
-  "Todo lo ganado en los retos.": "Everything earned in challenges.",
   "Cuando tengas amigos, aquí verás cómo les ha ido en este reto.": "Once you have friends, you'll see here how they did in this challenge.",
-  "Termínalo y verás cómo les ha ido a tus amigos (así nadie te chafa nada).": "Finish it to see how your friends did (no spoilers).",
   "aún no": "not yet",
   "Hoy, en este reto": "Today, in this challenge",
-  "Siguiente: {nombre}": "Next: {nombre}",
   "Gástalos en la Tienda": "Spend them in the Shop",
   "Los retos de hoy": "Today's challenges",
   "Tienda": "Shop",
@@ -426,10 +425,9 @@ export default {
   "Alrededor de tu foto, en toda la web. Los de un solo color vienen con los logros de cada tipo.": "Around your photo, all over the site. Single-colour ones come with each type's achievements.",
   "Una plaquita junto a tu nombre: en tu perfil, en «Amigos», en el foro y en la clasificación.": "A plaque next to your name: on your profile, in «Friends», in the forum and in the leaderboard.",
   "Probándotelo": "Trying it on",
-  "Pasa el ratón por un fondo, un marco o un título para probártelo antes de comprarlo.": "Hover over a background, frame or title to try it on before buying it.",
-  "Los Pokédólares se ganan en «Juegos», con los logros y terminando lockes.": "You earn Pokédollars in «Games», with achievements and by finishing lockes.",
-  "Ir a Juegos": "Go to Games",
+  "Gana más en Juegos": "Earn more in Games",
   "No se ha podido cargar la colección. Comprueba la conexión y vuelve a entrar.": "Couldn't load the collection. Check your connection and come back.",
   "De dónde salen tus Pokédólares": "Where your Pokédollars come from",
-  "Los tuyos: {lista}.": "Yours: {lista}."
+  "Los tuyos: {lista}.": "Yours: {lista}.",
+  "Sin tiempo": "Out of time"
 };

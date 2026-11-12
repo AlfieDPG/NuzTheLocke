@@ -72,10 +72,10 @@ const AVISOS = [
   },
   {
     icono: "ayuda", color: "91, 141, 239",
-    es: `¿Dudas? Mira el botón <b>«?»</b> de abajo a la izquierda. Si no está ahí la respuesta,
-      escríbeme y la añadiré a las preguntas frecuentes.`,
-    en: `Questions? Check the <b>“?”</b> button at the bottom left. If the answer isn't there,
-      write to me and I'll add it to the FAQ.`
+    es: `¿Dudas? Mira las <b>preguntas frecuentes</b>: el botón <b>«?»</b> del menú (abajo del todo; en el
+      móvil, en «Más»). Si no está ahí la respuesta, escríbeme y la añadiré.`,
+    en: `Questions? Check the <b>FAQ</b>: the <b>“?”</b> button in the menu (at the very bottom; on
+      mobile, under “More”). If the answer isn't there, write to me and I'll add it.`
   },
   {
     icono: "aviso", color: "241, 196, 15",
@@ -96,6 +96,13 @@ const AVISOS = [
 const NOVEDADES_A_LA_VISTA = 3;
 
 const NOVEDADES = [
+  {
+    fecha: "2026-11-12", vista: "inicio", icono: "casa", color: "231, 76, 60",
+    es: `La web, <b>adaptada al móvil</b>: las secciones de más uso en una barra abajo y el resto en «Más».
+      «Atrás» ya no te saca de la web, y las preguntas frecuentes («?») tienen buscador.`,
+    en: `The site, <b>adapted for mobile</b>: the most used sections in a bar at the bottom and the rest under
+      “More”. “Back” no longer takes you out of the site, and the FAQ (“?”) has a search box.`
+  },
   {
     fecha: "2026-11-12", vista: "foro", icono: "mensaje", color: "196, 128, 214",
     es: `<b>Foro</b> renovado: responde a un mensaje concreto (y a quien le respondas le llega a la
@@ -254,6 +261,10 @@ function plantillaAvisos() {
 const SECCIONES = [
   { vista: "lockes", icono: "espadas", color: "214, 88, 76", nombre: "Lockes",
     texto: "Juega con amigos: vidas, muertes y victorias, y tu partida vinculada al momento." },
+  { vista: "jugar", icono: "consola", color: "186, 62, 102", nombre: "Jugar",
+    texto: "Juega a Rojo Fuego, Verde Hoja y los de DS desde la web, y emite tu partida a tus amigos." },
+  { vista: "randomizer", icono: "mezclar", color: "160, 205, 80", nombre: "Randomizer",
+    texto: "Randomiza tu ROM de GBA, DS, 3DS o Switch sin que salga de tu navegador." },
   { vista: "crear", icono: "pokeball", color: "64, 112, 214", nombre: "Equipos",
     texto: "Monta tus equipos, guárdalos e importa o exporta pastes de Showdown." },
   { vista: "rutas", icono: "mapa", color: "82, 183, 136", nombre: "Rutas",
@@ -264,8 +275,12 @@ const SECCIONES = [
     texto: "Las estadísticas base de todos los Pokémon, para ordenar a tu gusto." },
   { vista: "calculadora", icono: "calculadora", color: "155, 110, 230", nombre: "Calculadora",
     texto: "Cuánto daño hace cada ataque y en cuántos golpes cae." },
-  { vista: "randomizer", icono: "mezclar", color: "160, 205, 80", nombre: "Randomizer",
-    texto: "Randomiza tu ROM de DS, 3DS o Switch sin que salga de tu navegador." },
+  { vista: "lucha", icono: "lucha", color: "222, 112, 52", nombre: "Combates",
+    texto: "Reta a un amigo con tus equipos y combatid por turnos sin salir de la web." },
+  { vista: "foro", icono: "mensaje", color: "196, 128, 214", nombre: "Foro",
+    texto: "Busca compañeros para tu próximo locke, pide ayuda o charla." },
+  { vista: "juegos", icono: "mando", color: "76, 182, 92", nombre: "Juegos",
+    texto: "Retos diarios que dan Pokédólares para la Tienda y huevos para tu colección." },
   { vista: "ruleta", icono: "ruleta", color: "240, 150, 60", nombre: "Ruleta",
     texto: "Premios, castigos o lo que quieras: que decida la suerte." }
 ];
@@ -278,7 +293,7 @@ function plantillaBienvenida() {
         <p>${t(`Todo lo que necesitas para jugar <b>Nuzlockes</b> (y cualquier otro locke) en un solo
           sitio: tus equipos, las rutas, los level caps, una calculadora de daño, un randomizer…
           y lockes compartidos con tus amigos.`)}</p>
-        <p>${t("Elige una sección a la derecha para empezar a explorar: cada una te lleva directa a su página.")}</p>
+        <p>${t("Elige una sección para empezar a explorar: cada una te lleva directa a su página.")}</p>
         ${hayNube()
           ? `<p class="inicio-bienvenida-cuenta">${t(`Casi todo funciona sin cuenta. Con sesión, tus equipos
               se guardan en la nube y desbloqueas los lockes con amigos, los perfiles y los logros.`)}</p>
@@ -288,7 +303,7 @@ function plantillaBienvenida() {
       <div class="inicio-bienvenida-secciones">
         ${SECCIONES.map(
           (cada) => `
-            <button class="inicio-seccion" data-vista="${cada.vista}" style="--color-seccion: ${cada.color}">
+            <button class="inicio-seccion" data-vista="${cada.vista}" style="--color-seccion: ${cada.color}" title="${t(cada.texto)}">
               <span class="inicio-seccion-icono">${icono(cada.icono)}</span>
               <span class="inicio-seccion-datos">
                 <strong>${t(cada.nombre)}</strong>
@@ -421,7 +436,8 @@ function plantillaLockes() {
       <h2>${icono("espadas")} ${t("Lockes en marcha")}</h2>
       ${enMarcha.length
         ? `<div class="inicio-lista" data-total="${enMarcha.length}" data-modo="mas">${enMarcha.slice(0, MAX_LOCKES).map(plantillaLocke).join("")}</div>`
-        : `<p class="inicio-vacio">${t("Ninguno ahora mismo.")}</p>`}
+        : `<p class="inicio-vacio">${t("Ninguno ahora mismo.")}</p>
+           <div class="inicio-pie"><button class="inicio-nuevo inicio-principal">${icono("mas")} ${t("Nuevo locke")}</button></div>`}
       ${enMarcha.length ? `<div class="inicio-pie"><button class="inicio-ver-resto" data-vista="lockes" hidden></button></div>` : ""}
     </section>`;
 }
@@ -470,7 +486,8 @@ function plantillaEquipos() {
     </section>`;
 }
 
-// Sugerencias: un cuadro de texto que llega por correo (formsubmit.co)
+// Sugerencias: un cuadro de texto que se guarda en Firestore y lee el administrador en la pestaña
+// «Sugerencias» del foro (js/comun/sugerencias.js)
 function plantillaSugerencias() {
   return `
     <section class="inicio-bloque inicio-sugerencias">
@@ -580,16 +597,8 @@ async function enviarSugerencia() {
   avisoSugerencia(t("Enviando…"));
 
   try {
-    const respuesta = await fetch("https://formsubmit.co/ajax/alfdelgar@gmail.com", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        _subject: "Sugerencia de NuzTheLocke",
-        message: texto,
-        usuario: conSesion() ? (miPerfil() && miPerfil().nombre) || "Usuario registrado" : "Anónimo"
-      })
-    });
-    if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
+    const { enviarSugerencia: guardar } = await import("../comun/sugerencias.js");
+    await guardar(texto, conSesion() ? (miPerfil() && miPerfil().nombre) || "" : "");
     seccion.querySelector(".sugerencias-texto").value = "";
     avisoSugerencia(t("¡Gracias! Mensaje enviado."), "ok");
   } catch (error) {

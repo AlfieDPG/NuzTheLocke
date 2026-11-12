@@ -186,10 +186,10 @@ export async function procesarArchivo(locke, bytes, archivo = "", enVivo = null)
     if (!juegos[leida.juego]) escribir(CLAVE_HIERBA_RUTAS, { ...juegos, [leida.juego]: true });
   }
   const hallazgos = {};
-  const marcadas = marcarCapturas(nueva, leida.juego, mirados, conHierba, hallazgos);
+  const marcadas = marcarCapturas(nueva, leida.juego, mirados, conHierba, hallazgos, locke.id);
   // Las medallas nuevas: su gimnasio, superado en «Level caps»
   const medallasVistas = new Set(anterior.medallasVistas || []);
-  marcarMedallasNuevas(leida.juego, nueva.medallas, medallasVistas);
+  marcarMedallasNuevas(leida.juego, nueva.medallas, medallasVistas, locke.id);
 
   // El árbitro de normas (./arbitro.js). La primera lectura solo toma nota: lo que ya había
   // antes de vincular no se acusa

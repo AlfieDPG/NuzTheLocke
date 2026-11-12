@@ -8,9 +8,16 @@
 //   3) En index.html: un <section id="vista-XXX" hidden> y un botón data-vista="XXX" en el menú.
 //
 // El código de cada sección solo se descarga cuando se abre por primera vez,
-// así que añadir secciones no hace más lenta la carga inicial.
+// así que añadir secciones no hace más lenta la carga inicial. Si su hoja de estilo solo la usa
+// ella, tampoco va en index.html: va en HOJAS (ver js/comun/hojas.js).
+//
+// Cada sección que se abre es una entrada del historial: «Atrás» (o el gesto de volver del móvil)
+// vuelve a la anterior en vez de salir de la web (y antes cierra la ventana que haya abierta:
+// js/comun/atras.js).
 
 import { icono } from "./comun/iconos.js";
+import { cargarHoja, adelantarHojas } from "./comun/hojas.js";
+import { activarAtras, apuntar } from "./comun/atras.js";
 
 const SECCIONES = {
   inicio: () => import("./inicio/index.js"),
@@ -54,14 +61,29 @@ const VISTAS = {
   lucha: "lucha"
 };
 
+// Las hojas de estilo (css/<nombre>.css) que solo usa cada sección: se piden al abrirla
+const HOJAS = {
+  ruleta: ["ruleta"],
+  calculadora: ["calculadora"],
+  randomizer: ["randomizer"],
+  pokedex: ["pokedex"],
+  tienda: ["tienda"],
+  lucha: ["lucha"],
+  jugar: ["jugar"]
+};
+
 // Vistas sin botón propio en el menú -> el botón que se marca
 const VISTA_EN_MENU = { crear: "equipos" };
 
 const iniciadas = new Map(); // sección -> promesa con su módulo ya iniciado
 
+function hojasDe(nombre) {
+  return Promise.all((HOJAS[nombre] || []).map(cargarHoja));
+}
+
 function cargarSeccion(nombre) {
   if (!iniciadas.has(nombre)) {
-    const promesa = SECCIONES[nombre]().then(async (modulo) => {
+    const promesa = Promise.all([SECCIONES[nombre](), hojasDe(nombre)]).then(async ([modulo]) => {
       await modulo.iniciar();
       return modulo;
     });
@@ -89,12 +111,29 @@ export function vistaInicial() {
   return VISTAS[vista] ? vista : VISTA_DE_ENTRADA;
 }
 
-export async function irA(vista) {
+let turno = 0; // si se pulsa otra sección mientras llega la hoja de una, gana la última
+
+// historial: "nueva" (otra entrada: «Atrás» vuelve aquí), "cambiar" (la misma entrada: al entrar en
+// la web) o "no" (ya está: se viene de «Atrás»)
+export async function irA(vista, { historial = "nueva" } = {}) {
   vista = ANTIGUAS[vista] || vista;
   if (!VISTAS[vista]) vista = VISTA_DE_ENTRADA;
-  // replaceState y no location.hash: así no se llena el historial de «atrás»
-  if (location.hash !== `#${vista}`) history.replaceState(null, "", `#${vista}`);
+  const direccion = `#${vista}`;
+  if (historial === "cambiar") history.replaceState(null, "", direccion);
+  else if (historial === "nueva" && location.hash !== direccion) {
+    apuntar(() => {
+      if (location.hash !== direccion) history.pushState(null, "", direccion);
+    });
+  }
 
+  // La sección no se enseña hasta que tiene su hoja (la primera vez; luego ya está)
+  const miTurno = ++turno;
+  await hojasDe(VISTAS[vista]);
+  if (miTurno !== turno) return;
+
+  // En el móvil, la sección nueva empieza arriba (si no, sale a la altura de la de antes)
+  const nueva = document.querySelector(`#vista-${vista}`);
+  if (nueva && nueva.hidden) window.scrollTo(0, 0);
   for (const seccion of document.querySelectorAll("main > section")) {
     seccion.hidden = seccion.id !== `vista-${vista}`;
   }
@@ -129,4 +168,10 @@ export function iniciarNavegacion() {
     e.preventDefault();
     irA("inicio");
   });
+
+  // «Atrás» sin ventanas abiertas: a la sección que diga la dirección
+  activarAtras(() => irA(vistaInicial(), { historial: "no" }));
+
+  // Las hojas de las secciones, ya pedidas por detrás para cuando se abran
+  adelantarHojas([...new Set(Object.values(HOJAS).flat())]);
 }

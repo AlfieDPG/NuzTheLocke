@@ -189,8 +189,100 @@ const CLAVE_RUTAS_LIMPIAS = "poketeams-rutas-limpias-v1"; // { uid: [idLocke] }
 const CLAVE_RUTAS = "poketeams-rutas-v2"; // las de js/rutas/index.js
 const CLAVE_CAPTURAS = "poketeams-capturas-v1"; // las de js/rutas/capturas.js
 
+// ---------- El progreso de Rutas y Level caps de cada locke ----------
+//
+// Las marcas de «Rutas» (poketeams-rutas-v2), lo apuntado en cada lugar (poketeams-capturas-v1) y los
+// combates superados de «Level caps» (poketeams-levelcaps-v2) van por juego: { idJuego: [...] }. Con un
+// solo locke abierto de un juego (lo normal), ese es su progreso y no hay nada más.
+//
+// Con DOS o más lockes abiertos del mismo juego, cada uno lleva el suyo: el más antiguo («el principal»)
+// sigue en la clave del juego y los demás en «idJuego@idLocke». Rutas y Level caps dejan elegir de cuál
+// es lo que se ve (elegirLockeDeProgreso) y la actividad solo se apunta en ese. Si el principal se cierra
+// (o su jugador queda eliminado), el siguiente pasa a la clave del juego (ascenderProgreso).
+//
+// campoPropio ("rutasPropias" / "capsPropios"): para las listas personalizadas, cuyo id hace de juego.
+
+const CLAVE_LOCKE_PROGRESO = "poketeams-progreso-locke-v1"; // { idJuego: idLocke }: el elegido
+const CLAVE_SUPERADOS_CAPS = "poketeams-levelcaps-v2"; // la de js/levelcaps/index.js
+
+function milisegundosDe(valor) {
+  return valor && valor.toMillis ? valor.toMillis() : Number(valor) || 0;
+}
+
+// Tus lockes abiertos de ese juego en los que sigues dentro, del más antiguo al más nuevo
+export function lockesAbiertosDelJuego(idJuego, campoPropio = "") {
+  const usuario = usuarioActual();
+  if (!usuario || !idJuego) return [];
+  return misLockes()
+    .filter((locke) => locke.estado !== "cerrado" && !estaEliminado(locke, usuario.uid))
+    .filter((locke) => locke.juego === idJuego || (campoPropio && locke[campoPropio] && locke[campoPropio].id === idJuego))
+    .sort((uno, otro) => milisegundosDe(uno.creado) - milisegundosDe(otro.creado) || uno.id.localeCompare(otro.id));
+}
+
+// El locke cuyo progreso se ve (null si no hay ninguno de ese juego)
+export function lockeDeProgreso(idJuego, campoPropio = "") {
+  const lista = lockesAbiertosDelJuego(idJuego, campoPropio);
+  if (lista.length < 2) return lista.length ? lista[0].id : null;
+  const elegido = (leer(CLAVE_LOCKE_PROGRESO, {}) || {})[idJuego];
+  return lista.some((locke) => locke.id === elegido) ? elegido : lista[0].id;
+}
+
+export function elegirLockeDeProgreso(idJuego, idLocke) {
+  const elegidos = leer(CLAVE_LOCKE_PROGRESO, {}) || {};
+  if (!idJuego || elegidos[idJuego] === idLocke) return;
+  escribir(CLAVE_LOCKE_PROGRESO, { ...elegidos, [idJuego]: idLocke });
+}
+
+// Dónde se guarda el progreso de ese locke en ese juego (la clave del juego, salvo los que no son el
+// principal cuando hay varios)
+export function claveDeProgreso(idJuego, idLocke, campoPropio = "") {
+  const lista = lockesAbiertosDelJuego(idJuego, campoPropio);
+  if (lista.length < 2 || !idLocke || lista[0].id === idLocke || !lista.some((locke) => locke.id === idLocke)) return idJuego;
+  return `${idJuego}@${idLocke}`;
+}
+
+// La del locke elegido ahora
+export function claveDeProgresoActual(idJuego, campoPropio = "") {
+  return claveDeProgreso(idJuego, lockeDeProgreso(idJuego, campoPropio), campoPropio);
+}
+
+// Pone en orden las claves «idJuego@idLocke»: fuera las de lockes que ya no siguen abiertos para ti, y
+// si el que ahora es el principal tenía la suya, pasa a la clave del juego. Solo con la lista de lockes
+// ya del servidor (si no, faltarían lockes y se borraría lo que no toca).
+function ascenderProgreso() {
+  const usuario = usuarioActual();
+  if (!usuario) return;
+  const abiertos = new Set(misLockes()
+    .filter((locke) => locke.estado !== "cerrado" && !estaEliminado(locke, usuario.uid))
+    .map((locke) => locke.id));
+  const almacenes = [[CLAVE_RUTAS, "rutasPropias"], [CLAVE_CAPTURAS, "rutasPropias"], [CLAVE_SUPERADOS_CAPS, "capsPropios"]];
+  for (const [clave, campoPropio] of almacenes) {
+    const guardado = leer(clave, {}) || {};
+    let cambiado = false;
+    for (const llave of Object.keys(guardado)) {
+      const arroba = llave.lastIndexOf("@");
+      if (arroba < 0) continue;
+      const idJuego = llave.slice(0, arroba);
+      const idLocke = llave.slice(arroba + 1);
+      if (!abiertos.has(idLocke)) {
+        delete guardado[llave];
+        cambiado = true;
+        continue;
+      }
+      const principal = lockesAbiertosDelJuego(idJuego, campoPropio)[0];
+      if (principal && principal.id === idLocke) {
+        guardado[idJuego] = guardado[llave];
+        delete guardado[llave];
+        cambiado = true;
+      }
+    }
+    if (cambiado) escribir(clave, guardado);
+  }
+}
+
 function limpiarRutasDeCerrados(usuario) {
   if (!delServidor) return;
+  ascenderProgreso();
   const hechas = leer(CLAVE_RUTAS_LIMPIAS, {}) || {};
   const mios = misLockes();
   const cerrados = mios.filter((locke) => locke.estado === "cerrado").map((locke) => locke.id);
@@ -765,7 +857,9 @@ export async function reaccionar(id, idMuerto, reaccion) {
 // enseguida (sin querer), se borra.
 //   campoPropio: "rutasPropias" o "capsPropios" · tipo: "ruta" o "cap"
 
-export async function apuntarEnLockesDelJuego(campoPropio, idJuego, tipo, detalle, marcado) {
+// idLocke: si se sabe de qué locke es (una partida vinculada). Con varios lockes abiertos del mismo
+// juego, solo se apunta en ese, o en el elegido en Rutas / Level caps (lockeDeProgreso).
+export async function apuntarEnLockesDelJuego(campoPropio, idJuego, tipo, detalle, marcado, idLocke = null) {
   const usuario = usuarioActual();
   if (!usuario || !baseDeDatos()) return;
 
@@ -779,7 +873,11 @@ export async function apuntarEnLockesDelJuego(campoPropio, idJuego, tipo, detall
     return (propio && propio.id === idJuego) || locke.juego === idJuego;
   });
   const region = regionDe(idJuego);
-  const delJuego = exactos.length ? exactos : abiertos.filter((locke) => region && regionDe(locke.juego) === region);
+  let delJuego = exactos.length ? exactos : abiertos.filter((locke) => region && regionDe(locke.juego) === region);
+  if (exactos.length >= 2) {
+    const elegido = idLocke || lockeDeProgreso(idJuego, campoPropio);
+    delJuego = exactos.filter((locke) => locke.id === elegido);
+  }
 
   await Promise.all(
     delJuego.map(async (locke) => {

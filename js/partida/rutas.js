@@ -6,7 +6,7 @@
 
 import { lugaresDelJuego } from "../rutas/datos.js";
 import { leer, escribir } from "../comun/almacen.js";
-import { apuntarEnLockesDelJuego } from "../comun/lockes.js";
+import { apuntarEnLockesDelJuego, claveDeProgreso } from "../comun/lockes.js";
 import { quitarAcentos } from "../comun/utilidades.js";
 
 // Las mismas claves que js/rutas/index.js y js/rutas/capturas.js
@@ -87,7 +87,9 @@ function captura(p) {
 // de eventos de «Rutas» («deEvento», sus llaves) y los que son una segunda captura en una zona
 // cuyo primer Pokémon también está en la partida («repetidasEnZona»; no cuentan ni los
 // variocolor, ni la inicial, ni los de evento).
-export function marcarCapturas(partida, idJuego, mirados, conHierba = false, hallazgos = null) {
+// idLocke: el locke de la partida (con varios abiertos del mismo juego, cada uno lleva sus marcas).
+export function marcarCapturas(partida, idJuego, mirados, conHierba = false, hallazgos = null, idLocke = null) {
+  const llave = claveDeProgreso(idJuego, idLocke, "rutasPropias");
   if (hallazgos) Object.assign(hallazgos, { nuevos: [], repetidasEnZona: [], deEvento: new Set() });
   const lugares = lugaresDelJuego(idJuego, conHierba);
   if (!lugares) return 0;
@@ -104,9 +106,9 @@ export function marcarCapturas(partida, idJuego, mirados, conHierba = false, hal
 
   const marcadas = leer(CLAVE_MARCADAS, {}) || {};
   const capturas = leer(CLAVE_CAPTURAS, {}) || {};
-  const usadas = new Set(marcadas[idJuego] || []);
+  const usadas = new Set(marcadas[llave] || []);
   const usadosTexto = new Set([...usadas].map((clave) => clave.slice(clave.indexOf(":") + 1)));
-  const delJuego = { ...(capturas[idJuego] || {}) };
+  const delJuego = { ...(capturas[llave] || {}) };
   const ediciones = EDICIONES[idJuego] || [];
 
   // Del primero capturado al último: si dos salen del mismo sitio, cuenta el primero
@@ -181,13 +183,13 @@ export function marcarCapturas(partida, idJuego, mirados, conHierba = false, hal
   }
 
   if (nuevos.length) {
-    marcadas[idJuego] = [...usadas];
-    capturas[idJuego] = delJuego;
+    marcadas[llave] = [...usadas];
+    capturas[llave] = delJuego;
     escribir(CLAVE_MARCADAS, marcadas);
     escribir(CLAVE_CAPTURAS, capturas);
     // A la actividad de tus lockes de este juego, como al marcar a mano
     for (const { lugar } of nuevos) {
-      apuntarEnLockesDelJuego("rutasPropias", idJuego, "ruta", lugar, true).catch((error) => console.error(error));
+      apuntarEnLockesDelJuego("rutasPropias", idJuego, "ruta", lugar, true, idLocke).catch((error) => console.error(error));
     }
   }
   return nuevos.length;

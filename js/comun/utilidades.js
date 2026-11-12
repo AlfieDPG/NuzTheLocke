@@ -43,3 +43,9 @@ export function escaparHTML(texto) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+// Las tres flechas de los botones «ir a» (.boton-ir, css/juegos.css): avanzan en ola al pasar el ratón
+export function flechasIr() {
+  const flecha = `<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>`;
+  return `<span class="boton-ir-flechas" aria-hidden="true">${flecha}${flecha}${flecha}</span>`;
+}

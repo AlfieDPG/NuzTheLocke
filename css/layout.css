@@ -340,9 +340,6 @@ main {
 .aviso {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.6rem 0.7rem;
-  border-radius: 0.45rem;
   background: var(--t-fondo-2);
 }
 
@@ -351,10 +348,6 @@ main {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--t-panel-3);
 }
 
 .aviso-icono.amistad {
@@ -385,15 +378,9 @@ main {
   cursor: pointer;
 }
 
-.aviso-icono .icono {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
 .aviso-texto {
   flex: 1;
   min-width: 0;
-  font-size: 0.9rem;
   line-height: 1.35;
 }
 
@@ -408,11 +395,8 @@ main {
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 1.9rem;
-  height: 1.9rem;
   padding: 0;
   border: none;
-  border-radius: 0.35rem;
   background: var(--t-control);
   color: var(--t-texto);
   cursor: pointer;
@@ -461,11 +445,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin-top: 0.6rem;
-  font-size: 0.8rem;
   font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 /* Casilla con su texto al lado, no encima */
@@ -904,8 +884,6 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 }
 
 .sesion-foto {
-  width: 1.8rem;
-  height: 1.8rem;
   border-radius: 50%;
   flex: none;
 }
@@ -949,7 +927,6 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 /* min-width: 0 deja que un nombre largo se corte con «…» en vez de echar la campana fuera */
 .sesion-nombre {
   min-width: 0;
-  font-size: 0.85rem;
   font-weight: bold;
   overflow: hidden;
   white-space: nowrap;
@@ -960,8 +937,6 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
   padding: 0.5rem 0.6rem;
   border: none;
   border-radius: 0.45rem;
-  background: var(--t-panel);
-  color: var(--t-texto);
   font-family: inherit;
   font-size: 0.85rem;
   font-weight: bold;
@@ -1112,7 +1087,98 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 /* ---------- Preguntas frecuentes ---------- */
 
 #dialogo-ayuda {
-  width: min(40rem, 94vw);
+  width: min(42rem, 94vw);
+}
+
+/* El buscador: casilla con la lupa dentro */
+.ayuda-buscar-caja {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  padding: 0 0.75rem;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+}
+
+.ayuda-buscar-caja .icono {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  opacity: 0.6;
+}
+
+.ayuda-buscar-caja input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--t-texto);
+  font: inherit;
+}
+
+/* Los temas: una fila de botones con su icono (si no caben, se desplazan de lado) */
+.ayuda-temas {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.15rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ayuda-temas button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 2rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.ayuda-temas button:hover {
+  background: var(--t-control-2);
+}
+
+.ayuda-temas button.activa {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.ayuda-temas .icono {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.ayuda-tema-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.7rem 0 0.1rem;
+  font-size: 1rem;
+}
+
+.ayuda-tema-titulo:first-child {
+  margin-top: 0;
+}
+
+.ayuda-tema-titulo .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ayuda-nada {
+  margin: 0.5rem 0;
+  opacity: 0.75;
 }
 
 .ayuda-lista {

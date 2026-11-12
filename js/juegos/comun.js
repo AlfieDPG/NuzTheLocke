@@ -17,6 +17,7 @@ import { cargarDatos, datos } from "../comun/datos.js";
 import { cargarPokedex } from "../pokedex/datos.js";
 import { hoy, azarDelDia, guardarJugada, jugadaDeHoy } from "../comun/fichas.js";
 import { t } from "../comun/idioma.js";
+import { icono } from "../comun/iconos.js";
 
 const CLAVE = "poketeams-juegos-v1";
 const URL_FAMILIAS = new URL("../../datos/familias.json", import.meta.url);
@@ -176,7 +177,20 @@ export function tituloAdivinar(estado, solucion) {
 }
 
 // Lo de debajo del reto terminado: el título (ya escapado) y cuántos Pokédólares ha dado (o por qué no)
+// Para animar el final solo la primera vez que sale (se vuelve a pintar al llegar los Pokédólares)
+const finesVistos = new WeakSet();
+const fichasVistas = new WeakSet();
+
+// El sello «¡Correcto!» / «¡Fallaste!» que sale encima al responder (test, tipos)
+export function plantillaVeredicto(bien) {
+  return `<span class="juego-veredicto ${bien ? "bien" : "mal"}">${icono(bien ? "visto" : "aspa")} ${bien ? t("¡Correcto!") : t("¡Fallaste!")}</span>`;
+}
+
 export function plantillaFin(estado, titulo) {
+  const entra = !finesVistos.has(estado);
+  finesVistos.add(estado);
+  const llegan = estado.fichas != null && !estado.otroSitio && !fichasVistas.has(estado);
+  if (estado.fichas != null) fichasVistas.add(estado);
   let fichas = "";
   if (estado.otroSitio) fichas = t("Ya lo jugaste hoy en otro sitio: {n} Pokédólares.", { n: estado.fichas || 0 });
   else if (estado.error) {
@@ -194,9 +208,9 @@ export function plantillaFin(estado, titulo) {
       : t("+{n} Pokédólares", { n: estado.fichas });
   }
   return `
-    <div class="juego-fin ${estado.acierto ? "acierto" : "fallo"}">
+    <div class="juego-fin ${estado.acierto ? "acierto" : "fallo"} ${entra ? "entra" : ""}">
       <strong>${titulo}</strong>
-      ${fichas ? `<span class="juego-fin-fichas"><span class="ficha-moneda"></span>${fichas}</span>` : ""}
+      ${fichas ? `<span class="juego-fin-fichas ${llegan ? "llega" : ""}"><span class="ficha-moneda"></span>${fichas}</span>` : ""}
       <small>${t("Mañana, otro reto.")}</small>
     </div>`;
 }

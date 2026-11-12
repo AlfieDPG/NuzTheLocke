@@ -39,6 +39,7 @@ let opciones = [];     // [especie x6]
 let estado = null;
 let elegidos = [];     // ids, en orden (mientras eliges)
 let animando = null;
+let recien = null;      // el que acabas de elegir (da un saltito y su número sale con un sello)
 
 export async function montarLocke(contenedor) {
   caja = contenedor;
@@ -279,7 +280,7 @@ function plantillaRegistro(momentos) {
 function plantillaPokemon(especie, { boton = false, orden = 0, caido = false } = {}) {
   const etiqueta = boton ? "button" : "div";
   return `
-    <${etiqueta} class="lockedia-poke ${orden ? "elegido" : ""} ${caido ? "caido" : ""}" ${boton ? `data-id="${especie.id}"` : ""}>
+    <${etiqueta} class="lockedia-poke ${orden ? "elegido" : ""} ${orden && especie.id === recien ? "recien" : ""} ${caido ? "caido" : ""}" ${boton ? `data-id="${especie.id}"` : ""}>
       ${orden ? `<span class="lockedia-orden">${orden}</span>` : ""}
       ${imagenConRespaldo(urlsRetrato({ id: especie.id }), `alt="" data-quitar-si-falla`)}
       <strong>${escaparHTML(nombreDe(especie))}</strong>
@@ -334,11 +335,15 @@ function pintar() {
       ${icono("espadas")} ${t("¡Al combate!")} <small>(${elegidos.length}/${EQUIPO})</small>
     </button>`;
 
+  recien = null;
   for (const boton of caja.querySelectorAll(".lockedia-opciones [data-id]")) {
     boton.addEventListener("click", () => {
       const id = Number(boton.dataset.id);
       if (elegidos.includes(id)) elegidos = elegidos.filter((cada) => cada !== id);
-      else if (elegidos.length < EQUIPO) elegidos.push(id);
+      else if (elegidos.length < EQUIPO) {
+        elegidos.push(id);
+        recien = id;
+      }
       pintar();
     });
   }

@@ -1045,13 +1045,10 @@
   background: #c3d0e0;
 }
 
-.ataque.objeto {
-  background: #d9dae0;
-}
-
 /* Icono de objeto */
 
 .ataque.objeto {
+  background: #d9dae0;
   grid-template-columns: auto 1fr auto;
 }
 
@@ -1080,9 +1077,6 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 0.85rem;
-}
-
-.barra-equipos {
   align-items: center;
 }
 
@@ -3074,10 +3068,6 @@
   flex-direction: column;
 }
 
-.ficha-tipos-fila {
-  padding-top: 0.4rem;
-}
-
 /* 0.42rem = los 0.3rem de margen + los 0.12rem que deja debajo cada fila de estadística */
 .ficha-tipos-fila + .ficha-tipos-fila {
   margin-top: 0.42rem;
@@ -3085,6 +3075,7 @@
 }
 
 .ficha-tipos-fila {
+  padding-top: 0.4rem;
   display: grid;
   grid-template-columns: 4.3rem 1fr;
   align-items: start;

@@ -14,7 +14,7 @@ import { tiposEs, iconoTipo, coloresTipo } from "../comun/tipos.js";
 import { TIPOS } from "../comun/efectividad.js";
 import { hoy, azarDelDia } from "../comun/fichas.js";
 import { t, nombre as nombreDe } from "../comun/idioma.js";
-import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, plantillaFin } from "./comun.js";
+import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, plantillaFin, plantillaVeredicto } from "./comun.js";
 import { mezclar } from "./test.js";
 
 const JUEGO = "tipos";
@@ -28,11 +28,14 @@ let rondas = [];
 let estado = null;
 let elegidos = []; // los marcados en la ronda en juego (no se guardan)
 let mostrando = null; // { ronda, tipos }: la recién comprobada, mientras se ve
+let pintada = -1; // la última ronda pintada (para que el Pokémon solo «entre» al cambiar de ronda)
+let recien = null; // el tipo que se acaba de marcar (da un saltito)
 
 export async function montarTipos(contenedor) {
   caja = contenedor;
   mostrando = null;
   elegidos = [];
+  pintada = -1;
   caja.innerHTML = `<p class="juego-cargando">${t("Cargando...")}</p>`;
   rondas = armarRondas(await cargarEspecies());
   estado = estadoDe(JUEGO);
@@ -61,7 +64,7 @@ function plantillaTipo(tipo, ronda, respuesta) {
     const marcado = respuesta.includes(tipo);
     if (suyo) clase = marcado ? "buena" : "faltaba";
     else if (marcado) clase = "mala";
-  } else if (elegidos.includes(tipo)) clase = "elegido";
+  } else if (elegidos.includes(tipo)) clase = tipo === recien ? "elegido recien" : "elegido";
   return `
     <button class="${clase}" data-tipo="${tipo}" style="--color-tipo: ${coloresTipo[tipo]}" ${respuesta ? "disabled" : ""}
       aria-pressed="${elegidos.includes(tipo) || (respuesta || []).includes(tipo)}">
@@ -88,7 +91,8 @@ function pintar() {
   const marcador = rondas.map((ronda, i) => {
     const tipos = estado.respuestas[i];
     const clase = tipos == null ? "" : esBuena(ronda, tipos) ? "acierto" : "fallo";
-    return `<span class="juego-intento ${clase}"></span>`;
+    const nuevo = mostrando && mostrando.ronda === i ? "nuevo" : "";
+    return `<span class="juego-intento ${clase} ${nuevo}"></span>`;
   }).join("");
 
   let medio;
@@ -99,10 +103,13 @@ function pintar() {
     const i = mostrando ? mostrando.ronda : estado.respuestas.length;
     const ronda = rondas[i];
     const respuesta = mostrando ? mostrando.tipos : null;
+    const entra = !mostrando && i !== pintada;
+    pintada = i;
     medio = `
-      <div class="test-cuerpo">
+      <div class="test-cuerpo ${mostrando ? "respondida" : entra ? "entra" : ""}">
         <div class="test-pregunta">
           <span class="test-ronda">${t("Pregunta {n} de {total}", { n: i + 1, total: rondas.length })}</span>
+          ${mostrando ? plantillaVeredicto(esBuena(ronda, respuesta)) : ""}
           <div class="evolucion-padre">
             ${imagenConRespaldo(urlsRetrato({ id: ronda.especie.id }), `alt="" data-quitar-si-falla`)}
             <strong>${escaparHTML(nombreDe(ronda.especie))}</strong>
@@ -123,6 +130,7 @@ function pintar() {
     ${estado.fin && !mostrando ? "" : `<p class="juego-explicacion">${t("Marca su tipo, o sus dos tipos, y pulsa «Comprobar». Solo vale si aciertas todos.")}</p>`}
     ${medio}`;
 
+  recien = null;
   for (const boton of caja.querySelectorAll(".tipos-opciones button:not(:disabled)")) {
     boton.addEventListener("click", () => marcar(boton.dataset.tipo));
   }
@@ -134,7 +142,10 @@ function pintar() {
 function marcar(tipo) {
   if (estado.fin || mostrando) return;
   if (elegidos.includes(tipo)) elegidos = elegidos.filter((cada) => cada !== tipo);
-  else elegidos = [...elegidos, tipo].slice(-2);
+  else {
+    elegidos = [...elegidos, tipo].slice(-2);
+    recien = tipo;
+  }
   pintar();
 }
 

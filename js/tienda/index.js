@@ -9,7 +9,7 @@
 // Los Pokédólares (cómo se ganan, cómo se guardan, comprar) están en js/comun/fichas.js.
 
 import { icono } from "../comun/iconos.js";
-import { escaparHTML } from "../comun/utilidades.js";
+import { escaparHTML, flechasIr } from "../comun/utilidades.js";
 import { usuarioActual, alCambiarSesion, hayNube } from "../comun/nube.js";
 import { miPerfil, alCambiarMiPerfil, guardarMiPerfil } from "../comun/perfiles.js";
 import { FONDOS, FONDOS_TIENDA, claseFondo, estiloFondo, fondoDe } from "../comun/fondos.js";
@@ -68,18 +68,19 @@ function comoSeGanan() {
   ].join("\n\n");
 }
 
+// El saldo va arriba de «Así te ven» (plantillaAsiTeVen); el hueco de antes, junto a las pestañas, vacío
 function pintarSaldo() {
-  const perfil = usuarioActual() ? miPerfil() : null;
-  if (!perfil) {
-    saldoCaja.innerHTML = "";
-    return;
-  }
-  // El saldo en una pastilla, como la de «Juegos»; de dónde sale cada Pokédólar, en la «i»
-  saldoCaja.innerHTML = `
-    <div class="tienda-saldo-cifra">
+  saldoCaja.innerHTML = "";
+}
+
+// El saldo, a lo ancho de la columna de «Así te ven», con los colores de la Tienda; de dónde sale cada
+// Pokédólar, en la «i»
+function plantillaSaldo(perfil) {
+  return `
+    <div class="boton-ir tienda-saldo-cifra">
       <span class="ficha-moneda"></span>
       <strong>${numero(saldo(perfil))}</strong>
-      <small>${t("Pokédólares")}</small>
+      <small class="boton-ir-texto">${t("Pokédólares")}</small>
       <button class="juegos-info" aria-label="${t("De dónde salen tus Pokédólares")}" title="${t("De dónde salen tus Pokédólares")}">i</button>
     </div>`;
 }
@@ -133,19 +134,16 @@ function plantillaArticulo(articulo, tipo, muestra, perfil) {
 function plantillaArticulos(perfil) {
   if (pestana === "fondos") {
     return `
-      <p class="tienda-explicacion">${t("Para tu tarjeta de «Amigos» y la cabecera de tu perfil. Los de las regiones y los de Eevee vienen con sus logros.")}</p>
       <div class="tienda-rejilla">${porPrecio(FONDOS_TIENDA).map((fondo) =>
         plantillaArticulo(fondo, "fondo", `<span class="tienda-muestra ${claseFondo(fondo.id)}" style="${estiloFondo(fondo.id)}"></span>`, perfil)).join("")}</div>`;
   }
   if (pestana === "marcos") {
     // Solo los que se compran: los de metal (plata, oro y platino) vienen con sus logros
     return `
-      <p class="tienda-explicacion">${t("Alrededor de tu foto, en toda la web. Los de un solo color vienen con los logros de cada tipo.")}</p>
       <div class="tienda-rejilla">${porPrecio(MARCOS.filter((marco) => marco.precio)).map((marco) =>
         plantillaArticulo(marco, "marco", `<span class="tienda-muestra tienda-muestra-marco"><span class="tienda-foto ${claseMarco(marco.id)}">${fotoDeMuestra(perfil)}</span></span>`, perfil)).join("")}</div>`;
   }
   return `
-    <p class="tienda-explicacion">${t("Una plaquita junto a tu nombre: en tu perfil, en «Amigos», en el foro y en la clasificación.")}</p>
     <div class="tienda-titulos">${porPrecio(TITULOS).map((titulo) =>
       plantillaArticulo(titulo, "titulo", `<span class="perfil-titulo ${claseTitulo(titulo)}">${escaparHTML(titulo.nombre)}</span>`, perfil)).join("")}</div>`;
 }
@@ -169,18 +167,18 @@ function plantillaAsiTeVen(perfil) {
   const titulo = probando && probando.tipo === "titulo" ? TITULOS.find((cada) => cada.id === probando.id) : tituloDe(perfil);
   const placa = titulo ? `<span class="perfil-titulo ${claseTitulo(titulo)} pequeno">${escaparHTML(titulo.nombre)}</span>` : "";
   return `
+    ${plantillaSaldo(perfil)}
     <h3>${probando ? t("Probándotelo") : t("Así te ven")}</h3>
     <div class="tienda-ficha ${fondo ? `lleva-fondo ${claseFondo(fondo)}` : ""}" style="${fondo ? estiloFondo(fondo) : ""}">
       <span class="tienda-foto ${claseMarco(marco)}">${fotoDeMuestra(perfil)}</span>
       <span class="tienda-ficha-datos"><strong>${escaparHTML(perfil.nombre || t("Jugador"))}</strong>${placa}</span>
     </div>
-    <p class="juegos-nota">${t("Pasa el ratón por un fondo, un marco o un título para probártelo antes de comprarlo.")}</p>
     <dl class="tienda-llevas">
       <div><dt>${t("Fondo")}</dt><dd>${escaparHTML(nombreDeFondo(fondoDe(perfil)))}</dd></div>
       <div><dt>${t("Marco")}</dt><dd>${escaparHTML(nombreDeMarco(marcoDe(perfil)))}</dd></div>
       <div><dt>${t("Título")}</dt><dd>${escaparHTML(tituloDe(perfil) ? tituloDe(perfil).nombre : t("Ninguno"))}</dd></div>
     </dl>
-    <p class="juegos-nota">${t("Los Pokédólares se ganan en «Juegos», con los logros y terminando lockes.")} <button class="tienda-ir-juegos">${t("Ir a Juegos")}</button></p>`;
+    <button class="boton-ir de-juegos tienda-ir-juegos">${icono("mando")}<span class="boton-ir-texto">${t("Gana más en Juegos")}</span>${flechasIr()}</button>`;
 }
 
 function pintarAsiTeVen() {
@@ -235,6 +233,10 @@ function repintarArticulos() {
 }
 
 async function alPulsar(e) {
+  if (e.target.closest(".juegos-info:not(.coleccion-info)")) {
+    avisar(comoSeGanan());
+    return;
+  }
   if (e.target.closest(".tienda-ir-juegos")) {
     irA("juegos");
     return;
@@ -293,6 +295,12 @@ export function iniciar() {
 
   alCambiarMiPerfil(() => {
     if (vista.hidden) return;
+    // El perfil ha llegado después de pintar (al entrar directo en la Tienda): falta la columna de
+    // «Así te ven» (y el saldo, que va en ella)
+    if (miPerfil() && !cuerpo.querySelector(".tienda-asi")) {
+      pintarCuerpo();
+      return;
+    }
     pintarSaldo();
     repintarArticulos();
     pintarAsiTeVen();

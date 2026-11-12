@@ -8,32 +8,16 @@
   align-items: start;
 }
 
-.calc-centro {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
 .calc-lado,
 .calc-centro {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 0.95rem;
-  border-radius: 0.8rem;
   background: var(--t-panel);
-}
-
-/* Atacante o defensor: una etiqueta con su icono, en rojo o azul suave (sin línea de color
-   arriba de la tarjeta, que chocaba con la de la sección) */
-.calc-lado {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .calc-lado[data-lado="atacante"] {
   --color-rol: 231, 76, 60;
-}
-
-.calc-lado[data-lado="defensor"] {
-  --color-rol: 52, 152, 219;
 }
 
 .calc-rol {
@@ -41,15 +25,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
   border-radius: 0.45rem;
-  background: rgba(var(--color-rol), 0.14);
-  box-shadow: inset 0 0 0 1px rgba(var(--color-rol), 0.4);
-  color: color-mix(in srgb, rgb(var(--color-rol)) 55%, #fff);
-  font-size: 0.75rem;
-  font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .calc-rol .icono {
@@ -316,7 +293,6 @@
 
 .calc-nombre {
   min-width: 0;
-  font-size: 1.2rem;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1138,11 +1114,6 @@
   box-shadow: inset 5px 0 0 rgb(var(--color-rol)), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-.calc-centro {
-  background: linear-gradient(100deg, rgba(var(--color-vista), 0.1), transparent 60%), var(--t-panel);
-  box-shadow: inset 5px 0 0 rgb(var(--color-vista)), 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
 /* El rol, como texto de color (sin recuadro) */
 .calc-rol {
   padding: 0;
@@ -1163,6 +1134,7 @@
 /* La línea de color: la del atacante, a la izquierda; la del defensor, a la derecha; y la del centro,
    debajo (las tarjetas, en su sitio de siempre) */
 .calc-lado[data-lado="defensor"] {
+  --color-rol: 52, 152, 219;
   padding: 1rem 1.15rem 1rem 1rem;
   background: linear-gradient(260deg, rgba(var(--color-rol), 0.12), transparent 60%), var(--t-panel);
   box-shadow: inset -5px 0 0 rgb(var(--color-rol)), 0 2px 8px rgba(0, 0, 0, 0.35);

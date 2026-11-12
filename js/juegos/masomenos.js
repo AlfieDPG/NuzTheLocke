@@ -85,14 +85,24 @@ function plantillaLado(especie, estadistica, oculto, botones = "", resultado = "
     </div>`;
 }
 
-// La comparación de la ronda i ya respondida, con los dos valores y si se acertó
+// La pregunta de la ronda i: siempre sobre el de la derecha (el escondido)
+function plantillaPregunta(i) {
+  const izquierda = escaparHTML(nombreDe(cadena[i]));
+  const derecha = escaparHTML(nombreDe(cadena[i + 1]));
+  const estadistica = escaparHTML(cuales[i].nombre);
+  return `<p class="masomenos-pregunta">${t("¿{derecha} tiene más o menos {estadistica} que {izquierda}?", { derecha: `<strong>${derecha}</strong>`, estadistica, izquierda })}</p>`;
+}
+
+// La comparación de la ronda i ya respondida, con los dos valores y si se acertó (con su pregunta
+// encima, como antes de responder: así no cambia nada de sitio)
 function plantillaRespondida(i) {
   const bien = acertada(i);
   const veredicto = `<p class="masomenos-veredicto">${bien ? `${icono("visto")} ${t("¡Bien!")}` : `${icono("aspa")} ${t("Fallo")}`}</p>`;
   return `
+    ${plantillaPregunta(i)}
     <div class="masomenos-duelo">
       ${plantillaLado(cadena[i], cuales[i], false)}
-      <span class="masomenos-vs">${t("contra")}</span>
+      <span class="masomenos-vs" role="img" aria-label="${t("contra")}"><span>VS</span></span>
       ${plantillaLado(cadena[i + 1], cuales[i], false, veredicto, bien ? "bien" : "mal")}
     </div>`;
 }
@@ -118,19 +128,16 @@ function pintar() {
     // La pregunta es siempre sobre el de la derecha (el escondido), y los botones van en su
     // tarjeta, con su nombre: «Duskull tiene más» / «Duskull tiene menos»
     const i = respondidas;
-    const izquierda = escaparHTML(nombreDe(cadena[i]));
-    const derecha = escaparHTML(nombreDe(cadena[i + 1]));
-    const estadistica = escaparHTML(cuales[i].nombre);
     const botones = `
       <div class="masomenos-botones">
-        <button data-respuesta="mas">${icono("arriba")} ${t("Tiene más")}</button>
-        <button data-respuesta="menos">${icono("abajo")} ${t("Tiene menos")}</button>
+        <button data-respuesta="mas">${icono("arriba")} ${t("Más")}</button>
+        <button data-respuesta="menos">${icono("abajo")} ${t("Menos")}</button>
       </div>`;
     medio = `
-      <p class="masomenos-pregunta">${t("¿{derecha} tiene más o menos {estadistica} que {izquierda}?", { derecha: `<strong>${derecha}</strong>`, estadistica, izquierda })}</p>
+      ${plantillaPregunta(i)}
       <div class="masomenos-duelo">
         ${plantillaLado(cadena[i], cuales[i], false)}
-        <span class="masomenos-vs">${t("contra")}</span>
+        <span class="masomenos-vs" role="img" aria-label="${t("contra")}"><span>VS</span></span>
         ${plantillaLado(cadena[i + 1], cuales[i], true, botones)}
       </div>`;
   }

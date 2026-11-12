@@ -6,6 +6,7 @@
 // aciertas todas), más lo de la racha.
 
 import { escaparHTML } from "../comun/utilidades.js";
+import { icono } from "../comun/iconos.js";
 import { imagenConRespaldo, urlsRetrato } from "../comun/imagenes.js";
 import { tiposEs, iconoTipo, coloresTipo } from "../comun/tipos.js";
 import { TIPOS, multiplicador } from "../comun/efectividad.js";
@@ -22,6 +23,7 @@ let caja = null;
 let rondas = [];
 let estado = null;
 let reloj = null;
+let ultima = ""; // «bien» o «mal»: cómo fue la que se acaba de responder (un destello en el siguiente rival)
 
 export async function montarEficaz(contenedor) {
   caja = contenedor;
@@ -66,24 +68,47 @@ function plantillaMarcador() {
   return Array.from({ length: RONDAS }, (_, i) => {
     const tipo = estado.respuestas[i];
     const clase = tipo == null ? "" : tipo === rondas[i].buena ? "acierto" : "fallo";
-    return `<span class="juego-intento ${clase}"></span>`;
+    const nuevo = ultima && i === estado.respuestas.length - 1 ? "nuevo" : "";
+    return `<span class="juego-intento ${clase} ${nuevo}"></span>`;
   }).join("");
+}
+
+// Al terminar: cada rival con el tipo que elegiste (y el bueno, si fallaste); los que se quedaron sin
+// responder por el tiempo, como fallo
+function plantillaResumen() {
+  const chapa = (tipo) => `<span class="eficaz-tipo" style="--color-tipo: ${coloresTipo[tipo]}">${iconoTipo(tipo)}${escaparHTML(tiposEs[tipo])}</span>`;
+  return `<ol class="test-resumen eficaz-resumen">${rondas
+    .map((ronda, i) => {
+      const elegido = estado.respuestas[i];
+      const bien = elegido === ronda.buena;
+      return `
+        <li class="${bien ? "bien" : "mal"}">
+          ${imagenConRespaldo(urlsRetrato({ id: ronda.rival.id }), `alt="" data-quitar-si-falla`)}
+          <span>${escaparHTML(nombreDe(ronda.rival))}<small>${bien ? chapa(ronda.buena) : `${elegido ? chapa(elegido) : t("Sin tiempo")} → ${chapa(ronda.buena)}`}</small></span>
+          ${icono(bien ? "visto" : "aspa")}
+        </li>`;
+    })
+    .join("")}</ol>`;
 }
 
 function pintar() {
   let medio;
   if (estado.fin) {
     const titulo = estado.otroSitio ? t("Ya lo jugaste hoy.") : t("{n} de {total} aciertos.", { n: aciertos(), total: RONDAS });
-    medio = plantillaFin(estado, titulo);
+    medio = estado.otroSitio ? plantillaFin(estado, titulo) : plantillaResumen() + plantillaFin(estado, titulo);
   } else if (!estado.inicio) {
+    // Antes de empezar: la explicación en grande, en medio del reto (no un renglón arriba del todo)
     medio = `
-      <p class="juego-explicacion">${t("{rondas} rivales y {segundos} segundos. Elige el tipo de ataque que más daño le hace a cada uno.", { rondas: RONDAS, segundos: SEGUNDOS })}</p>
-      <button class="juego-empezar">${t("Empezar")}</button>`;
+      <div class="juego-intro">
+        ${icono("rayo")}
+        <p class="juego-explicacion">${t("{rondas} rivales y {segundos} segundos. Elige el tipo de ataque que más daño le hace a cada uno.", { rondas: RONDAS, segundos: SEGUNDOS })}</p>
+        <button class="juego-empezar">${t("Empezar")}</button>
+      </div>`;
   } else {
     const ronda = rondas[estado.respuestas.length];
     medio = `
       <div class="eficaz-reloj"><span style="width:${(quedaTiempo() / (SEGUNDOS * 1000)) * 100}%"></span></div>
-      <div class="eficaz-cuerpo">
+      <div class="eficaz-cuerpo ${ultima ? `tras-${ultima}` : ""}">
       <div class="eficaz-rival">
         ${imagenConRespaldo(urlsRetrato({ id: ronda.rival.id }), `alt="" data-quitar-si-falla`)}
         <div>
@@ -105,6 +130,7 @@ function pintar() {
     </header>
     ${medio}`;
 
+  ultima = "";
   const empezar = caja.querySelector(".juego-empezar");
   if (empezar) {
     empezar.addEventListener("click", () => {
@@ -143,6 +169,7 @@ function responder(tipo) {
     acabar();
     return;
   }
+  ultima = tipo === rondas[estado.respuestas.length].buena ? "bien" : "mal";
   estado.respuestas.push(tipo);
   if (estado.respuestas.length >= RONDAS) acabar();
   else {

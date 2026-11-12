@@ -50,9 +50,7 @@
 }
 
 .foro-filtros {
-  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
 }
 
 .foro-filtros[hidden],
@@ -156,8 +154,6 @@
    («Denuncias», «Moderadores») la lista ocupa todo el ancho. */
 .foro-cuerpo {
   display: grid;
-  grid-template-columns: minmax(18rem, 27rem) minmax(0, 1fr);
-  align-items: start;
   gap: 1.15rem;
 }
 
@@ -179,9 +175,7 @@
    pequeño, etiquetas, autor y cuándo. */
 .hilo {
   display: flex;
-  align-items: center;
   gap: 0.65rem;
-  padding: 0.45rem 0.7rem;
   border-radius: 0.55rem;
   background: var(--t-panel);
   cursor: pointer;
@@ -288,7 +282,6 @@
   gap: 0.15rem 0.55rem;
   margin-top: 0.15rem;
   font-size: 0.76rem;
-  opacity: 0.75;
 }
 
 /* Las etiquetas de la lista, más pequeñas que las de un hilo abierto */
@@ -475,7 +468,6 @@
 /* El panel de la derecha: se queda a la vista al bajar por la lista, y los comentarios
    se desplazan dentro de él */
 .foro-panel {
-  position: sticky;
   top: 0.85rem;
   min-width: 0;
 }
@@ -498,9 +490,6 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 2rem);
-  padding: 1rem 1.1rem;
-  border-radius: 0.7rem;
   background: var(--t-panel);
 }
 
@@ -510,8 +499,6 @@
 
 .foro-panel-cerrar {
   position: absolute;
-  top: 0.55rem;
-  right: 0.55rem;
   z-index: 1;
   display: inline-flex;
   align-items: center;
@@ -757,23 +744,11 @@
 }
 
 .foro-hilo-comentarios {
-  flex: 1;
-  min-height: 3rem;
   overflow-y: auto;   /* la altura la pone el panel (foro-panel-hilo): los comentarios se desplazan dentro */
   /* Al desplazarse dentro, recorta lo que se sale: un poco de hueco a los lados y arriba (que se
      come el del panel) para que quepan los marcos que sobresalen de la foto */
   margin-inline: -0.9rem;
-  padding: 0.9rem 0.9rem 0.3rem;
   /* La raya de arriba, a lo ancho del panel como antes (no del hueco de más) */
-  background: linear-gradient(rgba(var(--t-tinte), 0.1), rgba(var(--t-tinte), 0.1)) 0.9rem 0 / calc(100% - 1.8rem) 2px no-repeat;
-}
-
-.comentario {
-  padding: 0.6rem 0;
-}
-
-.comentario + .comentario {
-  border-top: 1px solid rgba(var(--t-tinte), 0.07);
 }
 
 .comentario-cabecera {
@@ -799,7 +774,6 @@
 
 .comentario-acciones {
   margin-left: auto;
-  opacity: 0;
   transition: opacity 0.12s;
 }
 
@@ -824,8 +798,6 @@
 
 .foro-hilo-responder {
   display: flex;
-  align-items: flex-end;
-  gap: 0.6rem;
   margin-top: 0.8rem;
 }
 
@@ -836,7 +808,6 @@
 
 .foro-hilo-responder textarea {
   flex: 1;
-  resize: vertical;
   /* Más oscura que la tarjeta (como las casillas de las ventanas), si no se confunde con ella */
   background-color: var(--t-fondo-2);
   color: var(--t-texto);
@@ -1502,16 +1473,12 @@
 
 .foro-tipos {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
 }
 
 .foro-tipo-boton {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
   height: 1.8rem;
-  padding: 0 0.75rem;
   border: none;
   border-radius: 999px;
   background: var(--t-panel);
@@ -1541,13 +1508,8 @@
 
 .foro-filtros-fila {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 0.8rem;
-}
-
-.foro-filtros-fila .foro-juego {
-  max-width: 12rem;
 }
 
 .foro-lista-caja {
@@ -1793,12 +1755,7 @@
 .foro-original {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
   margin-bottom: 0.9rem;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  background: var(--t-fondo-2);
-  box-shadow: inset 3px 0 0 rgb(var(--cc));
 }
 
 .foro-original .foro-hilo-texto {
@@ -2500,12 +2457,6 @@
   scrollbar-width: none;
 }
 
-.foro-tipo-boton {
-  flex: none;
-  gap: 0.35rem;
-  padding: 0 0.6rem;
-}
-
 .foro-cuerpo:not(.sin-panel) {
   grid-template-columns: minmax(21rem, 26rem) minmax(0, 1fr);
 }
@@ -2527,6 +2478,8 @@
 }
 
 .foro-tipo-boton {
+  gap: 0.35rem;
+  padding: 0 0.6rem;
   flex: 1 1 auto;
   justify-content: center;
 }
@@ -2545,4 +2498,71 @@
 .foro-filtros-fila .foro-abiertos {
   flex: none;
   white-space: nowrap;
+}
+
+/* ---------- Sugerencias (pestaña del administrador) ---------- */
+
+.sugerencia {
+  margin-bottom: 0.55rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.7rem;
+  background: var(--t-panel);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.sugerencia header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.sugerencia-quien {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--t-texto);
+  font: inherit;
+  font-weight: bold;
+}
+
+button.sugerencia-quien {
+  cursor: pointer;
+}
+
+button.sugerencia-quien:hover {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), white);
+}
+
+.sugerencia-fecha {
+  color: var(--t-gris);
+  font-size: 0.8rem;
+}
+
+.sugerencia-borrar {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  cursor: pointer;
+}
+
+.sugerencia-borrar:hover {
+  background: var(--t-rojo-oscuro);
+  color: #fff;
+}
+
+.sugerencia-borrar .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+.sugerencia p {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

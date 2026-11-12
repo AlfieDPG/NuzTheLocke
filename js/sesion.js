@@ -400,11 +400,12 @@ export async function iniciarSesionUI() {
     salir().catch((error) => console.error(error))
   );
 
-  // Desplegable de cuentas y perfil. La foto lleva directa a tu perfil; el nombre, al desplegable
+  // Desplegable de cuentas y perfil. La foto lleva directa a tu perfil; el nombre, al desplegable.
+  // En el móvil solo se ve la foto (en la barra de arriba): abre el desplegable, que lleva «Mi perfil»
   foto.title = t("Tu perfil");
   cajon.querySelector(".sesion-perfil").addEventListener("click", (e) => {
     e.stopPropagation();
-    if (e.target === foto) abrirPerfil();
+    if (e.target === foto && !matchMedia("(max-width: 760px)").matches) abrirPerfil();
     else if (menuCuentas.hidden) abrirMenuCuentas();
     else cerrarMenuCuentas();
   });

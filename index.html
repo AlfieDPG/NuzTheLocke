@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>NuzTheLocke</title>
   <meta name="description" content="Web de fans para jugar Nuzlockes con amigos: equipos, rutas, level caps, Pokédex y marcador de lockes.">
   <link rel="icon" type="image/svg+xml" href="img/icono.svg">
@@ -42,20 +42,15 @@
   <link rel="stylesheet" href="css/foro.css">
   <link rel="stylesheet" href="css/chat.css">
   <link rel="stylesheet" href="css/versus.css">
-  <link rel="stylesheet" href="css/jugar.css">
-  <link rel="stylesheet" href="css/lucha.css">
-  <link rel="stylesheet" href="css/pokedex.css">
   <link rel="stylesheet" href="css/logros.css">
   <link rel="stylesheet" href="css/juegos.css">
-  <link rel="stylesheet" href="css/tienda.css">
   <link rel="stylesheet" href="css/fondos-pixel.css">
   <link rel="stylesheet" href="css/marcos-dibujo.css">
   <link rel="stylesheet" href="css/titulos-adornos.css">
-  <link rel="stylesheet" href="css/ruleta.css">
-  <link rel="stylesheet" href="css/calculadora.css">
-  <link rel="stylesheet" href="css/randomizer.css">
   <link rel="stylesheet" href="css/inicio.css">
   <link rel="stylesheet" href="css/perfil.css">
+  <!-- El móvil (barra de arriba, barra de abajo y la hoja de «Más»), lo último: manda sobre lo demás -->
+  <link rel="stylesheet" href="css/movil.css">
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
@@ -132,6 +127,17 @@
         </div>
       </div>
     </aside>
+
+    <!-- Solo en el móvil (css/movil.css, js/movil.js): la barra de abajo con las secciones de más uso
+         y «Más», que abre el menú lateral entero como una hoja desde abajo -->
+    <nav class="barra-movil" aria-label="Secciones">
+      <button data-vista="inicio" data-icono="casa">Inicio</button>
+      <button data-vista="lockes" data-icono="espadas">Lockes</button>
+      <button data-vista="rutas" data-icono="mapa">Rutas</button>
+      <button data-vista="levelcaps" data-icono="escudo">Level caps</button>
+      <button class="barra-movil-mas" data-icono="menu" aria-expanded="false"></button>
+    </nav>
+    <div class="hoja-fondo" hidden></div>
 
     <div class="contenido">
       <main>
@@ -1154,98 +1160,8 @@
   </dialog>
 
   <!-- Preguntas frecuentes: el «?» de abajo del panel lateral (js/main.js) -->
-  <dialog id="dialogo-ayuda">
-    <h2>Preguntas frecuentes</h2>
-    <div class="ayuda-lista">
-      <details>
-        <summary>¿Qué es NuzTheLocke?</summary>
-        <p>Una web para jugar Nuzlockes con tus amigos: lleváis el marcador de cada locke en «Lockes» (vidas, victorias, muertos y quién gana) y tienes a mano lo que hace falta mientras juegas: tus equipos, las rutas donde ya has capturado, los level caps de cada combate, las normas y la Pokédex.</p>
-      </details>
-      <details>
-        <summary>¿Necesito una cuenta?</summary>
-        <p>Para equipos, rutas, level caps, normas y Pokédex, no: se guarda todo en este navegador. Con una cuenta (usuario y contraseña, o Google) se guarda además en tu cuenta, así que lo tienes en cualquier dispositivo, y puedes usar «Amigos» y «Lockes».</p>
-      </details>
-      <details>
-        <summary>¿Cómo añado a un amigo?</summary>
-        <p>En «Amigos», escribe su nombre de usuario y pulsa «Agregar». Le llega una solicitud a la campana de abajo del panel; en cuanto la acepta, os salís el uno en la lista del otro.</p>
-      </details>
-      <details>
-        <summary>¿Cómo funciona un locke?</summary>
-        <p>Con «Nuevo locke» le pones nombre, tipo, juego, vidas y combates, eliges las normas, las rutas y los level caps, e invitas a tus amigos (les llega a la campana). Cada uno lleva lo suyo: quita sus vidas (y apunta qué Pokémon ha muerto, que va a su cementerio) y marca cuándo se pasa la ROM. Cuando acaba, quien lo creó pulsa «Terminar» y se le suma al ganador a sus lockes ganados.</p>
-      </details>
-      <details>
-        <summary>¿Quién gana un locke?</summary>
-        <p>Para ganar hay que pasarse la ROM. Si no se la pasa nadie, no gana nadie; si solo se la pasa uno, gana ese, aunque fuese perdiendo los combates; si se la pasan varios, gana el que más combates ha ganado. Al pulsar «Terminar» la web te propone el ganador según esto, y quien lo creó puede cambiarlo (por ejemplo, si empatan).</p>
-      </details>
-      <details>
-        <summary>¿Cómo funcionan los combates?</summary>
-        <p>Al crear el locke se pone cuántos combates habrá (por ejemplo, 3: tras la 3ª medalla, tras la 6ª y tras la Liga) y, si quieres, el nombre de cada uno. Se juegan fuera (en Showdown) y en el locke se pulsa cada combate para apuntar quién lo ganó, cómo (2-0, 2-1...) y con qué equipo jugó cada uno (cada uno elige el suyo de «Mis equipos»). Con 3 o más jugadores, cada combate le suma un punto al que lo gana. Sin combates, cada uno se suma sus victorias a mano.</p>
-      </details>
-      <details>
-        <summary>¿Qué es «Vincular partida»?</summary>
-        <p>En los lockes de Diamante / Perla, Platino, HeartGold / SoulSilver, Negro / Blanco, Negro 2 / Blanco 2, X / Y, Rubí Omega / Zafiro Alfa, Sol / Luna, Ultrasol / Ultraluna, Espada / Escudo y Diamante Brillante / Perla Reluciente puedes elegir el archivo de guardado del emulador (en DS, el .dsv de DeSmuME o el .sav; en 3DS, el archivo «main» de Citra o Lime3DS; en Switch, el «main» de Espada / Escudo o el «SaveData.bin» de Perla Reluciente, de Eden, Ryujinx o yuzu, o los que saca JKSV de la consola). La web lo vuelve a leer cada vez que guardas: en tu bloque sale tu equipo, al pulsarlo ves también las cajas, las capturas se marcan solas en «Rutas» y los que metes en las cajas que marques como de muertos te los propone para el cementerio. Al apuntar un combate, tu equipo de la partida sale el primero. Los demás no ven nada de tu partida. Pulsando un Pokémon de las cajas lo puedes editar (especie, nivel, naturaleza, objeto, habilidad, ataques, EVs, IVs...), borrar o clonar, y arrastrándolo lo mueves; en un hueco libre creas uno nuevo, con «Meter equipo» metes uno de «Mis equipos» o de Showdown y en la pestaña «Bolsa» cambias los objetos que llevas. Los cambios se guardan todos juntos al cerrar la ventana de las cajas: hazlo con el juego cerrado en el emulador. Cada edición sale en la actividad del locke, y con «Copias» vuelves a como estaba. Vigilar el archivo solo funciona en Chrome o Edge de ordenador; en otros navegadores se puede leer a mano. Si el navegador no te deja elegirlo porque está dentro de AppData, cambia en el emulador la carpeta donde guarda las partidas a una normal, como Documentos (en Citra, Lime3DS o Azahar, Configurar → Almacenamiento → tarjeta SD; en Eden, yuzu o Sudachi, Emulación → Configurar → Sistema de archivos → NAND). Lo tienes explicado en el «?» de la partida, en tu bloque del locke.</p>
-      </details>
-      <details>
-        <summary>¿Qué son las vidas? ¿Y la vida cero?</summary>
-        <p>Las vidas son las que te quedan: cada vez que pierdes un Pokémon (o lo que digan vuestras normas) se quita una. Con 0 vidas aún se juega: es la vida cero. Si pierdes una más, quedas eliminado y ya no puedes ganar el locke. También se puede jugar con vidas ilimitadas.</p>
-      </details>
-      <details>
-        <summary>¿Y el equipo final?</summary>
-        <p>Con el locke terminado, cada uno puede poner su equipo final (de «Mis equipos») y elegir a su MVP. Sale en el locke y en el «Salón de la fama» de tu perfil.</p>
-      </details>
-      <details>
-        <summary>¿Ven mis rivales lo que capturo?</summary>
-        <p>No. En «Rutas», al marcar un lugar puedes apuntar qué Pokémon cogiste (pulsa la «+» del lugar marcado), pero eso solo lo ves tú. En la actividad del locke solo sale que has capturado en ese lugar, nunca el Pokémon.</p>
-      </details>
-      <details>
-        <summary>¿Puedo usar las rutas o los level caps de un fan game?</summary>
-        <p>Sí. En «Rutas» o en «Level caps», pestaña «Personalizado», pulsa «+ Nuevo». Puedes escribirlo todo desde cero o aprovechar lo de la web: copiar los lugares de un juego, o poner a cada combate el retrato de un personaje (o subir tu propia imagen). Luego los eliges al crear un locke y los demás jugadores los abren desde los botones «Rutas» y «Level caps» del locke.</p>
-      </details>
-      <details>
-        <summary>¿Cómo se consiguen los logros?</summary>
-        <p>Solos, usando la web: ganando lockes, perdiendo Pokémon, guardando equipos, marcando rutas, creando tus normas... En «Logros» ves todos, lo que pide cada uno y lo que te falta. Hace falta tener sesión, porque se guardan en tu perfil: cualquiera de tus amigos los puede ver en su pestaña «Logros». Con 25 logros, con 50 y con todos desbloqueas un fondo de plata, oro y platino para tu tarjeta de «Amigos», y cada logro de tipo (15 Pokémon distintos de ese tipo en tus equipos guardados) el fondo de ese tipo; se elige en tu perfil.</p>
-      </details>
-      <details>
-        <summary>¿Para qué sirve la ruleta?</summary>
-        <p>Para echar a suertes lo que queráis, por ejemplo la recompensa del que gana un combate. Escribe las opciones a la derecha (la ruleta cambia según escribes) y pulsa el centro para girarla. Puedes tener varias ruletas, cada una con su nombre.</p>
-      </details>
-      <details>
-        <summary>¿Cómo randomizo mi juego?</summary>
-        <p>En «Randomizer» eliges qué cambiar (Pokémon, ataques, entrenadores, salvajes, objetos...) y luego tu juego: el .nds en los de DS, el .3ds descifrado en los de 3DS y, en los de Switch, la carpeta «romfs» que sacas desde el emulador. La web lo randomiza en tu ordenador (el juego no se sube a ningún sitio) y te lo da para descargar. En el «?» al lado de «Elegir ROM» tienes cómo hacerlo en cada consola y qué hacer con lo que te descarga. En un locke con randomizer, pulsa «Randomizar mi ROM» en el locke: a cada uno le sale un juego distinto con las mismas normas.</p>
-      </details>
-      <details>
-        <summary>¿Para qué sirve el multiplicador de los level caps?</summary>
-        <p>Para los randomizers que suben el nivel de los entrenadores: multiplica todos los niveles de la lista por lo que pongas.</p>
-      </details>
-      <details>
-        <summary>¿Cómo paso un equipo a Showdown, o al revés?</summary>
-        <p>En el creador de equipos, «Exportar» copia el equipo en el formato de Showdown. Para traer uno, «Importar paste» en el menú de «Equipos». En «Mis equipos», «Exportar todos» copia todos los equipos como la copia de seguridad de Showdown («Backup/Restore all teams»), y «Importar» con esa copia los añade todos. Con «Nuevo grupo» juntas equipos en carpetas (arrastrándolos dentro o con el botón de la carpeta de cada uno); son las mismas carpetas de Showdown al exportar e importar. Pulsando el nombre de un Pokémon le pones o le cambias el mote.</p>
-      </details>
-      <details>
-        <summary>¿Cómo funciona la calculadora?</summary>
-        <p>Eliges quién ataca y quién recibe: de tus equipos (con su nivel, naturaleza, EVs, IVs, objeto y ataques) o cualquier Pokémon buscándolo (para el rival de un randomlocke). En el centro salen sus cuatro ataques con el daño de cada uno (en un hueco vacío buscas el que quieras, y con la ✕ cambias uno) y, del elegido, el daño en % y en PS, cómo queda su vida, si lo deja KO y quién ataca antes. Tiene en cuenta STAB, tipos, crítico, quemadura, parálisis, subidas y bajadas de estadísticas, clima, Reflejo, Pantalla de luz, la prioridad de los ataques, los PS que le quedan a cada uno, y los objetos y habilidades que cambian el daño o la velocidad (al lado de cada uno sale lo que hace; si no sale nada, no cuenta para el cálculo). Lo que cambies aquí no toca tus equipos.</p>
-      </details>
-      <details>
-        <summary>¿Cómo pongo nivel, naturaleza, EVs e IVs?</summary>
-        <p>En «Crear equipo», con el botón «Estadísticas» de cada Pokémon. Si no los tocas, se exporta como siempre (nivel 100, naturaleza neutra). Al importar un paste de Showdown se leen también.</p>
-      </details>
-      <details>
-        <summary>¿Cómo veo la línea evolutiva de un Pokémon?</summary>
-        <p>En la «Pokédex», pulsa la foto del Pokémon: sale su línea evolutiva con cómo evoluciona cada uno.</p>
-      </details>
-      <details>
-        <summary>¿Qué pasa al cerrar sesión? ¿Y con varias cuentas?</summary>
-        <p>Lo tuyo sigue guardado en tu cuenta y vuelve al entrar; de este navegador se quita mientras tanto. Para tener varias cuentas, pulsa tu nombre abajo del panel y «Añadir otra cuenta»: luego cambias de una a otra desde ahí mismo.</p>
-      </details>
-      <details>
-        <summary>¿Cómo borro mi cuenta?</summary>
-        <p>Pulsa tu nombre abajo del panel, «Mi perfil» y «Borrar mi cuenta». Se borra todo lo tuyo y no se puede deshacer.</p>
-      </details>
-    </div>
-    <div class="dialogo-botones">
-      <button class="ayuda-cerrar">Cerrar</button>
-    </div>
-  </dialog>
+  <!-- Preguntas frecuentes: las pinta js/ayuda.js (agrupadas por tema y con buscador) -->
+  <dialog id="dialogo-ayuda"></dialog>
 
   <dialog id="dialogo-ajustes" class="dialogo-sesion">
     <h2>Ajustes</h2>

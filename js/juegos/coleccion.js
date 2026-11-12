@@ -90,7 +90,7 @@ function plantillaCabeza(coleccion) {
           <button data-abrir="1" ${dinero >= PRECIO_HUEVO && !abriendo ? "" : "disabled"}>${t("Abrir 1 huevo")} ${moneda(PRECIO_HUEVO)}</button>
           <button data-abrir="10" ${dinero >= PRECIO_DIEZ && !abriendo ? "" : "disabled"}>${t("Abrir 10 huevos")} ${moneda(PRECIO_DIEZ)}</button>
         </div>
-        <small class="coleccion-reglas">${t("De cada huevo sale una especie al azar (1 de cada {n}, shiny; los legendarios y singulares, más difíciles). Los repetidos se cambian solos por {normal} Pokédólares ({shiny} si es shiny).", { n: PROB_SHINY, normal: DEVOLUCION.normal, shiny: DEVOLUCION.shiny })}</small>
+        <button class="juegos-info coleccion-info" aria-label="${t("Cómo funcionan los huevos")}" title="${t("Cómo funcionan los huevos")}">i</button>
       </div>
     </div>`;
 }
@@ -118,7 +118,6 @@ function retratoElegido(especie, coleccion, clase) {
 
 function plantillaRejilla(coleccion) {
   const deLaGen = especies.filter((especie) => especie.gen === generacion);
-  const tengoGen = deLaGen.filter((especie) => laTengo(coleccion, especie.id)).length;
   const conShiny = Object.keys(coleccion.shiny);
   const todasEnShinyYa = conShiny.length > 0 && conShiny.every((id) => aspectoDe(coleccion, id).shiny);
   return `
@@ -138,7 +137,6 @@ function plantillaRejilla(coleccion) {
           </button>`
         : ""}
     </div>
-    <p class="coleccion-nota">${t("Generación {gen}: tienes {n} de {total}. Pulsa uno de los tuyos para elegir su cara (y, si lo tienes shiny, verlo en shiny).", { gen: generacion, n: tengoGen, total: deLaGen.length })}</p>
     <div class="coleccion-rejilla">
       ${deLaGen
         .map((especie) => {
@@ -181,6 +179,11 @@ function pintar() {
 
   for (const boton of caja.querySelectorAll("[data-abrir]")) {
     boton.addEventListener("click", () => abrir(Number(boton.dataset.abrir)));
+  }
+  // Las reglas de los huevos, en la «i» (antes iban escritas debajo de los botones)
+  const info = caja.querySelector(".coleccion-info");
+  if (info) {
+    info.addEventListener("click", () => avisar(t("De cada huevo sale una especie al azar (1 de cada {n}, shiny; los legendarios y singulares, más difíciles). Los repetidos se cambian solos por {normal} Pokédólares ({shiny} si es shiny). Pulsa uno de los tuyos para elegir su cara (y, si lo tienes shiny, verlo en shiny).", { n: PROB_SHINY, normal: DEVOLUCION.normal, shiny: DEVOLUCION.shiny })));
   }
   for (const boton of caja.querySelectorAll("[data-gen]")) {
     boton.addEventListener("click", () => {

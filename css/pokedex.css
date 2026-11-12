@@ -146,8 +146,6 @@
   align-items: flex-start;
   gap: 0.8rem 1.6rem;
   margin-top: 0.7rem;
-  padding: 0.8rem 0.95rem;
-  border-radius: 0.6rem;
   background: var(--t-fondo-2);
 }
 
@@ -237,9 +235,6 @@
   border: none;
   background: transparent;
   color: var(--t-texto);
-  font-family: inherit;
-  font-size: 0.88rem;
-  font-weight: bold;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -256,6 +251,11 @@
 .flecha {
   font-size: 0.78rem;
   opacity: 0.35;
+}
+
+/* El título corto de cada estadística solo sale en el móvil (css/movil.css) */
+.tabla-pokedex .titulo-corto {
+  display: none;
 }
 
 .tabla-pokedex th.ordenada {

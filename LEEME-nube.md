@@ -296,6 +296,17 @@ mensaje enviado son 2 escrituras (el mensaje y la hora de «enviado»).
   contraseñas**, y tiene que coincidir con `claveValida` de `js/sesion.js`. Las cuentas que ya existen
   siguen entrando con su contraseña.
 
+## Sugerencias (el cuadro «Enviar sugerencia» de Inicio)
+
+Antes iban por correo con formsubmit.co, y el correo tenía que estar escrito en el código de la web. Ahora
+se guardan en `sugerencias/{id}` (`js/comun/sugerencias.js`) y **solo el administrador** las lee y las borra,
+en la pestaña **Sugerencias** del foro (sale junto a Denuncias y Moderadores; solo con `rol: "admin"` en
+`moderadores/{tu uid}`).
+
+- Se pueden mandar sin sesión (con `uid` nulo y sin nombre); con sesión llevan tu uid y tu nombre de usuario.
+- **Hay que publicar las reglas** (paso 4): sin el bloque «Sugerencias» de `firestore.rules`, enviar falla.
+- No hace falta crear ningún índice: se piden por `creado`, y Firestore ya los tiene de un campo.
+
 ## Contador de usuarios registrados
 
 El inicio enseña «N usuarios» a la derecha de la cabecera (a partir de `MINIMO_REGISTRADOS` en `js/inicio/index.js`).

@@ -39,7 +39,7 @@ import {
   crearLocke, editarLocke, invitarALocke, quitarDeLocke, sePuedenCambiarVidas,
   cambiarNumero, borrarLocke, enlaceParaSeguir, lockePorId, nuevoIdCadena, vidasDeLaSiguienteEtapa, pokemonQuePasan,
   hayEtapaSiguiente, crearSiguienteEtapa, siguenEnLaCadena, estaEliminado, combatesDe, victoriasDe, medallasDe, cambiarMedallas,
-  muertosDe, conKanto, puestosDe
+  muertosDe, conKanto, puestosDe, elegirLockeDeProgreso
 } from "../comun/lockes.js";
 import { kantoEnCaps, cambiarKantoEnCaps } from "../levelcaps/datos.js";
 import { medallasDelLocke, marcarGimnasios } from "../comun/medallas.js";
@@ -161,7 +161,7 @@ function alternarMedalla(locke, indice) {
   const conseguida = !tiene.has(indice);
   if (conseguida) tiene.add(indice);
   else tiene.delete(indice);
-  marcarGimnasios(locke.juego, [indice], conseguida);
+  marcarGimnasios(locke.juego, [indice], conseguida, locke.id);
   return cambiarMedallas(locke.id, [...tiene], versionDeMedallas(locke, usuario.uid));
 }
 
@@ -648,7 +648,7 @@ function pintar() {
 
   if (fallo) aviso.textContent = fallo;
   else if (pendientes) {
-    aviso.textContent = t(pendientes === 1 ? "Tienes {n} invitación sin contestar en las notificaciones (la campana de abajo)." : "Tienes {n} invitaciones sin contestar en las notificaciones (la campana de abajo).", { n: pendientes });
+    aviso.textContent = t(pendientes === 1 ? "Tienes {n} invitación sin contestar: mírala en la campana." : "Tienes {n} invitaciones sin contestar: míralas en la campana.", { n: pendientes });
   } else if (!mios.length) {
     aviso.textContent = t("Todavía no tienes ningún locke. Crea uno con «Nuevo locke».");
   } else {
@@ -1290,6 +1290,8 @@ async function borrarDesdeElDialogo() {
 // que al mostrarse lo lee (ver mostrar() en js/rutas y js/levelcaps).
 function irAlJuego(seccionDestino, idJuego, locke) {
   escribir(CLAVES_JUEGO[seccionDestino], idJuego);
+  // Con varios lockes abiertos de ese juego, Rutas y Level caps enseñan el progreso de este
+  if (locke) elegirLockeDeProgreso(idJuego, locke.id);
   // Level caps de un locke con randomizer: el multiplicador de niveles de sus normas, el mismo
   // para todos (sale de las normas del locke, no de la ROM de cada uno)
   if (seccionDestino === "levelcaps" && locke && locke.randomizer) {

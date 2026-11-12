@@ -58,5 +58,7 @@ export default {
   // Sin captura en un lugar (js/rutas/capturas.js)
   "Sin captura": "No catch",
   "No la conseguí": "I didn't get it",
-  "Pasaste por aquí pero no conseguiste capturar nada": "You went through here but didn't catch anything"
+  "Pasaste por aquí pero no conseguiste capturar nada": "You went through here but didn't catch anything",
+  // Con varios lockes abiertos del mismo juego (js/comun/progreso-lockes.js)
+  "Progreso de": "Progress of"
 };

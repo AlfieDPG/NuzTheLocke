@@ -16,7 +16,8 @@ import { JUEGOS } from "../comun/juegos.js";
 import {
   rutasPropias, lugaresDe, seccionesDeLaWeb, lugaresDeLaWeb, MAX_LUGARES
 } from "../comun/personalizados.js";
-import { apuntarEnLockesDelJuego } from "../comun/lockes.js";
+import { apuntarEnLockesDelJuego, claveDeProgresoActual, alCambiarLockes } from "../comun/lockes.js";
+import { crearFilaLockes, pintarFilaLockes, firmaLockes } from "../comun/progreso-lockes.js";
 import { plantillaCaptura, abrirCaptura, iniciarCapturas, quitarCaptura, quitarCapturasDelJuego, capturaDe } from "./capturas.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
 import { t } from "../comun/idioma.js";
@@ -63,8 +64,17 @@ function apartadosDelJuego() {
   return (lugares.apartados || APARTADOS).filter((a) => (lugares[a.clave] || []).length > 0);
 }
 
+// Dónde va lo marcado del juego abierto: la clave del juego o, con varios lockes abiertos de ese
+// juego, la del elegido (js/comun/lockes.js, «El progreso de Rutas y Level caps de cada locke»)
+function claveGuardado() {
+  return claveDeProgresoActual(juego.id, "rutasPropias");
+}
+
+let filaLockes = null;  // «Progreso de: [locke] [locke]», con varios lockes del mismo juego
+let firmaPintada = "";  // los lockes que había al pintarla (si cambian, se repinta)
+
 function guardar() {
-  marcadas[juego.id] = [...usadas];
+  marcadas[claveGuardado()] = [...usadas];
   escribir(CLAVE_MARCADAS, marcadas);
 }
 
@@ -91,7 +101,7 @@ function botonLugar(apartado, texto) {
   // Marcado: qué cogiste ahí (solo lo ves tú, ver ./capturas.js), con su retrato a la
   // izquierda y el mote debajo del lugar. Sin marcar, el hueco del retrato vacío: así la
   // tarjeta mide lo mismo y al marcarla no se mueve nada.
-  const captura = usada ? capturaDe(juego.id, clave) : null;
+  const captura = usada ? capturaDe(claveGuardado(), clave) : null;
   // Sin captura («No la conseguí», ver ./capturas.js): una ✗ y «Sin captura» en vez del mote
   const fallada = Boolean(captura && captura.fallada);
   const mote = fallada
@@ -99,7 +109,7 @@ function botonLugar(apartado, texto) {
     : captura && captura.mote ? `<span class="ruta-mote">${escaparHTML(captura.mote)}</span>` : "";
   return `<button class="ruta ${evento ? "evento" : ""} ${usada ? "usada" : ""} ${fallada ? "fallada" : ""}" aria-pressed="${usada}"
     data-clave="${escaparHTML(clave)}" data-buscar="${escaparHTML(quitarAcentos(visible === texto ? texto : `${texto} ${visible}`))}">${
-      usada ? plantillaCaptura(juego.id, clave) : `<span class="ruta-hueco"></span>`
+      usada ? plantillaCaptura(claveGuardado(), clave) : `<span class="ruta-hueco"></span>`
     }<span class="ruta-textos">${contenido}${mote}</span></button>`;
 }
 
@@ -345,6 +355,14 @@ function activarEditor() {
 // ---------- Arranque ----------
 
 export function iniciar() {
+  // Con varios lockes abiertos del mismo juego: de cuál es lo que se ve. Elegir otro lo vuelve a pintar,
+  // y también si cambian tus lockes (uno nuevo, uno que se cierra...)
+  filaLockes = crearFilaLockes(lista, () => juego && elegirJuego(juego, true));
+  alCambiarLockes(() => {
+    if (!juego || editando || vista.hidden || firmaLockes(juego.id, "rutasPropias") === firmaPintada) return;
+    elegirJuego(juego, true);
+  });
+
   // Un solo oyente para todos los botones de lugar
   lista.addEventListener("click", (e) => {
     const boton = e.target.closest(".ruta");
@@ -353,13 +371,13 @@ export function iniciar() {
 
     // La captura de un lugar marcado: se apunta, no se desmarca
     if (e.target.closest(".ruta-captura")) {
-      abrirCaptura(juego.id, clave, nombreDeLugar(nombreDelLugar(clave)));
+      abrirCaptura(claveGuardado(), clave, nombreDeLugar(nombreDelLugar(clave)));
       return;
     }
 
     if (usadas.has(clave)) {
       usadas.delete(clave);
-      quitarCaptura(juego.id, clave);
+      quitarCaptura(claveGuardado(), clave);
     } else usadas.add(clave);
     const apartado = clave.slice(0, clave.indexOf(":"));
     const ancho = boton.style.flexBasis;
@@ -385,7 +403,7 @@ export function iniciar() {
     if (usadas.size === 0) return;
     if (!(await confirmar(t("¿Desmarcar todos los lugares de {juego}?", { juego: juego.nombre })))) return;
     usadas.clear();
-    quitarCapturasDelJuego(juego.id);
+    quitarCapturasDelJuego(claveGuardado());
     guardar();
     pintarLista();
   });
@@ -436,6 +454,7 @@ function elegirJuego(nuevo, seguir = false) {
   barra.hidden = !juego;
   pintarBotonEditar();
   if (!juego) {
+    if (filaLockes) pintarFilaLockes(filaLockes, null);
     lista.innerHTML = "";
     return;
   }
@@ -449,8 +468,10 @@ function elegirJuego(nuevo, seguir = false) {
   for (const a of apartadosDelJuego()) {
     for (const texto of lugares[a.clave]) porTexto.set(texto, claveLugar(a.clave, texto));
   }
+  firmaPintada = firmaLockes(juego.id, "rutasPropias");
+  if (filaLockes) pintarFilaLockes(filaLockes, juego.id, "rutasPropias");
   usadas = new Set();
-  for (const clave of marcadas[juego.id] || []) {
+  for (const clave of marcadas[claveGuardado()] || []) {
     const texto = clave.slice(clave.indexOf(":") + 1);
     if (porTexto.has(texto)) usadas.add(porTexto.get(texto));
   }

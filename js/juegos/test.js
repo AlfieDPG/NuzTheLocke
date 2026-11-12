@@ -19,7 +19,7 @@ import { icono } from "../comun/iconos.js";
 import { imagenConRespaldo, urlsRetrato } from "../comun/imagenes.js";
 import { hoy, azarDelDia } from "../comun/fichas.js";
 import { t, nombre as nombreDe } from "../comun/idioma.js";
-import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, plantillaFin } from "./comun.js";
+import { cargarEspecies, estadoDe, guardarEstado, mirarSiYaJugado, terminar, plantillaFin, plantillaVeredicto } from "./comun.js";
 
 const PAUSA = 900; // ms con la respuesta a la vista antes de pasar a la siguiente
 
@@ -73,7 +73,8 @@ export function crearTest(config) {
     const marcador = rondas.map((ronda, i) => {
       const id = estado.respuestas[i];
       const clase = id == null ? "" : id === ronda.buena.id ? "acierto" : "fallo";
-      return `<span class="juego-intento ${clase}"></span>`;
+      const nuevo = mostrando && mostrando.ronda === i ? "nuevo" : "";
+      return `<span class="juego-intento ${clase} ${nuevo}"></span>`;
     }).join("");
 
     let medio;
@@ -85,10 +86,12 @@ export function crearTest(config) {
       const i = mostrando ? mostrando.ronda : estado.respuestas.length;
       const ronda = rondas[i];
       const respuesta = mostrando ? mostrando.id : null;
+      // Al entrar la ronda, lo de dentro aparece; al responder, el sello y la buena (o la tuya) se mueven
       medio = `
-        <div class="test-cuerpo">
+        <div class="test-cuerpo ${mostrando ? "respondida" : "entra"}">
           <div class="test-pregunta">
             <span class="test-ronda">${t("Pregunta {n} de {total}", { n: i + 1, total: rondas.length })}</span>
+            ${mostrando ? plantillaVeredicto(respuesta === ronda.buena.id) : ""}
             ${config.pregunta(ronda, i)}
             ${mostrando && config.explicar ? `<p class="test-explicacion">${config.explicar(ronda)}</p>` : ""}
           </div>

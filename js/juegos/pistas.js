@@ -7,6 +7,9 @@
 //     el del día comparado con el tuyo).
 //   · Clase (normal, bebé, legendario o singular): verde o rojo.
 //
+// La tabla está siempre, con sus seis filas: las que faltan, con la misma forma pero de puntos (y «???»
+// de nombre), que se van llenando de arriba abajo (así el reto no cambia de forma con cada intento).
+//
 // Pokédólares: 50 a la primera y 8 menos por cada intento más (10 al sexto), más lo de la racha.
 
 import { escaparHTML } from "../comun/utilidades.js";
@@ -29,6 +32,8 @@ let especies = [];
 let objetivo = null;
 let estado = null;
 let ocupado = false;
+let recien = null; // el último que has probado: su fila se va destapando casilla a casilla
+const DESTAPAR = 1100; // ms que tarda en destaparse entera (css/juegos.css, «pistas-destapa»)
 
 export async function montarPistas(contenedor) {
   caja = contenedor;
@@ -84,7 +89,7 @@ function plantillaFila(numero) {
   const suya = especies.find((especie) => especie.id === numero);
   if (!suya) return "";
   return `
-    <div class="pistas-fila ${numero === objetivo.id ? "acierto" : ""}" role="row">
+    <div class="pistas-fila ${numero === objetivo.id ? "acierto" : ""} ${numero === recien ? "nueva" : ""}" role="row">
       <span class="pistas-quien" role="cell">
         ${imagenConRespaldo(urlsRetrato({ id: suya.id }), `alt="" loading="lazy" data-quitar-si-falla`)}
         <span>${escaparHTML(nombreDe(suya))}</span>
@@ -95,12 +100,23 @@ function plantillaFila(numero) {
     </div>`;
 }
 
+// Un intento que queda: con la forma de una fila de verdad, pero de puntos: el hueco del retrato con su
+// número, «???» de nombre y una casilla por columna
+function plantillaHueco(numero) {
+  return `
+    <div class="pistas-fila pistas-hueco" role="row" aria-hidden="true">
+      <span class="pistas-quien"><span class="pistas-hueco-foto">${numero}</span><span>???</span></span>
+      ${COLUMNAS.map(() => `<span class="pistas-casilla vacia"></span>`).join("")}
+    </div>`;
+}
+
 function pintar() {
   const quedan = INTENTOS - estado.intentos.length;
   const puntos = Array.from({ length: INTENTOS }, (_, i) => {
     const numero = estado.intentos[i];
     const clase = numero == null ? "" : numero === objetivo.id ? "acierto" : "fallo";
-    return `<span class="juego-intento ${clase}"></span>`;
+    const nuevo = recien != null && numero === recien ? "nuevo" : "";
+    return `<span class="juego-intento ${clase} ${nuevo}"></span>`;
   }).join("");
 
   caja.innerHTML = `
@@ -122,15 +138,14 @@ function pintar() {
                  aria-label="${t("Pokémon")}"></span>
           <button type="submit">${t("Probar")} <small>(${quedan})</small></button>
         </form>`}
-    ${estado.intentos.length
-      ? `<div class="pistas-tabla" role="table">
-          <div class="pistas-fila pistas-titulos" role="row">
-            <span role="columnheader">${t("Pokémon")}</span>
-            ${COLUMNAS.map((columna) => `<span role="columnheader">${columna}</span>`).join("")}
-          </div>
-          ${[...estado.intentos].reverse().map(plantillaFila).join("")}
-        </div>`
-      : ""}`;
+    <div class="pistas-tabla" role="table">
+      <div class="pistas-fila pistas-titulos" role="row">
+        <span role="columnheader">${t("Pokémon")}</span>
+        ${COLUMNAS.map((columna) => `<span role="columnheader">${columna}</span>`).join("")}
+      </div>
+      ${estado.intentos.map(plantillaFila).join("")}
+      ${Array.from({ length: quedan }, (_, i) => plantillaHueco(estado.intentos.length + i + 1)).join("")}
+    </div>`;
 
   const formulario = caja.querySelector(".juego-form");
   if (!formulario) return;
@@ -147,6 +162,7 @@ async function probar(especie) {
   ocupado = true;
   try {
     estado.intentos.push(especie.id);
+    recien = especie.id;
     estado.acierto = especie.id === objetivo.id;
     if (estado.acierto || estado.intentos.length >= INTENTOS) {
       estado.perfecto = estado.acierto && estado.intentos.length <= 3; // para el logro: en 3 o menos
@@ -155,12 +171,15 @@ async function probar(especie) {
         casillas(especies.find((cada) => cada.id === numero)).map((casilla) => cuadro[casilla.estado]).join(""));
       estado.resumen = `${t("Adivínalo")} ${estado.acierto ? estado.intentos.length : "X"}/${INTENTOS}\n${filas.join("\n")}`;
       const apuntando = terminar(JUEGO, estado, estado.acierto ? PUNTOS[estado.intentos.length - 1] : 0);
-      pintar(); // ya terminado, mientras se apuntan los Pokédólares
-      await apuntando;
+      pintar(); // ya terminado, mientras se apuntan los Pokédólares (y se destapa la fila)
+      recien = null;
+      await Promise.all([apuntando, new Promise((listo) => setTimeout(listo, DESTAPAR))]);
+      if (!caja.isConnected) return;
     } else {
       guardarEstado(JUEGO, estado);
     }
     pintar();
+    recien = null;
     if (!estado.fin) caja.querySelector(".juego-form input").focus();
   } finally {
     ocupado = false;

@@ -11,7 +11,7 @@
 
 import { COMBATES, claveCombate } from "../levelcaps/datos.js";
 import { leer, escribir } from "./almacen.js";
-import { apuntarEnLockesDelJuego, conKanto } from "./lockes.js";
+import { apuntarEnLockesDelJuego, conKanto, claveDeProgreso, lockeDeProgreso } from "./lockes.js";
 import { enIngles } from "./idioma.js";
 
 const URL_MEDALLAS = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/";
@@ -107,10 +107,13 @@ function combateDe(idJuego, indice) {
   return gimnasios[posicion] || null;
 }
 
-// Marca (o desmarca) en «Level caps» los gimnasios de esas medallas, como al hacerlo a mano
-export function marcarGimnasios(idJuego, indices, marcado = true) {
+// Marca (o desmarca) en «Level caps» los gimnasios de esas medallas, como al hacerlo a mano.
+// idLocke: el locke de esas medallas (con varios abiertos del mismo juego, cada uno lleva lo suyo)
+export function marcarGimnasios(idJuego, indices, marcado = true, idLocke = null) {
+  const locke = idLocke || lockeDeProgreso(idJuego, "capsPropios");
+  const llave = claveDeProgreso(idJuego, locke, "capsPropios");
   const guardados = leer(CLAVE_SUPERADOS, {}) || {};
-  const superados = new Set(guardados[idJuego] || []);
+  const superados = new Set(guardados[llave] || []);
   const cambiados = [];
   for (const indice of indices) {
     const combate = combateDe(idJuego, indice);
@@ -120,19 +123,19 @@ export function marcarGimnasios(idJuego, indices, marcado = true) {
     cambiados.push(combate);
   }
   if (!cambiados.length) return;
-  guardados[idJuego] = [...superados];
+  guardados[llave] = [...superados];
   escribir(CLAVE_SUPERADOS, guardados);
   for (const combate of cambiados) {
     const quien = combate.nombre || combate.etiqueta;
-    apuntarEnLockesDelJuego("capsPropios", idJuego, "cap", quien, marcado).catch((error) => console.error(error));
+    apuntarEnLockesDelJuego("capsPropios", idJuego, "cap", quien, marcado, locke).catch((error) => console.error(error));
   }
 }
 
 // Las medallas de la partida que no se habían visto: marca sus gimnasios y las apunta en
 // «vistas» (índices). medallas: [sí/no] de la partida.
-export function marcarMedallasNuevas(idJuego, medallas, vistas) {
+export function marcarMedallasNuevas(idJuego, medallas, vistas, idLocke = null) {
   if (!medallas || !tieneMedallas(idJuego)) return;
   const nuevas = medallas.flatMap((tiene, i) => (tiene && !vistas.has(i) ? [i] : []));
   for (const i of nuevas) vistas.add(i);
-  marcarGimnasios(idJuego, nuevas);
+  marcarGimnasios(idJuego, nuevas, true, idLocke);
 }

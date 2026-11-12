@@ -1,17 +1,19 @@
 // Sección «Juegos»: los retos del día. (La Tienda y los huevos tienen su propia sección:
 // js/tienda/index.js.)
 //
-// Tres columnas (en pantallas más estrechas, dos o una):
+// Tres columnas que llegan hasta abajo de la pantalla en el ordenador (en pantallas más estrechas, dos
+// o una; css/juegos.css, «A toda la altura»):
 //   · Izquierda, la cartilla de hoy: los nueve retos, con un sello «+N» en los ya hechos y un
 //     hueco de puntos en los que faltan; encima, la racha de la semana (los días jugados).
 //   · En medio, el reto elegido (js/juegos/silueta.js, pistas.js, eficaz.js, masomenos.js,
 //     grito.js, evolucion.js, tipos.js, intruso.js y locke.js; lo común en js/juegos/comun.js).
 //   · Derecha, la clasificación con tus amigos (esta semana o siempre) y cómo les ha ido en el
-//     reto que tienes abierto (solo cuando lo has terminado tú).
+//     reto que tienes abierto (siempre a la vista: solo dice los Pokédólares, no destripa nada).
 //
 // Las Pokédólares (cómo se ganan y cómo se guardan) están en js/comun/fichas.js.
 
 import { icono } from "../comun/iconos.js";
+import { flechasIr } from "../comun/utilidades.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { usuarioActual, alCambiarSesion, baseDeDatos } from "../comun/nube.js";
 import { miPerfil, alCambiarMiPerfil, amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos } from "../comun/perfiles.js";
@@ -42,7 +44,7 @@ const moneda = (n) => `<span class="ficha-cifra"><span class="ficha-moneda"></sp
 
 // Los retos, en el orden de la cartilla. «maximo»: los Pokédólares que da como mucho (sin la racha)
 const JUEGOS = [
-  { id: "silueta", nombre: t("¿Quién es ese Pokémon?"), icono: "lupa", maximo: 90, montar: montarSilueta },
+  { id: "silueta", nombre: t("¿Quién es ese Pokémon?"), icono: "lupa", maximo: 120, montar: montarSilueta },
   { id: "pistas", nombre: t("Adivínalo"), icono: "pokedex", maximo: 100, montar: montarPistas },
   { id: "eficaz", nombre: t("Supereficaz"), icono: "rayo", maximo: 100, montar: montarEficaz },
   { id: "masomenos", nombre: t("¿Más o menos?"), icono: "estadisticas", maximo: 100, montar: montarMasOMenos },
@@ -133,7 +135,6 @@ async function pintarReto() {
   const juego = JUEGOS.find((cada) => cada.id === reto);
   const caja = cuerpo.querySelector(".retos-juego");
   caja.innerHTML = `<article class="juego juego-${juego.id}"></article>`;
-  cuerpo.querySelector(".retos-cuerpo").classList.toggle("reto-ancho", juego.id === "locke");
   try {
     await juego.montar(caja.querySelector(".juego"));
   } catch (error) {
@@ -240,26 +241,26 @@ function plantillaClasificacion() {
         <p class="juegos-nota">${t("Con sesión, cada reto suma Pokédólares y entras en la clasificación semanal con tus amigos.")}</p>
       </section>`;
   }
-  const amigos = filas.length - 1;
   return `
     <section class="retos-caja">
-      <div class="retos-caja-cabeza"><h3>${t("Clasificación")}</h3><span class="juegos-nota">${t("con amigos")}</span></div>
+      <div class="retos-caja-cabeza"><h3>${t("Clasificación")}</h3></div>
       <div class="segmentos-juegos" role="group" aria-label="${t("Qué Pokédólares contar")}">
         ${MODOS.map((cada) => `<button data-modo="${cada.id}" class="${cada.id === modo ? "activo" : ""}">${cada.nombre}</button>`).join("")}
       </div>
       <ol class="clasificacion-lista">${filas.map(plantillaFilaRanking).join("")}</ol>
-      <p class="juegos-nota">${amigos
-        ? modo === "semana" ? t("Lo ganado en los retos desde el lunes. Se reinicia cada lunes.") : t("Todo lo ganado en los retos.")
-        : t("Añade amigos en «Amigos» para competir con ellos.")}</p>
     </section>`;
 }
 
 // ---------- Cómo les ha ido hoy a tus amigos en este reto ----------
 //
-// Su jugada de hoy (jugadas/{uid}_{juego}_{dia}; las reglas dejan leerlas de una en una). Solo
-// después de terminar el tuyo, para no chafar nada. Se guarda lo leído mientras dure el día.
+// Su jugada de hoy (jugadas/{uid}_{juego}_{dia}; las reglas dejan leerlas de una en una). Siempre a la
+// vista: solo dice cuántos Pokédólares sacó cada uno, no sus respuestas. Una fila por amigo desde el
+// principio (con «…» mientras llega), para que la caja no cambie de alto al cargar ni al terminar.
+// Lo que ya está se guarda mientras dure el día; lo que aún no, se vuelve a mirar como mucho cada
+// RELEER (al hacer cada intento se repinta, y no hace falta leer cada vez).
 
-const jugadasDeAmigos = new Map(); // `${uid}_${juego}_${dia}` -> { puntos } o null
+const RELEER = 90 * 1000;
+const jugadasDeAmigos = new Map(); // `${uid}_${juego}_${dia}` -> { datos: { puntos } | null, cuando }
 
 async function leerJugadas(juego) {
   const acceso = baseDeDatos();
@@ -270,49 +271,51 @@ async function leerJugadas(juego) {
     amigosConPerfil().map(async (perfil) => {
       const id = `${perfil.uid}_${juego}_${dia}`;
       // Lo que no estaba puede llegar más tarde: solo se guarda de una vez lo que ya existe
-      if (jugadasDeAmigos.get(id)) return;
+      const leida = jugadasDeAmigos.get(id);
+      if (leida && (leida.datos || Date.now() - leida.cuando < RELEER)) return;
       try {
         const documento = await fn.getDoc(fn.doc(bd, "jugadas", id));
-        jugadasDeAmigos.set(id, documento.exists() ? documento.data() : null);
+        jugadasDeAmigos.set(id, { datos: documento.exists() ? documento.data() : null, cuando: Date.now() });
       } catch (error) {
-        jugadasDeAmigos.set(id, null);
+        jugadasDeAmigos.set(id, { datos: null, cuando: Date.now() });
       }
     })
   );
 }
 
-function plantillaAmigosHoy(juego, leidas) {
-  const estado = estadoDe(juego.id);
+function plantillaAmigosHoy(juego) {
   const amigos = amigosConPerfil();
   let dentro;
   if (!amigos.length) dentro = `<p class="juegos-nota">${t("Cuando tengas amigos, aquí verás cómo les ha ido en este reto.")}</p>`;
-  else if (!estado.fin) dentro = `<p class="juegos-nota">${t("Termínalo y verás cómo les ha ido a tus amigos (así nadie te chafa nada).")}</p>`;
-  else if (!leidas) dentro = `<p class="juegos-nota">${t("Cargando...")}</p>`;
   else {
     const dia = hoy();
+    // Los que ya lo han hecho, de más a menos; luego los que aún no y los que se están mirando
+    const valor = (jugada) => (jugada && jugada.datos ? jugada.datos.puntos : jugada ? -1 : -2);
     const filas = amigos
       .map((perfil) => ({ perfil, jugada: jugadasDeAmigos.get(`${perfil.uid}_${juego.id}_${dia}`) }))
-      .sort((una, otra) => (otra.jugada ? otra.jugada.puntos : -1) - (una.jugada ? una.jugada.puntos : -1));
+      .sort((una, otra) => valor(otra.jugada) - valor(una.jugada) || una.perfil.nombre.localeCompare(otra.perfil.nombre, LOCALE));
     dentro = `<ul class="amigos-hoy">${filas.map(({ perfil, jugada }) => `
       <li>
         ${plantillaFoto(perfil)}
         <strong>${escaparHTML(perfil.nombre)}</strong>
-        ${jugada ? `<span class="amigos-hoy-puntos">+${numero(jugada.puntos)}</span>` : `<span class="juegos-nota">${t("aún no")}</span>`}
+        ${jugada && jugada.datos
+          ? `<span class="amigos-hoy-puntos">+${numero(jugada.datos.puntos)}</span>`
+          : `<span class="juegos-nota">${jugada ? t("aún no") : "…"}</span>`}
       </li>`).join("")}</ul>`;
   }
-  const siguiente = JUEGOS.find((cada) => cada.id !== juego.id && !estadoDe(cada.id).fin);
   return `
     <section class="retos-caja retos-caja-hoy">
       <h3>${t("Hoy, en este reto")}</h3>
       ${dentro}
-      ${estado.fin && siguiente ? `<button class="retos-siguiente" data-reto="${siguiente.id}"><span>${t("Siguiente: {nombre}", { nombre: siguiente.nombre })}</span>${icono("adelante")}</button>` : ""}
     </section>`;
 }
 
 function pintarLado() {
   const caja = cuerpo.querySelector(".retos-lado");
   if (!caja) return;
-  caja.innerHTML = `${plantillaClasificacion()}<div class="retos-hoy"></div>`;
+  // Arriba del todo, el saldo que lleva a la Tienda (a lo ancho de la columna)
+  caja.innerHTML = `<div class="juegos-arriba"></div>${plantillaClasificacion()}<div class="retos-hoy"></div>`;
+  pintarArriba();
   pintarAmigosHoy();
 }
 
@@ -326,11 +329,10 @@ async function pintarAmigosHoy() {
   }
   const juego = JUEGOS.find((cada) => cada.id === reto);
   const esta = ++lecturaHoy;
-  const hace = estadoDe(juego.id).fin && amigosConPerfil().length;
-  caja.innerHTML = plantillaAmigosHoy(juego, !hace);
-  if (!hace) return;
+  caja.innerHTML = plantillaAmigosHoy(juego);
+  if (!amigosConPerfil().length) return;
   await leerJugadas(juego.id);
-  if (esta === lecturaHoy && caja.isConnected) caja.innerHTML = plantillaAmigosHoy(juego, true);
+  if (esta === lecturaHoy && caja.isConnected) caja.innerHTML = plantillaAmigosHoy(juego);
 }
 
 // ---------- Sección ----------
@@ -339,23 +341,22 @@ function pintarArriba() {
   const caja = cuerpo.querySelector(".juegos-arriba");
   if (!caja) return;
   const perfil = usuarioActual() ? miPerfil() : null;
-  caja.innerHTML = `
-    <p class="juegos-nota">${t("Los retos cambian cada día a medianoche (hora de España) y son los mismos para todo el mundo.")}</p>
-    ${perfil
-      ? `<button class="juegos-ir-tienda" title="${t("Gástalos en la Tienda")}">${moneda(saldo(perfil))}<span>${t("Tienda")}</span>${icono("adelante")}</button>`
-      : ""}`;
+  // Tu saldo, en un botón de los colores de la Tienda que lleva a ella (flechas que avanzan al pasar el ratón)
+  caja.innerHTML = perfil
+    ? `<button class="boton-ir juegos-ir-tienda" title="${t("Gástalos en la Tienda")}">
+        ${moneda(saldo(perfil))}<span class="boton-ir-texto">${t("Tienda")}</span>${flechasIr()}
+      </button>`
+    : "";
 }
 
 function pintarTodo() {
   if (!reto) reto = (JUEGOS.find((juego) => !estadoDe(juego.id).fin) || JUEGOS[0]).id;
   cuerpo.innerHTML = `
-    <div class="juegos-arriba"></div>
     <div class="retos-cuerpo">
       <aside class="retos-cartilla" aria-label="${t("Los retos de hoy")}"></aside>
       <div class="retos-juego"></div>
       <aside class="retos-lado"></aside>
     </div>`;
-  pintarArriba();
   pintarCartilla();
   pintarLado();
   pintarReto();

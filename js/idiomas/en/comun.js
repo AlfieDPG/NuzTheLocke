@@ -26,6 +26,15 @@ export default {
   "Tu cuenta": "Your account",
   "Tu perfil": "Your profile",
   "Notificaciones": "Notifications",
+  // Móvil: la barra de abajo y la hoja de «Más»
+  "menu|Más": "More",
+  // Preguntas frecuentes (js/ayuda.js; las preguntas van allí en los dos idiomas)
+  "Busca tu duda…": "Search your question…",
+  "Temas": "Topics",
+  "Todas": "All",
+  "No hay ninguna pregunta con eso. Si no encuentras la respuesta, escríbeme en «Enviar sugerencia», en Inicio.":
+    "No question matches that. If you can't find the answer, write to me in “Send a suggestion”, on Home.",
+  "Secciones": "Sections",
 
   // Ajustes
   "Ajustes": "Settings",

@@ -326,7 +326,7 @@ export default {
   "Racha de hierro": "Iron streak",
   "Juega los retos 30 días seguidos.": "Play the challenges 30 days in a row.",
   "Vista de lince": "Hawk eyes",
-  "Acierta las tres siluetas del día a la primera.": "Get all three silhouettes of the day on the first try.",
+  "Acierta las cuatro siluetas del día a la primera.": "Get all four silhouettes of the day on the first try.",
   "Mente deductiva": "Deductive mind",
   "Acierta «Adivínalo» en tres intentos o menos.": "Solve “Guess it” in three attempts or fewer.",
   "Sin un fallo": "Flawless",

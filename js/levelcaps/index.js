@@ -15,7 +15,8 @@ import { escaparHTML } from "../comun/utilidades.js";
 import { icono } from "../comun/iconos.js";
 import { campoNumero } from "../comun/numero.js";
 import { capsPropios, tipoDeCombate, MAX_COMBATES } from "../comun/personalizados.js";
-import { apuntarEnLockesDelJuego } from "../comun/lockes.js";
+import { apuntarEnLockesDelJuego, claveDeProgresoActual, alCambiarLockes } from "../comun/lockes.js";
+import { crearFilaLockes, pintarFilaLockes, firmaLockes } from "../comun/progreso-lockes.js";
 import { medallasDelJuego } from "../comun/medallas.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
 import { t } from "../comun/idioma.js";
@@ -471,7 +472,23 @@ function animarCambio(antes) {
 
 // ---------- Arranque ----------
 
+// Dónde van los superados del juego abierto: la clave del juego o, con varios lockes abiertos de ese
+// juego, la del elegido (js/comun/lockes.js, «El progreso de Rutas y Level caps de cada locke»)
+function claveGuardado() {
+  return claveDeProgresoActual(juego.id, "capsPropios");
+}
+
+let filaLockes = null;
+let firmaPintada = "";
+
 export function iniciar() {
+  // Con varios lockes abiertos del mismo juego: de cuál es lo que se ve (ver js/rutas/index.js)
+  filaLockes = crearFilaLockes(lista, () => juego && elegirJuego(juego));
+  alCambiarLockes(() => {
+    if (!juego || editando || vista.hidden || firmaLockes(juego.id, "capsPropios") === firmaPintada) return;
+    elegirJuego(juego);
+  });
+
   // Un solo oyente para todas las casillas
   lista.addEventListener("change", (e) => {
     if (e.target.matches("input[data-opcional='kanto']")) {
@@ -486,7 +503,7 @@ export function iniciar() {
 
     // Lo de los otros juegos, como esté ahora (las medallas de una partida marcan desde fuera)
     Object.assign(guardados, leer(CLAVE_SUPERADOS, {}) || {});
-    guardados[juego.id] = [...superados];
+    guardados[claveGuardado()] = [...superados];
     escribir(CLAVE_SUPERADOS, guardados);
     const antes = fotoAntes();
     pintarLista(); // cambia quién es el próximo, el progreso y las medallas
@@ -506,7 +523,7 @@ export function iniciar() {
     if (superados.size === 0) return;
     if (!(await confirmar(t("¿Desmarcar todos los combates de {juego}?", { juego: juego.nombre })))) return;
     superados.clear();
-    guardados[juego.id] = [];
+    guardados[claveGuardado()] = [];
     escribir(CLAVE_SUPERADOS, guardados);
     pintarLista();
   });
@@ -565,13 +582,16 @@ function elegirJuego(nuevo) {
   barra.hidden = !juego;
   pintarBotonEditar();
   if (!juego) {
+    if (filaLockes) pintarFilaLockes(filaLockes, null);
     lista.innerHTML = "";
     resumen.hidden = true;
     return;
   }
 
+  firmaPintada = firmaLockes(juego.id, "capsPropios");
+  if (filaLockes) pintarFilaLockes(filaLockes, juego.id, "capsPropios");
+  superados = new Set(guardados[claveGuardado()] || []);
   combates = visibles();
-  superados = new Set(guardados[juego.id] || []);
   multiplicador = multiplicadores[juego.id] || 1;
   pintarMultiplicador();
   pintarLista();
@@ -584,7 +604,7 @@ export function mostrar() {
   // Si se ha llegado desde un locke de «Lockes», el juego viene apuntado en CLAVE_JUEGO.
   // Si es el mismo que ya había, no hace nada.
   selectorJuego.elegirPorId(leer(CLAVE_JUEGO, null));
-  const ahora = juego ? guardados[juego.id] || [] : [];
+  const ahora = juego ? guardados[claveGuardado()] || [] : [];
   if (juego && !editando && (ahora.length !== superados.size || ahora.some((clave) => !superados.has(clave)))) {
     superados = new Set(ahora);
     pintarLista();

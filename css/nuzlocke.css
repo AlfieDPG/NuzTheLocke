@@ -1483,29 +1483,18 @@
   opacity: 0.75;
 }
 
-.normas-grupo h2 small {
-  font-size: 0.85rem;
-  font-weight: normal;
-  opacity: 0.75;
-}
-
 .normas-grupo h2 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin: 0 0 0.6rem;
-  font-size: 1.25rem;
-  color: var(--color-apartado);
 }
 
 /* Rayita del color del apartado a la derecha del título */
 .normas-grupo h2::after {
   content: "";
   flex: 1;
-  height: 2px;
   border-radius: 1px;
-  background: var(--color-apartado);
-  opacity: 0.35;
 }
 
 /* Un color por apartado (el del locke lo pone su tipo, en línea) */
@@ -1544,10 +1533,6 @@
   height: 0.9rem;
 }
 
-.normas-grupo h2::after {
-  order: 1;
-}
-
 .normas-vacio {
   margin: 0;
   font-size: 0.92rem;
@@ -1557,7 +1542,6 @@
 /* Las de un locke, destacadas: fondo del color de su tipo */
 .normas-grupo.del-locke {
   padding: 0.85rem;
-  border-radius: 0.7rem;
   background: color-mix(in srgb, var(--color-apartado) 10%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-apartado) 45%, transparent);
 }
@@ -1635,9 +1619,6 @@
 }
 
 .normas-grupo li {
-  padding: 0.6rem 0.85rem;
-  border-left: 0.3rem solid var(--color-apartado);
-  border-radius: 0.45rem;
   background: var(--t-panel);
 }
 
@@ -1670,6 +1651,7 @@
 }
 
 .normas-grupo h2::after {
+  order: 1;
   height: 1px;
   background: rgba(var(--t-tinte), 0.18);
   opacity: 1;
@@ -1690,4 +1672,59 @@
 
 .normas-grupo.del-locke {
   border-radius: 0.9rem;
+}
+
+/* ---------- «Progreso de»: con varios lockes abiertos del mismo juego (Rutas y Level caps) ----------
+   Una fila con uno por locke para elegir de cuál es lo que se ve (js/comun/progreso-lockes.js). Cada
+   uno con la capa del color de su tipo; el elegido, relleno del color de la sección. */
+.progreso-lockes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.8rem;
+}
+
+.progreso-lockes-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.2rem;
+  color: var(--t-gris-2);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.progreso-lockes-titulo .icono {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.progreso-lockes button {
+  max-width: 16rem;
+  padding: 0.4rem 0.8rem 0.4rem 0.9rem;
+  overflow: hidden;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--t-panel);
+  box-shadow: inset 3px 0 0 var(--color-locke), 0 2px 5px rgba(0, 0, 0, 0.3);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: bold;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.progreso-lockes button:hover {
+  background: var(--t-control);
+}
+
+.progreso-lockes button.activo {
+  background: rgba(var(--color-vista), 0.25);
+  box-shadow: inset 3px 0 0 var(--color-locke), inset 0 0 0 1.5px rgb(var(--color-vista)), 0 2px 5px rgba(0, 0, 0, 0.3);
+  cursor: default;
 }

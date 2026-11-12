@@ -22,8 +22,13 @@ import { ponerMiDirecto } from "../comun/presencia.js";
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { t } from "../comun/idioma.js";
+import { cargarHoja } from "../comun/hojas.js";
 
-const ICE = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
+// La ventana del directo usa los estilos de «Jugar», que solo se cargan al abrir esa sección: quien
+// lo ve desde «Amigos» puede no haberla abierto
+cargarHoja("jugar");
+
+const ICE =[{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
 const MAX_ESPECTADORES = 6;
 const MAX_TEXTO = 300;
 const MAX_MENSAJES = 100;

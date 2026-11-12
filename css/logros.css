@@ -49,8 +49,6 @@
   align-items: center;
   gap: 1rem 1.4rem;
   margin-bottom: 0.9rem;
-  padding: 1rem 1.2rem;
-  border-radius: 0.7rem;
   background: var(--t-panel);
 }
 
@@ -72,12 +70,10 @@
 }
 
 .logros-total strong {
-  font-size: 1.8rem;
   color: color-mix(in srgb, #f1c40f var(--t-vivo), black);
 }
 
 .logros-total strong small {
-  font-size: 1.1rem;
   color: rgba(var(--t-texto-rgb), 0.6);
 }
 
@@ -89,14 +85,11 @@
 .logros-niveles {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
 }
 
 .logros-nivel {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
 }
 
 .logros-nivel .logro-insignia {
@@ -107,10 +100,6 @@
 .logros-nivel .logro-insignia .icono {
   width: 0.75rem;
   height: 0.75rem;
-}
-
-.logros-nivel strong {
-  color: color-mix(in srgb, #f1c40f var(--t-vivo), black);
 }
 
 /* Barra de lo que llevas */
@@ -140,13 +129,6 @@
   margin-bottom: 0.4rem;
   padding: 0 0 0 1.3rem;
   border-bottom: 3px solid rgb(var(--color-vista));
-}
-
-/* Las mismas pestañas que las de arriba de Rutas o Level caps (css/nuzlocke.css), pero de pie
-   sobre la línea: las no elegidas, solo la letra; la elegida (y la del ratón), con su fondo y
-   su curva a cada lado, y del color de la sección y un poco más alta */
-.logros-filtro {
-  align-items: flex-end;
 }
 
 .logros-filtro button {
@@ -180,6 +162,7 @@
 /* Al cambiar, el relleno viaja de una a otra (js/comun/pestanas-deslizantes.js; la copia que
    viaja, .pestana-viajera.de-pie, en css/nuzlocke.css) */
 .logros-filtro {
+  align-items: flex-end;
   position: relative;
 }
 
@@ -216,24 +199,15 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 1.1rem 0 0.6rem;
-  font-size: 1.1rem;
-  color: color-mix(in srgb, #f1c40f var(--t-vivo), black);
 }
 
 .logros-grupo h2 small {
-  font-size: 0.85rem;
-  font-weight: normal;
   color: rgba(var(--t-texto-rgb), 0.6);
 }
 
 .logros-grupo h2::after {
   content: "";
   flex: 1;
-  height: 2px;
-  border-radius: 1px;
-  background: #f1c40f;
-  opacity: 0.25;
 }
 
 .logros-rejilla {
@@ -247,15 +221,7 @@
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 0.6rem;
   background: var(--t-panel);
-  opacity: 0.7;
-}
-
-.logro.conseguido {
-  opacity: 1;
-  box-shadow: inset 0 0 0 1px rgba(241, 196, 15, 0.35);
 }
 
 .logro-texto {
@@ -264,10 +230,6 @@
   gap: 0.2rem;
   flex: 1;
   min-width: 0;
-}
-
-.logro-texto strong {
-  font-size: 0.95rem;
 }
 
 .logro-descripcion {
@@ -298,10 +260,7 @@
   top: 0.45rem;
   right: 0.6rem;
   font-size: 0.65rem;
-  font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.45;
 }
 
 /* A la derecha, en columna: el nivel arriba, justo debajo la muestra del fondo que da (si da

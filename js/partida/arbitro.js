@@ -34,7 +34,7 @@ import { leer } from "../comun/almacen.js";
 import { CLAVE_MULTIPLICADOR_CAPS } from "../comun/selector-juego.js";
 import { tieneMedallas } from "../comun/medallas.js";
 import { combatesDelJuego, claveCombate } from "../levelcaps/datos.js";
-import { conKanto } from "../comun/lockes.js";
+import { conKanto, claveDeProgreso } from "../comun/lockes.js";
 import { completarReglas } from "../randomizer/reglas.js";
 
 const CLAVE_SUPERADOS = "poketeams-levelcaps-v2"; // la de js/levelcaps/index.js
@@ -92,7 +92,7 @@ const nombreDe = (p) => p.mote || p.nombre || "";
 // que leer (el tope no se movería nunca) y listas de level caps propias.
 export function nivelTope(locke) {
   if (locke.capsPropios || !tieneMedallas(locke.juego)) return null;
-  const superados = new Set((leer(CLAVE_SUPERADOS, {}) || {})[locke.juego] || []);
+  const superados = new Set((leer(CLAVE_SUPERADOS, {}) || {})[claveDeProgreso(locke.juego, locke.id, "capsPropios")] || []);
   const combates = combatesDelJuego(locke.juego, superados, { conKanto: conKanto(locke) }).filter((c) => !c.seccion);
   const pendientes = combates.filter((c) => !superados.has(claveCombate(c)));
   if (!pendientes.length) return null;

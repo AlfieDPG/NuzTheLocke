@@ -28,6 +28,8 @@ import { estaConectado } from "../comun/presencia.js";
 import { confirmar, avisar, preguntar } from "../comun/ventanas.js";
 import { t, LOCALE } from "../comun/idioma.js";
 import * as foro from "../comun/foro.js";
+import { abrirCapa, cerrarCapa } from "../comun/atras.js";
+import { cargarSugerencias, borrarSugerencia } from "../comun/sugerencias.js";
 
 const REFRESCO = 60 * 1000;          // al volver a la sección se recarga si hace más de esto
 const COMENTARIOS_POR_PAGINA = 40;   // de un hilo principal, de más nuevo a más viejo
@@ -194,7 +196,7 @@ function relacionCon(uid) {
 function pintarPestanas() {
   // Las pestañas son solo para moderar: quien no modera ve únicamente el foro
   const ids = esModerador ? ["foro", "denuncias"] : [];
-  if (esAdmin) ids.push("moderadores");
+  if (esAdmin) ids.push("moderadores", "sugerencias");
   pestanas.hidden = !esModerador;
   barra.hidden = false;   // (sin sesión se esconde; ver pintarSinSesion)
   pestanas.innerHTML = ids
@@ -204,7 +206,9 @@ function pintarPestanas() {
           ? t("Foro")
           : id === "denuncias"
             ? t("Denuncias") + (denunciasAbiertas ? ` (${denunciasAbiertas})` : "")
-            : t("Moderadores");
+            : id === "sugerencias"
+              ? t("Sugerencias")
+              : t("Moderadores");
       return `<button data-pestana="${id}" class="${id === vista ? "activa" : ""}">${escaparHTML(nombre)}</button>`;
     })
     .join("");
@@ -339,6 +343,7 @@ async function pintarVista() {
   if (!conPanel && idAbierto) cerrarPanel();
   if (vista === "denuncias") await pintarDenuncias();
   else if (vista === "moderadores") await pintarModeradores();
+  else if (vista === "sugerencias") await pintarSugerencias();
   else pintarLista();
 }
 
@@ -353,7 +358,7 @@ async function recargar() {
     esModerador = Boolean(rol);
     esAdmin = rol === "admin";
     if (vista === "denuncias" && !esModerador) vista = "foro";
-    if (vista === "moderadores" && !esAdmin) vista = "foro";
+    if ((vista === "moderadores" || vista === "sugerencias") && !esAdmin) vista = "foro";
 
     silencio = await foro.miSilencio();
     avisoSilencio.hidden = !silencio;
@@ -953,6 +958,16 @@ function verComentariosAnteriores() {
 let cambioDePanel = 0;
 let animacionCierre = null;
 
+// En pantallas estrechas el hilo abierto tapa la lista: «Atrás» (o el gesto de volver del móvil) lo
+// cierra y vuelve a la lista, en vez de irse de la sección (js/comun/atras.js)
+const capaHilo = {
+  abierta: () => seccion.querySelector(".foro-panel").classList.contains("abierto"),
+  cerrar: () => {
+    cerrarHilo();
+    return true;
+  }
+};
+
 function mostrarPanel(abierto) {
   const vacio = seccion.querySelector(".foro-panel-vacio");
   const suave = !matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -966,6 +981,7 @@ function mostrarPanel(abierto) {
   if (abierto) {
     seccion.querySelector(".foro-panel").classList.add("abierto");
     document.documentElement.classList.add("foro-hilo-en-pantalla");
+    if (matchMedia("(max-width: 1000px)").matches) abrirCapa(capaHilo);
     vacio.hidden = true;
     panelHilo.hidden = false;
     panelHilo.querySelector(".foro-hilo-desliza").scrollTop = 0;
@@ -973,6 +989,7 @@ function mostrarPanel(abierto) {
     return;
   }
 
+  cerrarCapa(capaHilo);
   const cerrar = () => {
     if (cambio !== cambioDePanel) return; // mientras se cerraba, se ha abierto otro
     seccion.querySelector(".foro-panel").classList.remove("abierto");
@@ -1588,6 +1605,56 @@ async function pintarModeradores() {
   }
 }
 
+// ---------- Sugerencias (solo el administrador) ----------
+//
+// Lo que manda la gente desde «Enviar sugerencia», en Inicio: lo más nuevo arriba, con quién la mandó
+// (si tenía sesión, se abre su ficha) y una papelera para quitarla cuando ya está vista.
+
+function plantillaSugerencia(sugerencia) {
+  const fecha = sugerencia.creado
+    ? new Date(sugerencia.creado).toLocaleString(LOCALE, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+    : "";
+  const quien = sugerencia.uid
+    ? `<button class="sugerencia-quien" data-autor="${escaparHTML(sugerencia.uid)}">${escaparHTML(sugerencia.nombre || t("Jugador"))}</button>`
+    : `<span class="sugerencia-quien">${t("Sin sesión")}</span>`;
+  return `
+    <article class="sugerencia">
+      <header>
+        ${quien}
+        <span class="sugerencia-fecha">${escaparHTML(fecha)}${sugerencia.idioma === "en" ? " · EN" : ""}</span>
+        <button class="sugerencia-borrar" data-borrar-sugerencia="${escaparHTML(sugerencia.id)}" title="${t("Borrar")}" aria-label="${t("Borrar")}">${icono("papelera")}</button>
+      </header>
+      <p>${escaparHTML(sugerencia.texto)}</p>
+    </article>`;
+}
+
+async function pintarSugerencias() {
+  lista.hidden = false;
+  botonMas.hidden = true;
+  lista.innerHTML = `<p class="foro-vacio">${t("Cargando...")}</p>`;
+  try {
+    const sugerencias = await cargarSugerencias();
+    lista.innerHTML = sugerencias.length
+      ? `<p class="moderadores-explicacion">${t("Lo que manda la gente desde «Enviar sugerencia», en Inicio. Solo las ves tú.")}</p>
+         ${sugerencias.map(plantillaSugerencia).join("")}`
+      : `<p class="foro-vacio">${t("No hay sugerencias.")}</p>`;
+  } catch (error) {
+    console.error(error);
+    lista.innerHTML = `<p class="foro-vacio">${t("No se han podido cargar las sugerencias.")}</p>`;
+  }
+}
+
+async function accionDeSugerencia(boton) {
+  if (!(await confirmar(t("¿Borrar esta sugerencia?"), { aceptar: t("Borrar") }))) return;
+  try {
+    await borrarSugerencia(boton.dataset.borrarSugerencia);
+    boton.closest(".sugerencia").remove();
+  } catch (error) {
+    console.error(error);
+    avisar(t("No se ha podido hacer. Prueba de nuevo."));
+  }
+}
+
 async function accionDeModeradores(e) {
   const quitar = e.target.closest("[data-quitar-moderador]");
   const aviso = lista.querySelector(".moderadores-aviso");
@@ -1735,6 +1802,11 @@ export function iniciar() {
     }
     if (e.target.closest(".moderadores-nombrar") || e.target.closest("[data-quitar-moderador]")) {
       accionDeModeradores(e);
+      return;
+    }
+    const borrar = e.target.closest("[data-borrar-sugerencia]");
+    if (borrar) {
+      accionDeSugerencia(borrar);
       return;
     }
     const hilo = e.target.closest("[data-hilo]");

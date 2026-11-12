@@ -10,8 +10,8 @@ export default {
   "Casi todo funciona sin cuenta. Con sesión, tus equipos se guardan en la nube y desbloqueas los lockes con amigos, los perfiles y los logros.":
     "Almost everything works without an account. Signed in, your teams are saved in the cloud and you unlock lockes with friends, profiles and achievements.",
 
-  "Elige una sección a la derecha para empezar a explorar: cada una te lleva directa a su página.":
-    "Pick a section on the right to start exploring: each one takes you straight to its page.",
+  "Elige una sección para empezar a explorar: cada una te lleva directa a su página.":
+    "Pick a section to start exploring: each one takes you straight to its page.",
 
   // Las secciones de la bienvenida
   "Juega con amigos: vidas, muertes y victorias, y tu partida vinculada al momento.":
@@ -23,8 +23,16 @@ export default {
   "Las estadísticas base de todos los Pokémon, para ordenar a tu gusto.":
     "The base stats of every Pokémon, sortable however you like.",
   "Cuánto daño hace cada ataque y en cuántos golpes cae.": "How much damage each move does and how many hits it takes.",
-  "Randomiza tu ROM de DS, 3DS o Switch sin que salga de tu navegador.":
-    "Randomize your DS, 3DS or Switch ROM without it ever leaving your browser.",
+  "Randomiza tu ROM de GBA, DS, 3DS o Switch sin que salga de tu navegador.":
+    "Randomize your GBA, DS, 3DS or Switch ROM without it ever leaving your browser.",
+  "Juega a Rojo Fuego, Verde Hoja y los de DS desde la web, y emite tu partida a tus amigos.":
+    "Play FireRed, LeafGreen and the DS games in your browser, and stream your game to your friends.",
+  "Reta a un amigo con tus equipos y combatid por turnos sin salir de la web.":
+    "Challenge a friend with your teams and battle turn by turn without leaving the site.",
+  "Busca compañeros para tu próximo locke, pide ayuda o charla.":
+    "Find partners for your next locke, ask for help or just chat.",
+  "Retos diarios que dan Pokédólares para la Tienda y huevos para tu colección.":
+    "Daily challenges that earn Pokédollars for the Shop and eggs for your collection.",
   "Premios, castigos o lo que quieras: que decida la suerte.": "Rewards, punishments or anything you like: let luck decide.",
 
   // Con sesión

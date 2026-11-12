@@ -715,12 +715,6 @@
   gap: 0.35rem;
 }
 
-.jugar-seguir-equipo .jugar-cara,
-.jugar-seguir-equipo .jugar-hueco {
-  width: 2.6rem;
-  height: 2.6rem;
-}
-
 .jugar-seguir-botones {
   display: flex;
   flex-direction: column;

@@ -10,11 +10,13 @@ import { iniciarAjustes } from "./comun/ajustes.js";
 import { icono } from "./comun/iconos.js";
 import "./comun/numero.js"; // las flechas de las casillas de número (en toda la web)
 import { activarPestanasDeslizantes } from "./comun/pestanas-deslizantes.js";
+import { iniciarMovil } from "./movil.js";
 
 activarRespaldoImagenes();
 activarPestanasDeslizantes(); // antes de pintar nada, para ver ya las primeras pestañas
 iniciarNavegacion();
-irA(vistaInicial()); // la que hubiera al recargar, o Inicio si se entra de nuevas
+iniciarMovil(); // la barra de abajo del móvil y la hoja de «Más»
+irA(vistaInicial(), { historial: "cambiar" }); // la que hubiera al recargar, o Inicio si se entra de nuevas
 
 // El logo: al pasar el ratón asoma uno de los marcapáginas del cuaderno, cada vez el otro
 const enlaceLogo = document.querySelector(".logo a");
@@ -51,13 +53,12 @@ for (const boton of document.querySelectorAll("#dialogo-ajustes [data-icono]")) 
 }
 iniciarAjustes();
 
-// Preguntas frecuentes: el «?» al lado de «Créditos y privacidad»
-const dialogoAyuda = document.querySelector("#dialogo-ayuda");
-document.querySelector(".boton-ayuda").addEventListener("click", () => {
-  dialogoAyuda.showModal();
+// Preguntas frecuentes: el «?» al lado de «Créditos y privacidad» (js/ayuda.js, se baja al abrirlas)
+document.querySelector(".boton-ayuda").addEventListener("click", async () => {
+  const { abrirAyuda } = await import("./ayuda.js");
+  abrirAyuda();
   sumarContador("ayuda"); // para los logros
 });
-dialogoAyuda.querySelector(".ayuda-cerrar").addEventListener("click", () => dialogoAyuda.close());
 
 // Pulsar la foto de alguien (data-perfil="uid": Versus, cementerio, Amigos...) abre su perfil.
 // En captura, para ganar a lo que haga la tarjeta en la que está (desplegarse, por ejemplo).

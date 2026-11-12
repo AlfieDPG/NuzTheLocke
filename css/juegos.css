@@ -153,9 +153,9 @@
 
 .juegos-info:hover,
 .juegos-info:focus-visible {
-  border-color: rgb(var(--color-vista));
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  border-color: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
 }
 
 .juegos-saldo p {
@@ -342,8 +342,8 @@
   padding: 0.5rem 0.9rem;
   border: none;
   border-radius: 0.5rem;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
   font-weight: bold;
   white-space: nowrap;
   cursor: pointer;
@@ -775,190 +775,15 @@
   padding: 0.55rem 1.1rem;
   border: none;
   border-radius: 0.5rem;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.eficaz-reloj {
-  height: 0.4rem;
-  margin-bottom: 0.8rem;
-  border-radius: 1rem;
-  background: var(--t-control);
-  overflow: hidden;
-}
-
-.eficaz-reloj span {
-  display: block;
-  height: 100%;
-  background: rgb(var(--color-vista));
-  transition: width 0.2s linear;
-}
-
-.eficaz-rival {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.6rem;
-  background: var(--t-panel-3);
-}
-
-.eficaz-rival img {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 0.5rem;
-}
-
-.eficaz-rival strong {
-  display: block;
-  font-size: 1.1rem;
-}
-
-.eficaz-tipos {
-  display: flex;
-  gap: 0.35rem;
-  margin-top: 0.2rem;
-}
-
-.eficaz-tipo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 1rem;
-  background: var(--color-tipo);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
   color: #fff;
-  font-size: 0.78rem;
-  font-weight: bold;
-}
-
-.eficaz-ronda {
-  margin-left: auto;
-  color: var(--t-gris);
-  font-weight: bold;
-}
-
-.eficaz-opciones {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
-}
-
-/* Cada opción, con la capa de color de su tipo a la izquierda */
-.eficaz-opciones button {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.65rem 0.8rem;
-  border: none;
-  border-radius: 0.5rem;
-  background: var(--t-control);
-  box-shadow: inset 4px 0 0 var(--color-tipo);
-  color: var(--t-texto);
   font-weight: bold;
   cursor: pointer;
-}
-
-.eficaz-opciones button:hover {
-  background: var(--t-control-2);
-}
-
-.eficaz-opciones .icono-tipo,
-.eficaz-tipo .icono-tipo {
-  background: currentColor;
-}
-
-.eficaz-opciones .icono-tipo {
-  width: 1rem;
-  height: 1rem;
-  background: var(--color-tipo);
 }
 
 /* ---------- ¿Más o menos? ----------
    La pregunta arriba, sobre el de la derecha; a la izquierda el que ya se sabe y a la derecha
    el que hay que adivinar (con la capa de color y los botones dentro) */
-
-.masomenos-pregunta {
-  margin: 0 0 0.8rem;
-  font-size: 1.05rem;
-  text-align: center;
-}
-
-.masomenos-duelo {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
-  gap: 0.8rem;
-  margin-bottom: 0.6rem;
-}
-
-.masomenos-lado {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.8rem 0.6rem;
-  border-radius: 0.8rem;
-  background: var(--t-panel-3);
-  text-align: center;
-}
-
-.masomenos-lado.adivinar {
-  background: rgba(var(--color-vista), 0.1);
-  box-shadow: inset 0 0 0 2px rgba(var(--color-vista), 0.55);
-}
-
-.masomenos-etiqueta {
-  color: var(--t-gris);
-  font-size: 0.72rem;
-  font-weight: bold;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.masomenos-lado img {
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 0.6rem;
-}
-
-.masomenos-lado strong {
-  font-size: 1.05rem;
-}
-
-.masomenos-lado small {
-  color: var(--t-gris-2);
-  font-weight: bold;
-}
-
-.masomenos-valor {
-  font-family: var(--letra-titulos);
-  font-size: 2.2rem;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.masomenos-valor.oculto {
-  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
-}
-
-/* Recién respondida: lo que tenía, en verde si has acertado y en rojo si no */
-.masomenos-lado.bien {
-  background: rgba(var(--t-bien-rgb), 0.1);
-  box-shadow: inset 0 0 0 2px rgba(var(--t-bien-rgb), 0.55);
-}
-
-.masomenos-lado.mal {
-  background: rgba(var(--t-mal-rgb), 0.1);
-  box-shadow: inset 0 0 0 2px rgba(var(--t-mal-rgb), 0.55);
-}
-
-.masomenos-lado:is(.bien, .mal) .masomenos-valor {
-  animation: masomenos-sale 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
-}
 
 @keyframes masomenos-sale {
   from {
@@ -971,48 +796,6 @@
   .masomenos-lado:is(.bien, .mal) .masomenos-valor {
     animation: none;
   }
-}
-
-.masomenos-veredicto {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  min-height: 2.6rem; /* lo que ocupan los botones: que la tarjeta no cambie de alto */
-  margin: 0.4rem 0 0;
-  font-weight: bold;
-}
-
-.masomenos-lado.bien .masomenos-veredicto { color: var(--t-bien); }
-.masomenos-lado.mal .masomenos-veredicto { color: var(--t-mal); }
-
-.masomenos-veredicto .icono {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.masomenos-vs {
-  align-self: center;
-  color: var(--t-gris);
-  font-size: 0.85rem;
-  font-weight: bold;
-}
-
-.masomenos-botones {
-  display: flex;
-  gap: 0.4rem;
-  width: 100%;
-  margin-top: 0.4rem;
-}
-
-.masomenos-botones button {
-  display: inline-flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.6rem 0.4rem;
-  font-size: 1rem;
 }
 
 /* ---------- Compartir ---------- */
@@ -1094,14 +877,6 @@
   padding: 1.4rem 1.7rem 1.6rem;
 }
 
-@media (max-width: 1500px) {
-  .retos-cuerpo.reto-ancho {
-    grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr);
-    grid-template-areas: "cartilla juego" "cartilla lado";
-    grid-template-rows: auto 1fr;
-  }
-}
-
 @media (max-width: 1350px) {
   .retos-cuerpo {
     grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr);
@@ -1118,8 +893,7 @@
 }
 
 @media (max-width: 1000px) {
-  .retos-cuerpo,
-  .retos-cuerpo.reto-ancho {
+  .retos-cuerpo {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "cartilla" "juego" "lado";
     grid-template-rows: none;
@@ -1295,9 +1069,9 @@
 }
 
 .reto-fila.activo .reto-marca {
-  border: 2px solid rgb(var(--color-vista));
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  border: 2px solid color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
 }
 
 .reto-fila.hecho.activo .reto-marca {
@@ -1401,12 +1175,11 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* La clasificación de la columna: compacta y, con muchos amigos, con su propio desplazamiento */
+/* La clasificación de la columna: compacta y sin desplazamiento propio (algunos marcos de foto
+   —Llamarada, Jungla, Escarcha...— sobresalen unos píxeles y harían salir una barra aunque seáis dos).
+   Con muchos amigos, se desplaza la columna entera. */
 .retos-lado .clasificacion-lista {
   gap: 0.2rem;
-  max-height: 22rem;
-  overflow-y: auto;
-  scrollbar-width: thin;
 }
 
 .retos-lado .clasificacion-fila {
@@ -1476,26 +1249,7 @@
   font-weight: bold;
 }
 
-.retos-siguiente {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  border: none;
-  border-radius: 10px;
-  background: var(--t-control);
-  color: var(--t-texto);
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: bold;
-  text-align: left;
-  cursor: pointer;
-}
 
-.retos-siguiente:hover {
-  background: var(--t-control-2);
-}
 
 :is(#vista-juegos, #vista-tienda) .retos-siguiente .icono {
   flex: none;
@@ -1504,21 +1258,8 @@
 }
 
 .juegos-compartir-enlace {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
   align-self: flex-start;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--t-gris-2);
   font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-
-.juegos-compartir-enlace:hover {
-  color: var(--t-texto);
 }
 
 :is(#vista-juegos, #vista-tienda) .juegos-compartir-enlace .icono {
@@ -1530,8 +1271,8 @@
   padding: 0.55rem 1.1rem;
   border: none;
   border-radius: 0.5rem;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
   font-weight: bold;
   cursor: pointer;
 }
@@ -2021,8 +1762,8 @@ button.lockedia-poke:hover {
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 50%;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
   font-weight: bold;
   font-size: 0.8rem;
 }
@@ -2633,8 +2374,8 @@ button.lockedia-poke:hover {
   height: 7.5rem;
   border: none;
   border-radius: 50%;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
   font: inherit;
   font-weight: bold;
   cursor: pointer;
@@ -2831,8 +2572,8 @@ button.lockedia-poke:hover {
   padding: 0.25rem 0.7rem;
   border: none;
   border-radius: 0.4rem;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
   font: inherit;
   font-size: 0.85rem;
   font-weight: bold;
@@ -2931,8 +2672,8 @@ button.lockedia-poke:hover {
   padding: 0.6rem 1rem;
   border: none;
   border-radius: 0.5rem;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
   font: inherit;
   font-weight: bold;
   cursor: pointer;
@@ -3280,8 +3021,8 @@ button.coleccion-casilla:hover {
 }
 
 .aspecto-versiones button.activa {
-  background: rgb(76, 182, 92);
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
 }
 
 .aspecto-versiones button:disabled {
@@ -3510,8 +3251,8 @@ button.coleccion-casilla:hover {
   padding: 0.4rem 0.8rem;
   border: none;
   border-radius: 0.5rem;
-  background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
+  color: #fff;
   font-weight: bold;
   white-space: nowrap;
   cursor: pointer;
@@ -3560,7 +3301,6 @@ button.coleccion-casilla:hover {
 /* Latido: un aro rosa que sale hacia fuera y se desvanece */
 .con-marco.marco-latido {
   border-color: #ff7eb6 !important;
-  animation: marco-latido 1.6s ease-out infinite;
 }
 
 @keyframes marco-latido {
@@ -3893,4 +3633,1135 @@ button.coleccion-casilla:hover {
    recorta otra vez (más específico que esos, que también llevan !important) y se queda el aro. */
 img.con-marco.con-marco {
   overflow: hidden !important;
+}
+
+/* ---------- A toda la altura (2026-11-12) ----------
+   En el ordenador, las tres columnas llegan hasta abajo de la pantalla, sin hueco debajo, y el reto (lo
+   principal) va en vertical: arriba lo que se pregunta, en medio la parte que crece para llenar el alto
+   (la silueta, la tabla de intentos, las opciones...) y abajo lo que se responde. Lo que aparece o
+   desaparece dentro (lo de los amigos, el final del reto) ya no cambia el alto de nada.
+   Las reglas de forma (en columna) valen en todas las pantallas; las de altura, solo en el ordenador. */
+
+#vista-juegos .juego {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+#vista-juegos .juego > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Antes de empezar (Supereficaz): la explicación en grande, en medio */
+.juego-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  border-radius: 0.8rem;
+  background: var(--t-panel-3);
+  text-align: center;
+}
+
+#vista-juegos .juego-intro .icono {
+  width: 3.4rem;
+  height: 3.4rem;
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+#vista-juegos .juego-intro .juego-explicacion {
+  max-width: 26rem;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+#vista-juegos .juego-intro .juego-empezar {
+  padding: 0.8rem 2.4rem;
+  font-size: 1.1rem;
+}
+
+/* ¿Quién es ese Pokémon?: las tres rondas en una fila arriba, la silueta en grande, la casilla y las
+   dos pistas una al lado de otra */
+#vista-juegos .silueta-cuerpo {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+#vista-juegos .silueta-lado {
+  display: contents;
+}
+
+#vista-juegos .silueta-rondas {
+  order: -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+#vista-juegos .silueta-ronda {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.3rem;
+  min-height: 4.4rem;
+  padding: 0.55rem 0.75rem;
+}
+
+#vista-juegos .silueta-ronda-detalle {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#vista-juegos .silueta-ronda-detalle > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#vista-juegos .silueta-cuerpo :is(.juego-form, .juego-fin) {
+  order: 1;
+  margin: 0;
+}
+
+#vista-juegos .silueta-pistas {
+  order: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+#vista-juegos .silueta-fallos {
+  order: 3;
+  margin: 0;
+}
+
+/* En Experto no hay pistas: una sola nota a todo el ancho */
+#vista-juegos .silueta-pistas li.sin-pistas {
+  grid-column: 1 / -1;
+}
+
+/* Reto estrecho (móvil): las cuatro rondas de dos en dos */
+@container (max-width: 30rem) {
+  #vista-juegos .silueta-rondas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #vista-juegos .silueta-ronda {
+    min-height: 0;
+  }
+}
+
+/* Adivínalo: la tabla siempre, con los intentos que quedan como huecos de puntos */
+#vista-juegos .pistas-tabla {
+  margin: 0;
+}
+
+/* Cada intento que queda, con la forma de una fila: el retrato (con su número) y las casillas, de puntos */
+.pistas-hueco .pistas-quien {
+  color: var(--t-gris);
+  letter-spacing: 0.1em;
+}
+
+.pistas-hueco-foto {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  box-sizing: border-box;
+  border: 2px dashed rgba(var(--t-tinte), 0.22);
+  border-radius: 0.4rem;
+  color: var(--t-gris);
+  font-family: var(--letra-titulos);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.pistas-casilla.vacia {
+  border: 2px dashed rgba(var(--t-tinte), 0.16);
+  background: transparent;
+}
+
+/* Supereficaz: el rival arriba (grande) y los cuatro tipos debajo, de dos en dos */
+#vista-juegos .eficaz-cuerpo {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+#vista-juegos .eficaz-cuerpo .eficaz-opciones {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#vista-juegos .eficaz-cuerpo .eficaz-opciones button {
+  justify-content: center;
+  font-size: 1.05rem;
+}
+
+#vista-juegos .eficaz-reloj {
+  margin: 0;
+}
+
+/* ¿Más o menos?: entre las dos tarjetas, un «VS» en un círculo del color de la sección, con su aro
+   y una raya fina que baja por detrás (separa las dos tarjetas) */
+#vista-juegos .masomenos-vs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 3.6rem;
+}
+
+#vista-juegos .masomenos-vs::before {
+  content: "";
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  left: 50%;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, transparent, rgba(var(--color-vista), 0.5) 30%, rgba(var(--color-vista), 0.5) 70%, transparent);
+  transform: translateX(-50%);
+}
+
+#vista-juegos .masomenos-vs span {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, rgb(var(--color-vista)) 75%, white), rgb(var(--color-vista)) 55%, color-mix(in srgb, rgb(var(--color-vista)) 70%, black));
+  box-shadow: 0 0 0 4px var(--t-panel), 0 0 0 6px rgba(var(--color-vista), 0.45), 0 6px 16px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-family: var(--letra-titulos);
+  font-size: 1.25rem;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* ¿Más o menos?: las dos tarjetas más grandes */
+#vista-juegos .masomenos-pregunta {
+  font-size: 1.15rem;
+}
+
+#vista-juegos .masomenos-duelo {
+  margin: 0;
+}
+
+#vista-juegos .masomenos-lado {
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1rem 0.8rem;
+}
+
+#vista-juegos .masomenos-lado img {
+  width: 6.5rem;
+  height: 6.5rem;
+}
+
+#vista-juegos .masomenos-lado strong {
+  font-size: 1.2rem;
+}
+
+#vista-juegos .masomenos-valor {
+  font-size: 2.8rem;
+}
+
+/* Grito, evolución y el intruso: la pregunta arriba y las cuatro opciones debajo, de dos en dos */
+#vista-juegos .test-cuerpo {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+#vista-juegos .test-pregunta {
+  min-height: 11rem;
+}
+
+#vista-juegos .test-opcion img {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+#vista-juegos .test-opcion {
+  font-size: 1.05rem;
+}
+
+/* ¿De qué tipo es?: el Pokémon arriba y los 18 tipos debajo, en seis columnas (icono sobre el nombre) */
+#vista-juegos .tipos-opciones {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+#vista-juegos .tipos-opciones button {
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.55rem 0.2rem 0.5rem 0.35rem;
+  font-size: 0.8rem;
+}
+
+#vista-juegos .tipos-opciones .icono-tipo {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+#vista-juegos .tipos-opciones button span {
+  max-width: 100%;
+}
+
+@container (max-width: 30rem) {
+  #vista-juegos .tipos-opciones {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Al terminar un test (o Supereficaz): el resultado arriba y el resumen de las preguntas debajo */
+#vista-juegos .juego > .test-resumen {
+  order: 2;
+}
+
+.eficaz-resumen li span small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+  white-space: normal;
+  color: var(--t-gris);
+  font-size: 0.75rem;
+}
+
+.eficaz-resumen .eficaz-tipo {
+  flex: none;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.72rem;
+}
+
+/* Locke del día: el líder arriba y tus seis en dos filas de tres, a lo ancho de la columna */
+#vista-juegos :is(.lockedia-equipo, .lockedia-tu-equipo, .lockedia-opciones) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+#vista-juegos .lockedia-poke img {
+  width: 3.6rem;
+  height: 3.6rem;
+}
+
+#vista-juegos .lockedia-combatir {
+  align-self: stretch;
+  justify-content: center;
+}
+
+/* ---------- En el ordenador: todo hasta abajo ---------- */
+@media (min-width: 1001px) {
+  #vista-juegos:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    /* el alto de la ventana menos el margen de arriba y abajo de la página (main); en ventanas muy
+       bajas, un mínimo y la página se desplaza */
+    height: max(calc(100dvh - 1.7rem), 40rem);
+  }
+
+  #vista-juegos .juegos-cuerpo {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  #vista-juegos .retos-cuerpo {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  #vista-juegos :is(.retos-cartilla, .retos-lado, .retos-juego) {
+    min-height: 0;
+  }
+
+  /* Si algo no cupiera (ventanas bajas), cada columna se desplaza por dentro, no la página */
+  #vista-juegos :is(.retos-cartilla, .retos-lado),
+  #vista-juegos .retos-juego .juego {
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  /* La cartilla: «Copiar mis resultados» abajo del todo */
+  #vista-juegos .cartilla-pie {
+    margin-top: auto;
+  }
+
+  /* Lo que crece en cada reto para llenar el alto */
+  #vista-juegos :is(.silueta-cuerpo, .test-cuerpo, .eficaz-cuerpo, .masomenos-duelo, .juego-intro, .lockedia-escena) {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  #vista-juegos .silueta-pantalla {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 13rem;
+  }
+
+  #vista-juegos .test-pregunta {
+    flex: 1 1 0;
+  }
+
+  #vista-juegos .test-opciones {
+    flex: 1.4 1 0;
+    min-height: 12rem;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  #vista-juegos .tipos-lado {
+    flex: none;
+  }
+
+  #vista-juegos .tipos-opciones button {
+    min-height: 3.6rem;
+  }
+
+  #vista-juegos .eficaz-cuerpo .eficaz-rival {
+    flex: 1 1 0;
+    min-height: 10rem;
+  }
+
+  #vista-juegos .eficaz-cuerpo .eficaz-rival img {
+    width: 7rem;
+    height: 7rem;
+  }
+
+  #vista-juegos .eficaz-cuerpo .eficaz-opciones {
+    flex: 1 1 0;
+    grid-auto-rows: minmax(3.4rem, 1fr);
+  }
+
+  /* La tabla de Adivínalo: las filas (hechas y huecos) se reparten el alto, sin pasarse */
+  #vista-juegos .pistas-tabla {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  #vista-juegos .pistas-fila:not(.pistas-titulos) {
+    flex: 1 1 0;
+    min-height: 2.6rem;
+    max-height: 5.4rem;
+  }
+
+  #vista-juegos .lockedia-opciones {
+    flex: 1 1 auto;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  #vista-juegos .lockedia-escena {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  /* El combate: la arena se lleva el alto que sobra y los luchadores crecen con la pantalla */
+  #vista-juegos :is(.juego, .lockedia-escena) > .lockedia-arena {
+    flex: 1 1 auto;
+    min-height: 14rem;
+  }
+
+  #vista-juegos .lockedia-luchador img {
+    width: clamp(6rem, 18vh, 10rem);
+    height: clamp(6rem, 18vh, 10rem);
+  }
+
+  /* Al terminar un test (o Supereficaz): el resumen de las preguntas llena lo que queda */
+  #vista-juegos .juego > .test-resumen {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  #vista-juegos .juego > .eficaz-resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #vista-juegos .juego > .test-resumen li {
+    max-height: 6rem;
+    padding: 0.5rem 0.9rem;
+    font-size: 1rem;
+  }
+
+  #vista-juegos .juego > .test-resumen img {
+    width: clamp(2.4rem, 6vh, 3.6rem);
+    height: clamp(2.4rem, 6vh, 3.6rem);
+  }
+
+  /* ¿Más o menos?: lo de cada tarjeta, repartido por todo su alto y más grande cuanto más alta es la
+     pantalla */
+  #vista-juegos .masomenos-lado {
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.2rem 1rem;
+  }
+
+  /* La etiqueta arriba del todo y lo demás junto en medio, con los botones (o el veredicto) justo
+     debajo del dato: los márgenes automáticos se reparten el hueco por encima y por debajo */
+  #vista-juegos .masomenos-etiqueta {
+    margin-bottom: auto;
+  }
+
+  #vista-juegos .masomenos-lado > :is(.masomenos-botones, .masomenos-veredicto) {
+    margin-top: 0.6rem;
+    margin-bottom: auto;
+  }
+
+  /* La de la izquierda no tiene botones: un hueco del mismo alto donde irían, para que las dos
+     tarjetas tengan lo suyo a la misma altura */
+  #vista-juegos .masomenos-lado:not(:has(.masomenos-botones, .masomenos-veredicto))::after {
+    content: "";
+    flex: none;
+    height: 3.6rem;
+    margin-top: 0.6rem;
+    margin-bottom: auto;
+  }
+
+  #vista-juegos .masomenos-lado img {
+    width: clamp(6.5rem, 21vh, 12rem);
+    height: clamp(6.5rem, 21vh, 12rem);
+    border-radius: 1rem;
+  }
+
+  #vista-juegos .masomenos-lado strong {
+    font-size: 1.4rem;
+  }
+
+  #vista-juegos .masomenos-valor {
+    font-size: clamp(2.8rem, 7vh, 4rem);
+  }
+
+  /* Los botones, el veredicto y el hueco de la izquierda, del mismo alto */
+  #vista-juegos .masomenos-botones button {
+    min-height: 3.6rem;
+    padding-block: 0.5rem;
+  }
+
+  #vista-juegos .masomenos-veredicto {
+    min-height: 3.6rem;
+  }
+
+  /* Supereficaz, grito, evolución, el intruso: retratos más grandes en pantallas altas */
+  #vista-juegos .test-opcion img {
+    width: clamp(4.5rem, 11vh, 7rem);
+    height: clamp(4.5rem, 11vh, 7rem);
+  }
+
+  #vista-juegos .evolucion-padre img {
+    width: clamp(6rem, 16vh, 9rem);
+    height: clamp(6rem, 16vh, 9rem);
+  }
+
+  /* Locke del día: cada uno de los tuyos, centrado en su tarjeta y más grande */
+  #vista-juegos .lockedia-opciones .lockedia-poke {
+    justify-content: center;
+    gap: 0.35rem;
+  }
+
+  #vista-juegos .lockedia-opciones .lockedia-poke img {
+    width: clamp(3.6rem, 10vh, 5.5rem);
+    height: clamp(3.6rem, 10vh, 5.5rem);
+  }
+
+  #vista-juegos .lockedia-opciones .lockedia-poke strong {
+    font-size: 1.05rem;
+  }
+}
+
+/* Pantallas medianas: lo de los amigos debajo del reto, del alto de lo que tenga (sin desplazarse) */
+@media (min-width: 1001px) and (max-width: 1350px) {
+  #vista-juegos .retos-cuerpo {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  #vista-juegos .retos-cuerpo .retos-lado {
+    overflow: visible;
+  }
+}
+
+
+/* ---------- Botones de tipo rellenos de su color (Supereficaz y ¿De qué tipo es?) ----------
+   Todo el botón del color del tipo (un poco oscurecido, para que se lea la letra blanca también en los
+   tipos claros: Eléctrico, Hielo, Acero...), con el icono y el nombre en blanco. */
+#vista-juegos :is(.eficaz-opciones, .tipos-opciones) button {
+  border: none;
+  background: color-mix(in srgb, var(--color-tipo) 78%, black);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: transform 0.12s, filter 0.12s, box-shadow 0.12s;
+}
+
+#vista-juegos :is(.eficaz-opciones, .tipos-opciones) button .icono-tipo {
+  background: #fff;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+#vista-juegos :is(.eficaz-opciones, .tipos-opciones) button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-tipo) 78%, black);
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+/* ¿De qué tipo es?: los que marcas, con un aro blanco y una marca en la esquina */
+#vista-juegos .tipos-opciones button {
+  position: relative;
+}
+
+#vista-juegos .tipos-opciones button.elegido {
+  background: color-mix(in srgb, var(--color-tipo) 90%, black);
+  box-shadow: inset 0 0 0 3px #fff, 0 0 0 3px rgba(var(--color-vista), 0.6), 0 4px 10px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+#vista-juegos .tipos-opciones button.elegido::after {
+  content: "✓";
+  position: absolute;
+  top: 0.2rem;
+  right: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+/* Al comprobar: aro verde los buenos que marcaste, rojo (y apagado) los que sobraban y de puntos
+   los que te faltaron. Los demás, apagados. */
+#vista-juegos .tipos-opciones button:disabled {
+  opacity: 0.35;
+}
+
+#vista-juegos .tipos-opciones button:is(.buena, .mala, .faltaba):disabled {
+  opacity: 1;
+}
+
+#vista-juegos .tipos-opciones button.buena {
+  box-shadow: inset 0 0 0 3px #fff, 0 0 0 3px var(--t-bien);
+}
+
+#vista-juegos .tipos-opciones button.mala {
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.6), 0 0 0 3px var(--t-mal);
+  filter: saturate(0.5);
+}
+
+#vista-juegos .tipos-opciones button.faltaba {
+  outline: 3px dashed var(--t-bien);
+  outline-offset: 2px;
+}
+
+/* Supereficaz: botones grandes, con el icono grande encima del nombre */
+#vista-juegos .eficaz-cuerpo .eficaz-opciones button {
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 1.15rem;
+}
+
+#vista-juegos .eficaz-cuerpo .eficaz-opciones .icono-tipo {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* ---------- ¿Quién es ese Pokémon?: la revelación al acabar cada ronda ----------
+   Un destello detrás, la silueta que se colorea con un saltito, y el veredicto (verde o rojo) y el
+   nombre que aparecen. Dura lo que REVELAR en js/juegos/silueta.js. */
+.silueta-pantalla.revelando::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 60%);
+  animation: silueta-destello 0.9s ease-out both;
+  pointer-events: none;
+}
+
+.silueta-pantalla.revelando .silueta-imagen {
+  animation: silueta-revela 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.silueta-pantalla.revelando .silueta-nombre {
+  animation: silueta-sube 0.5s 0.45s ease-out both;
+}
+
+.silueta-veredicto {
+  position: absolute;
+  top: 2.6rem;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 2rem;
+  color: #fff;
+  font-family: var(--letra-titulos);
+  font-size: 1.05rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+  animation: silueta-sello 0.45s 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.silueta-pantalla.bien .silueta-veredicto { background: #2e9e5b; }
+.silueta-pantalla.mal .silueta-veredicto { background: var(--t-mal); }
+
+#vista-juegos .silueta-veredicto .icono {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+@keyframes silueta-destello {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes silueta-revela {
+  0% { filter: brightness(0); transform: scale(0.94); }
+  45% { filter: brightness(1.6); transform: scale(1.07); }
+  100% { filter: none; transform: scale(1); }
+}
+
+@keyframes silueta-sube {
+  from { opacity: 0; transform: translate(-50%, 0.6rem); }
+}
+
+@keyframes silueta-sello {
+  from { opacity: 0; transform: translateX(-50%) scale(0.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .silueta-pantalla.revelando::before,
+  .silueta-pantalla.revelando :is(.silueta-imagen, .silueta-nombre),
+  .silueta-veredicto {
+    animation: none;
+  }
+}
+
+/* ---------- ¿Más o menos?: «Más» en rojo y «Menos» en azul ---------- */
+#vista-juegos .masomenos-botones button {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: filter 0.12s, transform 0.12s;
+}
+
+#vista-juegos .masomenos-botones [data-respuesta="mas"] {
+  background: #d9534a;
+}
+
+#vista-juegos .masomenos-botones [data-respuesta="menos"] {
+  background: #3d7fd9;
+}
+
+#vista-juegos .masomenos-botones button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* ¿Quién es ese Pokémon?: la casilla va abajo del reto, así que sus sugerencias se abren hacia arriba
+   (por encima de la silueta), no hacia abajo, donde obligarían a bajar para verlas */
+#vista-juegos .silueta-cuerpo .sugerencias {
+  top: auto;
+  bottom: calc(100% + 0.25rem);
+  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.55);
+}
+
+/* La tarjeta del reto, sin raya de color (ahora llega arriba del todo y chocaba con la de la página),
+   y la cartilla, sin su degradado de arriba */
+#vista-juegos .juego {
+  box-shadow: none;
+}
+
+#vista-juegos .retos-cartilla {
+  background-image: none;
+}
+
+/* ¿De qué tipo es?: «Comprobar» a todo el ancho y grande, que se vea que es lo siguiente */
+#vista-juegos .tipos-comprobar {
+  align-self: stretch;
+  justify-content: center;
+  padding: 0.9rem 1rem;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 12px rgba(var(--color-vista), 0.35);
+}
+
+#vista-juegos .tipos-comprobar:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+/* ---------- Botones «ir a» (tu saldo → la Tienda en Juegos; «Gana más en Juegos» en la Tienda) ----------
+   A todo el ancho de su columna y del color de la sección a la que llevan (--ir), con letra blanca. Al
+   pasar el ratón, las tres flechas de la derecha avanzan en ola (flechasIr, js/comun/utilidades.js).
+   El saldo de la Tienda usa el mismo aspecto, sin flechas (no lleva a ningún sitio; tiene la «i»). */
+:is(#vista-juegos, #vista-tienda) .boton-ir {
+  --ir: 200, 118, 74; /* la Tienda */
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.75rem 0.7rem 0.95rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, rgb(var(--ir)) 78%, black);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font: inherit;
+  font-weight: bold;
+  text-align: left;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+:is(#vista-juegos, #vista-tienda) .boton-ir.de-juegos {
+  --ir: 76, 182, 92;
+}
+
+/* Al pasar el ratón no se mueve: se ilumina un poco y avanzan las flechas */
+:is(#vista-juegos, #vista-tienda) button.boton-ir {
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+:is(#vista-juegos, #vista-tienda) button.boton-ir:hover {
+  filter: brightness(1.12);
+}
+
+:is(#vista-juegos, #vista-tienda) .boton-ir .ficha-cifra,
+:is(#vista-juegos, #vista-tienda) .boton-ir > strong {
+  font-family: var(--letra-titulos);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+:is(#vista-juegos, #vista-tienda) .boton-ir .ficha-moneda {
+  font-size: 1.4rem;
+}
+
+:is(#vista-juegos, #vista-tienda) .boton-ir-texto {
+  flex: 1;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 1rem;
+}
+
+:is(#vista-juegos, #vista-tienda) .boton-ir > .icono {
+  flex: none;
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+/* Las flechas, un poco montadas unas sobre otras; al pasar el ratón, avanzan en ola */
+:is(#vista-juegos, #vista-tienda) .boton-ir-flechas {
+  display: inline-flex;
+  flex: none;
+}
+
+:is(#vista-juegos, #vista-tienda) .boton-ir-flechas .icono {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-left: -0.6rem;
+  color: #fff;
+  stroke-width: 3;
+}
+
+:is(#vista-juegos, #vista-tienda) .boton-ir-flechas .icono:first-child {
+  margin-left: 0;
+}
+
+:is(#vista-juegos, #vista-tienda) button.boton-ir:hover .boton-ir-flechas .icono {
+  animation: ir-flecha 0.9s ease-in-out infinite;
+}
+
+:is(#vista-juegos, #vista-tienda) button.boton-ir:hover .boton-ir-flechas .icono:nth-child(2) { animation-delay: 0.15s; }
+:is(#vista-juegos, #vista-tienda) button.boton-ir:hover .boton-ir-flechas .icono:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes ir-flecha {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(#vista-juegos, #vista-tienda) button.boton-ir:hover .boton-ir-flechas .icono {
+    animation: none;
+  }
+}
+
+/* La «i» del saldo de la Tienda, en blanco sobre el color */
+#vista-tienda .boton-ir .juegos-info {
+  flex: none;
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* En Juegos, el saldo va en la columna de la derecha, arriba de la Clasificación (a todo lo ancho,
+   también cuando la columna se reparte en dos, en pantallas medianas) */
+#vista-juegos .retos-lado .juegos-arriba {
+  display: block;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+/* La Tienda: el saldo arriba de «Así te ven» y el hueco de antes (junto a las pestañas), fuera */
+#vista-tienda .tienda-asi .boton-ir.tienda-saldo-cifra {
+  border-radius: 0.5rem;
+}
+
+/* Huevos: las reglas, en una «i» a la derecha de los botones de abrir (antes, un texto debajo) */
+#vista-tienda .coleccion-huevos {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+#vista-tienda .coleccion-info {
+  align-self: center;
+}
+
+/* La tarjeta de la izquierda (los retos del día) mide lo que miden sus filas: ya no llega hasta
+   abajo del todo ni deja un hueco antes de «Copiar mis resultados». Si no cupiera (ventanas bajas),
+   se desplaza por dentro. */
+@media (min-width: 1001px) {
+  #vista-juegos .retos-cartilla {
+    align-self: start;
+    max-height: 100%;
+  }
+}
+
+/* ---------- Pequeñas animaciones de respuesta en todos los retos (2026-11-12) ----------
+   Como la revelación de «¿Quién es ese Pokémon?» y el número que sale en «¿Más o menos?»: al responder
+   se nota (la buena salta, la mala tiembla, un sello «¡Correcto!» / «¡Fallaste!»), lo nuevo entra en
+   vez de aparecer de golpe y el final y los Pokédólares llegan con un saltito. Las clases las ponen
+   los retos (js/juegos/*.js) solo la vez que toca, para que no se repitan al volver a pintar. */
+
+/* El punto del marcador que se acaba de llenar */
+.juego-intento.nuevo {
+  animation: juego-punto 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.6);
+}
+
+@keyframes juego-punto {
+  from { transform: scale(0.2); }
+}
+
+/* El sello de la respuesta (grito, evolución, intruso y tipos), arriba a la derecha de la pregunta */
+.test-pregunta {
+  position: relative;
+}
+
+.juego-veredicto {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 2rem;
+  color: #fff;
+  font-family: var(--letra-titulos);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: rotate(-4deg);
+  animation: juego-sello 0.4s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.juego-veredicto.bien { background: #2e9e5b; }
+.juego-veredicto.mal { background: var(--t-mal); }
+
+#vista-juegos .juego-veredicto .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+@keyframes juego-sello {
+  from { opacity: 0; transform: rotate(-4deg) scale(1.8); }
+}
+
+/* La buena salta (con un aro que se abre) y la mala tiembla */
+:is(.test-opcion, .tipos-opciones button).buena {
+  animation: juego-acierta 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+:is(.test-opcion, .tipos-opciones button).mala {
+  animation: juego-tiembla 0.4s ease-in-out;
+}
+
+.tipos-opciones button.faltaba {
+  animation: juego-late 0.7s 0.2s ease-in-out;
+}
+
+@keyframes juego-acierta {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); filter: brightness(1.25); }
+  100% { transform: scale(1); }
+}
+
+@keyframes juego-tiembla {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-0.35rem) rotate(-2deg); }
+  40% { transform: translateX(0.35rem) rotate(2deg); }
+  60% { transform: translateX(-0.2rem) rotate(-1deg); }
+  80% { transform: translateX(0.15rem); }
+}
+
+@keyframes juego-late {
+  0%, 100% { transform: none; }
+  50% { transform: scale(1.06); }
+}
+
+/* Lo que explica la buena, al responder, sube un poco */
+.test-cuerpo.respondida .test-explicacion {
+  animation: juego-sube 0.35s ease-out both;
+}
+
+/* Una ronda nueva: la pregunta aparece y las opciones entran una tras otra */
+.test-cuerpo.entra .test-pregunta > :not(.test-ronda) {
+  animation: juego-aparece 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.test-cuerpo.entra .test-opcion {
+  animation: juego-sube 0.3s ease-out both;
+}
+
+.test-cuerpo.entra .test-opcion:nth-child(2) { animation-delay: 0.05s; }
+.test-cuerpo.entra .test-opcion:nth-child(3) { animation-delay: 0.1s; }
+.test-cuerpo.entra .test-opcion:nth-child(4) { animation-delay: 0.15s; }
+
+@keyframes juego-aparece {
+  from { opacity: 0; transform: scale(0.85); }
+}
+
+@keyframes juego-sube {
+  from { opacity: 0; transform: translateY(0.5rem); }
+}
+
+/* ¿De qué tipo es?: el tipo que marcas da un saltito */
+.tipos-opciones button.recien {
+  animation: juego-marca 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+
+@keyframes juego-marca {
+  0% { transform: scale(0.9); }
+  60% { transform: scale(1.06); }
+  100% { transform: translateY(-1px); }
+}
+
+/* Supereficaz: el rival nuevo entra por la derecha y, con él, un destello verde o rojo de cómo fue
+   la anterior (no hay pausa: es contrarreloj) */
+.eficaz-cuerpo .eficaz-rival {
+  animation: eficaz-entra 0.3s ease-out;
+}
+
+.eficaz-cuerpo.tras-bien .eficaz-rival {
+  animation: eficaz-entra 0.3s ease-out, eficaz-bien 0.7s ease-out;
+}
+
+.eficaz-cuerpo.tras-mal .eficaz-rival {
+  animation: eficaz-entra 0.3s ease-out, eficaz-mal 0.7s ease-out;
+}
+
+.eficaz-cuerpo .eficaz-opciones button {
+  animation: juego-sube 0.25s ease-out both;
+}
+
+.eficaz-cuerpo .eficaz-opciones button:nth-child(2) { animation-delay: 0.04s; }
+.eficaz-cuerpo .eficaz-opciones button:nth-child(3) { animation-delay: 0.08s; }
+.eficaz-cuerpo .eficaz-opciones button:nth-child(4) { animation-delay: 0.12s; }
+
+@keyframes eficaz-entra {
+  from { opacity: 0; transform: translateX(1.5rem); }
+}
+
+@keyframes eficaz-bien {
+  from { box-shadow: 0 0 0 3px var(--t-bien), 0 0 18px rgba(var(--t-bien-rgb), 0.6); }
+}
+
+@keyframes eficaz-mal {
+  from { box-shadow: 0 0 0 3px var(--t-mal), 0 0 18px rgba(var(--t-mal-rgb), 0.6); }
+}
+
+/* Adivínalo: la fila del que pruebas se destapa casilla a casilla (como dar la vuelta a una carta) y,
+   si es el del día, al acabar se ilumina. Dura lo que DESTAPAR en js/juegos/pistas.js. */
+.pistas-fila.nueva > * {
+  animation: pistas-destapa 0.4s ease-out both;
+}
+
+.pistas-fila.nueva > :nth-child(2) { animation-delay: 0.1s; }
+.pistas-fila.nueva > :nth-child(3) { animation-delay: 0.2s; }
+.pistas-fila.nueva > :nth-child(4) { animation-delay: 0.3s; }
+.pistas-fila.nueva > :nth-child(5) { animation-delay: 0.4s; }
+.pistas-fila.nueva > :nth-child(6) { animation-delay: 0.5s; }
+.pistas-fila.nueva > :nth-child(7) { animation-delay: 0.6s; }
+
+.pistas-fila.nueva.acierto > .pistas-casilla {
+  animation: pistas-destapa 0.4s ease-out both, juego-late 0.5s 1s ease-in-out;
+}
+
+@keyframes pistas-destapa {
+  from { opacity: 0; transform: perspective(20rem) rotateX(-90deg); }
+}
+
+/* Locke del día: el que eliges da un saltito y su número sale con un sello */
+.lockedia-poke.recien {
+  animation: juego-marca 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+
+.lockedia-poke.recien .lockedia-orden {
+  animation: lockedia-numero 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.5) both;
+}
+
+@keyframes lockedia-numero {
+  from { opacity: 0; transform: scale(2.2); }
+}
+
+/* El final: la tarjeta sube y, cuando llegan los Pokédólares, la moneda da una vuelta */
+.juego-fin.entra {
+  animation: juego-sube 0.4s ease-out both;
+}
+
+.juego-fin-fichas.llega {
+  animation: juego-aparece 0.35s 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+.juego-fin-fichas.llega .ficha-moneda {
+  animation: juego-moneda 0.8s 0.2s ease-out both;
+}
+
+@keyframes juego-moneda {
+  from { transform: perspective(10rem) rotateY(-540deg) scale(0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .juego-intento.nuevo,
+  .juego-veredicto,
+  :is(.test-opcion, .tipos-opciones button):is(.buena, .mala, .faltaba, .recien),
+  .test-cuerpo :is(.test-explicacion, .test-pregunta > *, .test-opcion),
+  .eficaz-cuerpo :is(.eficaz-rival, .eficaz-opciones button),
+  .pistas-fila.nueva > *,
+  .lockedia-poke.recien,
+  .lockedia-poke.recien .lockedia-orden,
+  .juego-fin.entra,
+  .juego-fin-fichas.llega,
+  .juego-fin-fichas.llega .ficha-moneda {
+    animation: none;
+  }
 }

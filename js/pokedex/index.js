@@ -18,18 +18,19 @@ import { icono } from "../comun/iconos.js";
 import { activarMenuMas } from "../comun/menu-mas.js";
 
 // "valor" es lo que se usa para ordenar. La columna de la foto no lo tiene, así que no se ordena.
+// "corto": el título en el móvil, donde no caben los largos (css/pokedex.css)
 const COLUMNAS = [
   { clave: "numero", titulo: t("Nº"), clase: "col-numero", valor: (p) => p.numero },
   { clave: "foto", titulo: "", clase: "col-foto" },
   { clave: "nombre", titulo: "Pokémon", clase: "col-nombre", valor: (p) => p.visible },
   { clave: "tipos", titulo: "", clase: "col-tipos" },
-  { clave: "ps", titulo: t("stat|PS"), clase: "col-dato", valor: (p) => p.bases[0] },
-  { clave: "ataque", titulo: t("stat|Ataque"), clase: "col-dato", valor: (p) => p.bases[1] },
-  { clave: "defensa", titulo: t("stat|Defensa"), clase: "col-dato", valor: (p) => p.bases[2] },
-  { clave: "ataque-especial", titulo: t("stat|At. Esp."), clase: "col-dato", valor: (p) => p.bases[3] },
-  { clave: "defensa-especial", titulo: t("stat|Def. Esp."), clase: "col-dato", valor: (p) => p.bases[4] },
-  { clave: "velocidad", titulo: t("stat|Velocidad"), clase: "col-dato", valor: (p) => p.bases[5] },
-  { clave: "total", titulo: t("Total"), clase: "col-dato col-total", valor: (p) => p.total }
+  { clave: "ps", titulo: t("stat|PS"), corto: t("corto|PS"), clase: "col-dato", valor: (p) => p.bases[0] },
+  { clave: "ataque", titulo: t("stat|Ataque"), corto: t("corto|At."), clase: "col-dato", valor: (p) => p.bases[1] },
+  { clave: "defensa", titulo: t("stat|Defensa"), corto: t("corto|Def."), clase: "col-dato", valor: (p) => p.bases[2] },
+  { clave: "ataque-especial", titulo: t("stat|At. Esp."), corto: t("corto|AtE"), clase: "col-dato", valor: (p) => p.bases[3] },
+  { clave: "defensa-especial", titulo: t("stat|Def. Esp."), corto: t("corto|DefE"), clase: "col-dato", valor: (p) => p.bases[4] },
+  { clave: "velocidad", titulo: t("stat|Velocidad"), corto: t("corto|Vel."), clase: "col-dato", valor: (p) => p.bases[5] },
+  { clave: "total", titulo: t("Total"), corto: t("corto|Tot."), clase: "col-dato col-total", valor: (p) => p.total }
 ];
 
 const vista = document.getElementById("vista-pokedex");
@@ -112,7 +113,7 @@ function celdaCabecera(c) {
   return `
     <th class="${c.clase} ${activa ? "ordenada" : ""}">
       <button data-orden="${c.clave}" title="${sentido}">
-        ${c.titulo}<span class="flecha">${flecha}</span>
+        ${c.corto ? `<span class="titulo-largo">${c.titulo}</span><span class="titulo-corto">${c.corto}</span>` : c.titulo}<span class="flecha">${flecha}</span>
       </button>
     </th>`;
 }

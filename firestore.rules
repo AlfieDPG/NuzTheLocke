@@ -936,6 +936,24 @@ service cloud.firestore {
     //   denuncias/{id}  { de, tipo, hilo, comentario, autor, motivo, nota, copia, creado }
     //   (copia: el texto tal como estaba al denunciarlo, por si luego lo cambian o lo borran)
 
+    // ---------- Sugerencias ----------
+    //
+    // El cuadro «Enviar sugerencia» de Inicio (js/comun/sugerencias.js). Cualquiera puede mandar una,
+    // también sin sesión (uid null); con sesión, con su propio uid. Solo el administrador las lee y
+    // las borra (pestaña «Sugerencias» del foro). Nadie las cambia.
+    match /sugerencias/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['texto', 'uid', 'nombre', 'idioma', 'creado'])
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0 && request.resource.data.texto.size() <= 3000
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() <= 40
+        && request.resource.data.idioma in ['es', 'en']
+        && request.resource.data.creado == request.time
+        && (request.auth == null
+              ? request.resource.data.uid == null && request.resource.data.nombre == ''
+              : request.resource.data.uid == request.auth.uid);
+      allow read, delete: if esAdmin();
+    }
+
     match /denuncias/{id} {
       allow create: if identificado()
         && id.matches(request.auth.uid + '_.+')

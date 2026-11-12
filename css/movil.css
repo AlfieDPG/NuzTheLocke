@@ -1,0 +1,557 @@
+/* ---------- El móvil (hasta 760 px de ancho) ----------
+   Va la última de todas las hojas: aquí se cambia lo de cada sección que en el móvil no vale.
+
+   · Arriba, el panel lateral se queda en una barra fina: el logo a la izquierda y, a la derecha, el
+     chat, la campana y tu foto (o «Iniciar sesión»).
+   · Abajo, fija, .barra-movil: Inicio, Lockes, Rutas, Level caps y «Más» (js/movil.js).
+   · «Más» saca el menú lateral entero y su pie (créditos, ajustes, «?») como una hoja desde abajo.
+   El ordenador no cambia nada: todo va dentro de la media query, salvo esconder la barra de abajo. */
+
+.barra-movil,
+.hoja-fondo {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --alto-arriba: 3.3rem;
+    --alto-abajo: 3.7rem;
+    --alto-pie: 3rem;
+    --hueco-abajo: calc(var(--alto-abajo) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Con la hoja abierta, lo de detrás no se mueve */
+  html.hoja-menu-abierta {
+    overflow: hidden;
+  }
+
+  /* ---------- Barra de arriba ---------- */
+
+  .app {
+    flex-direction: column;
+  }
+
+  .barra-lateral {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    flex: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+    height: calc(var(--alto-arriba) + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) calc(0.7rem + env(safe-area-inset-right, 0px)) 0
+      calc(0.75rem + env(safe-area-inset-left, 0px));
+    border-right: none;
+    border-bottom: 1px solid rgba(var(--t-tinte), 0.08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  }
+
+  .barra-lateral .logo {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-right: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 1.25rem;
+  }
+
+  .barra-lateral .logo svg {
+    width: 1.65rem;
+    height: 1.65rem;
+  }
+
+  /* La sesión, en fila a la derecha */
+  .barra-lateral .sesion {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0;
+    border: none;
+  }
+
+  .barra-lateral .sesion-aviso {
+    display: none;
+  }
+
+  .barra-lateral .sesion-boton {
+    padding: 0.45rem 0.85rem;
+    border-radius: 2rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .barra-lateral .sesion-usuario {
+    gap: 0.3rem;
+  }
+
+  .barra-lateral .sesion-perfil {
+    flex: none;
+    order: 3;
+    margin: 0;
+    padding: 0.15rem;
+    border-radius: 2rem;
+  }
+
+  /* Con foto, solo la foto; sin ella, el nombre (corto) */
+  .barra-lateral .sesion-perfil:has(.sesion-foto:not([hidden])) .sesion-nombre {
+    display: none;
+  }
+
+  .barra-lateral .sesion-nombre {
+    max-width: 6.5rem;
+    padding: 0 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  .barra-lateral .sesion-foto {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+
+  /* Botones de chat y campana: más grandes para el dedo */
+  .barra-lateral .avisos-boton {
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+
+  /* El desplegable de tu foto baja desde la barra (en el ordenador sube) */
+  .barra-lateral .menu-cuentas {
+    position: fixed;
+    top: calc(var(--alto-arriba) + env(safe-area-inset-top, 0px) + 0.35rem);
+    right: 0.6rem;
+    bottom: auto;
+    left: auto;
+    width: min(18rem, calc(100vw - 1.2rem));
+    max-height: calc(100dvh - var(--alto-arriba) - var(--hueco-abajo) - 1.5rem);
+    overflow-y: auto;
+  }
+
+  /* ---------- La hoja de «Más»: el menú lateral y su pie ---------- */
+
+  .barra-lateral .menu-lateral,
+  .barra-lateral .pie-lateral {
+    display: none;
+  }
+
+  .barra-lateral.hoja-abierta .menu-lateral {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--hueco-abajo) + var(--alto-pie));
+    z-index: 55;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: start;
+    gap: 0.3rem 0.5rem;
+    max-height: calc(100dvh - var(--hueco-abajo) - var(--alto-pie) - var(--alto-arriba) - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1.1rem calc(0.9rem + env(safe-area-inset-right, 0px)) 0.6rem calc(0.9rem + env(safe-area-inset-left, 0px));
+    border-radius: 1.1rem 1.1rem 0 0;
+    background: var(--t-hundido);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
+    animation: hoja-sube 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  /* El asa de arriba, para que se lea como una hoja */
+  .barra-lateral.hoja-abierta .menu-lateral::before {
+    content: "";
+    position: absolute;
+    top: 0.45rem;
+    left: 50%;
+    width: 2.6rem;
+    height: 0.25rem;
+    border-radius: 1rem;
+    background: rgba(var(--t-tinte), 0.2);
+    transform: translateX(-50%);
+  }
+
+  .barra-lateral.hoja-abierta .menu-titulo,
+  .barra-lateral.hoja-abierta .menu-lateral .boton-destacado {
+    grid-column: 1 / -1;
+  }
+
+  .barra-lateral.hoja-abierta .menu-titulo {
+    margin: 0.55rem 0 0.1rem 0.3rem;
+  }
+
+  .barra-lateral.hoja-abierta .menu-lateral button {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  .barra-lateral.hoja-abierta .menu-lateral .icono {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .barra-lateral.hoja-abierta .pie-lateral {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--hueco-abajo);
+    z-index: 55;
+    display: flex;
+    height: var(--alto-pie);
+    box-sizing: border-box;
+    padding: 0 calc(1rem + env(safe-area-inset-right, 0px)) 0 calc(1rem + env(safe-area-inset-left, 0px));
+    border-top: 1px solid rgba(var(--t-tinte), 0.08);
+    background: var(--t-hundido);
+    animation: hoja-sube 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  .barra-lateral.hoja-abierta .enlace-legal {
+    font-size: 0.85rem;
+  }
+
+  .barra-lateral.hoja-abierta :is(.boton-ajustes, .boton-ayuda) {
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 1rem;
+  }
+
+  .barra-lateral.hoja-abierta .boton-ajustes .icono {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  @keyframes hoja-sube {
+    from {
+      transform: translateY(40%);
+      opacity: 0;
+    }
+  }
+
+  .hoja-fondo:not([hidden]) {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: block;
+    background: rgba(0, 0, 0, 0.5);
+    animation: hoja-fondo 0.2s ease-out;
+  }
+
+  @keyframes hoja-fondo {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* ---------- Barra de abajo ---------- */
+
+  .barra-movil {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: var(--hueco-abajo);
+    box-sizing: border-box;
+    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    border-top: 1px solid rgba(var(--t-tinte), 0.08);
+    background: var(--t-hundido);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.25);
+  }
+
+  .barra-movil button {
+    --color-boton: var(--t-texto-rgb);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    min-width: 0;
+    padding: 0.3rem 0.1rem;
+    border: none;
+    background: none;
+    color: rgba(var(--t-texto-rgb), 0.65);
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: bold;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .barra-movil [data-vista="inicio"]    { --color-boton: 231, 76, 60; }
+  .barra-movil [data-vista="lockes"]    { --color-boton: 214, 88, 76; }
+  .barra-movil [data-vista="rutas"]     { --color-boton: 82, 183, 136; }
+  .barra-movil [data-vista="levelcaps"] { --color-boton: 0, 184, 169; }
+
+  .barra-movil button span {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* El icono en una pastilla que se rellena del color de la sección al estar abierta */
+  .barra-movil .icono {
+    box-sizing: content-box;
+    width: 1.3rem;
+    height: 1.3rem;
+    padding: 0.2rem 0.95rem;
+    border-radius: 1rem;
+    transition: background-color 0.15s;
+  }
+
+  .barra-movil button.activa {
+    color: var(--t-texto-fuerte);
+  }
+
+  .barra-movil button.activa .icono {
+    background: rgba(var(--color-boton), 0.24);
+    color: color-mix(in srgb, rgb(var(--color-boton)) var(--t-vivo), white);
+  }
+
+  .barra-movil-mas[aria-expanded="true"] {
+    color: var(--t-texto-fuerte);
+  }
+
+  /* ---------- El contenido ---------- */
+
+  /* Que lo último de cada sección no quede debajo de la barra de abajo */
+  .contenido {
+    padding-bottom: var(--hueco-abajo);
+  }
+
+  main {
+    margin-top: 0.7rem;
+    padding: 0 calc(0.75rem + env(safe-area-inset-right, 0px)) 0 calc(0.75rem + env(safe-area-inset-left, 0px));
+  }
+
+  /* Las ventanas: casi todo el ancho y sin pasarse de alto */
+  dialog {
+    max-width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1.5rem);
+    box-sizing: border-box;
+  }
+
+  :is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) {
+    padding: 1.15rem 1rem 1rem;
+  }
+
+  :is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) h2 {
+    font-size: 1.45rem;
+  }
+
+  /* ---------- Pestañas de cuaderno (regiones, Normas, Tienda...): siempre en una fila ----------
+     Si no caben, se desplazan de lado (js/movil.js centra la elegida). El relleno de los lados deja
+     sitio a las curvas de la pestaña elegida. */
+  :is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-tienda) > .selector-regiones:first-child {
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding: 0 1.2rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  :is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-tienda) > .selector-regiones:first-child::-webkit-scrollbar {
+    display: none;
+  }
+
+  :is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-tienda) > .selector-regiones:first-child button {
+    flex: none;
+    padding-inline: 0.85rem;
+    font-size: 1rem;
+  }
+
+  /* ---------- Inicio ---------- */
+
+  .inicio-novedades-lista {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* ---------- Lockes ---------- */
+
+  .barra-versus {
+    flex-wrap: wrap;
+    gap: 0.5rem 0.7rem;
+  }
+
+  #nuevo-locke {
+    white-space: nowrap;
+  }
+
+  .versus-aviso {
+    flex: 1 1 10rem;
+    font-size: 0.82rem;
+  }
+
+  /* Nuevo locke: el nombre en su propia fila, a todo el ancho; tipo y juego debajo */
+  .campos-locke .campo-ancho {
+    flex: 1 1 100%;
+  }
+
+  .campos-locke .campo-ancho input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Cada jugador, a todo el ancho */
+  .locke-jugadores {
+    grid-template-columns: minmax(0, 1fr);
+    padding-inline: 0.7rem;
+  }
+
+  /* ---------- Pokédex: la tabla cabe en el ancho ----------
+     Sin la columna del número, los tipos uno encima del otro, los títulos cortos (PS, At., ...) y
+     la flecha de ordenar solo en la columna ordenada. */
+  .tabla-pokedex {
+    font-size: 0.78rem;
+  }
+
+  .tabla-pokedex .col-numero {
+    display: none;
+  }
+
+  .tabla-pokedex .col-foto {
+    width: 2.3rem;
+  }
+
+  .tabla-pokedex .pokedex-foto {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .tabla-pokedex .col-nombre {
+    width: auto;
+    font-size: 0.82rem;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .tabla-pokedex .col-tipos {
+    width: 1.5rem;
+    padding-right: 0.2rem;
+    white-space: normal;
+  }
+
+  .tabla-pokedex .chip-tipo {
+    display: flex;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0.08rem 0;
+  }
+
+  .tabla-pokedex .col-dato {
+    width: 1.95rem;
+    padding-inline: 0 !important;
+  }
+
+  .tabla-pokedex .col-total {
+    width: 2.3rem;
+    font-size: 0.82rem;
+  }
+
+  .tabla-pokedex thead button {
+    padding-inline: 0 !important;
+    font-size: 0.72rem;
+  }
+
+  .tabla-pokedex .titulo-largo {
+    display: none;
+  }
+
+  .tabla-pokedex .titulo-corto {
+    display: inline;
+  }
+
+  .tabla-pokedex th:not(.ordenada) .flecha {
+    display: none;
+  }
+
+  .tabla-pokedex .flecha {
+    margin-left: 0.05rem;
+    font-size: 0.6rem;
+  }
+
+  /* ---------- Crear equipo: buscador, nombre y botones, cada uno en su fila ---------- */
+
+  #vista-crear .barra-superior {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #vista-crear .barra-superior .lado-izq,
+  #vista-crear .barra-superior .lado-der {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  #vista-crear .barra-superior .lado-izq #nombre-equipo {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #vista-crear .barra-superior .lado-der {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  /* ---------- Juegos ---------- */
+
+  /* La cartilla, en una rejilla de 3 × 3 (el sello encima y el nombre debajo): así el reto queda a
+     la vista sin bajar tanto */
+  .cartilla-retos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.3rem;
+  }
+
+  .reto-fila {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    padding: 0.45rem 0.2rem 0.4rem;
+    text-align: center;
+  }
+
+  .reto-fila.activo {
+    box-shadow: inset 0 0 0 1.5px rgba(var(--color-vista), 0.7);
+  }
+
+  .reto-fila .reto-texto strong {
+    font-size: 0.74rem;
+    line-height: 1.15;
+  }
+
+  .reto-fila .reto-texto small {
+    justify-content: center;
+    font-size: 0.66rem;
+  }
+
+  /* Clasificación y «Hoy, en este reto», uno debajo de otro */
+  .retos-cuerpo .retos-lado {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .retos-juego {
+    scroll-margin-top: calc(var(--alto-arriba) + 0.6rem);
+  }
+
+  /* ---------- Foro ---------- */
+
+  /* El hilo abierto ocupa toda la pantalla y tiene su flecha de volver: sin la barra de abajo,
+     que taparía la caja de escribir */
+  :root.foro-hilo-en-pantalla .barra-movil {
+    display: none;
+  }
+
+  /* ---------- Ruleta ---------- */
+
+  .ruleta-cuerpo {
+    margin-top: 1.6rem;
+    gap: 0.8rem;
+  }
+
+  .ruleta-resultado {
+    min-height: 0;
+  }
+}

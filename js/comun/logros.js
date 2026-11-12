@@ -205,7 +205,7 @@ const LOGROS_DE_JUEGOS = [
     nombre: "Racha de hierro", descripcion: "Juega los retos 30 días seguidos.",
     valor: (c) => c.juegos.racha, meta: 30 },
   { id: "j-silueta", categoria: "retos", nivel: "plata", icono: "lupa",
-    nombre: "Vista de lince", descripcion: "Acierta las tres siluetas del día a la primera.",
+    nombre: "Vista de lince", descripcion: "Acierta las cuatro siluetas del día a la primera.",
     valor: (c) => c.contadores["perfecto-silueta"] || 0 },
   { id: "j-pistas", categoria: "retos", nivel: "plata", icono: "pokedex",
     nombre: "Mente deductiva", descripcion: "Acierta «Adivínalo» en tres intentos o menos.",
@@ -904,7 +904,9 @@ function progresoRutas(LUGARES, rutasTodas) {
   let juegosConRutas = 0;
   let juegosConTodasLasRutas = 0;
 
-  for (const [idJuego, claves] of Object.entries(marcadas)) {
+  // (con varios lockes abiertos del mismo juego, cada uno va en «idJuego@idLocke»: ver js/comun/lockes.js)
+  for (const [llave, claves] of Object.entries(marcadas)) {
+    const idJuego = llave.split("@")[0];
     lugaresMarcados += (claves || []).length;
     if ((claves || []).length) juegosConRutas++;
     const textos = new Set((claves || []).map((clave) => clave.slice(clave.indexOf(":") + 1)));
@@ -931,7 +933,8 @@ function progresoCaps({ combatesDelJuego, kantoEnCaps }, capsTodos) {
   let campeonesSuperados = 0;
   let juegosConTodosLosCombates = 0;
 
-  for (const [idJuego, claves] of Object.entries(superados)) {
+  for (const [llave, claves] of Object.entries(superados)) {
+    const idJuego = llave.split("@")[0];
     const hechos = new Set(claves || []);
     combatesSuperados += hechos.size;
 
