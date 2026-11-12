@@ -170,8 +170,9 @@ export async function jugadaDeHoy(juego) {
 }
 
 // Apunta un reto terminado y suma sus Pokédólares (con el bono de la racha).
+// detalle (opcional): lo jugado, en JSON, para ver los resultados en otro dispositivo.
 // Devuelve { puntos, bono, racha }, o null sin sesión.
-export async function guardarJugada(juego, { puntos, intentos, acierto }) {
+export async function guardarJugada(juego, { puntos, intentos, acierto, detalle }) {
   const usuario = usuarioActual();
   const acceso = baseDeDatos();
   const perfil = miPerfil();
@@ -184,16 +185,26 @@ export async function guardarJugada(juego, { puntos, intentos, acierto }) {
   const racha = rachaTrasJugar(antes, dia);
   const total = Math.min(Math.round(puntos) + bonoRacha(racha), PUNTOS_MAX);
 
-  const lote = fn.writeBatch(bd);
-  lote.set(fn.doc(bd, "jugadas", id), {
-    uid: usuario.uid, juego, dia, puntos: total, intentos, acierto, cuando: fn.serverTimestamp()
-  });
   const semana = lunesDe(dia);
   const semanales = (antes.semana === semana ? Number(antes.semanales) || 0 : 0) + total;
-  lote.update(fn.doc(bd, "perfiles", usuario.uid), {
-    juegos: { ganadas: fichasDeJuegos(perfil) + total, racha, dia, ultima: id, semana, semanales }
-  });
-  await lote.commit();
+  const apuntarla = (conDetalle) => {
+    const lote = fn.writeBatch(bd);
+    lote.set(fn.doc(bd, "jugadas", id), {
+      uid: usuario.uid, juego, dia, puntos: total, intentos, acierto, cuando: fn.serverTimestamp(),
+      ...(conDetalle ? { detalle } : {})
+    });
+    lote.update(fn.doc(bd, "perfiles", usuario.uid), {
+      juegos: { ganadas: fichasDeJuegos(perfil) + total, racha, dia, ultima: id, semana, semanales }
+    });
+    return lote.commit();
+  };
+  try {
+    await apuntarla(Boolean(detalle));
+  } catch (error) {
+    // Con las reglas de antes (sin «detalle») se rechaza: se apunta sin él, como siempre
+    if (!detalle || error.code !== "permission-denied") throw error;
+    await apuntarla(false);
+  }
   return { puntos: total, bono: total - Math.round(puntos), racha };
 }
 

@@ -203,11 +203,11 @@ function plantillaNovedades() {
   const resto = NOVEDADES.length - NOVEDADES_A_LA_VISTA;
   return `
     <section class="inicio-bloque inicio-novedades">
-      <h2>${icono("estrella")} ${t("Novedades")}</h2>
+      <h2>
+        ${icono("estrella")} ${t("Novedades")}
+        ${resto > 0 ? `<button class="inicio-ver-todo inicio-novedades-todas">${t("Ver todas ({n})", { n: NOVEDADES.length })}${icono("derecha")}</button>` : ""}
+      </h2>
       <ul class="inicio-novedades-lista">${NOVEDADES.slice(0, NOVEDADES_A_LA_VISTA).map(plantillaNovedad).join("")}</ul>
-      ${resto > 0
-        ? `<div class="inicio-pie"><button class="inicio-novedades-todas">${t("Ver todas ({n})", { n: NOVEDADES.length })}</button></div>`
-        : ""}
     </section>`;
 }
 
@@ -433,12 +433,14 @@ function plantillaLockes() {
 
   return `
     <section class="inicio-bloque inicio-lockes inicio-enlace" data-ir="lockes">
-      <h2>${icono("espadas")} ${t("Lockes en marcha")}</h2>
+      <h2>
+        ${icono("espadas")} ${t("Lockes en marcha")}
+        ${enMarcha.length ? `<button class="inicio-ver-todo inicio-ver-resto" data-vista="lockes" hidden></button>` : ""}
+      </h2>
       ${enMarcha.length
         ? `<div class="inicio-lista" data-total="${enMarcha.length}" data-modo="mas">${enMarcha.slice(0, MAX_LOCKES).map(plantillaLocke).join("")}</div>`
         : `<p class="inicio-vacio">${t("Ninguno ahora mismo.")}</p>
            <div class="inicio-pie"><button class="inicio-nuevo inicio-principal">${icono("mas")} ${t("Nuevo locke")}</button></div>`}
-      ${enMarcha.length ? `<div class="inicio-pie"><button class="inicio-ver-resto" data-vista="lockes" hidden></button></div>` : ""}
     </section>`;
 }
 
@@ -546,21 +548,36 @@ function pintar() {
   ajustarListas();
 }
 
-// Nada de desplazarse dentro de las tarjetas: cada lista enseña las que caben en su hueco (el
-// que le deja la pantalla) y esconde el resto; el botón de «Ver todos» cuenta las que faltan.
+// Nada de desplazarse dentro de las tarjetas: cada lista enseña las que caben ENTERAS en su hueco
+// (el que le deja la pantalla) y esconde el resto; el botón de «Ver todos» (a la derecha del título)
+// cuenta las que faltan. Si no cabe ni una, no se enseña ninguna antes que una cortada.
 // En el móvil (la sección baja entera, sin alto fijo) se enseñan todas las pintadas.
 const PANTALLA_FIJA = window.matchMedia("(min-width: 761px)");
 
+// Los lockes son lo primero: si no cabe ni uno, se recortan las novedades (menos líneas de texto,
+// con «…»; enteras en «Ver todas») hasta que quepa, como mucho APRETAR veces.
+const APRETAR = 3;
+
 function ajustarListas() {
   if (!seccion || seccion.hidden) return;
+  delete seccion.dataset.apretado;
+  for (let nivel = 1; ; nivel++) {
+    repartirListas();
+    const lockes = seccion.querySelector(".inicio-lockes .inicio-lista");
+    const cabeUno = !PANTALLA_FIJA.matches || !lockes || [...lockes.children].some((locke) => !locke.hidden);
+    if (cabeUno || nivel > APRETAR) break;
+    seccion.dataset.apretado = nivel;
+  }
+}
 
+function repartirListas() {
   for (const lista of seccion.querySelectorAll(".inicio-lista, .inicio-amigos-lista")) {
     const elementos = [...lista.children];
     for (const elemento of elementos) elemento.hidden = false;
 
     let visibles = elementos.length;
     if (PANTALLA_FIJA.matches) {
-      while (visibles > 1 && lista.scrollHeight > lista.clientHeight + 1) {
+      while (visibles > 0 && lista.scrollHeight > lista.clientHeight + 1) {
         elementos[--visibles].hidden = true;
       }
     }
@@ -570,9 +587,9 @@ function ajustarListas() {
     const total = Number(lista.dataset.total) || elementos.length;
     const faltan = total - visibles;
     boton.hidden = faltan <= 0;
-    boton.textContent = lista.dataset.modo === "mas"
+    boton.innerHTML = (lista.dataset.modo === "mas" && visibles
       ? t("Ver todos ({n} más)", { n: faltan })
-      : t("Ver todos ({n})", { n: total });
+      : t("Ver todos ({n})", { n: total })) + icono("derecha");
   }
 }
 

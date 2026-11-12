@@ -307,6 +307,16 @@ en la pestaña **Sugerencias** del foro (sale junto a Denuncias y Moderadores; s
 - **Hay que publicar las reglas** (paso 4): sin el bloque «Sugerencias» de `firestore.rules`, enviar falla.
 - No hace falta crear ningún índice: se piden por `creado`, y Firestore ya los tiene de un campo.
 
+## Resultados de los retos en otro dispositivo
+
+Cada jugada de `jugadas/` lleva ahora `detalle`: lo jugado (las respuestas), en JSON, como mucho 4000
+letras. Así, si abres un reto que ya jugaste en otro dispositivo (o en otro navegador), se ven tus
+resultados enteros y no solo «Ya lo jugaste hoy en otro sitio».
+
+- **Hay que publicar las reglas** (paso 4). Mientras no estén, la jugada se apunta sin `detalle` (los
+  Pokédólares se suman igual) y en otro dispositivo solo sale el aviso.
+- Las jugadas de antes no tienen `detalle`: para esas sigue saliendo el aviso.
+
 ## Contador de usuarios registrados
 
 El inicio enseña «N usuarios» a la derecha de la cabecera (a partir de `MINIMO_REGISTRADOS` en `js/inicio/index.js`).

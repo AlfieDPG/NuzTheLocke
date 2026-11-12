@@ -208,7 +208,7 @@ service cloud.firestore {
       allow get: if identificado();
       allow list: if identificado() && resource.data.uid == request.auth.uid;
       allow create: if identificado()
-        && request.resource.data.keys().hasOnly(['uid', 'juego', 'dia', 'puntos', 'intentos', 'acierto', 'cuando'])
+        && request.resource.data.keys().hasOnly(['uid', 'juego', 'dia', 'puntos', 'intentos', 'acierto', 'cuando', 'detalle'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.juego in ['silueta', 'pistas', 'eficaz', 'masomenos', 'locke', 'grito', 'evolucion', 'tipos', 'intruso']
         && request.resource.data.dia is string
@@ -220,6 +220,9 @@ service cloud.firestore {
         && request.resource.data.intentos is int
         && request.resource.data.intentos >= 0 && request.resource.data.intentos <= 10
         && request.resource.data.acierto is bool
+        // detalle: lo jugado (en JSON), para ver los resultados en otro dispositivo
+        && (!('detalle' in request.resource.data)
+            || (request.resource.data.detalle is string && request.resource.data.detalle.size() <= 4000))
         && request.resource.data.cuando == request.time
         && getAfter(perfilMio()).data.get('juegos', {}).get('ultima', '') == id;
       allow delete: if identificado() && resource.data.uid == request.auth.uid && !exists(perfilMio());

@@ -1120,3 +1120,70 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- «Ver todos» a la derecha del título (2026-11-12) ----------
+   En Lockes en marcha y Novedades, en vez de una fila propia debajo (que se llevaba el alto de una
+   tarjeta): una pastilla pequeña del color del bloque, pegada a la derecha del título. */
+.inicio-bloque h2 .inicio-ver-todo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-left: auto;
+  padding: 0.3rem 0.45rem 0.3rem 0.75rem;
+  border: none;
+  border-radius: 2rem;
+  background: rgba(var(--color-bloque), 0.16);
+  color: color-mix(in srgb, rgb(var(--color-bloque)) var(--t-vivo), black);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.inicio-bloque h2 .inicio-ver-todo[hidden] {
+  display: none;
+}
+
+.inicio-bloque h2 .inicio-ver-todo:hover {
+  background: rgba(var(--color-bloque), 0.28);
+}
+
+#vista-inicio .inicio-bloque h2 .inicio-ver-todo .icono {
+  width: 1rem;
+  height: 1rem;
+  color: inherit;
+  stroke-width: 2.5;
+  transition: transform 0.15s;
+}
+
+.inicio-bloque h2 .inicio-ver-todo:hover .icono {
+  transform: translateX(2px);
+}
+
+/* Con la pastilla a la vista, la flecha «→» del bloque-enlace sobra */
+.inicio-enlace h2:has(.inicio-ver-todo:not([hidden]))::after {
+  display: none;
+}
+
+
+/* Si no cabe ni un locke en marcha, las novedades se recortan (js/inicio/index.js, ajustarListas):
+   5, 4 o 3 líneas (con la fecha) y «…». Enteras, en «Ver todas». */
+#vista-inicio[data-apretado] .inicio-novedad-texto {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
+}
+
+#vista-inicio[data-apretado="2"] .inicio-novedad-texto {
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+#vista-inicio[data-apretado="3"] .inicio-novedad-texto {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}

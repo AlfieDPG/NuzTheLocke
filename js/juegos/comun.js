@@ -100,12 +100,36 @@ export function guardarEstado(juego, estado) {
   document.dispatchEvent(new CustomEvent("reto-cambiado", { detail: juego }));
 }
 
-// Si ya lo jugaste hoy en otro dispositivo (con esta cuenta), lo da por terminado aquí también
+// Lo que se guarda solo aquí (cómo va el apunte de los Pokédólares) y no hace falta para ver los
+// resultados en otro dispositivo
+const SOLO_AQUI = ["fin", "fichas", "bono", "error", "reintentado", "otroSitio", "juego", "puntos"];
+const MAX_DETALLE = 4000; // el tope de las reglas (firestore.rules, «jugadas»)
+
+// Lo jugado, en JSON, para apuntarlo con la jugada (o nada, si no cabe)
+function detalleDe(estado) {
+  const copia = Object.fromEntries(Object.entries(estado).filter(([clave]) => !SOLO_AQUI.includes(clave)));
+  const texto = JSON.stringify(copia);
+  return texto.length <= MAX_DETALLE ? texto : "";
+}
+
+// Si ya lo jugaste hoy en otro dispositivo (con esta cuenta), lo da por terminado aquí también. Si la
+// jugada trae lo jugado (detalle), se ven los resultados como allí; si no (las de antes), solo el aviso.
 export async function mirarSiYaJugado(juego, estado) {
   if (estado.fin || !usuarioActual()) return false;
   const jugada = await jugadaDeHoy(juego);
   if (!jugada) return false;
-  Object.assign(estado, { fin: true, acierto: jugada.acierto, fichas: jugada.puntos, otroSitio: true });
+  let detalle = null;
+  try {
+    detalle = jugada.detalle ? JSON.parse(jugada.detalle) : null;
+  } catch {
+    detalle = null;
+  }
+  if (detalle && typeof detalle === "object" && !Array.isArray(detalle)) {
+    Object.assign(estado, detalle, { fin: true, acierto: jugada.acierto, fichas: jugada.puntos, juego });
+    delete estado.otroSitio;
+  } else {
+    Object.assign(estado, { fin: true, acierto: jugada.acierto, fichas: jugada.puntos, otroSitio: true });
+  }
   guardarEstado(juego, estado);
   return true;
 }
@@ -133,7 +157,12 @@ export async function terminar(juego, estado, puntos) {
 
 async function apuntar(juego, estado) {
   try {
-    const resultado = await guardarJugada(juego, { puntos: estado.puntos || 0, intentos: (estado.intentos || []).length, acierto: Boolean(estado.acierto) });
+    const resultado = await guardarJugada(juego, {
+      puntos: estado.puntos || 0,
+      intentos: (estado.intentos || []).length,
+      acierto: Boolean(estado.acierto),
+      detalle: detalleDe(estado)
+    });
     if (resultado) {
       Object.assign(estado, { fichas: resultado.puntos, bono: resultado.bono });
       delete estado.error;
