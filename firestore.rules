@@ -787,8 +787,9 @@ service cloud.firestore {
     // Solo con sesión: cualquiera identificado lee los hilos y sus comentarios.
     //
     //   foro/{id}                    { uid, titulo, texto, categoria, juego, juegoOtro, tipo,
-    //                                  huecos, creado, ultimo, respuestas, cerrado, fijado }
-    //   foro/{id}/comentarios/{cid}  { uid, texto, creado }
+    //                                  huecos, creado, ultimo, respuestas, cerrado, fijado, grupo }
+    //   foro/{id}/comentarios/{cid}  { uid, texto, creado, respondeA?: { id, uid }, rama? }
+    //   foro/{id}/solicitudes/{uid}  { uid, mensaje, creado, estado }  (pedir unirse; decide el autor)
     //
     //   · Crear un hilo: cualquiera que no esté silenciado, con la hora del servidor, sin respuestas
     //     y con la marca de ritmo en el mismo lote. Solo un moderador puede crearlo ya fijado (un
@@ -814,6 +815,7 @@ service cloud.firestore {
           && nuevo().get('juegoOtro', '') is string && nuevo().get('juegoOtro', '').size() <= 60
           && nuevo().get('tipo', '') is string && nuevo().get('tipo', '').size() <= 30
           && nuevo().get('huecos', 0) is int && nuevo().get('huecos', 0) >= 0 && nuevo().get('huecos', 0) <= 20
+          && nuevo().get('grupo', []) is list && nuevo().get('grupo', []).size() <= 20
           && nuevo().cerrado is bool;
       }
 
@@ -826,7 +828,8 @@ service cloud.firestore {
       // Cualquiera crea hilos, pero solo un moderador puede crearlos fijados («principales»)
       allow create: if identificado() && !silenciado() && tieneMote()
         && nuevo().keys().hasOnly(['uid', 'titulo', 'texto', 'categoria', 'juego', 'juegoOtro', 'tipo', 'huecos',
-          'creado', 'ultimo', 'respuestas', 'cerrado', 'fijado'])
+          'creado', 'ultimo', 'respuestas', 'cerrado', 'fijado', 'grupo'])
+        && nuevo().get('grupo', []).size() == 0
         && nuevo().get('fijado', false) is bool
         && (nuevo().get('fijado', false) == false || esMod())
         && nuevo().uid == request.auth.uid
@@ -841,7 +844,7 @@ service cloud.firestore {
         (esMod() && nuevo().uid == resource.data.uid)
         // Su autor
         || (resource.data.uid == request.auth.uid && !silenciado()
-          && nuevo().diff(resource.data).affectedKeys().hasOnly(['titulo', 'texto', 'categoria', 'juego', 'juegoOtro', 'tipo', 'huecos', 'cerrado'])
+          && nuevo().diff(resource.data).affectedKeys().hasOnly(['titulo', 'texto', 'categoria', 'juego', 'juegoOtro', 'tipo', 'huecos', 'cerrado', 'grupo'])
           && textosBien())
         // Quien comenta
         || (!silenciado()
@@ -867,7 +870,13 @@ service cloud.firestore {
       allow read: if identificado();
 
       allow create: if identificado() && !silenciado() && tieneMote()
-        && request.resource.data.keys().hasOnly(['uid', 'texto', 'creado'])
+        && request.resource.data.keys().hasOnly(['uid', 'texto', 'creado', 'respondeA', 'rama'])
+        && (!('respondeA' in request.resource.data) || (
+          request.resource.data.respondeA is map
+          && request.resource.data.respondeA.keys().hasOnly(['id', 'uid'])
+          && request.resource.data.respondeA.id is string && request.resource.data.respondeA.id.size() <= 200
+          && request.resource.data.respondeA.uid is string && request.resource.data.respondeA.uid.size() <= 128))
+        && request.resource.data.get('rama', '') is string && request.resource.data.get('rama', '').size() <= 200
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.creado == request.time
         && request.resource.data.texto is string
@@ -880,9 +889,41 @@ service cloud.firestore {
         && (resource.data.uid == request.auth.uid || hilo().uid == request.auth.uid || esMod());
     }
 
-    // Todos los comentarios de una persona (para borrarlos al borrar su cuenta). Pide un
-    // índice compuesto de «grupo de colección» (uid + creado) de «comentarios» (ver LEEME-nube.md).
+    // Pedir unirse a un hilo de «Busco compañeros»: cada uno su propia solicitud (con su uid de
+    // id), solo en hilos abiertos de otros; el autor del hilo la acepta o la rechaza; la borran
+    // quien la pidió, el autor o un moderador.
+    match /foro/{id}/solicitudes/{quien} {
+      function hilo() {
+        return get(/databases/$(database)/documents/foro/$(id)).data;
+      }
+
+      allow read: if identificado();
+
+      allow create: if identificado() && !silenciado() && tieneMote()
+        && quien == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'mensaje', 'creado', 'estado'])
+        && request.resource.data.uid == quien
+        && request.resource.data.mensaje is string && request.resource.data.mensaje.size() <= 300
+        && request.resource.data.creado == request.time
+        && request.resource.data.estado == 'pendiente'
+        && hilo().categoria == 'busco' && hilo().cerrado == false && hilo().uid != quien;
+
+      allow update: if identificado() && hilo().uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+        && request.resource.data.estado in ['aceptada', 'rechazada'];
+
+      allow delete: if identificado()
+        && (quien == request.auth.uid || hilo().uid == request.auth.uid || esMod());
+    }
+
+    // Todos los comentarios de una persona (para borrarlos al borrar su cuenta) y las respuestas
+    // que te dirigen (la campana: respondeA.uid + creado). Piden índices de «grupo de colección»
+    // de «comentarios» (ver LEEME-nube.md). Lo mismo con tus solicitudes (solicitudes.uid).
     match /{ruta=**}/comentarios/{cid} {
+      allow read: if identificado();
+    }
+
+    match /{ruta=**}/solicitudes/{quien} {
       allow read: if identificado();
     }
 

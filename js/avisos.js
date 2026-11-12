@@ -27,7 +27,7 @@ import {
   alCambiarLockes, invitacionesALockes, aceptarLocke, rechazarLocke, miEstado, lockePorId, escucharInfracciones
 } from "./comun/lockes.js";
 import { chatsSinLeer, alCambiarChats } from "./comun/chat.js";
-import { respuestasNuevas, marcarHiloVisto, alCambiarAvisosForo } from "./comun/avisos-foro.js";
+import { avisosDelForo, marcarHiloVisto, alCambiarAvisosForo } from "./comun/avisos-foro.js";
 import { alCambiarLuchas, retosRecibidos, luchasEnLasQueMeToca, borrarLucha, rivalDe } from "./comun/luchas.js";
 import { leer, escribir } from "./comun/almacen.js";
 import { irA, prepararSeccion } from "./navegacion.js";
@@ -151,13 +151,35 @@ function plantillaArbitro(aviso) {
 
 // ---------- Respuestas a tus hilos del foro ----------
 
-function plantillaForo(hilo) {
+// Cuatro clases (js/comun/avisos-foro.js, avisosDelForo): respuestas nuevas en tu hilo, alguien te
+// ha respondido, alguien quiere unirse a tu grupo, te han aceptado en uno. Todas abren el hilo.
+function plantillaForo(aviso) {
+  const quien = (nombre) => `<b>${escaparHTML(nombre || t("Alguien"))}</b>`;
+  let texto;
+  let detalle = escaparHTML(aviso.titulo);
+  let simbolo = "mensaje";
+  if (aviso.tipo === "respuesta") {
+    texto = t("{quien} te ha respondido", { quien: quien(aviso.quien) });
+    detalle = `${escaparHTML(aviso.titulo)} · «${escaparHTML(aviso.texto.length > 70 ? `${aviso.texto.slice(0, 70)}…` : aviso.texto)}»`;
+    simbolo = "deshacer";
+  } else if (aviso.tipo === "solicitud") {
+    const nombres = aviso.quienes.filter(Boolean);
+    texto = aviso.quienes.length === 1
+      ? t("{quien} quiere unirse a tu grupo", { quien: quien(nombres[0]) })
+      : t("{n} personas quieren unirse a tu grupo", { n: aviso.quienes.length });
+    simbolo = "personaMas";
+  } else if (aviso.tipo === "aceptado") {
+    texto = t("{quien} te ha aceptado en su grupo", { quien: quien(aviso.quien) });
+    simbolo = "amigos";
+  } else {
+    texto = t(aviso.nuevas === 1 ? "{n} respuesta nueva en tu hilo" : "{n} respuestas nuevas en tu hilo", { n: aviso.nuevas });
+  }
   return `
-    <div class="aviso" data-tipo="foro" data-id="${escaparHTML(hilo.id)}">
-      <span class="aviso-icono foro">${icono("mensaje")}</span>
+    <div class="aviso" data-tipo="foro" data-id="${escaparHTML(aviso.id)}">
+      <span class="aviso-icono foro">${icono(simbolo)}</span>
       <span class="aviso-texto aviso-ir" title="${t("Abrir el hilo")}">
-        ${t(hilo.nuevas === 1 ? "{n} respuesta nueva en tu hilo" : "{n} respuestas nuevas en tu hilo", { n: hilo.nuevas })}
-        <small>${escaparHTML(hilo.titulo)}</small>
+        ${texto}
+        <small>${detalle}</small>
       </span>
       <button class="aviso-si" title="${t("Entendido")}">${icono("visto")}</button>
     </div>`;
@@ -202,7 +224,7 @@ async function abrirLuchaDesdeAviso(id) {
 function pendientes() {
   if (!hayNube() || !usuarioActual()) return { amistades: [], lockes: [], arbitro: [], foro: [], luchas: [] };
   return {
-    amistades: solicitudesRecibidas(), lockes: invitacionesALockes(), arbitro: avisosDelArbitro(), foro: respuestasNuevas(),
+    amistades: solicitudesRecibidas(), lockes: invitacionesALockes(), arbitro: avisosDelArbitro(), foro: avisosDelForo(),
     luchas: [...retosRecibidos(), ...luchasEnLasQueMeToca()]
   };
 }

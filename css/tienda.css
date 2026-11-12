@@ -1,0 +1,197 @@
+/* Sección «Tienda» (js/tienda/index.js). Los artículos (.tienda-articulo, .tienda-titulo-fila,
+   marcos, títulos) y la colección de huevos siguen en css/juegos.css: aquí, cómo se coloca todo. */
+
+/* El saldo, a la derecha de las pestañas (que cuelgan de la raya de color) */
+#vista-tienda {
+  position: relative;
+}
+
+.tienda-saldo {
+  position: absolute;
+  top: 0.7rem;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.tienda-saldo:empty {
+  display: none;
+}
+
+/* El saldo: una pastilla como la de «Juegos» (moneda, cifra y «Pokédólares»), a la altura de las
+   pestañas. De dónde sale cada Pokédólar, en la «i» */
+.tienda-saldo-cifra {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: var(--t-panel);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* Algo más grande que la pastilla de «Juegos»: aquí es lo que tienes para gastar */
+.tienda-saldo-cifra .ficha-moneda {
+  font-size: 1.55rem;
+}
+
+.tienda-saldo-cifra strong {
+  font-family: var(--letra-titulos);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.tienda-saldo-cifra small {
+  color: var(--t-gris-2);
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.tienda-saldo-cifra .juegos-info {
+  margin-left: 0.15rem;
+}
+
+/* Los artículos y, al lado, «Así te ven», que no se mueve al bajar */
+.tienda-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: 1.2rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.tienda-cuerpo:not(:has(.tienda-asi)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tienda-principal {
+  min-width: 0;
+}
+
+.tienda-asi {
+  position: sticky;
+  top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--t-panel);
+}
+
+.tienda-asi h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.tienda-asi .juegos-nota {
+  margin: 0;
+}
+
+/* La ficha: como la de «Amigos», con el fondo detrás, la foto con su marco y el título */
+.tienda-ficha {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 7.2rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background-color: var(--t-fondo-2);
+}
+
+.tienda-ficha .tienda-foto {
+  flex: none;
+  width: 4rem;
+  height: 4rem;
+}
+
+.tienda-ficha-datos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.tienda-ficha-datos strong {
+  overflow-wrap: anywhere;
+  font-family: var(--letra-titulos);
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.tienda-ficha-datos .perfil-titulo {
+  margin: 0;
+}
+
+.tienda-llevas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.tienda-llevas div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  background: var(--t-fondo-2);
+  font-size: 0.85rem;
+}
+
+.tienda-llevas dt {
+  font-weight: bold;
+}
+
+.tienda-llevas dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--t-gris-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tienda-ir-juegos {
+  padding: 0;
+  border: none;
+  background: none;
+  color: color-mix(in srgb, rgb(76, 182, 92) var(--t-vivo), black);
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.tienda-ir-juegos:hover {
+  text-decoration: underline;
+}
+
+/* Lo que se está probando, resaltado */
+:is(.tienda-articulo, .tienda-titulo-fila)[data-probar]:hover {
+  box-shadow: inset 0 0 0 2px rgba(var(--color-vista), 0.7);
+}
+
+@media (max-width: 1000px) {
+  .tienda-saldo {
+    position: static;
+    justify-content: flex-end;
+    margin-top: 0.8rem;
+  }
+
+  .tienda-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* En el móvil, la ficha arriba (lo que te pruebas se ve sin bajar) */
+  .tienda-asi {
+    position: static;
+    order: -1;
+  }
+
+  .tienda-asi .tienda-llevas,
+  .tienda-asi .juegos-nota {
+    display: none;
+  }
+}

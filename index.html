@@ -47,6 +47,7 @@
   <link rel="stylesheet" href="css/pokedex.css">
   <link rel="stylesheet" href="css/logros.css">
   <link rel="stylesheet" href="css/juegos.css">
+  <link rel="stylesheet" href="css/tienda.css">
   <link rel="stylesheet" href="css/fondos-pixel.css">
   <link rel="stylesheet" href="css/marcos-dibujo.css">
   <link rel="stylesheet" href="css/titulos-adornos.css">
@@ -99,6 +100,7 @@
         <button data-vista="foro" data-icono="mensaje" class="boton-seccion">Foro</button>
         <button data-vista="amigos" data-icono="amigos" class="boton-seccion">Amigos</button>
         <button data-vista="juegos" data-icono="mando" class="boton-seccion">Juegos</button>
+        <button data-vista="tienda" data-icono="tienda" class="boton-seccion">Tienda</button>
         <button data-vista="logros" data-icono="trofeo" class="boton-seccion">Logros</button>
       </nav>
 
@@ -351,44 +353,61 @@
         </section>
 
         <section id="vista-juegos" hidden>
-          <div class="selector-regiones juegos-pestanas"></div>
-          <div class="juegos-cabecera"></div>
           <div class="juegos-cuerpo"></div>
+        </section>
+
+        <!-- Tienda (js/tienda/index.js): pestañas de lo que se compra, el saldo y, debajo, los
+             artículos con «Así te ven» al lado -->
+        <section id="vista-tienda" hidden>
+          <div class="selector-regiones tienda-pestanas"></div>
+          <div class="tienda-saldo"></div>
+          <div class="tienda-cuerpo"></div>
         </section>
 
         <section id="vista-foro" hidden>
           <div class="selector-regiones foro-categorias"></div>
-          <div class="barra-foro">
-            <button class="foro-nuevo"></button>
-            <span class="foro-filtros">
-              <select class="foro-tipo" aria-label="Tipo de hilo"></select>
-              <select class="foro-juego" aria-label="Juego"></select>
-              <label class="foro-abiertos"><input type="checkbox"> Solo abiertos</label>
-            </span>
-            <span class="foro-buscar-caja"><input class="foro-buscar" type="search" placeholder="Buscar en los hilos..."></span>
-            <button class="foro-actualizar" title="Actualizar" aria-label="Actualizar"></button>
-            <span class="foro-aviso"></span>
-          </div>
           <p class="foro-silencio" hidden></p>
-          <!-- A la izquierda la lista de hilos (una línea cada uno); a la derecha, el hilo que se abre -->
+          <!-- A la izquierda la lista de hilos (con su barra y sus filtros encima); a la derecha, el
+               hilo que se abre. En ordenador los dos llegan justo hasta abajo y se desplazan por dentro. -->
           <div class="foro-cuerpo">
             <div class="foro-columna-lista">
-              <div class="foro-lista"></div>
-              <button class="foro-mas" hidden>Ver más hilos</button>
+              <div class="barra-foro">
+                <button class="foro-nuevo"></button>
+                <span class="foro-buscar-caja"><input class="foro-buscar" type="search" placeholder="Buscar en los hilos..."></span>
+                <button class="foro-actualizar" title="Actualizar" aria-label="Actualizar"></button>
+                <div class="foro-filtros">
+                  <div class="foro-tipos" role="group" aria-label="Tipo de hilo"></div>
+                  <div class="foro-filtros-fila">
+                    <select class="foro-juego" aria-label="Juego"></select>
+                    <label class="foro-abiertos"><input type="checkbox"> Solo los que buscan gente</label>
+                  </div>
+                </div>
+                <span class="foro-aviso"></span>
+              </div>
+              <div class="foro-lista-caja">
+                <div class="foro-lista"></div>
+                <button class="foro-mas" hidden>Ver más hilos</button>
+              </div>
             </div>
             <aside class="foro-panel">
               <p class="foro-panel-vacio">Elige un hilo de la lista para leerlo aquí.</p>
               <div class="foro-panel-hilo" hidden>
                 <button class="foro-panel-cerrar" title="Cerrar el hilo" aria-label="Cerrar el hilo"></button>
                 <div class="foro-hilo-cabecera"></div>
-                <div class="foro-hilo-comentarios"></div>
-                <button class="foro-hilo-mas foro-mas" hidden>Ver comentarios anteriores</button>
-                <p class="foro-hilo-nota foro-vacio" hidden></p>
-                <form class="foro-hilo-responder" onsubmit="return false" hidden>
-                  <textarea rows="3" maxlength="1000" placeholder="Escribe una respuesta... (Ctrl + Intro para enviar)"></textarea>
-                  <button class="foro-hilo-enviar" type="button">Responder</button>
-                </form>
-                <p class="foro-hilo-error foro-error"></p>
+                <div class="foro-hilo-desliza">
+                  <div class="foro-hilo-original"></div>
+                  <button class="foro-hilo-mas foro-mas" hidden>Ver comentarios anteriores</button>
+                  <div class="foro-hilo-comentarios"></div>
+                </div>
+                <div class="foro-hilo-pie">
+                  <p class="foro-hilo-nota foro-vacio" hidden></p>
+                  <div class="foro-hilo-respondiendo" hidden></div>
+                  <form class="foro-hilo-responder" onsubmit="return false" hidden>
+                    <textarea rows="2" maxlength="1000" placeholder="Escribe una respuesta para todo el hilo... (Ctrl + Intro para enviar)"></textarea>
+                    <button class="foro-hilo-enviar" type="button">Enviar</button>
+                  </form>
+                  <p class="foro-hilo-error foro-error"></p>
+                </div>
               </div>
             </aside>
           </div>

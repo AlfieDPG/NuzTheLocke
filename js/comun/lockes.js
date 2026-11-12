@@ -576,6 +576,27 @@ export function puestosDe(locke) {
   return { puestos, criterio: hayCombates ? "combates" : locke.vidasIlimitadas ? "bajas" : "vidas", victorias, cadena: etapas.length > 1 };
 }
 
+// El puesto con el que acaba alguien un locke ya cerrado, para los Pokédólares por lockes
+// (js/comun/fichas.js, PREMIOS_LOCKE): 1 el ganador; los demás, por la misma regla que puestosDe
+// (más victorias; si empatan, más vidas; los eliminados, detrás), y los empatados comparten puesto.
+// 0 si no hay ganador (nadie se pasó la ROM) o si no había al menos dos jugando: solo cuenta como
+// participación. Las cadenas cuentan cada etapa por su cuenta.
+export function puestoFinal(locke, uid) {
+  const dentro = (locke.jugadores || []).filter((otro) => estadoDe(locke, otro) === "aceptado");
+  if (dentro.length < 2 || !dentro.includes(uid) || !locke.ganador || !dentro.includes(locke.ganador)) return 0;
+  if (locke.ganador === uid) return 1;
+  const vidas = (otro) => (locke.vidasIlimitadas ? -muertosDe(locke, otro).length : (locke.vidas || {})[otro] || 0);
+  const nota = (otro) => [estaEliminado(locke, otro) ? 0 : 1, victoriasDe(locke, otro), vidas(otro)];
+  const mia = nota(uid);
+  const delante = dentro.filter((otro) => {
+    if (otro === uid || otro === locke.ganador) return false;
+    const suya = nota(otro);
+    const diferencia = suya.reduce((cuenta, valor, i) => cuenta || valor - mia[i], 0);
+    return diferencia > 0;
+  });
+  return 2 + delante.length;
+}
+
 export function seHaPasadoLaRom(locke, uid) {
   return Boolean((locke.rom || {})[uid]);
 }

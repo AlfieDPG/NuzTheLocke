@@ -23,7 +23,7 @@ import { JUEGOS } from "../comun/juegos.js";
 import { plantillaCampoJuego, activarCamposJuego, leerCampoJuego, nombreJuego } from "../comun/campo-juego.js";
 import { amistades, perfilesDe, pedirAmistad, buscarAmigo, lockesJugados } from "../comun/perfiles.js";
 import { estaBloqueado, bloquear, desbloquear } from "../comun/chat.js";
-import { marcarHiloVisto } from "../comun/avisos-foro.js";
+import { marcarHiloVisto, avisosDelForo, respondidoEn, solicitudesDe, hiloSilenciado, silenciarHilo, alCambiarAvisosForo } from "../comun/avisos-foro.js";
 import { estaConectado } from "../comun/presencia.js";
 import { confirmar, avisar, preguntar } from "../comun/ventanas.js";
 import { t, LOCALE } from "../comun/idioma.js";
@@ -80,7 +80,7 @@ function nombreCategoria(id) {
     case "general":
       return t("Charla");
     case "ayuda":
-      return t("Dudas y ayuda");
+      return t("Dudas");
     default:
       return id;
   }
@@ -241,13 +241,13 @@ function chipsDeHilo(hilo, enLista = false) {
   const chips = [];
   // En la lista la chincheta del título ya dice que es principal
   if (hilo.fijado && !enLista) chips.push(`<span class="hilo-chip principal">${icono("chincheta")}${t("Principal")}</span>`);
-  chips.push(`<span class="hilo-chip">${escaparHTML(nombreCategoria(hilo.categoria))}</span>`);
+  chips.push(`<span class="hilo-chip cat cat-${hilo.categoria}">${escaparHTML(nombreCategoria(hilo.categoria))}</span>`);
   if (hilo.categoria === "busco") {
     const juego = nombreJuego(hilo);
     if (juego) chips.push(`<span class="hilo-chip">${icono("mando")}${escaparHTML(juego)}</span>`);
     if (hilo.tipo) chips.push(`<span class="hilo-chip">${icono("etiqueta")}${escaparHTML(hilo.tipo)}</span>`);
-    if (hilo.huecos && !hilo.cerrado) {
-      chips.push(`<span class="hilo-chip busca">${icono("personaMas")}${t("Busca a {n}", { n: hilo.huecos })}</span>`);
+    if (foro.faltanEnGrupo(hilo) && !hilo.cerrado) {
+      chips.push(`<span class="hilo-chip busca">${icono("personaMas")}${t("Busca a {n}", { n: foro.faltanEnGrupo(hilo) })}</span>`);
     }
   }
   if (hilo.cerrado) {
@@ -256,23 +256,51 @@ function chipsDeHilo(hilo, enLista = false) {
   return chips;
 }
 
-// Una línea por hilo: el título (con la chincheta si es principal) y las respuestas, y debajo, en
-// pequeño, sus etiquetas, quién lo escribió y cuándo fue lo último. El texto se lee al abrirlo.
+// Una fila por hilo: la foto de quien lo empezó, el título (con la chincheta si es principal), lo
+// nuevo y las respuestas; debajo, el tipo de hilo en su color, el juego, quién y cuándo. Los de
+// «Busco compañeros» llevan el grupo (fotos y huecos de puntos), y debajo, si toca, «Fulano te ha
+// respondido» o «N quieren unirse» (js/comun/avisos-foro.js).
 function plantillaHilo(hilo) {
   const principal = hilo.fijado ? `<span class="hilo-fijado" title="${t("Principal")}">${icono("chincheta")}</span>` : "";
+  const avisoHilo = avisosDelForo().find((aviso) => aviso.tipo === "hilo" && aviso.id === hilo.id);
+  const respondido = respondidoEn(hilo.id);
+  const piden = hilo.uid === miUid() ? solicitudesDe(hilo.id).length : 0;
+  const silenciado = hiloSilenciado(hilo.id);
+  const juego = hilo.categoria === "busco" ? nombreJuego(hilo) : "";
+
+  let grupo = "";
+  if (hilo.categoria === "busco" && (hilo.huecos || hilo.grupo.length)) {
+    const faltan = foro.faltanEnGrupo(hilo);
+    grupo = `
+      <div class="hilo-grupo">
+        ${[hilo.uid, ...hilo.grupo].map((uid) => foto(uid)).join("")}
+        ${Array.from({ length: Math.min(faltan, 6) }, () => `<span class="foro-hueco" aria-hidden="true"></span>`).join("")}
+        <span>${hilo.cerrado ? t("completo") : faltan ? t(faltan === 1 ? "falta 1" : "faltan {n}", { n: faltan }) : ""}</span>
+      </div>`;
+  }
+  let aviso = "";
+  if (respondido !== null) aviso = `<span class="hilo-aviso">${icono("deshacer")}${t("{nombre} te ha respondido", { nombre: escaparHTML(respondido || t("Alguien")) })}</span>`;
+  else if (piden) aviso = `<span class="hilo-aviso">${icono("personaMas")}${t(piden === 1 ? "1 persona quiere unirse" : "{n} personas quieren unirse", { n: piden })}</span>`;
+
   return `
-    <article class="hilo ${hilo.cerrado ? "cerrado" : ""} ${hilo.fijado ? "fijado" : ""} ${hilo.id === idAbierto ? "seleccionado" : ""}" data-hilo="${escaparHTML(hilo.id)}" tabindex="0">
+    <article class="hilo cat-${hilo.categoria} ${hilo.cerrado ? "cerrado" : ""} ${hilo.fijado ? "fijado" : ""} ${hilo.id === idAbierto ? "seleccionado" : ""}" data-hilo="${escaparHTML(hilo.id)}" tabindex="0">
       ${foto(hilo.uid)}
       <div class="hilo-cuerpo">
         <div class="hilo-linea">
           <h3 class="hilo-titulo">${principal}${escaparHTML(hilo.titulo)}</h3>
+          ${avisoHilo ? `<span class="hilo-nuevas">${t(avisoHilo.nuevas === 1 ? "1 nueva" : "{n} nuevas", { n: avisoHilo.nuevas })}</span>` : ""}
+          ${silenciado ? `<span class="hilo-silenciado" title="${t("Silenciado")}">${icono("campanaTachada")}</span>` : ""}
           <span class="hilo-respuestas" title="${textoRespuestas(hilo.respuestas)}">${icono("mensaje")}<b>${hilo.respuestas}</b></span>
         </div>
         <div class="hilo-meta">
-          ${chipsDeHilo(hilo, true).join("")}
+          <span class="hilo-cat">${escaparHTML(nombreCategoria(hilo.categoria))}</span>
+          ${juego ? `<span>${escaparHTML(juego)}</span>` : ""}
+          ${hilo.cerrado && hilo.categoria !== "busco" ? `<span>${t("Cerrado")}</span>` : ""}
           <span class="hilo-autor">${nombreDe(hilo.uid)}</span>
           <span>${hace(hilo.ultimo)}</span>
         </div>
+        ${grupo}
+        ${aviso}
       </div>
     </article>`;
 }
@@ -296,7 +324,7 @@ function pintarLista() {
 
 async function cargarPagina(primera) {
   const pagina = await foro.cargarHilos(primera ? null : cursor);
-  await traerPerfiles(pagina.hilos.map((hilo) => hilo.uid));
+  await traerPerfiles(pagina.hilos.flatMap((hilo) => [hilo.uid, ...hilo.grupo]));
   hilos = primera ? pagina.hilos : [...hilos, ...pagina.hilos];
   cursor = pagina.cursor;
   hayMas = pagina.hayMas;
@@ -307,6 +335,7 @@ async function pintarVista() {
   pintarPestanas();
   const conPanel = vista === "foro";
   cuerpo.classList.toggle("sin-panel", !conPanel);
+  ajustarAlto();
   if (!conPanel && idAbierto) cerrarPanel();
   if (vista === "denuncias") await pintarDenuncias();
   else if (vista === "moderadores") await pintarModeradores();
@@ -332,7 +361,7 @@ async function recargar() {
 
     const [nuevosFijados] = await Promise.all([foro.cargarFijados(), cargarPagina(true), traerRoles()]);
     fijados = nuevosFijados;
-    await traerPerfiles(fijados.map((hilo) => hilo.uid));
+    await traerPerfiles(fijados.flatMap((hilo) => [hilo.uid, ...hilo.grupo]));
 
     if (esModerador) {
       // El número de la pestaña: si falla, el foro sigue (solo se queda sin número)
@@ -479,9 +508,18 @@ async function enviarNuevo() {
 
 // ---------- Un hilo abierto ----------
 //
-// Un hilo normal se lee de arriba abajo, con lo último escrito al final y la caja para responder
-// debajo. Un hilo principal (fijado) acumula muchos mensajes de gente buscando compañeros, así que
-// va al revés: la caja arriba y lo más nuevo primero, de 40 en 40.
+// El panel de la derecha no se mueve con la página: arriba el título y sus botones (Avisos y
+// «⋯»), en medio lo que se desplaza (el mensaje del hilo y las respuestas) y abajo, siempre a la
+// vista, la caja de escribir.
+//
+// Las respuestas van en ramas de un solo nivel: cada respuesta al hilo empieza una rama y lo que
+// se le contesta cuelga de ella (si se contesta a una respuesta de la rama, se queda en la misma
+// rama con «↩ a Fulano»). Las ramas largas se pliegan. Un hilo principal (fijado), que acumula
+// muchos mensajes, enseña las ramas de la más nueva a la más vieja, de 40 en 40.
+//
+// En los hilos de «Busco compañeros», el mensaje del hilo lleva el grupo (el autor, los que ha
+// aceptado y los huecos que faltan) y las solicitudes: quien quiere jugar pide unirse y el autor
+// acepta o rechaza (js/comun/foro.js).
 
 let panelHilo = null;
 let hiloAbierto = null;            // el hilo del panel, ya cargado
@@ -491,85 +529,268 @@ let comentariosCargados = false;   // ya ha llegado la primera tanda de comentar
 let recienteActual = null;         // true si se están viendo del más nuevo al más viejo (hilo principal)
 let limiteComentarios = COMENTARIOS_POR_PAGINA;
 let hayMasComentarios = false;
+let solicitudes = [];              // las del hilo abierto (si es de «Busco compañeros»)
+let respondiendo = null;           // { id, uid, rama, nombre, texto }: el mensaje al que se contesta
+let ramaPorVer = null;             // tras responder en una rama, se baja hasta ella
+const ramasAbiertas = new Set();   // las ramas largas que se han desplegado
 let pararHilo = null;
 let pararComentarios = null;
+let pararSolicitudes = null;
 let aperturas = 0;   // cuenta cada vez que se abre un hilo: lo que llega tarde de uno anterior se tira
+
+const RAMA_PLEGADA = 3;   // con más respuestas que esto, la rama se pliega y enseña las 2 últimas
 
 function pararEscuchas() {
   if (pararHilo) pararHilo();
   if (pararComentarios) pararComentarios();
-  pararHilo = pararComentarios = null;
+  if (pararSolicitudes) pararSolicitudes();
+  pararHilo = pararComentarios = pararSolicitudes = null;
 }
 
 function puedoBorrarComentario(comentario) {
   return esModerador || comentario.uid === miUid() || (hiloAbierto && hiloAbierto.uid === miUid());
 }
 
+function puedoEscribir() {
+  const hilo = hiloAbierto;
+  if (!hilo || silencio) return false;
+  return !hilo.cerrado || hilo.uid === miUid() || esModerador;
+}
+
+// ---------- Cabecera ----------
+
 function pintarCabeceraHilo() {
   const hilo = hiloAbierto;
-  const mio = hilo.uid === miUid();
-
-  const acciones = [];
-  if (mio) {
-    acciones.push(`<button data-accion="editar" title="${t("Editar")}">${icono("lapiz")}</button>`);
-    acciones.push(
-      `<button data-accion="cerrar" title="${hilo.cerrado ? t("Volver a abrir") : hilo.categoria === "busco" ? t("Ya tengo gente") : t("Cerrar el hilo")}">${icono(hilo.cerrado ? "reanudar" : "candado")}</button>`
-    );
-  } else {
-    acciones.push(`<button data-accion="denunciar-hilo" title="${t("Denunciar")}">${icono("bandera")}</button>`);
-  }
-  if (esModerador) {
-    acciones.push(`<button data-accion="fijar" class="${hilo.fijado ? "activo" : ""}" title="${hilo.fijado ? t("Quitar de principales") : t("Hacer principal")}">${icono("chincheta")}</button>`);
-  }
-  if (mio || esModerador) {
-    acciones.push(`<button data-accion="borrar-hilo" class="peligro" title="${t("Borrar")}">${icono("papelera")}</button>`);
-  }
-
+  const silenciado = hiloSilenciado(hilo.id);
   panelHilo.querySelector(".foro-hilo-cabecera").innerHTML = `
     <div class="foro-hilo-titulo-fila">
       <h2>${escaparHTML(hilo.titulo)}</h2>
-      <div class="foro-hilo-acciones">${acciones.join("")}</div>
+      <div class="foro-hilo-acciones">
+        <button data-accion="avisos" class="foro-avisos ${silenciado ? "silenciado" : ""}" aria-pressed="${silenciado}"
+                title="${silenciado ? t("No te avisa de este hilo. Pulsa para volver a recibir avisos.") : t("Te avisa en la campana. Pulsa para silenciar este hilo.")}">
+          ${icono(silenciado ? "campanaTachada" : "campana")}<span>${silenciado ? t("Silenciado") : t("Avisos")}</span>
+        </button>
+        <button data-accion="opciones-hilo" class="foro-mas-opciones" aria-label="${t("Más opciones")}" title="${t("Más opciones")}">${icono("puntos")}</button>
+      </div>
     </div>
-    <div class="hilo-chips">${chipsDeHilo(hilo).join("")}</div>
-    <div class="foro-hilo-autor">
-      ${fichaAutor(hilo.uid)}
-      <span class="comentario-hace">${hace(hilo.creado)}</span>
-    </div>
-    ${hilo.texto ? `<p class="foro-hilo-texto">${escaparHTML(hilo.texto)}</p>` : ""}`;
+    <div class="hilo-chips">${chipsDeHilo(hilo).join("")}<span class="foro-hilo-cuenta">${textoRespuestas(hilo.respuestas)}</span></div>
+    ${silenciado ? `<p class="foro-hilo-silenciado">${t("Hilo silenciado: no te llegarán avisos de él (ni respuestas ni solicitudes).")}</p>` : ""}`;
+}
 
-  actualizarFormularioRespuesta();
+// Lo que va en el «⋯» del hilo
+function opcionesDelHilo() {
+  const hilo = hiloAbierto;
+  const mio = hilo.uid === miUid();
+  const opciones = [];
+  if (mio) {
+    opciones.push({ accion: "editar", icono: "lapiz", texto: t("Editar el hilo") });
+    opciones.push({
+      accion: "cerrar",
+      icono: hilo.cerrado ? "reanudar" : "candado",
+      texto: hilo.cerrado ? t("Volver a abrirlo") : hilo.categoria === "busco" ? t("Ya tengo gente: cerrarlo") : t("Cerrar el hilo")
+    });
+  } else {
+    opciones.push({ accion: "perfil", icono: "persona", texto: t("Ver el perfil de {nombre}", { nombre: perfilDe(hilo.uid).nombre || t("Jugador") }), uid: hilo.uid });
+    opciones.push({ accion: "denunciar-hilo", icono: "bandera", texto: t("Denunciar el hilo") });
+  }
+  if (esModerador) opciones.push({ accion: "fijar", icono: "chincheta", texto: hilo.fijado ? t("Quitar de principales") : t("Hacer principal") });
+  if (mio || esModerador) opciones.push({ accion: "borrar-hilo", icono: "papelera", texto: t("Borrar el hilo"), peligro: true });
+  return opciones;
+}
+
+// ---------- El mensaje del hilo, con el grupo ----------
+
+function plantillaGrupoDelHilo(hilo) {
+  const mio = hilo.uid === miUid();
+  const faltan = foro.faltanEnGrupo(hilo);
+  const miembros = [hilo.uid, ...hilo.grupo];
+  const fotos = miembros.map((uid) => `
+    <span class="foro-grupo-miembro">
+      ${foto(uid)}
+      ${mio && uid !== hilo.uid ? `<button class="foro-grupo-quitar" data-accion="quitar-grupo" data-uid="${escaparHTML(uid)}" title="${t("Quitar del grupo")}" aria-label="${t("Quitar del grupo")}">${icono("aspa")}</button>` : ""}
+    </span>`).join("");
+  const huecos = Array.from({ length: Math.min(faltan, 12) }, () => `<span class="foro-hueco" aria-hidden="true">${icono("mas")}</span>`).join("");
+  const estado = hilo.huecos
+    ? faltan ? t(faltan === 1 ? "Falta 1" : "Faltan {n}", { n: faltan }) : t("¡Grupo completo!")
+    : t(miembros.length === 1 ? "{n} persona" : "{n} personas", { n: miembros.length });
+
+  const pendientes = solicitudes.filter((cada) => cada.estado === "pendiente");
+  const mia = solicitudes.find((cada) => cada.uid === miUid());
+  let parteDeAbajo = "";
+
+  if (mio) {
+    parteDeAbajo = pendientes.length
+      ? `<div class="foro-candidatos">
+          <span class="foro-grupo-etiqueta">${t("Quieren unirse")}</span>
+          ${pendientes.map((cada) => plantillaCandidato(cada, hilo.huecos && !faltan)).join("")}
+        </div>`
+      : `<p class="foro-grupo-nota">${hilo.cerrado ? t("El grupo está cerrado: ya no se puede pedir plaza.") : t("Nadie ha pedido unirse todavía. Te avisaremos en la campana.")}</p>`;
+  } else if (hilo.grupo.includes(miUid())) {
+    parteDeAbajo = `<p class="foro-grupo-nota bien">${icono("visto")} ${t("Estás en el grupo.")}</p>`;
+  } else if (mia && mia.estado === "pendiente") {
+    parteDeAbajo = `
+      <div class="foro-mi-solicitud">
+        <span><b>${t("Has pedido unirte")}</b><small>${t("{nombre} decide quién entra.", { nombre: escaparHTML(perfilDe(hilo.uid).nombre || t("Jugador")) })}</small></span>
+        <button data-accion="retirar">${t("Retirar")}</button>
+      </div>`;
+  } else if (mia && mia.estado === "rechazada") {
+    parteDeAbajo = `<p class="foro-grupo-nota">${t("Esta vez no ha podido ser: el grupo ya estaba hecho.")}</p>`;
+  } else if (hilo.cerrado) {
+    parteDeAbajo = `<p class="foro-grupo-nota">${t("El grupo está cerrado.")}</p>`;
+  } else if (!silencio) {
+    parteDeAbajo = `<button class="foro-pedir" data-accion="pedir">${icono("personaMas")}${t("Pedir unirme")}</button>`;
+  }
+
+  return `
+    <div class="foro-grupo">
+      <div class="foro-grupo-fila">
+        <span class="foro-grupo-etiqueta">${t("El grupo")}</span>
+        <span class="foro-grupo-fotos">${fotos}${huecos}</span>
+        <span class="foro-grupo-estado">${estado}</span>
+      </div>
+      ${parteDeAbajo}
+    </div>`;
+}
+
+function plantillaCandidato(solicitud, lleno) {
+  const perfil = perfilDe(solicitud.uid);
+  const jugados = lockesJugados(perfil).length;
+  const ganados = (perfil.ganados || []).length;
+  return `
+    <div class="foro-candidato">
+      ${foto(solicitud.uid)}
+      <span class="foro-candidato-datos">
+        <span class="foro-candidato-nombre">
+          <button class="foro-nombre" data-autor="${escaparHTML(solicitud.uid)}">${nombreDe(solicitud.uid)}</button>
+          <small>${t(jugados === 1 ? "{n} locke" : "{n} lockes", { n: jugados })} · ${t(ganados === 1 ? "{n} ganado" : "{n} ganados", { n: ganados })}</small>
+        </span>
+        ${solicitud.mensaje ? `<span class="foro-candidato-mensaje">«${escaparHTML(solicitud.mensaje)}»</span>` : ""}
+      </span>
+      <span class="foro-candidato-botones">
+        <button data-accion="rechazar" data-uid="${escaparHTML(solicitud.uid)}">${t("Rechazar")}</button>
+        <button data-accion="aceptar" data-uid="${escaparHTML(solicitud.uid)}" class="principal" ${lleno ? "disabled" : ""}>${t("Aceptar")}</button>
+      </span>
+    </div>`;
+}
+
+function pintarOriginal() {
+  const hilo = hiloAbierto;
+  panelHilo.querySelector(".foro-hilo-original").innerHTML = `
+    <article class="foro-original cat-${hilo.categoria}">
+      <span class="foro-original-etiqueta">${icono("chincheta")}${t("Mensaje del hilo")}</span>
+      <div class="comentario-cabecera">
+        ${fichaAutor(hilo.uid, `<span class="comentario-op">${t("Autor")}</span>`)}
+        <span class="comentario-hace">${hace(hilo.creado)}</span>
+      </div>
+      ${hilo.texto ? `<p class="foro-hilo-texto">${escaparHTML(hilo.texto)}</p>` : ""}
+      ${hilo.categoria === "busco" ? plantillaGrupoDelHilo(hilo) : ""}
+    </article>
+    <div class="foro-separador"><span>${hilo.respuestas ? textoRespuestas(hilo.respuestas) : t("Respuestas")}</span></div>`;
+}
+
+// ---------- Las ramas ----------
+
+// [{ raiz, hijos }] en el orden de la pantalla. Lo que cuelga de un mensaje que ya no está (borrado,
+// o fuera de los que se han pedido) sale suelto, como una rama más.
+function ramas() {
+  const porId = new Map(comentariosAbiertos.map((comentario) => [comentario.id, comentario]));
+  const hijos = new Map();
+  const raices = [];
+  for (const comentario of comentariosAbiertos) {
+    const rama = comentario.rama && comentario.rama !== comentario.id && porId.has(comentario.rama) ? comentario.rama : "";
+    if (!rama) raices.push(comentario);
+    else {
+      if (!hijos.has(rama)) hijos.set(rama, []);
+      hijos.get(rama).push(comentario);
+    }
+  }
+  const orden = (a, b) => a.creado - b.creado;
+  raices.sort(recienteActual ? (a, b) => orden(b, a) : orden);
+  return raices.map((raiz) => ({ raiz, hijos: (hijos.get(raiz.id) || []).sort(orden) }));
+}
+
+function plantillaMensaje(comentario, enRama) {
+  const mio = comentario.uid === miUid();
+  const paraTi = !mio && comentario.respondeA && comentario.respondeA.uid === miUid();
+  const respondido = comentario.respondeA && comentario.respondeA.id !== comentario.rama ? comentario.respondeA.uid : "";
+  return `
+    <article class="comentario ${enRama ? "hijo" : ""} ${paraTi ? "para-ti" : ""} ${mio ? "mio" : ""}" data-comentario="${escaparHTML(comentario.id)}">
+      <div class="comentario-cabecera">
+        ${fichaAutor(comentario.uid, comentario.uid === hiloAbierto.uid ? `<span class="comentario-op">${t("Autor")}</span>` : "")}
+        ${respondido ? `<span class="comentario-a">${icono("deshacer")}${t("a {nombre}", { nombre: nombreDe(respondido) })}</span>` : ""}
+        <span class="comentario-hace">${hace(comentario.creado)}</span>
+        <span class="comentario-acciones">
+          ${puedoEscribir() ? `<button class="comentario-responder" data-accion="responder" data-comentario="${escaparHTML(comentario.id)}">${icono("deshacer")}<span>${t("Responder")}</span></button>` : ""}
+          <button class="comentario-mas" data-accion="opciones-comentario" data-comentario="${escaparHTML(comentario.id)}" aria-label="${t("Más opciones")}" title="${t("Más opciones")}">${icono("puntos")}</button>
+        </span>
+      </div>
+      <p class="comentario-texto">${escaparHTML(comentario.texto)}</p>
+    </article>`;
+}
+
+function plantillaRama({ raiz, hijos }) {
+  const plegada = hijos.length > RAMA_PLEGADA && !ramasAbiertas.has(raiz.id);
+  const vistos = plegada ? hijos.slice(-2) : hijos;
+  const ocultos = hijos.length - vistos.length;
+  return `
+    <div class="foro-rama" data-rama="${escaparHTML(raiz.id)}">
+      ${plantillaMensaje(raiz, false)}
+      ${hijos.length
+        ? `<div class="foro-rama-hijos">
+            ${ocultos ? `<button class="foro-rama-mas" data-accion="abrir-rama" data-rama="${escaparHTML(raiz.id)}">${icono("abajo")}${t(ocultos === 1 ? "Ver 1 respuesta más" : "Ver {n} respuestas más", { n: ocultos })}</button>` : ""}
+            ${vistos.map((hijo) => plantillaMensaje(hijo, true)).join("")}
+          </div>`
+        : ""}
+    </div>`;
 }
 
 function pintarComentarios(alFinal) {
+  const desliza = panelHilo.querySelector(".foro-hilo-desliza");
   const caja = panelHilo.querySelector(".foro-hilo-comentarios");
-  const abajo = caja.scrollHeight - caja.scrollTop - caja.clientHeight < 40;
+  const abajo = desliza.scrollHeight - desliza.scrollTop - desliza.clientHeight < 40;
 
   caja.innerHTML = comentariosAbiertos.length
-    ? comentariosAbiertos
-        .map((comentario) => {
-          const acciones = [];
-          if (comentario.uid !== miUid()) {
-            acciones.push(`<button data-accion="denunciar-comentario" data-comentario="${escaparHTML(comentario.id)}" title="${t("Denunciar")}">${icono("bandera")}</button>`);
-          }
-          if (puedoBorrarComentario(comentario)) {
-            acciones.push(`<button data-accion="borrar-comentario" data-comentario="${escaparHTML(comentario.id)}" class="peligro" title="${t("Borrar")}">${icono("papelera")}</button>`);
-          }
-          return `
-            <div class="comentario">
-              <div class="comentario-cabecera">
-                ${fichaAutor(comentario.uid, comentario.uid === hiloAbierto.uid ? `<span class="comentario-op">${t("Autor")}</span>` : "")}
-                <span class="comentario-hace">${hace(comentario.creado)}</span>
-                <span class="comentario-acciones">${acciones.join("")}</span>
-              </div>
-              <p class="comentario-texto">${escaparHTML(comentario.texto)}</p>
-            </div>`;
-        })
-        .join("")
+    ? ramas().map(plantillaRama).join("")
     : `<p class="foro-vacio">${t("Todavía nadie ha respondido.")}</p>`;
 
-  // En un hilo normal el último comentario está abajo y se baja hasta él
-  if (!recienteActual && (alFinal || abajo)) caja.scrollTop = caja.scrollHeight;
+  if (ramaPorVer) {
+    const rama = caja.querySelector(`[data-rama="${CSS.escape(ramaPorVer)}"]`);
+    if (rama) {
+      const ultimo = rama.querySelector(".comentario:last-of-type") || rama;
+      ultimo.scrollIntoView({ block: "nearest" });
+      ramaPorVer = null;
+    }
+  } else if (!recienteActual && (alFinal || abajo)) {
+    // En un hilo normal lo último está abajo y se baja hasta ello
+    desliza.scrollTop = desliza.scrollHeight;
+  }
   panelHilo.querySelector(".foro-hilo-mas").hidden = !hayMasComentarios;
+}
+
+// ---------- Responder ----------
+
+function pintarRespondiendo() {
+  const caja = panelHilo.querySelector(".foro-hilo-respondiendo");
+  const campo = panelHilo.querySelector(".foro-hilo-responder textarea");
+  caja.hidden = !respondiendo;
+  caja.innerHTML = respondiendo
+    ? `${icono("deshacer")}
+       <b>${t("Respondiendo a {nombre}", { nombre: escaparHTML(respondiendo.nombre) })}</b>
+       <span>«${escaparHTML(respondiendo.texto)}»</span>
+       <button data-accion="no-responder" aria-label="${t("No responder a nadie en concreto")}" title="${t("No responder a nadie en concreto")}">${icono("aspa")}</button>`
+    : "";
+  campo.placeholder = respondiendo
+    ? t("Responde a {nombre}... (Ctrl + Intro para enviar)", { nombre: respondiendo.nombre })
+    : t("Escribe una respuesta para todo el hilo... (Ctrl + Intro para enviar)");
+}
+
+function responderA(idComentario) {
+  const comentario = comentariosAbiertos.find((cada) => cada.id === idComentario);
+  if (!comentario) return;
+  const rama = comentario.rama && comentariosAbiertos.some((cada) => cada.id === comentario.rama) ? comentario.rama : comentario.id;
+  respondiendo = { id: comentario.id, uid: comentario.uid, rama, nombre: perfilDe(comentario.uid).nombre || t("Jugador"), texto: comentario.texto };
+  pintarRespondiendo();
+  panelHilo.querySelector(".foro-hilo-responder textarea").focus();
 }
 
 // El formulario de responder no se repinta con cada cambio (se perdería lo que se está
@@ -580,35 +801,47 @@ function actualizarFormularioRespuesta() {
   const nota = panelHilo.querySelector(".foro-hilo-nota");
   const hilo = hiloAbierto;
 
-  const dueno = hilo.uid === miUid() || esModerador;
   let motivo = "";
   if (silencio) motivo = t("Un moderador te ha silenciado: no puedes escribir en el foro.");
-  else if (hilo.cerrado && !dueno) motivo = hilo.categoria === "busco" ? t("Este hilo ya está completo.") : t("Este hilo está cerrado.");
+  else if (!puedoEscribir()) motivo = hilo.categoria === "busco" ? t("Este hilo ya está completo.") : t("Este hilo está cerrado.");
 
   formulario.hidden = Boolean(motivo);
   nota.hidden = !motivo;
   nota.textContent = motivo;
   campo.disabled = Boolean(motivo);
+  if (motivo && respondiendo) {
+    respondiendo = null;
+    pintarRespondiendo();
+  }
 }
+
+// ---------- Abrir y cerrar ----------
 
 async function abrirHilo(id) {
   const apertura = ++aperturas;
   pararEscuchas();
+  cerrarOpciones();
   hiloAbierto = null;
   comentariosAbiertos = [];
   comentariosCargados = false;
   hayMasComentarios = false;
   recienteActual = null;
   limiteComentarios = COMENTARIOS_POR_PAGINA;
+  solicitudes = [];
+  respondiendo = null;
+  ramaPorVer = null;
+  ramasAbiertas.clear();
 
   panelHilo.classList.remove("reciente");
   panelHilo.querySelector(".foro-hilo-cabecera").innerHTML = `<p class="foro-vacio">${t("Cargando...")}</p>`;
+  panelHilo.querySelector(".foro-hilo-original").innerHTML = "";
   panelHilo.querySelector(".foro-hilo-comentarios").innerHTML = "";
   panelHilo.querySelector(".foro-hilo-mas").hidden = true;
   panelHilo.querySelector(".foro-hilo-responder").hidden = true;
   panelHilo.querySelector(".foro-hilo-nota").hidden = true;
   panelHilo.querySelector(".foro-hilo-responder textarea").value = "";
   panelHilo.querySelector(".foro-hilo-error").textContent = "";
+  pintarRespondiendo();
   idAbierto = id;
   mostrarPanel(true);
   marcarSeleccion();
@@ -625,12 +858,18 @@ async function abrirHilo(id) {
         avisar(t("Ese hilo ya no existe."));
         return;
       }
-      await traerPerfiles([hilo.uid]);
+      await traerPerfiles([hilo.uid, ...hilo.grupo]);
       if (apertura !== aperturas) return;
+      const antes = hiloAbierto;
       hiloAbierto = hilo;
-      // Mirando tu hilo, sus respuestas dejan de ser nuevas para la campana (también tus propias respuestas)
-      if (hilo.uid === miUid()) marcarHiloVisto(hilo.id, hilo.respuestas);
+      // Mirándolo, lo suyo deja de ser nuevo para la campana (en tus hilos, también tus respuestas)
+      marcarHiloVisto(hilo.id, hilo.uid === miUid() ? hilo.respuestas : undefined);
       pintarCabeceraHilo();
+      pintarOriginal();
+      actualizarFormularioRespuesta();
+
+      // Las solicitudes, solo en «Busco compañeros» (se empiezan a escuchar una vez)
+      if (hilo.categoria === "busco" && !pararSolicitudes) escucharLasSolicitudes(id, apertura);
 
       // La primera vez (o si lo hacen principal o dejan de serlo con el hilo abierto) se elige cómo
       // se leen los comentarios y se empieza a escucharlos
@@ -640,14 +879,29 @@ async function abrirHilo(id) {
         comentariosCargados = false;
         panelHilo.classList.toggle("reciente", recienteActual);
         suscribirComentarios(id, apertura);
-      } else if (comentariosCargados) {
-        pintarComentarios(false);
+      } else if (comentariosCargados && (!antes || antes.cerrado !== hilo.cerrado)) {
+        pintarComentarios(false); // los botones de «Responder» dependen de si está cerrado
       }
     },
     (error) => {
       console.error(error);
       if (apertura === aperturas) panelHilo.querySelector(".foro-hilo-cabecera").innerHTML = `<p class="foro-vacio">${t("No se ha podido cargar el hilo.")}</p>`;
     }
+  );
+}
+
+function escucharLasSolicitudes(id, apertura) {
+  pararSolicitudes = foro.escucharSolicitudes(
+    id,
+    async (lista) => {
+      if (apertura !== aperturas) return;
+      await traerPerfiles(lista.map((cada) => cada.uid));
+      if (apertura !== aperturas || !hiloAbierto) return;
+      solicitudes = lista;
+      if (hiloAbierto.uid === miUid()) marcarHiloVisto(id, hiloAbierto.respuestas);
+      pintarOriginal();
+    },
+    (error) => console.warn("No se han podido leer las solicitudes del hilo", error)
   );
 }
 
@@ -664,12 +918,15 @@ function suscribirComentarios(id, apertura) {
     id,
     async (comentarios, hayMas) => {
       if (apertura !== aperturas) return;
-      await traerPerfiles(comentarios.map((comentario) => comentario.uid));
+      await traerPerfiles(comentarios.flatMap((comentario) => [comentario.uid, comentario.respondeA ? comentario.respondeA.uid : ""]));
       if (apertura !== aperturas) return;
+      const primera = !comentariosCargados;
       comentariosAbiertos = comentarios;
       comentariosCargados = true;
       hayMasComentarios = Boolean(recienteActual) && hayMas;
-      if (hiloAbierto) pintarComentarios(false);
+      // Lo que te respondan con el hilo abierto ya lo estás viendo
+      marcarHiloVisto(id, hiloAbierto && hiloAbierto.uid === miUid() ? hiloAbierto.respuestas : undefined);
+      if (hiloAbierto) pintarComentarios(primera);
     },
     (error) => {
       console.error(error);
@@ -690,7 +947,7 @@ function verComentariosAnteriores() {
 }
 
 // El panel de la derecha: el hilo abierto o, si no hay, «Elige un hilo». En pantallas estrechas el
-// panel abierto ocupa toda la pantalla (ver foro.css) y se cierra con la aspa.
+// panel abierto ocupa toda la pantalla (ver foro.css) y se cierra con la flecha.
 // Con un fundido: el hilo entra deslizándose un poco (también al pasar de un hilo a otro) y,
 // al cerrarlo, se desvanece antes de que vuelva el aviso de la derecha
 let cambioDePanel = 0;
@@ -708,9 +965,10 @@ function mostrarPanel(abierto) {
 
   if (abierto) {
     seccion.querySelector(".foro-panel").classList.add("abierto");
+    document.documentElement.classList.add("foro-hilo-en-pantalla");
     vacio.hidden = true;
     panelHilo.hidden = false;
-    panelHilo.scrollTop = 0;
+    panelHilo.querySelector(".foro-hilo-desliza").scrollTop = 0;
     aparecer(panelHilo, "translateX(0.75rem)");
     return;
   }
@@ -718,6 +976,7 @@ function mostrarPanel(abierto) {
   const cerrar = () => {
     if (cambio !== cambioDePanel) return; // mientras se cerraba, se ha abierto otro
     seccion.querySelector(".foro-panel").classList.remove("abierto");
+    document.documentElement.classList.remove("foro-hilo-en-pantalla");
     panelHilo.hidden = true;
     vacio.hidden = false;
     aparecer(vacio, "none");
@@ -760,8 +1019,10 @@ function marcarSeleccion() {
 function cerrarPanel() {
   aperturas++;
   pararEscuchas();
+  cerrarOpciones();
   hiloAbierto = null;
   idAbierto = null;
+  respondiendo = null;
   mostrarPanel(false);
   marcarSeleccion();
 }
@@ -787,16 +1048,77 @@ async function responder() {
 
   boton.disabled = true;
   error.textContent = "";
+  const respuesta = respondiendo;
   try {
-    await foro.comentar(hiloAbierto.id, texto);
+    await foro.comentar(hiloAbierto.id, texto, respuesta ? { id: respuesta.id, uid: respuesta.uid, rama: respuesta.rama } : null);
     campo.value = "";
-    pintarComentarios(true);
+    respondiendo = null;
+    pintarRespondiendo();
+    if (respuesta) {
+      ramasAbiertas.add(respuesta.rama);
+      ramaPorVer = respuesta.rama;
+    }
+    pintarComentarios(!respuesta);
   } catch (fallo) {
     console.error(fallo);
     error.textContent = foro.explicarFallo(fallo, silencio);
   } finally {
     boton.disabled = false;
   }
+}
+
+// ---------- El menú «⋯» (del hilo o de un mensaje) ----------
+//
+// Uno solo, flotando junto al botón que lo abre (en el móvil, como una hoja que sube desde abajo).
+
+let menuOpciones = null;
+
+function cerrarOpciones() {
+  if (menuOpciones) menuOpciones.remove();
+  menuOpciones = null;
+}
+
+function abrirOpciones(boton, opciones) {
+  const mismo = menuOpciones && menuOpciones.dataset.de === boton.dataset.accion + (boton.dataset.comentario || "");
+  cerrarOpciones();
+  if (mismo || !opciones.length) return;
+  menuOpciones = document.createElement("div");
+  menuOpciones.className = "foro-opciones";
+  menuOpciones.dataset.de = boton.dataset.accion + (boton.dataset.comentario || "");
+  menuOpciones.setAttribute("role", "menu");
+  menuOpciones.innerHTML = opciones
+    .map((opcion) => `
+      <button role="menuitem" data-accion="${opcion.accion}" ${opcion.comentario ? `data-comentario="${escaparHTML(opcion.comentario)}"` : ""}
+              ${opcion.uid ? `data-uid="${escaparHTML(opcion.uid)}"` : ""} class="${opcion.peligro ? "peligro" : ""}">
+        ${icono(opcion.icono)}<span>${opcion.texto}</span>
+      </button>`)
+    .join("");
+  document.body.append(menuOpciones);
+  if (matchMedia("(max-width: 760px)").matches) {
+    menuOpciones.classList.add("hoja");
+  } else {
+    const caja = boton.getBoundingClientRect();
+    const ancho = menuOpciones.offsetWidth;
+    const alto = menuOpciones.offsetHeight;
+    const arriba = caja.bottom + 6 + alto > innerHeight ? caja.top - 6 - alto : caja.bottom + 6;
+    menuOpciones.style.top = `${Math.max(8, arriba)}px`;
+    menuOpciones.style.left = `${Math.max(8, Math.min(innerWidth - ancho - 8, caja.right - ancho))}px`;
+  }
+  menuOpciones.querySelector("button").focus();
+  menuOpciones.addEventListener("click", (e) => {
+    const opcion = e.target.closest("[data-accion]");
+    if (!opcion) return;
+    cerrarOpciones();
+    if (opcion.dataset.accion === "perfil") abrirUsuario(opcion.dataset.uid);
+    else accionDeHilo({ target: opcion });
+  });
+}
+
+function opcionesDelComentario(comentario) {
+  const opciones = [{ accion: "perfil", icono: "persona", texto: t("Ver el perfil de {nombre}", { nombre: perfilDe(comentario.uid).nombre || t("Jugador") }), uid: comentario.uid }];
+  if (comentario.uid !== miUid()) opciones.push({ accion: "denunciar-comentario", icono: "bandera", texto: t("Denunciar"), comentario: comentario.id });
+  if (puedoBorrarComentario(comentario)) opciones.push({ accion: "borrar-comentario", icono: "papelera", texto: t("Borrar"), comentario: comentario.id, peligro: true });
+  return opciones;
 }
 
 async function accionDeHilo(e) {
@@ -806,7 +1128,38 @@ async function accionDeHilo(e) {
   const accion = boton.dataset.accion;
 
   try {
-    if (accion === "editar") {
+    if (accion === "opciones-hilo") {
+      abrirOpciones(boton, opcionesDelHilo());
+    } else if (accion === "opciones-comentario") {
+      const comentario = comentariosAbiertos.find((cada) => cada.id === boton.dataset.comentario);
+      if (comentario) abrirOpciones(boton, opcionesDelComentario(comentario));
+    } else if (accion === "responder") {
+      responderA(boton.dataset.comentario);
+    } else if (accion === "no-responder") {
+      respondiendo = null;
+      pintarRespondiendo();
+    } else if (accion === "abrir-rama") {
+      ramasAbiertas.add(boton.dataset.rama);
+      pintarComentarios(false);
+    } else if (accion === "avisos") {
+      boton.disabled = true;
+      await silenciarHilo(hilo.id, !hiloSilenciado(hilo.id));
+      pintarCabeceraHilo();
+      pintarLista();
+    } else if (accion === "pedir") {
+      const mensaje = await preguntar(t("¿Quieres contarle algo a {nombre}? Por ejemplo, cuándo puedes jugar (opcional).", { nombre: perfilDe(hilo.uid).nombre || t("Jugador") }), "");
+      if (mensaje === null) return;
+      await foro.pedirUnirme(hilo.id, mensaje);
+    } else if (accion === "retirar") {
+      await foro.retirarSolicitud(hilo.id);
+    } else if (accion === "aceptar" || accion === "rechazar") {
+      boton.disabled = true;
+      await foro.responderSolicitud(hilo, boton.dataset.uid, accion === "aceptar");
+    } else if (accion === "quitar-grupo") {
+      const nombre = perfilDe(boton.dataset.uid).nombre || t("Jugador");
+      if (!(await confirmar(t("¿Quitar a {nombre} del grupo? Su hueco vuelve a quedar libre.", { nombre }), { aceptar: t("Quitar") }))) return;
+      await foro.quitarDelGrupo(hilo, boton.dataset.uid);
+    } else if (accion === "editar") {
       abrirNuevo(hilo);
     } else if (accion === "cerrar") {
       await foro.cerrarHilo(hilo, !hilo.cerrado);
@@ -831,6 +1184,8 @@ async function accionDeHilo(e) {
   } catch (error) {
     console.error(error);
     avisar(foro.explicarFallo(error, silencio));
+  } finally {
+    if (boton.isConnected) boton.disabled = false;
   }
 }
 
@@ -1276,6 +1631,21 @@ async function accionDeModeradores(e) {
   }
 }
 
+// ---------- El alto ----------
+
+// En ordenador, la lista y el hilo llegan justo hasta abajo de la ventana (cada uno con su propio
+// desplazamiento). En el móvil, y en «Denuncias» y «Moderadores», la página se desplaza normal.
+function ajustarAlto() {
+  if (!cuerpo || seccion.hidden) return;
+  const ancho = matchMedia("(min-width: 1001px)").matches;
+  if (!ancho || cuerpo.classList.contains("sin-panel")) {
+    cuerpo.style.height = "";
+    return;
+  }
+  const arriba = cuerpo.getBoundingClientRect().top + window.scrollY;
+  cuerpo.style.height = `${Math.max(26 * 16, innerHeight - arriba - 16)}px`;
+}
+
 // ---------- Arranque ----------
 
 function pintarSinSesion() {
@@ -1283,14 +1653,19 @@ function pintarSinSesion() {
   botonMas.hidden = true;
   avisoSilencio.hidden = true;
   cuerpo.classList.add("sin-panel");
+  ajustarAlto();
   lista.hidden = false;
   lista.innerHTML = `<p class="foro-vacio">${hayNube() ? t("Inicia sesión para entrar al foro.") : t("El foro necesita la nube: no está disponible en esta versión de la web.")}</p>`;
 }
 
+function pintarTipos() {
+  selectTipo.innerHTML = ["", ...foro.CATEGORIAS]
+    .map((id) => `<button data-tipo="${id}" class="foro-tipo-boton ${id ? `cat-${id}` : ""} ${id === filtroTipo ? "activa" : ""}" aria-pressed="${id === filtroTipo}">${id ? escaparHTML(nombreCategoria(id)) : t("Todos")}</button>`)
+    .join("");
+}
+
 function construirFiltros() {
-  selectTipo.innerHTML =
-    `<option value="">${t("Todos los tipos")}</option>` +
-    foro.CATEGORIAS.map((id) => `<option value="${id}">${escaparHTML(nombreCategoria(id))}</option>`).join("");
+  pintarTipos();
   selectJuego.innerHTML =
     `<option value="">${t("Cualquier juego")}</option>` +
     JUEGOS.map((juego) => `<option value="${escaparHTML(juego.id)}">${escaparHTML(juego.nombre)}</option>`).join("");
@@ -1304,7 +1679,7 @@ export function iniciar() {
   aviso = seccion.querySelector(".foro-aviso");
   avisoSilencio = seccion.querySelector(".foro-silencio");
   botonMas = seccion.querySelector(".foro-mas");
-  selectTipo = seccion.querySelector(".foro-tipo");
+  selectTipo = seccion.querySelector(".foro-tipos");
   selectJuego = seccion.querySelector(".foro-juego");
   dialogoNuevo = document.querySelector("#dialogo-foro-nuevo");
   panelHilo = seccion.querySelector(".foro-panel-hilo");
@@ -1322,8 +1697,11 @@ export function iniciar() {
     const boton = e.target.closest("[data-pestana]");
     if (boton && boton.dataset.pestana !== vista) irAVista(boton.dataset.pestana);
   });
-  selectTipo.addEventListener("change", () => {
-    filtroTipo = selectTipo.value;
+  selectTipo.addEventListener("click", (e) => {
+    const boton = e.target.closest("[data-tipo]");
+    if (!boton) return;
+    filtroTipo = boton.dataset.tipo;
+    pintarTipos();
     pintarLista();
   });
   selectJuego.addEventListener("change", () => {
@@ -1384,13 +1762,33 @@ export function iniciar() {
   // Un hilo abierto
   panelHilo.addEventListener("click", (e) => {
     const autor = e.target.closest("[data-autor]");
-    if (autor) {
+    if (autor && !e.target.closest("[data-accion]")) {
       abrirUsuario(autor.dataset.autor);
       return;
     }
     accionDeHilo(e);
   });
-  panelHilo.querySelector(".foro-panel-cerrar").innerHTML = icono("aspa");
+  // El «⋯» se cierra pulsando fuera, con Escape o al desplazar lo de detrás
+  document.addEventListener("pointerdown", (e) => {
+    if (menuOpciones && !menuOpciones.contains(e.target) && !e.target.closest('[data-accion^="opciones"]')) cerrarOpciones();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && menuOpciones) cerrarOpciones();
+  });
+  panelHilo.querySelector(".foro-hilo-desliza").addEventListener("scroll", cerrarOpciones, { passive: true });
+  panelHilo.querySelector(".foro-hilo-respondiendo").addEventListener("click", accionDeHilo);
+
+  // Lo que cambia en la campana (alguien te responde, piden unirse...) se ve también en la lista
+  alCambiarAvisosForo(() => {
+    if (!seccion.hidden && vista === "foro" && usuarioActual() && lista.querySelector("[data-hilo]")) pintarLista();
+  });
+
+  // La lista y el hilo ocupan justo lo que queda de pantalla: no se desplaza la página, cada uno
+  // se desplaza por dentro
+  addEventListener("resize", ajustarAlto);
+  // En el ordenador un aspa; en el móvil (el hilo a pantalla completa), una flecha de volver
+  panelHilo.querySelector(".foro-panel-cerrar").innerHTML = `<span class="solo-ancho">${icono("aspa")}</span><span class="solo-movil">${icono("atras")}</span>`;
+  panelHilo.querySelector(".foro-hilo-enviar").innerHTML = `${icono("enviar")}<span>${t("Enviar")}</span>`;
   panelHilo.querySelector(".foro-panel-cerrar").addEventListener("click", cerrarHilo);
   panelHilo.querySelector(".foro-hilo-enviar").addEventListener("click", responder);
   panelHilo.querySelector(".foro-hilo-mas").addEventListener("click", verComentariosAnteriores);
@@ -1431,5 +1829,6 @@ export function mostrar() {
     return;
   }
   pintarPestanas();
+  requestAnimationFrame(ajustarAlto);
   if (Date.now() - cargadoEn > REFRESCO) recargar();
 }

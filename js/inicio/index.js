@@ -97,6 +97,20 @@ const NOVEDADES_A_LA_VISTA = 3;
 
 const NOVEDADES = [
   {
+    fecha: "2026-11-12", vista: "foro", icono: "mensaje", color: "196, 128, 214",
+    es: `<b>Foro</b> renovado: responde a un mensaje concreto (y a quien le respondas le llega a la
+      campana), pide unirte a los grupos de «Busco compañeros» y silencia los hilos que no te interesen.`,
+    en: `Revamped <b>Forum</b>: reply to a specific message (they get it in their bell), ask to join
+      «Looking for players» groups and mute threads you don't care about.`
+  },
+  {
+    fecha: "2026-11-12", vista: "tienda", icono: "tienda", color: "200, 118, 74",
+    es: `La <b>Tienda</b> y los huevos tienen su propia sección. Y ahora terminar un locke da
+      Pokédólares: 500 al ganador, 300 al segundo, 150 al tercero y 50 al resto (también los que ya acabaste).`,
+    en: `The <b>Shop</b> and eggs have their own section. And finishing a locke now gives Pokédollars:
+      500 to the winner, 300 to second, 150 to third and 50 to everyone else (also the ones you already finished).`
+  },
+  {
     fecha: "2026-11-02", vista: "lucha", icono: "lucha", color: "222, 112, 52",
     es: `Nueva sección <b>Combates</b> (en pruebas): reta a un amigo y combatid sin salir de la web,
       también en los combates de tus lockes.`,
@@ -240,7 +254,7 @@ function plantillaAvisos() {
 const SECCIONES = [
   { vista: "lockes", icono: "espadas", color: "214, 88, 76", nombre: "Lockes",
     texto: "Juega con amigos: vidas, muertes y victorias, y tu partida vinculada al momento." },
-  { vista: "crear", icono: "pokeball", color: "91, 141, 239", nombre: "Equipos",
+  { vista: "crear", icono: "pokeball", color: "64, 112, 214", nombre: "Equipos",
     texto: "Monta tus equipos, guárdalos e importa o exporta pastes de Showdown." },
   { vista: "rutas", icono: "mapa", color: "82, 183, 136", nombre: "Rutas",
     texto: "Marca dónde ya has hecho la captura en cada juego." },

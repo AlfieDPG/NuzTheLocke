@@ -1,34 +1,28 @@
-// Sección «Juegos»: los retos del día y la Tienda.
+// Sección «Juegos»: los retos del día. (La Tienda y los huevos tienen su propia sección:
+// js/tienda/index.js.)
 //
-//   · Arriba, tus Pokédólares, tu racha (días seguidos jugando) y lo que suma la racha a cada reto.
-//   · «Reto del día»: un reto de cada juego al día, el mismo para todo el mundo (js/juegos/
-//     silueta.js, pistas.js, eficaz.js, masomenos.js, grito.js, evolucion.js, tipos.js, intruso.js
-//     y locke.js). Lo común, en js/juegos/comun.js. Abajo,
-//     un botón copia los resultados de hoy (con cuadraditos de colores) para compartirlos.
-//   · «Tienda»: fondos para tu tarjeta, marcos para tu foto y títulos, a cambio de Pokédólares.
-//     Lo comprado se pone y se quita desde aquí (los fondos y los títulos, también desde el perfil).
-//   · «Colección»: la Pokédex de los huevos (js/juegos/coleccion.js).
-//   · «Clasificación»: tú y tus amigos, por los Pokédólares ganados en los retos esta semana.
+// Tres columnas (en pantallas más estrechas, dos o una):
+//   · Izquierda, la cartilla de hoy: los nueve retos, con un sello «+N» en los ya hechos y un
+//     hueco de puntos en los que faltan; encima, la racha de la semana (los días jugados).
+//   · En medio, el reto elegido (js/juegos/silueta.js, pistas.js, eficaz.js, masomenos.js,
+//     grito.js, evolucion.js, tipos.js, intruso.js y locke.js; lo común en js/juegos/comun.js).
+//   · Derecha, la clasificación con tus amigos (esta semana o siempre) y cómo les ha ido en el
+//     reto que tienes abierto (solo cuando lo has terminado tú).
 //
 // Las Pokédólares (cómo se ganan y cómo se guardan) están en js/comun/fichas.js.
 
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
-import { usuarioActual, alCambiarSesion, hayNube } from "../comun/nube.js";
+import { usuarioActual, alCambiarSesion, baseDeDatos } from "../comun/nube.js";
+import { miPerfil, alCambiarMiPerfil, amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos } from "../comun/perfiles.js";
 import {
-  miPerfil, alCambiarMiPerfil, guardarMiPerfil, amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos
-} from "../comun/perfiles.js";
-import { FONDOS_TIENDA, claseFondo, estiloFondo } from "../comun/fondos.js";
-import {
-  saldo, rachaDe, bonoRacha, BONO_POR_DIA, BONO_MAX, fichasDeLogros, fichasDeJuegos, FICHAS_POR_NIVEL, MARCOS, TITULOS, loTiene, tieneMarco, porPrecio,
-  marcoDe, claseMarco, claseTitulo, plantillaTituloDe, comprar, hoy, fichasDeLaSemana, jugoHoy
+  saldo, rachaDe, bonoRacha, fichasDeJuegos, marcoDe, claseMarco, plantillaTituloDe, hoy, lunesDe, fichasDeLaSemana
 } from "../comun/fichas.js";
-import { fichasDeRegalos } from "../comun/regalos.js";
-import { confirmar, avisar } from "../comun/ventanas.js";
-import { NIVELES } from "../comun/logros.js";
+import { avisar } from "../comun/ventanas.js";
 import { copiarAlPortapapeles } from "../equipos/exportar.js";
 import { t, LOCALE } from "../comun/idioma.js";
 import { coloresParaDaltonicos } from "../comun/ajustes.js";
+import { irA } from "../navegacion.js";
 import { estadoDe } from "./comun.js";
 import { montarSilueta } from "./silueta.js";
 import { montarPistas } from "./pistas.js";
@@ -39,87 +33,14 @@ import { montarGrito } from "./grito.js";
 import { montarEvolucion } from "./evolucion.js";
 import { montarTipos } from "./tipos.js";
 import { montarIntruso } from "./intruso.js";
-import { montarColeccion } from "./coleccion.js";
 
 const vista = document.getElementById("vista-juegos");
-const pestanas = vista.querySelector(".juegos-pestanas");
-const cabecera = vista.querySelector(".juegos-cabecera");
 const cuerpo = vista.querySelector(".juegos-cuerpo");
-
-const PESTANAS = [
-  { id: "retos", nombre: t("Reto del día") },
-  { id: "tienda", nombre: t("Tienda") },
-  { id: "coleccion", nombre: t("Colección") },
-  { id: "clasificacion", nombre: t("Clasificación") }
-];
-let pestana = "retos";
-let ocupado = false;
 
 const numero = (n) => n.toLocaleString(LOCALE);
 const moneda = (n) => `<span class="ficha-cifra"><span class="ficha-moneda"></span>${numero(n)}</span>`;
 
-// ---------- Cabecera ----------
-
-// Cómo se ganan: en la ventana de la «i» que hay al lado de «Pokédólares»
-function comoSeGanan() {
-  const niveles = Object.entries(FICHAS_POR_NIVEL).map(([nivel, fichas]) => `${NIVELES[nivel]} ${fichas}`).join(" · ");
-  return [
-    t("Cómo se ganan Pokédólares"),
-    t("Con cada logro, según su nivel: {niveles}. También los que ya tenías.", { niveles }),
-    t("Con los retos del día, como mucho: {lista}.", { lista: JUEGOS.map((juego) => `${juego.maximo} en «${juego.nombre}»`).join(", ") }),
-    t("Con la racha: {n} más por reto por cada día seguido jugando, hasta {max}.", { n: BONO_POR_DIA, max: BONO_MAX })
-  ].join("\n\n");
-}
-
-function pintarCabecera() {
-  const perfil = miPerfil();
-  if (!usuarioActual() || !perfil) {
-    cabecera.innerHTML = `
-      <div class="juegos-saldo">
-        <span class="ficha-moneda grande"></span>
-        <p>${hayNube() ? t("Inicia sesión para ganar Pokédólares con los retos y los logros, y gastarlos en la Tienda.") : ""}</p>
-      </div>`;
-    return;
-  }
-  const racha = rachaDe(perfil);
-  const bono = bonoRacha(racha + 1);
-  const hechos = JUEGOS.filter((juego) => estadoDe(juego.id).fin).length;
-  const mia = ranking().find((fila) => fila.perfil.mio);
-  cabecera.innerHTML = `
-    <div class="juegos-saldo">
-      <span class="ficha-moneda grande"></span>
-      <div>
-        <strong>${numero(saldo(perfil))}</strong> <span>${t("Pokédólares")}</span><button class="juegos-info" aria-label="${t("Cómo se ganan Pokédólares")}" title="${t("Cómo se ganan Pokédólares")}">i</button>
-        <small>${t("{logros} de logros · {juegos} de retos", { logros: numero(fichasDeLogros(perfil)), juegos: numero(fichasDeJuegos(perfil)) })}${fichasDeRegalos() ? ` · ${t("{n} de regalos", { n: numero(fichasDeRegalos()) })}` : ""}</small>
-      </div>
-    </div>
-    <div class="juegos-racha ${racha ? "activa" : ""}">
-      ${icono("rayo")}
-      <div>
-        <strong>${t(racha === 1 ? "{n} día seguido" : "{n} días seguidos", { n: racha })}</strong>
-        <small>${bono ? t("Hoy, +{n} Pokédólares extra por reto", { n: bono }) : t("Juega mañana también: la racha da Pokédólares extra")}</small>
-      </div>
-    </div>
-    <div class="juegos-racha ${hechos === JUEGOS.length ? "activa" : ""}">
-      ${icono("calendario")}
-      <div>
-        <strong>${t("{n} de {total} retos hoy", { n: hechos, total: JUEGOS.length })}</strong>
-        <small>${hechos === JUEGOS.length ? t("¡Todos hechos! Vuelve mañana.") : t("Te quedan {n}", { n: JUEGOS.length - hechos })}</small>
-      </div>
-    </div>
-    <div class="juegos-racha ${mia && mia.fichas ? "activa" : ""}">
-      ${icono("trofeo")}
-      <div>
-        <strong>${t("{n} Pokédólares esta semana", { n: numero(mia ? mia.fichas : 0) })}</strong>
-        <small>${mia && ranking().length > 1 ? t("{puesto}.º de {n} con tus amigos", { puesto: mia.puesto, n: ranking().length }) : t("Se reinicia cada lunes")}</small>
-      </div>
-    </div>`;
-}
-
-// ---------- Retos ----------
-
-// Arriba, una tarjeta pequeña por reto (con lo que llevas hoy en cada uno); debajo, solo el
-// elegido. Al entrar se abre el primero que te quede por jugar.
+// Los retos, en el orden de la cartilla. «maximo»: los Pokédólares que da como mucho (sin la racha)
 const JUEGOS = [
   { id: "silueta", nombre: t("¿Quién es ese Pokémon?"), icono: "lupa", maximo: 90, montar: montarSilueta },
   { id: "pistas", nombre: t("Adivínalo"), icono: "pokedex", maximo: 100, montar: montarPistas },
@@ -133,44 +54,105 @@ const JUEGOS = [
 ];
 let reto = null;
 
-function plantillaTarjetaReto(juego) {
+// ---------- La cartilla ----------
+
+// Un día («2026-11-12») movido «cuantos» días
+function moverDia(dia, cuantos) {
+  const fecha = new Date(`${dia}T12:00:00Z`);
+  fecha.setUTCDate(fecha.getUTCDate() + cuantos);
+  return fecha.toISOString().slice(0, 10);
+}
+
+// La semana de lunes a domingo: los días de la racha que llevas, hoy y los que quedan
+function plantillaSemana(perfil) {
+  const dia = hoy();
+  const lunes = lunesDe(dia);
+  const juegos = (perfil && perfil.juegos) || {};
+  const racha = rachaDe(perfil);
+  const jugados = new Set(Array.from({ length: racha }, (_, i) => moverDia(juegos.dia, -i)));
+  const letras = [t("dia|L"), t("dia|M"), t("dia|X"), t("dia|J"), t("dia|V"), t("dia|S"), t("dia|D")];
+  return letras
+    .map((letra, i) => {
+      const cada = moverDia(lunes, i);
+      const clase = [jugados.has(cada) ? "jugado" : "", cada === dia ? "hoy" : ""].join(" ");
+      return `<span class="semana-dia ${clase}"><span></span>${letra}</span>`;
+    })
+    .join("");
+}
+
+function plantillaReto(juego) {
   const estado = estadoDe(juego.id);
-  let pie;
-  if (!estado.fin) pie = `<small title="${t("Hasta {n} Pokédólares", { n: juego.maximo })}"><span class="ficha-moneda"></span>${t("hasta {n}", { n: juego.maximo })}</small>`;
-  else if (estado.fichas != null) pie = `<small class="hecho">${icono("visto")} +${estado.fichas}</small>`;
-  else pie = `<small class="hecho">${icono("visto")} ${t("Jugado")}</small>`;
+  const clase = [estado.fin ? "hecho" : "", juego.id === reto ? "activo" : ""].join(" ");
+  let marca;
+  let detalle;
+  if (estado.fin) {
+    marca = estado.fichas != null ? `+${estado.fichas}` : icono("visto");
+    detalle = estado.fichas != null ? t("Hecho") : t("Jugado");
+  } else {
+    marca = icono(juego.icono);
+    detalle = juego.id === reto
+      ? t("Jugando")
+      : `<span class="ficha-moneda"></span>${t("hasta {n}", { n: juego.maximo })}`;
+  }
   return `
-    <button class="reto-tarjeta ${juego.id === reto ? "activa" : ""} ${estado.fin ? "terminado" : ""}" data-reto="${juego.id}">
-      ${icono(juego.icono)}
-      <span>
-        <strong>${juego.nombre}</strong>
-        ${pie}
-      </span>
+    <button class="reto-fila ${clase}" data-reto="${juego.id}" ${juego.id === reto ? 'aria-current="true"' : ""}>
+      <span class="reto-marca">${marca}</span>
+      <span class="reto-texto"><strong>${juego.nombre}</strong><small>${detalle}</small></span>
     </button>`;
 }
 
-function pintarTarjetasRetos() {
-  const fila = cuerpo.querySelector(".retos-fila");
-  if (fila) fila.innerHTML = JUEGOS.map(plantillaTarjetaReto).join("");
+function pintarCartilla() {
+  const caja = cuerpo.querySelector(".retos-cartilla");
+  if (!caja) return;
+  const perfil = usuarioActual() ? miPerfil() : null;
+  const hechos = JUEGOS.filter((juego) => estadoDe(juego.id).fin).length;
+  const racha = perfil ? rachaDe(perfil) : 0;
+  const bono = bonoRacha(racha + 1);
+  const fecha = new Date(`${hoy()}T12:00:00Z`).toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" });
+  caja.innerHTML = `
+    <div class="cartilla-cabeza">
+      <h2>${hechos === JUEGOS.length ? t("¡Todos hechos!") : t("Hoy, {n} de {total}", { n: hechos, total: JUEGOS.length })}</h2>
+      <span class="juegos-nota">${escaparHTML(fecha)}</span>
+    </div>
+    ${perfil
+      ? `<div class="cartilla-semana" aria-label="${t("Tu racha esta semana")}">${plantillaSemana(perfil)}</div>
+         <p class="cartilla-racha ${racha ? "activa" : ""}">${icono("rayo")}<span>${racha
+           ? `<b>${t(racha === 1 ? "{n} día seguido" : "{n} días seguidos", { n: racha })}</b> · ${t("+{n} en cada reto", { n: bono })}`
+           : t("Juega hoy y mañana: la racha da Pokédólares extra")}</span></p>`
+      : ""}
+    <div class="cartilla-retos">${JUEGOS.map(plantillaReto).join("")}</div>
+    <div class="cartilla-pie">
+      <button class="juegos-compartir-enlace">${icono("copiar")} ${t("Copiar mis resultados de hoy")}</button>
+      <span class="juegos-copiado" hidden>${t("¡Copiado! Pégalo donde quieras.")}</span>
+    </div>`;
 }
 
-async function pintarRetos() {
-  if (!reto) reto = (JUEGOS.find((juego) => !estadoDe(juego.id).fin) || JUEGOS[0]).id;
+// ---------- El reto ----------
+
+async function pintarReto() {
   const juego = JUEGOS.find((cada) => cada.id === reto);
-  cuerpo.innerHTML = `
-    <div class="retos-fila"></div>
-    <div class="retos-cuerpo">
-      <article class="juego juego-${juego.id}"></article>
-      ${plantillaColumnaRetos()}
-    </div>`;
-  pintarTarjetasRetos();
+  const caja = cuerpo.querySelector(".retos-juego");
+  caja.innerHTML = `<article class="juego juego-${juego.id}"></article>`;
+  cuerpo.querySelector(".retos-cuerpo").classList.toggle("reto-ancho", juego.id === "locke");
   try {
-    await juego.montar(cuerpo.querySelector(".juego"));
+    await juego.montar(caja.querySelector(".juego"));
   } catch (error) {
     console.error(error);
-    cuerpo.querySelector(".juego").innerHTML = `<p class="juego-cargando">${t("No se han podido cargar los juegos. Comprueba la conexión y vuelve a entrar.")}</p>`;
+    caja.querySelector(".juego").innerHTML = `<p class="juego-cargando">${t("No se han podido cargar los juegos. Comprueba la conexión y vuelve a entrar.")}</p>`;
   }
-  pintarTarjetasRetos(); // por si ya estaba jugado en otro sitio
+  pintarCartilla(); // por si ya estaba jugado en otro sitio
+  pintarAmigosHoy();
+}
+
+function elegirReto(id) {
+  if (id === reto) return;
+  reto = id;
+  pintarCartilla();
+  pintarReto();
+  // En el móvil el reto está debajo de la cartilla: se baja hasta él
+  if (matchMedia("(max-width: 1000px)").matches) {
+    cuerpo.querySelector(".retos-juego").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 // Lo de hoy, para pegar en un chat: una línea (o varias) por reto terminado
@@ -195,22 +177,24 @@ async function compartir() {
 // ---------- Clasificación ----------
 //
 // Tú y tus amigos, por los Pokédólares ganados en los retos: los de esta semana (de lunes a
-// domingo) o los de siempre («General»), con pestañas. Sale de los perfiles, que ya están
-// cargados: no cuesta lecturas.
+// domingo) o los de siempre. Sale de los perfiles, que ya están cargados: no cuesta lecturas.
 
 const MODOS = [
   { id: "semana", nombre: t("Esta semana"), cuenta: fichasDeLaSemana },
-  { id: "general", nombre: t("General"), cuenta: fichasDeJuegos }
+  { id: "general", nombre: t("Siempre"), cuenta: fichasDeJuegos }
 ];
 let modo = "semana";
 
+function amigosConPerfil() {
+  return amigosAceptados().map((amistad) => perfilesDeAmigos().get(amistad.otro)).filter(Boolean);
+}
+
 // [{ perfil, fichas, puesto }] de más a menos (los empatados comparten puesto), o [] sin sesión
-function ranking(cual = "semana") {
+function ranking(cual = modo) {
   const yo = usuarioActual() ? miPerfil() : null;
   if (!yo) return [];
   const cuenta = MODOS.find((cada) => cada.id === cual).cuenta;
-  const amigos = amigosAceptados().map((amistad) => perfilesDeAmigos().get(amistad.otro)).filter(Boolean);
-  const todos = [{ ...yo, mio: true }, ...amigos].sort(
+  const todos = [{ ...yo, mio: true }, ...amigosConPerfil()].sort(
     (uno, otro) => cuenta(otro) - cuenta(uno) || rachaDe(otro) - rachaDe(uno) || uno.nombre.localeCompare(otro.nombre, LOCALE)
   );
   let puesto = 0;
@@ -223,263 +207,204 @@ function ranking(cual = "semana") {
   });
 }
 
-function plantillaFilaRanking({ perfil, fichas, puesto }, corta = false) {
-  const racha = rachaDe(perfil);
-  return `
-    <li class="clasificacion-fila ${perfil.mio ? "mia" : ""} ${puesto <= 3 && fichas ? `podio-${puesto}` : ""}">
-      <span class="clasificacion-puesto">${puesto}</span>
-      <span class="clasificacion-foto ${claseMarco(marcoDe(perfil))}" data-perfil="${escaparHTML(perfil.uid)}">${fotoDeMuestra(perfil)}</span>
-      <span class="clasificacion-quien">
-        <span class="clasificacion-nombre"><strong>${escaparHTML(perfil.nombre)}</strong>${corta ? "" : plantillaTituloDe(perfil, "pequeno")}</span>
-        ${corta
-          ? ""
-          : `<small>
-              ${jugoHoy(perfil) ? `<span class="clasificacion-hoy">${icono("visto")} ${t("Ha jugado hoy")}</span>` : t("Hoy aún no ha jugado")}
-              ${racha > 1 ? ` · ${icono("rayo")} ${t("{n} días seguidos", { n: racha })}` : ""}
-            </small>`}
-      </span>
-      ${moneda(fichas)}
-    </li>`;
-}
-
-// Lo de cada día al lado del reto: los primeros de la semana y tú (si no estás entre ellos)
-const EN_LA_COLUMNA = 5;
-
-function plantillaColumnaRetos() {
-  const filas = ranking();
-  const nota = `<p class="juegos-nota">${t("Los retos cambian cada día a medianoche (hora de España) y son los mismos para todo el mundo.")}</p>`;
-  const copiar = `
-    <button class="juegos-compartir-enlace">${icono("copiar")} ${t("Copiar mis resultados de hoy")}</button>
-    <span class="juegos-copiado" hidden>${t("¡Copiado! Pégalo donde quieras.")}</span>`;
-  if (!filas.length) {
-    return `
-      <aside class="juegos-pie">
-        <h3>${t("Compite con tus amigos")}</h3>
-        <p class="juegos-nota">${t("Con sesión, cada reto suma Pokédólares y entras en la clasificación semanal con tus amigos.")}</p>
-        ${nota}
-        ${copiar}
-      </aside>`;
-  }
-  const primeros = filas.slice(0, EN_LA_COLUMNA);
-  const mia = filas.find((fila) => fila.perfil.mio);
-  const visibles = primeros.includes(mia) ? primeros : [...primeros.slice(0, EN_LA_COLUMNA - 1), mia];
-  return `
-    <aside class="juegos-pie">
-      <h3>${t("Esta semana")}</h3>
-      <ol class="clasificacion-lista corta">${visibles.map((fila) => plantillaFilaRanking(fila, true)).join("")}</ol>
-      <button class="juegos-ver-clasificacion">${t("Ver la clasificación")}</button>
-      ${nota}
-      ${copiar}
-    </aside>`;
-}
-
-// Arriba las pestañas (como los filtros de «Logros») y la explicación; debajo, a la misma altura,
-// la lista y el resumen tuyo
-function pintarClasificacion() {
-  const filas = ranking(modo);
-  if (!filas.length) {
-    cuerpo.innerHTML = `<p class="juegos-nota">${t("Inicia sesión para competir con tus amigos.")}</p>`;
-    return;
-  }
-  const semanal = modo === "semana";
-  const mia = filas.find((fila) => fila.perfil.mio);
-  const amigos = filas.length - 1;
-  cuerpo.innerHTML = `
-    <div class="selector-regiones logros-filtro clasificacion-filtro">
-      ${MODOS.map((cada) => `<button data-modo="${cada.id}" class="${cada.id === modo ? "activa" : ""}">${cada.nombre}</button>`).join("")}
-    </div>
-    <p class="tienda-explicacion">${semanal
-      ? t("Los Pokédólares ganados en los retos desde el lunes (los de los logros no cuentan). Se reinicia cada lunes.")
-      : t("Los Pokédólares ganados en los retos desde que empezaste (los de los logros no cuentan).")}</p>
-    <div class="clasificacion-cuerpo">
-      <section class="clasificacion">
-        <ol class="clasificacion-lista">${filas.map((fila) => plantillaFilaRanking(fila)).join("")}</ol>
-        ${amigos ? "" : `<p class="juegos-nota">${t("Añade amigos en «Amigos» para competir con ellos.")}</p>`}
-      </section>
-      <aside class="juegos-pie clasificacion-tuya">
-        <h3>${semanal ? t("Tu semana") : t("Tu clasificación")}</h3>
-        <div class="clasificacion-dato"><span>${t("clasificacion|Puesto")}</span><strong>${mia.puesto}.º</strong><small>${t("de {n}", { n: filas.length })}</small></div>
-        <div class="clasificacion-dato"><span>${semanal ? t("Pokédólares de la semana") : t("Pokédólares en total")}</span>${moneda(mia.fichas)}</div>
-        <div class="clasificacion-dato"><span>${t("Racha")}</span><strong>${t(rachaDe(mia.perfil) === 1 ? "{n} día seguido" : "{n} días seguidos", { n: rachaDe(mia.perfil) })}</strong></div>
-        <p class="juegos-nota">${t("Cada reto da Pokédólares según lo bien que te salga, y la racha suma hasta {max} más por reto. Pulsa la foto de alguien para ver su perfil.", { max: BONO_MAX })}</p>
-      </aside>
-    </div>`;
-}
-
-// ---------- Tienda ----------
-
-const TIPOS_ARTICULO = {
-  fondo: { campo: "fondo", quitar: "" },
-  marco: { campo: "marco", quitar: "" },
-  titulo: { campo: "titulo", quitar: null }
-};
-
-function plantillaArticulo(articulo, tipo, muestra, perfil) {
-  const tuyo = tipo === "marco" ? tieneMarco(perfil, articulo) : loTiene(perfil, articulo.id);
-  const puesto = tuyo && perfil && perfil[TIPOS_ARTICULO[tipo].campo] === articulo.id;
-  const llega = saldo(perfil) >= articulo.precio;
-  let accion;
-  if (!tuyo) {
-    accion = `<button class="tienda-comprar" data-comprar="${articulo.id}" ${perfil && llega ? "" : "disabled"}
-                      title="${llega ? t("Comprar") : t("Te faltan {n} Pokédólares", { n: numero(articulo.precio - saldo(perfil)) })}">
-                ${moneda(articulo.precio)}
-              </button>`;
-  } else if (puesto) {
-    accion = `<button class="tienda-quitar" data-quitar="${articulo.id}" data-tipo="${tipo}">${icono("visto")} ${t("Puesto")}</button>`;
-  } else {
-    accion = `<button class="tienda-poner" data-poner="${articulo.id}" data-tipo="${tipo}">${t("Ponérmelo")}</button>`;
-  }
-  // Los títulos, en una fila: la plaquita tal cual se ve (con su color y su efecto) y a la
-  // derecha el precio o el botón; sin repetir el nombre
-  if (tipo === "titulo") {
-    return `
-      <article class="tienda-titulo-fila ${tuyo ? "tuyo" : ""} ${puesto ? "puesto" : ""}">
-        ${muestra}
-        ${accion}
-      </article>`;
-  }
-  return `
-    <article class="tienda-articulo ${tuyo ? "tuyo" : ""} ${puesto ? "puesto" : ""}">
-      ${muestra}
-      <strong>${escaparHTML(articulo.nombre)}</strong>
-      ${accion}
-    </article>`;
-}
-
 function fotoDeMuestra(perfil) {
   return perfil && perfil.foto
     ? `<img src="${escaparHTML(perfil.foto)}" alt="" referrerpolicy="no-referrer">`
     : `<span>${escaparHTML(((perfil && perfil.nombre) || "?")[0].toUpperCase())}</span>`;
 }
 
-function pintarTienda() {
-  const perfil = usuarioActual() ? miPerfil() : null;
-  const apartado = (titulo, explicacion, articulos, clase = "tienda-rejilla") => `
-    <section class="tienda-apartado">
-      <h2>${titulo}</h2>
-      <p class="tienda-explicacion">${explicacion}</p>
-      <div class="${clase}">${articulos}</div>
-    </section>`;
-
-  const fondos = porPrecio(FONDOS_TIENDA).map((fondo) =>
-    plantillaArticulo(fondo, "fondo", `<span class="tienda-muestra ${claseFondo(fondo.id)}" style="${estiloFondo(fondo.id)}"></span>`, perfil)
-  ).join("");
-  // Solo los que se compran: los de metal (plata, oro y platino) vienen con sus logros
-  const marcos = porPrecio(MARCOS.filter((marco) => marco.precio)).map((marco) =>
-    plantillaArticulo(marco, "marco", `<span class="tienda-muestra tienda-muestra-marco"><span class="tienda-foto ${claseMarco(marco.id)}">${fotoDeMuestra(perfil)}</span></span>`, perfil)
-  ).join("");
-  const titulos = porPrecio(TITULOS).map((titulo) =>
-    plantillaArticulo(titulo, "titulo", `<span class="perfil-titulo ${claseTitulo(titulo)}">${escaparHTML(titulo.nombre)}</span>`, perfil)
-  ).join("");
-
-  cuerpo.innerHTML = `
-    ${perfil ? "" : `<p class="juegos-nota">${t("Inicia sesión para comprar.")}</p>`}
-    ${apartado(t("Fondos"), t("Para tu tarjeta de «Amigos» y la cabecera de tu perfil."), fondos)}
-    ${apartado(t("Marcos"), t("Alrededor de tu foto, en tu perfil y en «Amigos». Los de un solo color vienen con los logros de cada tipo."), marcos)}
-    ${apartado(t("Títulos"), t("Una plaquita debajo de tu nombre, en tu perfil."), titulos, "tienda-titulos")}`;
+function plantillaFoto(perfil) {
+  return `<span class="clasificacion-foto ${claseMarco(marcoDe(perfil))}" data-perfil="${escaparHTML(perfil.uid)}" title="${escaparHTML(perfil.nombre)}">${fotoDeMuestra(perfil)}</span>`;
 }
 
-async function alPulsarTienda(e) {
-  const boton = e.target.closest("[data-comprar], [data-poner], [data-quitar]");
-  if (!boton || ocupado) return;
-  ocupado = true;
-  try {
-    if (boton.dataset.comprar) {
-      const articulo = [...FONDOS_TIENDA, ...MARCOS, ...TITULOS].find((cada) => cada.id === boton.dataset.comprar);
-      const vale = await confirmar(t("¿Comprar «{nombre}» por {n} Pokédólares?", { nombre: articulo.nombre, n: numero(articulo.precio) }), { aceptar: t("Comprar") });
-      if (!vale) return;
-      const fallo = await comprar(articulo.id);
-      if (fallo) await avisar(fallo);
-    } else if (boton.dataset.poner) {
-      await guardarMiPerfil({ [TIPOS_ARTICULO[boton.dataset.tipo].campo]: boton.dataset.poner });
-    } else {
-      const tipo = TIPOS_ARTICULO[boton.dataset.tipo];
-      await guardarMiPerfil({ [tipo.campo]: tipo.quitar });
-    }
-  } catch (error) {
-    console.error(error);
-    await avisar(t("No se ha podido guardar. Prueba otra vez."));
-  } finally {
-    ocupado = false;
+function plantillaFilaRanking({ perfil, fichas, puesto }) {
+  const racha = rachaDe(perfil);
+  return `
+    <li class="clasificacion-fila ${perfil.mio ? "mia" : ""} ${puesto <= 3 && fichas ? `podio-${puesto}` : ""}">
+      <span class="clasificacion-puesto">${puesto}</span>
+      ${plantillaFoto(perfil)}
+      <span class="clasificacion-quien">
+        <strong>${perfil.mio ? t("Tú") : escaparHTML(perfil.nombre)}</strong>
+        <small>${racha > 1 ? `${icono("rayo")} ${t("{n} días", { n: racha })}` : ""}</small>
+      </span>
+      ${moneda(fichas)}
+    </li>`;
+}
+
+function plantillaClasificacion() {
+  const filas = ranking();
+  if (!filas.length) {
+    return `
+      <section class="retos-caja">
+        <h3>${t("Compite con tus amigos")}</h3>
+        <p class="juegos-nota">${t("Con sesión, cada reto suma Pokédólares y entras en la clasificación semanal con tus amigos.")}</p>
+      </section>`;
   }
+  const amigos = filas.length - 1;
+  return `
+    <section class="retos-caja">
+      <div class="retos-caja-cabeza"><h3>${t("Clasificación")}</h3><span class="juegos-nota">${t("con amigos")}</span></div>
+      <div class="segmentos-juegos" role="group" aria-label="${t("Qué Pokédólares contar")}">
+        ${MODOS.map((cada) => `<button data-modo="${cada.id}" class="${cada.id === modo ? "activo" : ""}">${cada.nombre}</button>`).join("")}
+      </div>
+      <ol class="clasificacion-lista">${filas.map(plantillaFilaRanking).join("")}</ol>
+      <p class="juegos-nota">${amigos
+        ? modo === "semana" ? t("Lo ganado en los retos desde el lunes. Se reinicia cada lunes.") : t("Todo lo ganado en los retos.")
+        : t("Añade amigos en «Amigos» para competir con ellos.")}</p>
+    </section>`;
+}
+
+// ---------- Cómo les ha ido hoy a tus amigos en este reto ----------
+//
+// Su jugada de hoy (jugadas/{uid}_{juego}_{dia}; las reglas dejan leerlas de una en una). Solo
+// después de terminar el tuyo, para no chafar nada. Se guarda lo leído mientras dure el día.
+
+const jugadasDeAmigos = new Map(); // `${uid}_${juego}_${dia}` -> { puntos } o null
+
+async function leerJugadas(juego) {
+  const acceso = baseDeDatos();
+  if (!acceso) return;
+  const { bd, fn } = acceso;
+  const dia = hoy();
+  await Promise.all(
+    amigosConPerfil().map(async (perfil) => {
+      const id = `${perfil.uid}_${juego}_${dia}`;
+      // Lo que no estaba puede llegar más tarde: solo se guarda de una vez lo que ya existe
+      if (jugadasDeAmigos.get(id)) return;
+      try {
+        const documento = await fn.getDoc(fn.doc(bd, "jugadas", id));
+        jugadasDeAmigos.set(id, documento.exists() ? documento.data() : null);
+      } catch (error) {
+        jugadasDeAmigos.set(id, null);
+      }
+    })
+  );
+}
+
+function plantillaAmigosHoy(juego, leidas) {
+  const estado = estadoDe(juego.id);
+  const amigos = amigosConPerfil();
+  let dentro;
+  if (!amigos.length) dentro = `<p class="juegos-nota">${t("Cuando tengas amigos, aquí verás cómo les ha ido en este reto.")}</p>`;
+  else if (!estado.fin) dentro = `<p class="juegos-nota">${t("Termínalo y verás cómo les ha ido a tus amigos (así nadie te chafa nada).")}</p>`;
+  else if (!leidas) dentro = `<p class="juegos-nota">${t("Cargando...")}</p>`;
+  else {
+    const dia = hoy();
+    const filas = amigos
+      .map((perfil) => ({ perfil, jugada: jugadasDeAmigos.get(`${perfil.uid}_${juego.id}_${dia}`) }))
+      .sort((una, otra) => (otra.jugada ? otra.jugada.puntos : -1) - (una.jugada ? una.jugada.puntos : -1));
+    dentro = `<ul class="amigos-hoy">${filas.map(({ perfil, jugada }) => `
+      <li>
+        ${plantillaFoto(perfil)}
+        <strong>${escaparHTML(perfil.nombre)}</strong>
+        ${jugada ? `<span class="amigos-hoy-puntos">+${numero(jugada.puntos)}</span>` : `<span class="juegos-nota">${t("aún no")}</span>`}
+      </li>`).join("")}</ul>`;
+  }
+  const siguiente = JUEGOS.find((cada) => cada.id !== juego.id && !estadoDe(cada.id).fin);
+  return `
+    <section class="retos-caja retos-caja-hoy">
+      <h3>${t("Hoy, en este reto")}</h3>
+      ${dentro}
+      ${estado.fin && siguiente ? `<button class="retos-siguiente" data-reto="${siguiente.id}"><span>${t("Siguiente: {nombre}", { nombre: siguiente.nombre })}</span>${icono("adelante")}</button>` : ""}
+    </section>`;
+}
+
+function pintarLado() {
+  const caja = cuerpo.querySelector(".retos-lado");
+  if (!caja) return;
+  caja.innerHTML = `${plantillaClasificacion()}<div class="retos-hoy"></div>`;
+  pintarAmigosHoy();
+}
+
+let lecturaHoy = 0;
+
+async function pintarAmigosHoy() {
+  const caja = cuerpo.querySelector(".retos-hoy");
+  if (!caja || !usuarioActual()) {
+    if (caja) caja.innerHTML = "";
+    return;
+  }
+  const juego = JUEGOS.find((cada) => cada.id === reto);
+  const esta = ++lecturaHoy;
+  const hace = estadoDe(juego.id).fin && amigosConPerfil().length;
+  caja.innerHTML = plantillaAmigosHoy(juego, !hace);
+  if (!hace) return;
+  await leerJugadas(juego.id);
+  if (esta === lecturaHoy && caja.isConnected) caja.innerHTML = plantillaAmigosHoy(juego, true);
 }
 
 // ---------- Sección ----------
 
-function pintarPestanas() {
-  pestanas.innerHTML = PESTANAS.map(
-    (cada) => `<button data-pestana="${cada.id}" class="${cada.id === pestana ? "activa" : ""}">${cada.nombre}</button>`
-  ).join("");
-}
-
-// La colección y sus huevos (js/juegos/coleccion.js)
-function pintarColeccion() {
-  cuerpo.innerHTML = `<div class="coleccion"></div>`;
-  montarColeccion(cuerpo.querySelector(".coleccion")).catch((error) => {
-    console.error(error);
-    cuerpo.innerHTML = `<p class="juego-cargando">${t("No se han podido cargar los juegos. Comprueba la conexión y vuelve a entrar.")}</p>`;
-  });
+function pintarArriba() {
+  const caja = cuerpo.querySelector(".juegos-arriba");
+  if (!caja) return;
+  const perfil = usuarioActual() ? miPerfil() : null;
+  caja.innerHTML = `
+    <p class="juegos-nota">${t("Los retos cambian cada día a medianoche (hora de España) y son los mismos para todo el mundo.")}</p>
+    ${perfil
+      ? `<button class="juegos-ir-tienda" title="${t("Gástalos en la Tienda")}">${moneda(saldo(perfil))}<span>${t("Tienda")}</span>${icono("adelante")}</button>`
+      : ""}`;
 }
 
 function pintarTodo() {
-  pintarPestanas();
-  pintarCabecera();
-  if (pestana === "retos") pintarRetos();
-  else if (pestana === "clasificacion") pintarClasificacion();
-  else if (pestana === "coleccion") pintarColeccion();
-  else pintarTienda();
+  if (!reto) reto = (JUEGOS.find((juego) => !estadoDe(juego.id).fin) || JUEGOS[0]).id;
+  cuerpo.innerHTML = `
+    <div class="juegos-arriba"></div>
+    <div class="retos-cuerpo">
+      <aside class="retos-cartilla" aria-label="${t("Los retos de hoy")}"></aside>
+      <div class="retos-juego"></div>
+      <aside class="retos-lado"></aside>
+    </div>`;
+  pintarArriba();
+  pintarCartilla();
+  pintarLado();
+  pintarReto();
 }
 
 export function iniciar() {
-  cabecera.addEventListener("click", (e) => {
-    if (e.target.closest(".juegos-info")) avisar(comoSeGanan());
-  });
-  pestanas.addEventListener("click", (e) => {
-    const boton = e.target.closest("[data-pestana]");
-    if (!boton || boton.dataset.pestana === pestana) return;
-    pestana = boton.dataset.pestana;
-    pintarTodo();
-  });
   cuerpo.addEventListener("click", (e) => {
-    if (pestana === "tienda") alPulsarTienda(e);
-    else if (e.target.closest(".juegos-compartir-enlace")) compartir().catch((error) => console.error(error));
-    else if (e.target.closest("[data-modo]")) {
+    if (e.target.closest(".juegos-compartir-enlace")) {
+      compartir().catch((error) => console.error(error));
+    } else if (e.target.closest(".juegos-ir-tienda")) {
+      irA("tienda");
+    } else if (e.target.closest("[data-modo]")) {
       modo = e.target.closest("[data-modo]").dataset.modo;
-      pintarClasificacion();
-    } else if (e.target.closest(".juegos-ver-clasificacion")) {
-      pestana = "clasificacion";
-      pintarTodo();
+      pintarLado();
+    } else if (e.target.closest("[data-perfil]")) {
+      const uid = e.target.closest("[data-perfil]").dataset.perfil;
+      import("../perfil.js").then(({ abrirMiPerfil, abrirPerfilDe }) => {
+        if (usuarioActual() && uid === usuarioActual().uid) abrirMiPerfil();
+        else abrirPerfilDe(uid);
+      });
     } else {
-      const tarjeta = e.target.closest("[data-reto]");
-      if (tarjeta && tarjeta.dataset.reto !== reto) {
-        reto = tarjeta.dataset.reto;
-        pintarRetos();
-      }
+      const fila = e.target.closest("[data-reto]");
+      if (fila) elegirReto(fila.dataset.reto);
     }
   });
   // «Volver a intentarlo» apuntó (o no) los Pokédólares de un reto: se vuelve a pintar
   document.addEventListener("reto-repintar", () => {
-    if (!vista.hidden && pestana === "retos") pintarRetos();
+    if (!vista.hidden) pintarReto();
   });
-  // Un reto terminado (o sus Pokédólares ya apuntados): su tarjeta de arriba, al día
+  // Un reto terminado (o sus Pokédólares ya apuntados): la cartilla y lo de los amigos, al día
   document.addEventListener("reto-cambiado", () => {
-    if (vista.hidden || pestana !== "retos") return;
-    pintarTarjetasRetos();
-    pintarCabecera();
+    if (vista.hidden) return;
+    pintarCartilla();
+    pintarAmigosHoy();
   });
 
-  // El saldo, la Tienda y la clasificación, al día; los retos no se repintan (se perdería lo escrito)
+  // El saldo, la racha y la clasificación, al día; el reto no se repinta (se perdería lo escrito)
   alCambiarMiPerfil(() => {
     if (vista.hidden) return;
-    pintarCabecera();
-    if (pestana === "tienda") pintarTienda();
-    if (pestana === "clasificacion") pintarClasificacion();
+    pintarArriba();
+    pintarCartilla();
+    pintarLado();
   });
   alCambiarPerfilesAmigos(() => {
-    if (!vista.hidden && pestana === "clasificacion") pintarClasificacion();
+    if (!vista.hidden) pintarLado();
   });
   // Otra cuenta: otros retos jugados
   alCambiarSesion(() => {
+    jugadasDeAmigos.clear();
     if (!vista.hidden) pintarTodo();
   });
 }

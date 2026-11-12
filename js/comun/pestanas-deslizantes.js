@@ -7,7 +7,7 @@
 // sus curvas, viaja de ese sitio al nuevo (css/nuzlocke.css, .pestana-viajera). Mientras
 // viaja, la nueva elegida no pinta el suyo.
 
-const PESTANAS = ":is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-juegos) > .selector-regiones:first-child, .logros-filtro";
+const PESTANAS = ":is(.selector-juego, #vista-normas, #vista-ruleta, #vista-randomizer, #vista-foro, #vista-tienda) > .selector-regiones:first-child, .logros-filtro";
 const DURACION = 250;
 const sinAnimaciones = matchMedia("(prefers-reduced-motion: reduce)");
 

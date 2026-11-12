@@ -202,6 +202,16 @@ para crearlo). Para crearlo a mano: Firestore → **Índices → Compuestos → 
 ID de colección `comentarios`, ámbito de consulta **Grupo de colección**, campos `uid` (Ascendente)
 y `creado` (Ascendente) → Crear. Tarda un par de minutos en estar listo.
 
+**Dos índices más (2026-11-12), para la campana y para borrar cuentas.** Igual que el anterior
+(Firestore → **Índices**):
+1. **Compuestos → Crear índice** → ID de colección `comentarios`, ámbito **Grupo de colección**,
+   campos `respondeA.uid` (Ascendente) y `creado` (Descendente). Sin él no llegan a la campana los
+   avisos de «te ha respondido» (el resto del foro va bien).
+2. **Exenciones de un solo campo → Agregar exención** → ID de colección `solicitudes`, campo `uid`,
+   activar **Ascendente** en el ámbito **Grupo de colección**. Sirve para borrar tus solicitudes para
+   unirte a grupos al borrar la cuenta.
+Si falta alguno, la consola del navegador muestra un aviso con un enlace que lo crea directamente.
+
 **Avisos de respuestas en la campana.** Se escuchan tus hilos (los que has creado, hasta 50) y se compara
 el número de respuestas con el último que viste (guardado solo en este navegador, `js/comun/avisos-foro.js`).
 No hay avisos con la web cerrada: solo al entrar, o en vivo con ella abierta. Abrir el hilo los deja al día.

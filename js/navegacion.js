@@ -26,6 +26,7 @@ const SECCIONES = {
   ruleta: () => import("./ruleta/index.js"),
   logros: () => import("./logros/index.js"),
   juegos: () => import("./juegos/index.js"),
+  tienda: () => import("./tienda/index.js"),
   randomizer: () => import("./randomizer/index.js"),
   jugar: () => import("./jugar/index.js"),
   lucha: () => import("./lucha/index.js")
@@ -47,6 +48,7 @@ const VISTAS = {
   ruleta: "ruleta",
   logros: "logros",
   juegos: "juegos",
+  tienda: "tienda",
   randomizer: "randomizer",
   jugar: "jugar",
   lucha: "lucha"

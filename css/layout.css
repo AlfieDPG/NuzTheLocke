@@ -137,7 +137,7 @@ main {
 }
 
 .menu-lateral [data-vista="lockes"]      { --color-boton: 214, 88, 76; }
-.menu-lateral [data-vista="equipos"]     { --color-boton: 91, 141, 239; }
+.menu-lateral [data-vista="equipos"]     { --color-boton: 64, 112, 214; }
 .menu-lateral [data-vista="rutas"]       { --color-boton: 82, 183, 136; }
 .menu-lateral [data-vista="levelcaps"]   { --color-boton: 0, 184, 169; }
 .menu-lateral [data-vista="pokedex"]     { --color-boton: 232, 82, 110; }
@@ -149,6 +149,7 @@ main {
 .menu-lateral [data-vista="amigos"]      { --color-boton: 80, 190, 215; }
 .menu-lateral [data-vista="logros"]      { --color-boton: 241, 196, 15; }
 .menu-lateral [data-vista="juegos"]      { --color-boton: 76, 182, 92; }
+.menu-lateral [data-vista="tienda"]      { --color-boton: 200, 118, 74; }
 .menu-lateral [data-vista="jugar"]       { --color-boton: 186, 62, 102; }
 .menu-lateral [data-vista="lucha"]       { --color-boton: 222, 112, 52; }
 
@@ -231,16 +232,25 @@ main {
   }
 
   .menu-lateral {
-    gap: clamp(0.06rem, 0.45vh, 0.35rem);
-    padding-block: clamp(0.4rem, 1.2vh, 0.85rem);
+    gap: clamp(0.04rem, 0.35vh, 0.35rem);
+    padding-block: clamp(0.35rem, 1vh, 0.85rem);
   }
 
   /* Más alto de lo justo para la letra: el resaltado (al pasar el ratón, la sección abierta) no
      se queda pegado a las letras */
   .menu-lateral button {
-    padding-block: clamp(0.22rem, 0.95vh, 0.6rem);
-    font-size: clamp(0.8rem, 1.6vh, 0.95rem);
+    padding-block: clamp(0.2rem, 0.8vh, 0.6rem);
+    font-size: clamp(0.8rem, 1.55vh, 0.95rem);
   }
+
+  /* Si aun así no cabe (js/main.js, ajustarMenu), se aprieta por niveles hasta que quepa */
+  .barra-lateral.apretado-1 .menu-lateral { gap: 0.04rem; padding-block: 0.3rem; }
+  .barra-lateral.apretado-1 .menu-lateral button { padding-block: 0.28rem; }
+  .barra-lateral.apretado-1 .logo { padding-block: 0.35rem; }
+  .barra-lateral.apretado-2 .menu-lateral button { padding-block: 0.2rem; font-size: 0.85rem; }
+  .barra-lateral.apretado-2 .menu-titulo { margin-top: 0.12rem; margin-bottom: 0.02rem; }
+  .barra-lateral.apretado-3 .menu-lateral button { padding-block: 0.14rem; font-size: 0.8rem; }
+  .barra-lateral.apretado-3 .menu-lateral .icono { width: 0.95rem; height: 0.95rem; }
 
   .menu-lateral .boton-destacado {
     margin-bottom: clamp(0.1rem, 0.35vh, 0.35rem);
@@ -1197,7 +1207,7 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
   color: inherit;
 }
 
-:root { --color-vista: 91, 141, 239; }
+:root { --color-vista: 64, 112, 214; }
 
 .contenido {
   flex: 1;
@@ -1223,7 +1233,7 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 :root:has(#vista-inicio:not([hidden])) { --color-vista: 231, 76, 60; }
 :root:has(#vista-lockes:not([hidden])) { --color-vista: 214, 88, 76; }
 :root:has(#vista-crear:not([hidden])),
-:root:has(#vista-equipos:not([hidden])) { --color-vista: 91, 141, 239; }
+:root:has(#vista-equipos:not([hidden])) { --color-vista: 64, 112, 214; }
 :root:has(#vista-rutas:not([hidden])) { --color-vista: 82, 183, 136; }
 :root:has(#vista-levelcaps:not([hidden])) { --color-vista: 0, 184, 169; }
 :root:has(#vista-pokedex:not([hidden])) { --color-vista: 232, 82, 110; }
@@ -1235,6 +1245,7 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 :root:has(#vista-foro:not([hidden])) { --color-vista: 196, 128, 214; }
 :root:has(#vista-logros:not([hidden])) { --color-vista: 241, 196, 15; }
 :root:has(#vista-juegos:not([hidden])) { --color-vista: 76, 182, 92; }
+:root:has(#vista-tienda:not([hidden])) { --color-vista: 200, 118, 74; }
 :root:has(#vista-jugar:not([hidden])) { --color-vista: 186, 62, 102; }
 :root:has(#vista-lucha:not([hidden])) { --color-vista: 222, 112, 52; }
 

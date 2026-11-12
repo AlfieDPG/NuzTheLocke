@@ -423,7 +423,7 @@
 
 /* El botón de crear, en el color de su sección */
 .inicio-lockes { --color-bloque: 214, 88, 76; }
-.inicio-equipos { --color-bloque: 91, 141, 239; }
+.inicio-equipos { --color-bloque: 64, 112, 214; }
 .inicio-amigos { --color-bloque: 80, 190, 215; }
 .inicio-avisos-web { --color-bloque: 241, 196, 15; }
 

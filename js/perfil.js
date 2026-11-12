@@ -1297,7 +1297,10 @@ cuerpo.addEventListener("click", (e) => {
     pintar();
   } else if (boton.hasAttribute("data-ir-coleccion")) {
     dialogo.close();
-    irA("juegos");
+    import("./tienda/index.js").then(({ abrirPestana }) => {
+      abrirPestana("huevos");
+      irA("tienda");
+    });
   } else if (boton.classList.contains("perfil-ver-amigos")) {
     dialogo.close();
     irA("amigos");

@@ -5,8 +5,14 @@
 // puede hacer cada uno) están en firestore.rules, en «Foro».
 //
 //   foro/{id}                    hilo: { uid, titulo, texto, categoria, juego, juegoOtro, tipo,
-//                                        huecos, creado, ultimo, respuestas, cerrado, fijado }
-//   foro/{id}/comentarios/{cid}  { uid, texto, creado }        (cid = «uid_N», ver abajo)
+//                                        huecos, creado, ultimo, respuestas, cerrado, fijado, grupo }
+//                                («huecos»: la gente que busca; «grupo»: los uids que ha aceptado)
+//   foro/{id}/comentarios/{cid}  { uid, texto, creado, respondeA?, rama? }  (cid = «uid_N», ver abajo)
+//                                («respondeA»: { id, uid } del mensaje al que contesta; «rama»: el
+//                                id del comentario de primer nivel del que cuelga. Sin ellos, es
+//                                una respuesta al hilo y empieza su propia rama)
+//   foro/{id}/solicitudes/{uid}  { uid, mensaje, creado, estado: "pendiente" | "aceptada" | "rechazada" }
+//                                (pedir unirse a un hilo de «Busco compañeros»; decide su autor)
 //   denuncias/{id}               { de, tipo, hilo, comentario, autor, motivo, nota, copia, creado }
 //   moderadores/{uid}, silenciados/{uid}   (se apuntan a mano en la consola de Firebase)
 //   ritmo/{uid}                  { cuando }: la hora de lo último que escribiste, para el freno
@@ -71,13 +77,27 @@ function hiloLeido(documento) {
     ultimo: milisegundos(datos.ultimo),
     respuestas: datos.respuestas || 0,
     cerrado: Boolean(datos.cerrado),
-    fijado: Boolean(datos.fijado)
+    fijado: Boolean(datos.fijado),
+    grupo: Array.isArray(datos.grupo) ? datos.grupo.filter((uid) => typeof uid === "string") : []
   };
 }
 
 function comentarioLeido(documento) {
   const datos = documento.data({ serverTimestamps: "estimate" }) || {};
-  return { id: documento.id, uid: datos.uid || "", texto: datos.texto || "", creado: milisegundos(datos.creado) };
+  const responde = datos.respondeA && typeof datos.respondeA === "object" ? datos.respondeA : null;
+  return {
+    id: documento.id,
+    uid: datos.uid || "",
+    texto: datos.texto || "",
+    creado: milisegundos(datos.creado),
+    respondeA: responde && responde.id ? { id: String(responde.id), uid: String(responde.uid || "") } : null,
+    rama: typeof datos.rama === "string" ? datos.rama : ""
+  };
+}
+
+// Cuántos faltan en el grupo de un hilo de «Busco compañeros» (0 si no busca a nadie)
+export function faltanEnGrupo(hilo) {
+  return Math.max(0, (hilo.huecos || 0) - (hilo.grupo || []).length);
 }
 
 // Qué decirle a la persona cuando Firestore se niega a escribir. Pasa por tres motivos y no
@@ -230,9 +250,11 @@ export async function fijarHilo(id, fijado) {
 export async function borrarHilo(id) {
   const { bd, fn } = acceso();
   const instantanea = await fn.getDocs(fn.collection(bd, "foro", id, "comentarios"));
-  for (let i = 0; i < instantanea.docs.length; i += 400) {
+  const solicitudes = await fn.getDocs(fn.collection(bd, "foro", id, "solicitudes")).catch(() => ({ docs: [] }));
+  const todos = [...instantanea.docs, ...solicitudes.docs];
+  for (let i = 0; i < todos.length; i += 400) {
     const lote = fn.writeBatch(bd);
-    for (const documento of instantanea.docs.slice(i, i + 400)) lote.delete(documento.ref);
+    for (const documento of todos.slice(i, i + 400)) lote.delete(documento.ref);
     await lote.commit();
   }
   await fn.deleteDoc(fn.doc(bd, "foro", id));
@@ -240,7 +262,9 @@ export async function borrarHilo(id) {
 
 // ---------- Comentarios ----------
 
-export async function comentar(idHilo, texto) {
+// «respuesta»: el mensaje al que se contesta ({ id, uid, rama }), o null si es para todo el hilo.
+// La rama es la del mensaje (o él mismo, si es de primer nivel): las ramas solo tienen un nivel.
+export async function comentar(idHilo, texto, respuesta = null) {
   const { bd, fn, usuario } = acceso();
   const referencia = fn.doc(bd, "foro", idHilo);
   const ahora = fn.serverTimestamp();
@@ -255,7 +279,8 @@ export async function comentar(idHilo, texto) {
     transaccion.set(fn.doc(bd, "foro", idHilo, "comentarios", `${usuario.uid}_${numero}`), {
       uid: usuario.uid,
       texto: limpiarTexto(texto).slice(0, MAX_COMENTARIO),
-      creado: ahora
+      creado: ahora,
+      ...(respuesta ? { respondeA: { id: respuesta.id, uid: respuesta.uid }, rama: respuesta.rama || respuesta.id } : {})
     });
     transaccion.update(referencia, { respuestas: numero, ultimo: ahora });
     transaccion.set(fn.doc(bd, "ritmo", usuario.uid), { cuando: ahora });
@@ -267,6 +292,70 @@ export async function comentar(idHilo, texto) {
 export async function borrarComentario(idHilo, idComentario) {
   const { bd, fn } = acceso();
   await fn.deleteDoc(fn.doc(bd, "foro", idHilo, "comentarios", idComentario));
+}
+
+// ---------- Pedir unirse (hilos de «Busco compañeros») ----------
+//
+// Quien quiere jugar pide plaza (con un mensaje, si quiere); el autor del hilo ve la lista de
+// candidatos y acepta o rechaza. Aceptar mete a la persona en «grupo» y, si ya no falta nadie,
+// cierra el hilo («Completo»). Cada uno puede retirar su solicitud mientras esté pendiente.
+
+function solicitudLeida(documento) {
+  const datos = documento.data({ serverTimestamps: "estimate" }) || {};
+  return {
+    uid: documento.id,
+    mensaje: datos.mensaje || "",
+    creado: milisegundos(datos.creado),
+    estado: ["aceptada", "rechazada"].includes(datos.estado) ? datos.estado : "pendiente"
+  };
+}
+
+export function escucharSolicitudes(idHilo, alCambiar, alFallar) {
+  const { bd, fn } = acceso();
+  return fn.onSnapshot(
+    fn.collection(bd, "foro", idHilo, "solicitudes"),
+    (instantanea) => alCambiar(instantanea.docs.map(solicitudLeida).sort((a, b) => a.creado - b.creado)),
+    alFallar
+  );
+}
+
+export async function pedirUnirme(idHilo, mensaje) {
+  const { bd, fn, usuario } = acceso();
+  await fn.setDoc(fn.doc(bd, "foro", idHilo, "solicitudes", usuario.uid), {
+    uid: usuario.uid,
+    mensaje: limpiarTexto(mensaje).slice(0, 300),
+    creado: fn.serverTimestamp(),
+    estado: "pendiente"
+  });
+}
+
+export async function retirarSolicitud(idHilo) {
+  const { bd, fn, usuario } = acceso();
+  await fn.deleteDoc(fn.doc(bd, "foro", idHilo, "solicitudes", usuario.uid));
+}
+
+// El autor decide. Aceptar: al grupo, y si se llena, el hilo se cierra solo.
+export async function responderSolicitud(hilo, uid, aceptar) {
+  const { bd, fn } = acceso();
+  const lote = fn.writeBatch(bd);
+  lote.update(fn.doc(bd, "foro", hilo.id, "solicitudes", uid), { estado: aceptar ? "aceptada" : "rechazada" });
+  if (aceptar && !hilo.grupo.includes(uid)) {
+    const grupo = [...hilo.grupo, uid];
+    lote.update(fn.doc(bd, "foro", hilo.id), {
+      grupo,
+      ...(hilo.huecos && grupo.length >= hilo.huecos ? { cerrado: true } : {})
+    });
+  }
+  await lote.commit();
+}
+
+// Sacar a alguien del grupo (el autor): vuelve a quedar su hueco libre
+export async function quitarDelGrupo(hilo, uid) {
+  const { bd, fn } = acceso();
+  const lote = fn.writeBatch(bd);
+  lote.update(fn.doc(bd, "foro", hilo.id), { grupo: hilo.grupo.filter((otro) => otro !== uid), cerrado: false });
+  lote.delete(fn.doc(bd, "foro", hilo.id, "solicitudes", uid));
+  await lote.commit();
 }
 
 // ---------- Denuncias ----------
@@ -421,6 +510,18 @@ export async function borrarMiForo() {
     }
   } catch (error) {
     console.warn("No se han podido buscar mis comentarios del foro (¿falta el índice de grupo de colección?)", error);
+  }
+
+  // Mis solicitudes para unirme a hilos de otros (índice de grupo de colección «solicitudes.uid»)
+  try {
+    const solicitudes = await fn.getDocs(fn.query(fn.collectionGroup(bd, "solicitudes"), fn.where("uid", "==", usuario.uid)));
+    for (let i = 0; i < solicitudes.docs.length; i += 400) {
+      const lote = fn.writeBatch(bd);
+      for (const documento of solicitudes.docs.slice(i, i + 400)) lote.delete(documento.ref);
+      await lote.commit();
+    }
+  } catch (error) {
+    console.warn("No se han podido buscar mis solicitudes del foro (¿falta el índice de grupo de colección?)", error);
   }
 
   await fn.deleteDoc(fn.doc(bd, "ritmo", usuario.uid)).catch(() => {});

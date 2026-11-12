@@ -1,11 +1,12 @@
 // ---------- Pokédólares ----------
 //
-// Los puntos de la web. Se ganan con los logros (según su nivel) y con los retos del día de
-// «Juegos», y se gastan en la Tienda en cosas que solo se ven: fondos para la tarjeta, marcos
+// Los puntos de la web. Se ganan con los logros (según su nivel), con los retos del día de
+// «Juegos» y terminando lockes (PREMIOS_LOCKE), y se gastan en la Tienda en cosas que solo se ven: fondos para la tarjeta, marcos
 // para la foto y títulos. Nada que cambie los lockes.
 //
 // El saldo no se guarda: se calcula.
-//   saldo = Pokédólares de tus logros + perfil.juegos.ganadas + los regalos (regalos.js)
+//   saldo = Pokédólares de tus logros + perfil.juegos.ganadas + los de tus lockes terminados
+//           (perfil.premiosLockes) + los regalos (regalos.js)
 //           − lo pagado (perfil.compras)
 //           − lo gastado en huevos + lo devuelto por repetidos (perfil.huevos, ver coleccion.js)
 // Así cada logro da sus Pokédólares (también los conseguidos antes de que hubiera Pokédólares) sin
@@ -115,6 +116,20 @@ export function fichasDeLogros(perfil) {
   return LOGROS.reduce((suma, logro) => suma + (tengo[logro.id] ? FICHAS_POR_NIVEL[logro.nivel] || 0 : 0), 0);
 }
 
+// Por cada locke de «Lockes» terminado (con al menos dos jugando): el ganador 500, el 2.º 300, el
+// 3.º 150 y el resto 50. Si nadie ganó, todos 50. Se apunta el puesto en el perfil
+// (premiosLockes, js/comun/perfiles.js) y aquí se convierte: cambiar las cifras vale también
+// para los ya apuntados.
+export const PREMIOS_LOCKE = { 1: 500, 2: 300, 3: 150, resto: 50 };
+
+export function premioDePuesto(puesto) {
+  return PREMIOS_LOCKE[puesto] || PREMIOS_LOCKE.resto;
+}
+
+export function fichasDeLockes(perfil) {
+  return Object.values((perfil && perfil.premiosLockes) || {}).reduce((suma, puesto) => suma + premioDePuesto(Number(puesto) || 0), 0);
+}
+
 export function fichasDeJuegos(perfil) {
   return Number(((perfil && perfil.juegos) || {}).ganadas) || 0;
 }
@@ -137,7 +152,7 @@ export function balanceHuevos(perfil) {
 }
 
 export function saldo(perfil) {
-  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) + fichasDeRegalos() - gastadas(perfil) + balanceHuevos(perfil));
+  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) + fichasDeLockes(perfil) + fichasDeRegalos() - gastadas(perfil) + balanceHuevos(perfil));
 }
 
 // ---------- Jugadas ----------
@@ -323,7 +338,7 @@ export const COLORES_PERFIL = [
   { id: "verde", nombre: t("Verde"), rgb: "76, 182, 92" },
   { id: "turquesa", nombre: t("Turquesa"), rgb: "0, 184, 169" },
   { id: "celeste", nombre: t("Celeste"), rgb: "80, 190, 215" },
-  { id: "azul", nombre: t("Azul"), rgb: "91, 141, 239" },
+  { id: "azul", nombre: t("Azul"), rgb: "64, 112, 214" },
   { id: "morado", nombre: t("Morado"), rgb: "155, 110, 230" },
   { id: "lila", nombre: t("Lila"), rgb: "196, 128, 214" },
   { id: "rosa", nombre: t("Rosa"), rgb: "232, 82, 110" },

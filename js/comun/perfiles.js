@@ -34,6 +34,9 @@
 //              «lockes jugados» (lockesJugados).
 //   · descartados: ids de lockes de esos que llegan solos y que ha quitado a mano, para que no
 //              vuelvan a aparecer.
+//   · premiosLockes: { idLocke: puesto } de cada locke de «Lockes» cerrado en el que ha jugado
+//              (0: sin ganador o jugando solo). Da Pokédólares (fichasDeLockes, js/comun/fichas.js).
+//              Solo lo apunta apuntarTerminados, nunca a mano.
 
 import { usuarioActual, baseDeDatos, alCambiarSesion, nombreDeUsuario, recordarNombreDeCuenta } from "./nube.js";
 import { t } from "./idioma.js";
@@ -280,8 +283,10 @@ export function hayLockesSinApuntar(lockes) {
   if (!usuario || !mio) return false;
   const apuntados = idsApuntados(mio);
   const perdidos = new Set((mio.perdidos || []).map((perdido) => perdido.id));
+  const premiados = mio.premiosLockes || {};
   return lockes.some((locke) => {
     if (locke.estado !== "cerrado" || ((locke.estados || {})[usuario.uid] || "aceptado") !== "aceptado") return false;
+    if (!(locke.id in premiados)) return true; // le faltan sus Pokédólares (también los de antes)
     if (locke.ganador === usuario.uid) return !(locke.contado || []).includes(usuario.uid) || perdidos.has(locke.id);
     return !apuntados.has(locke.id);
   });
@@ -813,12 +818,21 @@ async function apuntarTerminados() {
   const nuevosGanados = [];
   const nuevosPerdidos = [];
   const porMarcar = [];
+  // Los Pokédólares de cada locke cerrado, una sola vez por locke (js/comun/fichas.js,
+  // fichasDeLockes): { idLocke: puesto }. También para los que ya estaban apuntados.
+  const premios = { ...(guardado.premiosLockes || {}) };
+  let premiosNuevos = false;
+  const { puestoFinal } = await import("./lockes.js");
 
   encontrados.forEach((documento) => {
     const locke = documento.data();
     const id = documento.id;
     if (locke.estado !== "cerrado") return;
     if (((locke.estados || {})[usuario.uid] || "aceptado") !== "aceptado") return;
+    if (!(id in premios)) {
+      premios[id] = puestoFinal(locke, usuario.uid);
+      premiosNuevos = true;
+    }
 
     if (locke.ganador === usuario.uid) {
       const contado = (locke.contado || []).includes(usuario.uid);
@@ -831,13 +845,14 @@ async function apuntarTerminados() {
     }
   });
 
-  if (!nuevosGanados.length && !nuevosPerdidos.length && !porMarcar.length) return;
+  if (!nuevosGanados.length && !nuevosPerdidos.length && !porMarcar.length && !premiosNuevos) return;
 
-  if (nuevosGanados.length || nuevosPerdidos.length) {
+  if (nuevosGanados.length || nuevosPerdidos.length || premiosNuevos) {
     const pasanAGanados = new Set(nuevosGanados.map((nuevo) => nuevo.id));
     await fn.updateDoc(referencia, {
       ganados: [...ganados, ...nuevosGanados],
-      perdidos: [...perdidos.filter((perdido) => !pasanAGanados.has(perdido.id)), ...nuevosPerdidos]
+      perdidos: [...perdidos.filter((perdido) => !pasanAGanados.has(perdido.id)), ...nuevosPerdidos],
+      premiosLockes: premios
     });
   }
 

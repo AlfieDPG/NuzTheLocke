@@ -14,9 +14,17 @@
 //     hilo, así que las nuevas son las de N mayor que lo visto y que no son tuyas.
 //   · Los avisos llegan solo con la web abierta o la próxima vez que se abre (no hay notificaciones
 //     push: harían falta Cloud Functions, que piden el plan de pago).
+//
+// Y además (avisosDelForo, abajo del todo):
+//   · alguien te ha respondido a un mensaje tuyo (comentarios con respondeA.uid = tú: consulta de
+//     «grupo de colección», pide su índice; ver LEEME-nube.md);
+//   · alguien pide unirse al grupo de un hilo tuyo de «Busco compañeros»;
+//   · el autor de un hilo te ha aceptado en su grupo.
+// Los hilos silenciados (perfil.foroSilenciados, se silencian desde el foro) no avisan de nada.
 
 import { usuarioActual, baseDeDatos, alCambiarSesion } from "./nube.js";
 import { leer, escribir } from "./almacen.js";
+import { miPerfil, alCambiarMiPerfil, guardarMiPerfil, perfilesDe } from "./perfiles.js";
 
 const CLAVE = "poketeams-avisos-foro-v1";
 const MAX_HILOS = 50;          // los más recientes de los tuyos
@@ -47,7 +55,7 @@ function vistos() {
 export function respuestasNuevas() {
   const vistas = vistos();
   return hilos
-    .filter((hilo) => hilo.id in vistas && hilo.respuestas > vistas[hilo.id])
+    .filter((hilo) => hilo.id in vistas && hilo.respuestas > vistas[hilo.id] && !hiloSilenciado(hilo.id))
     .map((hilo) => {
       const hecha = comprobadas.get(hilo.id);
       const vale = hecha && hecha.respuestas === hilo.respuestas && hecha.visto === vistas[hilo.id];
@@ -94,6 +102,7 @@ async function comprobar(hilo, visto) {
 
 // Apunta que ya has visto esas respuestas (o, sin número, las que tiene el hilo ahora)
 export function marcarHiloVisto(id, respuestas) {
+  marcarOtrosVistos(id);
   const hilo = hilos.find((cada) => cada.id === id);
   const cuantas = respuestas == null ? hilo && hilo.respuestas : respuestas;
   if (cuantas == null) return;
@@ -117,6 +126,7 @@ export function iniciarAvisosForo() {
   alCambiarSesion((usuario) => {
     if (dejarDeEscuchar) dejarDeEscuchar();
     dejarDeEscuchar = null;
+    pararTodoLoOtro();
     hilos = [];
     comprobadas.clear();
     avisar();
@@ -134,9 +144,11 @@ export function iniciarAvisosForo() {
             id: documento.id,
             titulo: datos.titulo || "",
             respuestas: datos.respuestas || 0,
-            ultimo: milisegundos(datos.ultimo)
+            ultimo: milisegundos(datos.ultimo),
+            busca: datos.categoria === "busco" && !datos.cerrado
           };
         });
+        vigilarSolicitudes();
 
         // Lo que no estaba apuntado se apunta tal cual, sin avisar
         const actual = vistos();
@@ -154,5 +166,202 @@ export function iniciarAvisosForo() {
       },
       (error) => console.error("No se han podido leer tus hilos del foro", error)
     );
+    escucharOtros(usuario.uid);
   });
+  alCambiarMiPerfil(avisar); // silenciar o dejar de silenciar un hilo
 }
+
+// ---------- Silenciar un hilo ----------
+
+export function hiloSilenciado(id) {
+  const perfil = miPerfil();
+  return Boolean(perfil && (perfil.foroSilenciados || []).includes(id));
+}
+
+export async function silenciarHilo(id, silenciar) {
+  const perfil = miPerfil();
+  const lista = ((perfil && perfil.foroSilenciados) || []).filter((cada) => cada !== id);
+  await guardarMiPerfil({ foroSilenciados: silenciar ? [...lista, id].slice(-200) : lista });
+}
+
+// ---------- Respuestas a ti, solicitudes y grupos ----------
+
+const CLAVE_OTROS = "poketeams-avisos-foro-otros-v1"; // { respuestas: ["hilo/comentario"], solicitudes: ["hilo/uid"], aceptado: [hilo] }
+const MAX_OTROS = 300;
+
+let respuestasAMi = [];                    // { hilo, id, uid, texto, creado }
+const solicitudesPendientes = new Map();   // idHilo -> [{ uid, mensaje }]
+const escuchasSolicitudes = new Map();     // idHilo -> dejar de escuchar
+let gruposConmigo = [];                    // { id, titulo, autor }: hilos de otros en cuyo grupo estás
+const titulos = new Map();                 // idHilo -> título (de los que no son tuyos)
+const nombres = new Map();                 // uid -> nombre
+let pararOtros = [];
+
+function otrosVistos() {
+  const guardado = leer(CLAVE_OTROS, {});
+  const valido = guardado && typeof guardado === "object" ? guardado : {};
+  return {
+    respuestas: Array.isArray(valido.respuestas) ? valido.respuestas : [],
+    solicitudes: Array.isArray(valido.solicitudes) ? valido.solicitudes : [],
+    aceptado: Array.isArray(valido.aceptado) ? valido.aceptado : []
+  };
+}
+
+function apuntar(lista, clave) {
+  if (lista.includes(clave)) return;
+  lista.push(clave);
+  if (lista.length > MAX_OTROS) lista.splice(0, lista.length - MAX_OTROS);
+}
+
+// Lo que tenga que ver con ese hilo, visto (respuestas a ti, solicitudes, que te aceptaron)
+function marcarOtrosVistos(id) {
+  const vistosOtros = otrosVistos();
+  const antes = JSON.stringify(vistosOtros);
+  for (const respuesta of respuestasAMi) if (respuesta.hilo === id) apuntar(vistosOtros.respuestas, `${id}/${respuesta.id}`);
+  for (const solicitud of solicitudesPendientes.get(id) || []) apuntar(vistosOtros.solicitudes, `${id}/${solicitud.uid}`);
+  if (gruposConmigo.some((hilo) => hilo.id === id)) apuntar(vistosOtros.aceptado, id);
+  if (JSON.stringify(vistosOtros) !== antes) {
+    escribir(CLAVE_OTROS, vistosOtros);
+    avisar();
+  }
+}
+
+function pararTodoLoOtro() {
+  for (const parar of pararOtros) parar();
+  pararOtros = [];
+  for (const parar of escuchasSolicitudes.values()) parar();
+  escuchasSolicitudes.clear();
+  solicitudesPendientes.clear();
+  respuestasAMi = [];
+  gruposConmigo = [];
+}
+
+// Nombres y títulos que hacen falta para enseñar los avisos
+async function completar(uids, idsHilos) {
+  const base = baseDeDatos();
+  if (!base) return;
+  const faltanNombres = [...new Set(uids)].filter((uid) => uid && !nombres.has(uid));
+  const faltanTitulos = [...new Set(idsHilos)].filter((id) => !titulos.has(id) && !hilos.some((hilo) => hilo.id === id));
+  try {
+    if (faltanNombres.length) for (const [uid, perfil] of await perfilesDe(faltanNombres)) nombres.set(uid, perfil.nombre);
+    await Promise.all(faltanTitulos.map(async (id) => {
+      const documento = await base.fn.getDoc(base.fn.doc(base.bd, "foro", id));
+      titulos.set(id, documento.exists() ? documento.data().titulo || "" : "");
+    }));
+  } catch (error) {
+    console.warn("No se han podido completar los avisos del foro", error);
+  }
+  avisar();
+}
+
+function escucharOtros(uid) {
+  pararTodoLoOtro();
+  const base = baseDeDatos();
+  if (!base) return;
+  const { bd, fn } = base;
+
+  // Respuestas a mensajes tuyos, en cualquier hilo
+  pararOtros.push(fn.onSnapshot(
+    fn.query(fn.collectionGroup(bd, "comentarios"), fn.where("respondeA.uid", "==", uid), fn.orderBy("creado", "desc"), fn.limit(20)),
+    (instantanea) => {
+      respuestasAMi = instantanea.docs
+        .map((documento) => {
+          const datos = documento.data({ serverTimestamps: "estimate" });
+          return { hilo: documento.ref.parent.parent.id, id: documento.id, uid: datos.uid || "", texto: datos.texto || "", creado: milisegundos(datos.creado) };
+        })
+        .filter((respuesta) => respuesta.uid !== uid);
+      completar(respuestasAMi.map((respuesta) => respuesta.uid), respuestasAMi.map((respuesta) => respuesta.hilo));
+    },
+    (error) => console.warn("No se pueden leer las respuestas que te han hecho en el foro (¿falta el índice de grupo de colección?)", error)
+  ));
+
+  // Hilos de otros en cuyo grupo te han aceptado. La primera vez, lo que ya había se da por visto.
+  let primera = !leer(CLAVE_OTROS, null);
+  pararOtros.push(fn.onSnapshot(
+    fn.query(fn.collection(bd, "foro"), fn.where("grupo", "array-contains", uid), fn.limit(20)),
+    (instantanea) => {
+      gruposConmigo = instantanea.docs.map((documento) => {
+        const datos = documento.data();
+        titulos.set(documento.id, datos.titulo || "");
+        return { id: documento.id, titulo: datos.titulo || "", autor: datos.uid || "" };
+      });
+      if (primera) {
+        primera = false;
+        const vistosOtros = otrosVistos();
+        for (const hilo of gruposConmigo) apuntar(vistosOtros.aceptado, hilo.id);
+        escribir(CLAVE_OTROS, vistosOtros);
+      }
+      completar(gruposConmigo.map((hilo) => hilo.autor), []);
+    },
+    (error) => console.warn("No se pueden leer los grupos del foro en los que estás", error)
+  ));
+}
+
+// Las solicitudes pendientes de tus hilos abiertos de «Busco compañeros» (pocos, normalmente uno)
+function vigilarSolicitudes() {
+  const base = baseDeDatos();
+  if (!base) return;
+  const { bd, fn } = base;
+  const buscan = new Set(hilos.filter((hilo) => hilo.busca).map((hilo) => hilo.id));
+  for (const [id, parar] of escuchasSolicitudes) {
+    if (buscan.has(id)) continue;
+    parar();
+    escuchasSolicitudes.delete(id);
+    solicitudesPendientes.delete(id);
+  }
+  for (const id of buscan) {
+    if (escuchasSolicitudes.has(id)) continue;
+    escuchasSolicitudes.set(id, fn.onSnapshot(
+      fn.query(fn.collection(bd, "foro", id, "solicitudes"), fn.where("estado", "==", "pendiente")),
+      (instantanea) => {
+        const lista = instantanea.docs.map((documento) => ({ uid: documento.id, mensaje: documento.data().mensaje || "" }));
+        solicitudesPendientes.set(id, lista);
+        completar(lista.map((cada) => cada.uid), []);
+      },
+      (error) => console.warn("No se pueden leer las solicitudes de tu hilo", error)
+    ));
+  }
+}
+
+// Las solicitudes pendientes de un hilo tuyo (para la lista del foro)
+export function solicitudesDe(id) {
+  return solicitudesPendientes.get(id) || [];
+}
+
+// Quién te ha respondido en un hilo (sin verlo todavía), para la lista del foro; null si nadie
+export function respondidoEn(id) {
+  const vistosOtros = otrosVistos();
+  const respuesta = respuestasAMi.find((cada) => cada.hilo === id && !vistosOtros.respuestas.includes(`${id}/${cada.id}`));
+  return respuesta ? nombres.get(respuesta.uid) || "" : null;
+}
+
+// Todos los avisos del foro para la campana (js/avisos.js), lo más nuevo primero:
+//   { tipo: "hilo", id, titulo, nuevas }                       respuestas nuevas en tu hilo
+//   { tipo: "respuesta", id, titulo, quien, texto }            te han respondido
+//   { tipo: "solicitud", id, titulo, quienes: [nombres] }      quieren unirse a tu grupo
+//   { tipo: "aceptado", id, titulo, quien }                    te han aceptado en un grupo
+export function avisosDelForo() {
+  const vistosOtros = otrosVistos();
+  const mios = new Set(hilos.map((hilo) => hilo.id));
+  const tituloDe = (id) => (hilos.find((hilo) => hilo.id === id) || {}).titulo || titulos.get(id) || "";
+  const avisos = respuestasNuevas().map((hilo) => ({ tipo: "hilo", ...hilo }));
+
+  for (const respuesta of respuestasAMi) {
+    // En tus hilos ya avisa «N respuestas nuevas en tu hilo»
+    if (mios.has(respuesta.hilo) || hiloSilenciado(respuesta.hilo)) continue;
+    if (vistosOtros.respuestas.includes(`${respuesta.hilo}/${respuesta.id}`)) continue;
+    avisos.push({ tipo: "respuesta", id: respuesta.hilo, titulo: tituloDe(respuesta.hilo), quien: nombres.get(respuesta.uid) || "", texto: respuesta.texto, ultimo: respuesta.creado });
+  }
+  for (const [id, lista] of solicitudesPendientes) {
+    if (hiloSilenciado(id)) continue;
+    const nuevas = lista.filter((cada) => !vistosOtros.solicitudes.includes(`${id}/${cada.uid}`));
+    if (!nuevas.length) continue;
+    avisos.push({ tipo: "solicitud", id, titulo: tituloDe(id), quienes: nuevas.map((cada) => nombres.get(cada.uid) || ""), ultimo: Date.now() });
+  }
+  for (const hilo of gruposConmigo) {
+    if (vistosOtros.aceptado.includes(hilo.id) || hiloSilenciado(hilo.id)) continue;
+    avisos.push({ tipo: "aceptado", id: hilo.id, titulo: hilo.titulo, quien: nombres.get(hilo.autor) || "", ultimo: Date.now() });
+  }
+  return avisos.sort((uno, otro) => (otro.ultimo || 0) - (uno.ultimo || 0));
+}
+

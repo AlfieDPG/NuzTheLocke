@@ -1441,3 +1441,1108 @@
   background: var(--t-rojo-oscuro);
   color: #fff;
 }
+
+/* =====================================================================================
+   Rediseño (2026-11-12): lista con el color de cada tipo de hilo, hilo en ramas, la caja de
+   escribir fija abajo y, en ordenador, la pantalla quieta (cada columna se desplaza por dentro).
+   Va al final para mandar sobre lo de arriba.
+   ===================================================================================== */
+
+/* El color de cada tipo de hilo: distingue funciones (buscar gente, charlar, pedir ayuda) */
+.cat-busco { --cc: 99, 195, 209; }
+.cat-general { --cc: 230, 194, 122; }
+.cat-ayuda { --cc: 239, 138, 76; }
+
+/* ---------- Las dos columnas ---------- */
+
+.foro-cuerpo {
+  grid-template-columns: minmax(19rem, 26rem) minmax(0, 1fr);
+  align-items: stretch;
+  margin-top: 1rem;
+  min-height: 0;
+}
+
+#vista-foro > .selector-regiones:first-child[hidden] + .foro-silencio + .foro-cuerpo,
+#vista-foro > .selector-regiones:first-child[hidden] ~ .foro-cuerpo {
+  margin-top: 0.9rem;
+}
+
+.foro-cuerpo.sin-panel {
+  align-items: start;
+}
+
+.foro-columna-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.foro-columna-lista .barra-foro {
+  flex: none;
+  margin: 0;
+}
+
+.foro-columna-lista .foro-buscar-caja {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.foro-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.foro-filtros[hidden] {
+  display: none;
+}
+
+.foro-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.foro-tipo-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.8rem;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--t-panel);
+  color: var(--t-texto);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.foro-tipo-boton[class*="cat-"]::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: rgb(var(--cc));
+}
+
+.foro-tipo-boton:hover {
+  background: var(--t-panel-3);
+}
+
+.foro-tipo-boton.activa {
+  background: rgba(var(--color-vista), 0.22);
+  box-shadow: inset 0 0 0 1.5px rgb(var(--color-vista));
+}
+
+.foro-filtros-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+}
+
+.foro-filtros-fila .foro-juego {
+  max-width: 12rem;
+}
+
+.foro-lista-caja {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.foro-cuerpo.sin-panel .foro-lista-caja {
+  overflow: visible;
+}
+
+/* ---------- Una fila de la lista ---------- */
+
+.hilo {
+  align-items: flex-start;
+  padding: 0.55rem 0.7rem;
+}
+
+.hilo .foro-foto {
+  margin-top: 0.1rem;
+}
+
+.hilo-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: color-mix(in srgb, rgb(var(--cc)) var(--t-vivo), black);
+  font-weight: 800;
+}
+
+.hilo-cat::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: rgb(var(--cc));
+}
+
+.hilo-meta {
+  opacity: 1;
+  color: var(--t-gris);
+}
+
+.hilo-nuevas {
+  flex: none;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.hilo-silenciado {
+  display: inline-flex;
+  flex: none;
+  color: var(--t-gris);
+}
+
+.hilo-silenciado .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* El grupo de un «Busco compañeros»: las fotos de los que están y los huecos que faltan */
+.hilo-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  color: var(--t-gris);
+  font-size: 0.72rem;
+}
+
+.hilo .hilo-grupo .foro-foto {
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0;
+  border-width: 0.1rem;
+}
+
+.hilo .hilo-grupo .foro-foto::before {
+  font-size: 0.6rem;
+}
+
+.hilo-grupo > span:last-child {
+  margin-left: 0.2rem;
+}
+
+.foro-hueco {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 2px dashed rgba(var(--t-tinte), 0.28);
+  border-radius: 50%;
+  color: var(--t-gris);
+}
+
+.hilo-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.hilo-aviso .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* ---------- El hilo abierto: cabecera, lo que se desplaza y la caja de abajo ---------- */
+
+.foro-panel {
+  position: static;
+  min-height: 0;
+}
+
+@media (min-width: 1001px) {
+  .foro-cuerpo:not(.sin-panel) .foro-panel {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.foro-panel-vacio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.foro-panel-hilo {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.foro-panel-cerrar {
+  top: 0.85rem;
+  right: 0.85rem;
+}
+
+.foro-panel-cerrar .solo-movil {
+  display: none;
+}
+
+.foro-panel-cerrar span {
+  display: inline-flex;
+}
+
+.foro-hilo-cabecera {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.9rem 1.1rem 0.75rem;
+  border-bottom: 1px solid rgba(var(--t-tinte), 0.07);
+}
+
+.foro-hilo-cabecera .foro-hilo-titulo-fila {
+  margin: 0;
+  padding-right: 2.4rem;
+}
+
+.foro-hilo-cabecera .hilo-chips {
+  align-items: center;
+  margin: 0;
+}
+
+.hilo-chip.cat {
+  background: rgba(var(--cc), 0.22);
+  color: color-mix(in srgb, rgb(var(--cc)) var(--t-vivo), black);
+}
+
+.foro-hilo-cuenta {
+  margin-left: 0.2rem;
+  color: var(--t-gris);
+  font-size: 0.78rem;
+}
+
+/* «Avisos» / «Silenciado» y el «⋯» */
+.foro-hilo-acciones .foro-avisos {
+  width: auto;
+  gap: 0.35rem;
+  padding: 0 0.65rem;
+  background: rgba(var(--color-vista), 0.16);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.foro-hilo-acciones .foro-avisos.silenciado {
+  background: var(--t-control);
+  color: var(--t-gris-2);
+}
+
+.foro-hilo-silenciado {
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(var(--t-tinte), 0.05);
+  color: var(--t-gris-2);
+  font-size: 0.8rem;
+}
+
+.foro-hilo-desliza {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Hueco a los lados: los marcos de las fotos sobresalen y el desplazamiento los recortaría */
+  padding: 0.9rem 1rem 0.6rem;
+  scrollbar-width: thin;
+}
+
+.foro-hilo-comentarios {
+  flex: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  background: none;
+}
+
+.foro-hilo-desliza .foro-hilo-mas {
+  margin: 0 auto 0.6rem;
+}
+
+/* El mensaje del hilo: con la capa del color de su tipo */
+.foro-original {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--t-fondo-2);
+  box-shadow: inset 3px 0 0 rgb(var(--cc));
+}
+
+.foro-original .foro-hilo-texto {
+  margin: 0;
+}
+
+/* El grupo y las solicitudes */
+.foro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.07);
+}
+
+.foro-grupo-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+}
+
+.foro-grupo-etiqueta {
+  color: var(--t-gris-3);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.foro-grupo-fotos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.foro-grupo-miembro {
+  position: relative;
+  display: inline-flex;
+}
+
+.foro-grupo .foro-foto,
+.foro-candidato .foro-foto {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.foro-grupo .foro-hueco {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.foro-grupo .foro-hueco .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.foro-grupo-quitar {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--t-control-2);
+  color: var(--t-texto);
+  cursor: pointer;
+}
+
+.foro-grupo-quitar .icono {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+.foro-grupo-miembro:hover .foro-grupo-quitar,
+.foro-grupo-quitar:focus-visible {
+  display: inline-flex;
+}
+
+.foro-grupo-estado {
+  color: var(--t-gris);
+  font-size: 0.82rem;
+  font-weight: bold;
+}
+
+.foro-grupo-nota {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--t-gris);
+  font-size: 0.85rem;
+}
+
+.foro-grupo-nota.bien {
+  color: var(--t-bien);
+  font-weight: bold;
+}
+
+.foro-grupo-nota .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+.foro-candidatos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.foro-candidato {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  background: var(--t-panel);
+}
+
+.foro-candidato-datos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 10rem;
+}
+
+.foro-candidato-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.5rem;
+}
+
+.foro-candidato-nombre small {
+  color: var(--t-gris);
+  font-size: 0.76rem;
+}
+
+.foro-candidato-mensaje {
+  color: var(--t-gris-3);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.foro-candidato-botones {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.foro-candidato-botones button,
+.foro-mi-solicitud button,
+.foro-pedir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.foro-candidato-botones button:hover,
+.foro-mi-solicitud button:hover {
+  background: var(--t-control-2);
+}
+
+.foro-candidato-botones .principal,
+.foro-pedir {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+}
+
+.foro-candidato-botones button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.foro-pedir {
+  align-self: flex-start;
+  padding: 0.5rem 0.95rem;
+}
+
+.foro-pedir .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+.foro-mi-solicitud {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(var(--color-vista), 0.14);
+}
+
+.foro-mi-solicitud > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font-size: 0.88rem;
+}
+
+.foro-mi-solicitud small {
+  color: var(--t-gris);
+  font-size: 0.78rem;
+}
+
+/* ---------- Las ramas ---------- */
+
+.foro-rama {
+  padding: 0.35rem 0;
+}
+
+.foro-rama + .foro-rama {
+  border-top: 1px solid rgba(var(--t-tinte), 0.06);
+}
+
+.comentario {
+  padding: 0.4rem 0.45rem;
+  border-radius: 10px;
+}
+
+.comentario + .comentario {
+  border-top: none;
+}
+
+.comentario.para-ti {
+  background: rgba(var(--color-vista), 0.12);
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+/* Lo que cuelga de un mensaje: un poco hacia dentro, con la línea que baja de él y un codo
+   hasta cada respuesta */
+.foro-rama-hijos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-left: 1.35rem;
+  padding-left: 1.2rem;
+}
+
+.foro-rama-hijos > * {
+  position: relative;
+}
+
+.foro-rama-hijos > *::before {
+  content: "";
+  position: absolute;
+  top: -0.3rem;
+  left: -1.2rem;
+  width: 0.95rem;
+  height: 1.55rem;
+  border-bottom: 2px solid rgba(var(--t-tinte), 0.14);
+  border-left: 2px solid rgba(var(--t-tinte), 0.14);
+  border-bottom-left-radius: 0.6rem;
+  pointer-events: none;
+}
+
+.foro-rama-hijos > :not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: -0.3rem;
+  left: -1.2rem;
+  border-left: 2px solid rgba(var(--t-tinte), 0.14);
+  pointer-events: none;
+}
+
+.comentario.hijo .foro-ficha {
+  padding-block: 0.25rem;
+}
+
+.comentario.hijo .foro-ficha .foro-foto {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.foro-rama-mas {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.3rem;
+  margin: 0.2rem 0;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid rgba(var(--t-tinte), 0.15);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--t-gris-2);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.foro-rama-mas:hover {
+  border-color: rgba(var(--color-vista), 0.7);
+  color: var(--t-texto);
+}
+
+.foro-rama-mas .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.comentario-a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.comentario-a .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+/* «Responder» y «⋯», siempre a la vista a la derecha (antes solo al pasar el ratón) */
+.comentario-acciones {
+  opacity: 1;
+}
+
+.comentario-acciones .comentario-responder {
+  width: auto;
+  gap: 0.3rem;
+  padding: 0 0.6rem;
+  background: rgba(var(--color-vista), 0.16);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: bold;
+}
+
+.comentario-acciones .comentario-responder:hover {
+  background: rgba(var(--color-vista), 0.3);
+}
+
+.comentario-acciones .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.comentario-texto {
+  margin-left: 0.35rem;
+}
+
+/* ---------- La caja de escribir, abajo ---------- */
+
+.foro-hilo-pie {
+  flex: none;
+  padding: 0.6rem 0.9rem 0.8rem;
+  border-top: 1px solid rgba(var(--t-tinte), 0.07);
+  background: var(--t-panel);
+}
+
+.foro-hilo-pie .foro-hilo-nota {
+  margin: 0.3rem 0;
+}
+
+.foro-hilo-respondiendo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.7rem;
+  border-radius: 8px;
+  background: rgba(var(--color-vista), 0.14);
+  font-size: 0.82rem;
+}
+
+.foro-hilo-respondiendo[hidden] {
+  display: none;
+}
+
+.foro-hilo-respondiendo > .icono {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: rgb(var(--color-vista));
+}
+
+.foro-hilo-respondiendo b {
+  flex: none;
+}
+
+.foro-hilo-respondiendo span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--t-gris-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.foro-hilo-respondiendo button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.4rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  cursor: pointer;
+}
+
+.foro-hilo-respondiendo button .icono {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* La casilla con «Enviar» pegado, en su tarjetita (como en el resto de la web) */
+.foro-hilo-responder {
+  align-items: stretch;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.25rem;
+  border-radius: 10px;
+  background: var(--t-fondo-2);
+}
+
+.foro-hilo-responder textarea {
+  min-height: 2.6rem;
+  max-height: 9rem;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+}
+
+.foro-hilo-responder textarea:focus {
+  outline: none;
+}
+
+.foro-hilo-enviar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.foro-hilo-enviar .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ---------- El menú «⋯» (flota junto al botón; en el móvil, hoja desde abajo) ---------- */
+
+.foro-opciones {
+  position: fixed;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 13rem;
+  padding: 0.3rem;
+  border-radius: 10px;
+  background: var(--t-panel-3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  animation: foro-opciones-aparece 0.12s ease-out;
+}
+
+.foro-opciones button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--t-texto);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: bold;
+  text-align: left;
+  cursor: pointer;
+}
+
+.foro-opciones button:hover,
+.foro-opciones button:focus-visible {
+  background: rgba(var(--t-tinte), 0.08);
+  outline: none;
+}
+
+.foro-opciones button.peligro {
+  color: var(--t-rojo);
+}
+
+.foro-opciones .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+.foro-opciones.hoja {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0.7rem 0.7rem 1.2rem;
+  border-radius: 18px 18px 0 0;
+  animation-name: foro-hoja-sube;
+}
+
+.foro-opciones.hoja button {
+  padding: 0.8rem;
+  font-size: 0.95rem;
+}
+
+@keyframes foro-opciones-aparece {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes foro-hoja-sube {
+  from { transform: translateY(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foro-opciones {
+    animation: none;
+  }
+}
+
+/* ---------- Pantallas estrechas: el hilo a pantalla completa ---------- */
+
+@media (max-width: 1000px) {
+  .foro-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .foro-lista-caja {
+    overflow: visible;
+  }
+
+  .foro-panel.abierto {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .foro-panel.abierto .foro-panel-hilo {
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+    border-radius: 0;
+    border-top: 3px solid rgb(var(--color-vista));
+  }
+
+  /* La flecha de volver, a la izquierda del título */
+  .foro-panel-cerrar {
+    top: 0.75rem;
+    right: auto;
+    left: 0.6rem;
+  }
+
+  .foro-panel-cerrar .solo-ancho {
+    display: none;
+  }
+
+  .foro-panel-cerrar .solo-movil {
+    display: inline-flex;
+  }
+
+  .foro-hilo-cabecera {
+    padding: 0.7rem 0.8rem 0.6rem 2.9rem;
+  }
+
+  .foro-hilo-cabecera .foro-hilo-titulo-fila {
+    padding-right: 0;
+  }
+
+  .foro-hilo-titulo-fila h2 {
+    font-size: 1.1rem;
+  }
+
+  .foro-hilo-desliza {
+    padding: 0.7rem 0.6rem 0.5rem;
+  }
+
+  .foro-hilo-pie {
+    padding: 0.5rem 0.6rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Con el hilo encima, la página de detrás no se mueve */
+  :root.foro-hilo-en-pantalla body {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 760px) {
+  .foro-avisos span {
+    display: none;
+  }
+
+  .comentario-acciones .comentario-responder span {
+    display: none;
+  }
+
+  .foro-rama-hijos {
+    margin-left: 0.9rem;
+    padding-left: 1rem;
+  }
+
+  .foro-rama-hijos > *::before,
+  .foro-rama-hijos > :not(:last-child)::after {
+    left: -1rem;
+  }
+
+  .foro-rama-hijos > *::before {
+    width: 0.8rem;
+  }
+}
+
+/* ---------- Segunda vuelta (2026-11-12) ---------- */
+
+/* El mensaje del hilo, bien separado de las respuestas: tarjeta propia teñida del color de su
+   tipo, con borde, sombra, su etiqueta arriba y la letra algo más grande; debajo, una raya con
+   «N respuestas» que marca dónde empieza la conversación */
+.foro-original {
+  position: relative;
+  gap: 0.75rem;
+  margin: 0.2rem 0 0;
+  padding: 1rem 1.15rem 1.1rem;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(var(--cc), 0.17), rgba(var(--cc), 0.05) 9rem),
+    var(--t-fondo-2);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(var(--cc), 0.5),
+    inset 4px 0 0 rgb(var(--cc)),
+    0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.foro-original-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.3rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(var(--cc), 0.25);
+  color: color-mix(in srgb, rgb(var(--cc)) var(--t-vivo), black);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.foro-original-etiqueta .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.foro-original .foro-hilo-texto {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.foro-separador {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1.1rem 0 0.4rem;
+  color: var(--t-gris);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.foro-separador::before,
+.foro-separador::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(var(--t-tinte), 0.12);
+}
+
+/* Los tipos de hilo, siempre en una línea (si no cupieran, se desplazan de lado) */
+.foro-tipos {
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.foro-tipo-boton {
+  flex: none;
+  gap: 0.35rem;
+  padding: 0 0.6rem;
+}
+
+.foro-cuerpo:not(.sin-panel) {
+  grid-template-columns: minmax(21rem, 26rem) minmax(0, 1fr);
+}
+
+@media (max-width: 1000px) {
+  .foro-cuerpo:not(.sin-panel) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Los filtros llenan todo el ancho de la barra (de «Nuevo hilo» a «Actualizar»), sin huecos a
+   los lados: los tipos se reparten el ancho y el desplegable del juego se estira hasta la casilla */
+.foro-columna-lista .foro-buscar {
+  width: 100%;
+}
+
+.foro-tipos {
+  width: 100%;
+}
+
+.foro-tipo-boton {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.foro-filtros-fila {
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.foro-filtros-fila .foro-juego {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
+
+.foro-filtros-fila .foro-abiertos {
+  flex: none;
+  white-space: nowrap;
+}

@@ -28,6 +28,22 @@ enlaceLogo.addEventListener("mouseleave", () => {
   for (const marca of marcasLogo) marca.classList.remove("fuera");
 });
 
+// El menú lateral siempre sin barra de scroll: el CSS lo encoge con el alto de la ventana y, si con
+// eso no basta (más secciones, letra del sistema más grande...), se aprieta por niveles hasta que
+// todo quepa (css/layout.css, .apretado-N)
+const barraLateral = document.querySelector(".barra-lateral");
+const menuLateral = document.querySelector(".menu-lateral");
+function ajustarMenu() {
+  barraLateral.classList.remove("apretado-1", "apretado-2", "apretado-3");
+  if (matchMedia("(max-width: 760px)").matches) return;
+  for (let nivel = 1; nivel <= 3 && menuLateral.scrollHeight > menuLateral.clientHeight + 1; nivel++) {
+    barraLateral.classList.add(`apretado-${nivel}`);
+  }
+}
+addEventListener("resize", ajustarMenu);
+document.fonts.ready.then(ajustarMenu);
+ajustarMenu();
+
 // Ajustes (la rueda de abajo del panel): el tema y el idioma
 document.querySelector(".boton-ajustes").innerHTML = icono("ajustes");
 for (const boton of document.querySelectorAll("#dialogo-ajustes [data-icono]")) {
