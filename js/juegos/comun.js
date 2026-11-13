@@ -137,7 +137,7 @@ export async function mirarSiYaJugado(juego, estado) {
 // Para los logros (js/comun/logros.js, los de «Retos»): retos terminados, los acertados del todo
 // (acierto) y los perfectos de cada juego (perfecto; si el juego no dice otra cosa, el acierto), y
 // los días con todos los retos hechos
-const TODOS_LOS_RETOS = ["silueta", "pistas", "eficaz", "masomenos", "locke", "grito", "evolucion", "tipos", "intruso"];
+export const TODOS_LOS_RETOS = ["silueta", "pistas", "eficaz", "masomenos", "locke", "grito", "evolucion", "tipos", "intruso"];
 
 function contarParaLogros(juego, estado) {
   sumarContador("retos");

@@ -5318,3 +5318,20 @@ button.locke-caidos:hover .locke-tarjeta-poke.caido img { filter: none; }
 .locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) img { padding: 0; border-radius: 0.2rem; }
 .locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { border: 1.5px solid color-mix(in srgb, rgb(var(--t-rojo-rgb)) 65%, #8a7a78); box-shadow: 0 0 4px rgba(var(--t-rojo-rgb), 0.25); }
 .locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { border: none; box-shadow: none; }
+
+/* Chat del locke: la cara de quien habla junto a su mensaje */
+.panel-linea { display: flex; align-items: flex-end; gap: 0.5rem; align-self: flex-start; max-width: 92%; }
+.panel-linea.mio { align-self: flex-end; }
+.panel-linea .panel-mensaje, .panel-linea .panel-mensaje.mio { align-self: auto; max-width: none; min-width: 0; }
+.panel-cara { display: grid; place-items: center; flex: none; width: 1.9rem; height: 1.9rem; overflow: hidden; border-radius: 50%; background: var(--t-fondo); font-size: 0.8rem; font-weight: 800; }
+.panel-cara img { width: 100%; height: 100%; object-fit: cover; }
+
+/* El lápiz de la partida responde al ratón como el resto de botones */
+.locke-jugador .locke-partida-abrir.locke-fila-lado { transition: background 0.15s, transform 0.15s; }
+.locke-jugador .locke-partida-abrir.locke-fila-lado:hover { background: var(--t-control); transform: scale(1.06); }
+.locke-jugador .locke-partida-abrir.locke-fila-lado:active { transform: scale(0.96); }
+
+/* Los botones redondos de la derecha (ayuda y actividad de cada uno) responden igual que el lápiz */
+.locke-jugador .locke-fila-lado { transition: background 0.15s, transform 0.15s; }
+.locke-jugador .locke-fila-lado:is(.locke-partida-ayuda, .locke-actividad-de):hover { background: var(--t-control-2); color: inherit; transform: scale(1.06); }
+.locke-jugador .locke-fila-lado:is(.locke-partida-ayuda, .locke-actividad-de):active { transform: scale(0.96); }

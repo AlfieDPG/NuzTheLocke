@@ -1,12 +1,14 @@
 // Sección «Inicio»: lo primero que se ve al entrar y al pulsar el logo.
 //
-//   · Arriba, el saludo y, si hay algo sin contestar, cuántas notificaciones (abre la campana).
-//   · Tus lockes en marcha, con tus vidas y victorias: pulsando uno se va a él en «Lockes».
-//   · Los amigos conectados ahora mismo.
-//   · Tus últimos equipos guardados.
-//   · Novedades: lo último que ha salido en la web (debajo de los lockes).
-//   · Notas y avisos del desarrollador para todos los usuarios, y un cuadro para mandarle
-//     sugerencias.
+//   · Arriba, el saludo y, a la derecha, las notificaciones sin contestar (abre la campana) y los
+//     usuarios registrados (siempre en la esquina).
+//   · «Hoy»: una franja con los retos de hoy, la racha, tu saldo y, si la hay, la última partida de
+//     «Jugar» para seguir.
+//   · Tus lockes en marcha (uno a la vista y «Ver todos»): pulsando uno se va a él en «Lockes».
+//   · Novedades y avisos juntos: los avisos fijados («Ya lo he leído» los quita hasta que cambien)
+//     y las novedades, tantas como quepan.
+//   · A la derecha: los amigos conectados (cinco y «+N»), tus últimos equipos y un cuadro para
+//     mandar sugerencias.
 //
 // Sin sesión, en vez de los lockes y los amigos, una bienvenida que explica la web (con sus
 // secciones) y el botón de «Iniciar sesión».
@@ -17,7 +19,7 @@ import { marcoDe, claseMarco } from "../comun/fichas.js";
 import { t, segunIdioma, LOCALE } from "../comun/idioma.js";
 import { hayNube, usuarioActual, alCambiarSesion, seSabeLaSesion } from "../comun/nube.js";
 import { nombreJuego } from "../comun/campo-juego.js";
-import { carasDeEquipo } from "../comun/elegir-equipo.js";
+import { carasDeEquipo, caraDePokemon } from "../comun/elegir-equipo.js";
 import { leerGuardados } from "../equipos/estado.js";
 import {
   miPerfil, alCambiarMiPerfil, amigosAceptados, solicitudesRecibidas, alCambiarAmistades,
@@ -29,71 +31,70 @@ import {
 } from "../comun/lockes.js";
 import { irA } from "../navegacion.js";
 import { medallasDelLocke } from "../comun/medallas.js";
+import { leer, escribir } from "../comun/almacen.js";
+import { saldo, rachaDe, bonoRacha, hoy, lunesDe } from "../comun/fichas.js";
+import { estadoDe as estadoDeReto, TODOS_LOS_RETOS } from "../juegos/comun.js";
+import { listaDePartidas } from "../jugar/partidas.js";
 
 let seccion = null;
 
-const MAX_LOCKES = 12; // los que se pintan; en pantalla se ven los que caben (ajustarListas)
+const MAX_LOCKES = 12; // los que se pintan; a la vista, los que caben (ajustarListas; el resto, en «Ver todos»)
+const NOVEDADES_MIN_FILAS = 2; // las filas de novedades que se respetan al dar sitio a más lockes
 const MAX_EQUIPOS = 10;
+const AMIGOS_A_LA_VISTA = 5; // los conectados que salen; si hay más, un «+N»
+const CLAVE_AVISOS_LEIDOS = "poketeams-avisos-leidos-v1";
+const CLAVE_JUGAR = "poketeams-jugar-v1"; // lo que se le pide a «Jugar» al llegar (js/jugar/index.js)
 
 // El número de registrados solo sale a partir de aquí (con pocos, queda peor que no ponerlo).
 // Para esconderlo del todo, súbelo a un número que no se vaya a alcanzar.
 const MINIMO_REGISTRADOS = 50;
 
-// ---------- Notas y avisos (los escribe el desarrollador; los ven todos) ----------
+// ---------- Avisos (los escribe el desarrollador; los ven todos) ----------
 //
-// NOTA_INICIO: el párrafo de arriba. AVISOS: un punto cada uno, con su icono (de
-// js/comun/iconos.js) y un color en «r, g, b». El texto admite HTML (<b>, <a>...).
-// Cada texto va en español (es) y en inglés (en); si falta el inglés, sale en español.
-// Si se dejan los dos vacíos, la tarjeta no sale.
-
-const NOTA_INICIO = {
-  es: `La web está en desarrollo y puede tener algún fallo. Si encuentras uno, o se te
-    ocurre una idea que le vendría bien, cuéntamelo en el recuadro de sugerencias: todo feedback
-    respetuoso es bienvenido :)`,
-  en: `The site is still in development and may have some bugs. If you find one, or have an
-    idea that would make it better, tell me in the suggestions box: all respectful feedback
-    is welcome :)`
-};
+// AVISOS: un punto cada uno, con su icono (de js/comun/iconos.js) y un color en «r, g, b». El texto
+// admite HTML (<b>, <a>...). Cada texto va en español (es) y en inglés (en); si falta el inglés,
+// sale en español. Con sesión van fijados dentro de «Novedades y avisos» y «Ya lo he leído» los
+// esconde hasta que cambie alguno (se recuerda en este navegador); sin sesión, en su propio bloque.
 
 const AVISOS = [
   {
     icono: "mezclar", color: "160, 205, 80",
-    es: `El <b>Randomizer</b> funciona con ROMs de <b>GBA</b> (Rojo Fuego / Verde Hoja), <b>NDS, 3DS
-      y Switch</b> (Espada / Escudo y Diamante Brillante / Perla Reluciente).`,
-    en: `The <b>Randomizer</b> works with <b>GBA</b> (FireRed / LeafGreen), <b>NDS, 3DS and
-      Switch</b> ROMs (Sword / Shield and Brilliant Diamond / Shining Pearl).`
+    es: `El <b>Randomizer</b> funciona con ROMs de <b>GBA, NDS, 3DS y Switch</b>, y necesitas las tuyas.`,
+    en: `The <b>Randomizer</b> works with <b>GBA, NDS, 3DS and Switch</b> ROMs, and you need your own.`
   },
   {
-    icono: "enlace", color: "214, 88, 76",
-    es: `Puedes <b>vincular tu partida</b> a un locke con Rojo Fuego / Verde Hoja y todos los juegos
-      de DS, 3DS y Switch.`,
-    en: `You can <b>link your save file</b> to a locke with FireRed / LeafGreen and every DS, 3DS
-      and Switch game.`
+    icono: "enlace", color: "224, 90, 74",
+    es: `Puedes <b>vincular tu partida</b> a un locke y se apunta todo solo.`,
+    en: `You can <b>link your save file</b> to a locke and everything is recorded automatically.`
   },
   {
-    icono: "ayuda", color: "91, 141, 239",
-    es: `¿Dudas? Mira las <b>preguntas frecuentes</b>: el botón <b>«?»</b> del menú (abajo del todo; en el
-      móvil, en «Más»). Si no está ahí la respuesta, escríbeme y la añadiré.`,
-    en: `Questions? Check the <b>FAQ</b>: the <b>“?”</b> button in the menu (at the very bottom; on
-      mobile, under “More”). If the answer isn't there, write to me and I'll add it.`
+    icono: "ayuda", color: "106, 159, 224",
+    es: `¿Dudas? Las <b>preguntas frecuentes</b> están en el <b>«?»</b> del menú (en el móvil, en «Más»).`,
+    en: `Questions? The <b>FAQ</b> is under the <b>“?”</b> in the menu (on mobile, under “More”).`
   },
   {
-    icono: "aviso", color: "241, 196, 15",
-    es: `Para el Randomizer necesitas <b>tus propias ROMs</b>: no puedo dároslas porque sería
-      piratería y no me apetece ir a la cárcel :)`,
-    en: `For the Randomizer you need <b>your own ROMs</b>: I can't give them to you because that
-      would be piracy and I don't fancy going to jail :)`
+    icono: "aviso", color: "240, 196, 60",
+    es: `La web está en <b>desarrollo</b>: si algo falla, cuéntamelo en sugerencias.`,
+    en: `The site is <b>in development</b>: if something breaks, tell me in the suggestions box.`
   }
 ];
+
+// Una firma de los avisos: si cambian, vuelven a salir aunque se hayan marcado como leídos
+function firmaAvisos() {
+  const texto = AVISOS.map((aviso) => aviso.es).join("|");
+  let h = 0;
+  for (const letra of texto) h = (Math.imul(h, 31) + letra.charCodeAt(0)) | 0;
+  return String(h);
+}
+
+const avisosLeidos = () => leer(CLAVE_AVISOS_LEIDOS, "") === firmaAvisos();
 
 // ---------- Novedades ----------
 //
 // Lo último que ha salido, en el orden en que se enseña (lo más importante, primero: no tiene por
-// qué ir por fechas). En Inicio salen las NOVEDADES_A_LA_VISTA primeras y el resto en «Ver todas».
+// qué ir por fechas). En Inicio salen las que caben (ajustarListas) y todas en «Ver todas».
 // Cada una lleva a su sección (vista) al pulsarla, con su icono y el color de esa sección. Mismo
 // formato de textos que los avisos.
-
-const NOVEDADES_A_LA_VISTA = 3;
 
 const NOVEDADES = [
   {
@@ -198,16 +199,32 @@ function plantillaNovedad(novedad) {
     </li>`;
 }
 
+// Novedades y avisos, juntos: los avisos fijados arriba y, debajo, las novedades en rejilla
 function plantillaNovedades() {
-  if (!NOVEDADES.length) return "";
-  const resto = NOVEDADES.length - NOVEDADES_A_LA_VISTA;
+  const fijados = AVISOS.length && !avisosLeidos()
+    ? `<div class="inicio-fijado">
+         <div class="inicio-fijado-cabeza">
+           ${icono("chincheta")} ${t("PARA TENER EN CUENTA")}
+           <button class="inicio-leido">${t("Ya lo he leído")}</button>
+         </div>
+         <ul class="inicio-fijado-lista">${AVISOS.map(
+           (aviso) => `
+             <li style="--color-aviso: ${aviso.color}">
+               <span class="inicio-aviso-icono">${icono(aviso.icono)}</span>
+               <span>${segunIdioma(aviso.es, aviso.en)}</span>
+             </li>`
+         ).join("")}</ul>
+       </div>`
+    : "";
+  if (!NOVEDADES.length && !fijados) return "";
   return `
     <section class="inicio-bloque inicio-novedades">
       <h2>
-        ${icono("estrella")} ${t("Novedades")}
-        ${resto > 0 ? `<button class="inicio-ver-todo inicio-novedades-todas">${t("Ver todas ({n})", { n: NOVEDADES.length })}${icono("derecha")}</button>` : ""}
+        ${icono("estrella")} ${t("Novedades y avisos")}
+        ${NOVEDADES.length ? `<button class="inicio-ver-todo inicio-novedades-todas">${t("Ver todas ({n})", { n: NOVEDADES.length })}${icono("derecha")}</button>` : ""}
       </h2>
-      <ul class="inicio-novedades-lista">${NOVEDADES.slice(0, NOVEDADES_A_LA_VISTA).map(plantillaNovedad).join("")}</ul>
+      ${fijados}
+      <ul class="inicio-novedades-lista" data-max-movil="3">${NOVEDADES.map(plantillaNovedad).join("")}</ul>
     </section>`;
 }
 
@@ -235,23 +252,20 @@ function abrirNovedades() {
   dialogo.showModal();
 }
 
+// Sin sesión: los avisos, en su propio bloque
 function plantillaAvisos() {
-  const nota = segunIdioma(NOTA_INICIO.es, NOTA_INICIO.en).trim();
-  if (!nota && !AVISOS.length) return "";
+  if (!AVISOS.length) return "";
 
   return `
     <section class="inicio-bloque inicio-avisos-web">
       <h2>${icono("campana")} ${t("Notas y avisos")}</h2>
-      ${nota ? `<p class="inicio-nota">${nota}</p>` : ""}
-      ${AVISOS.length
-        ? `<ul class="inicio-avisos-lista">${AVISOS.map(
-            (aviso) => `
-              <li style="--color-aviso: ${aviso.color}">
-                <span class="inicio-aviso-icono">${icono(aviso.icono)}</span>
-                <span>${segunIdioma(aviso.es, aviso.en)}</span>
-              </li>`
-          ).join("")}</ul>`
-        : ""}
+      <ul class="inicio-avisos-lista">${AVISOS.map(
+        (aviso) => `
+          <li style="--color-aviso: ${aviso.color}">
+            <span class="inicio-aviso-icono">${icono(aviso.icono)}</span>
+            <span>${segunIdioma(aviso.es, aviso.en)}</span>
+          </li>`
+      ).join("")}</ul>
     </section>`;
 }
 
@@ -389,10 +403,10 @@ function plantillaCabecera() {
         <h1>${nombre ? t("Hola, {nombre}", { nombre: escaparHTML(nombre) }) : `NuzThe<span class="logo-locke">Locke</span>`}</h1>
         ${vistazo}
       </div>
-      ${usuarios}
       ${pendientes
         ? `<button class="inicio-avisos">${icono("campana")} ${t("{n} sin contestar", { n: pendientes })}</button>`
         : ""}
+      ${usuarios}
     </header>`;
 }
 
@@ -446,12 +460,14 @@ function plantillaLockes() {
 
 function plantillaAmigos() {
   const conectados = amigosConectados();
+  const resto = conectados.length - AMIGOS_A_LA_VISTA;
 
   return `
     <section class="inicio-bloque inicio-amigos inicio-enlace" data-ir="amigos">
       <h2>${icono("amigos")} ${t("Conectados")}</h2>
       ${conectados.length
         ? `<div class="inicio-amigos-lista">${conectados
+            .slice(0, AMIGOS_A_LA_VISTA)
             .map(
               (perfil) => `
                 <button class="inicio-amigo" data-perfil="${escaparHTML(perfil.uid)}" title="${t("Ver perfil")}">
@@ -459,7 +475,9 @@ function plantillaAmigos() {
                   <span>${escaparHTML(perfil.nombre || t("Amigo"))}</span>
                 </button>`
             )
-            .join("")}</div>`
+            .join("")}${resto > 0
+            ? `<button class="inicio-amigo inicio-amigos-mas" data-vista="amigos" title="${t("Ver todos")}"><span class="inicio-mas-gente">+${resto}</span></button>`
+            : ""}</div>`
         : `<p class="inicio-vacio">${amigosAceptados().length ? t("Nadie ahora mismo.") : t("Aún no tienes amigos.")}</p>`}
     </section>`;
 }
@@ -485,6 +503,106 @@ function plantillaEquipos() {
             )
             .join("")}</div>`
         : `<p class="inicio-vacio">${t("Ninguno guardado.")}</p>`}
+    </section>`;
+}
+
+// ---------- Hoy ----------
+
+function moverDia(dia, cuantos) {
+  const fecha = new Date(`${dia}T12:00:00Z`);
+  fecha.setUTCDate(fecha.getUTCDate() + cuantos);
+  return fecha.toISOString().slice(0, 10);
+}
+
+const numero = (n) => n.toLocaleString(LOCALE);
+
+// La última partida de «Jugar» (se lee de IndexedDB, así que llega algo después de pintar)
+let ultimaPartida = null;
+
+function cuando(fecha) {
+  const minutos = Math.round((Date.now() - fecha) / 60000);
+  if (minutos < 1) return t("ahora mismo");
+  if (minutos < 60) return t("hace {n} min", { n: minutos });
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return horas === 1 ? t("hace 1 hora") : t("hace {n} horas", { n: horas });
+  return new Date(fecha).toLocaleDateString(LOCALE, { day: "numeric", month: "short" });
+}
+
+async function leerUltimaPartida() {
+  let nueva = null;
+  try {
+    const p = (await listaDePartidas()).find((cada) => cada.jugada);
+    if (p) {
+      const { portadaDe } = await import("../jugar/portadas.js");
+      nueva = { id: p.id, nombre: p.nombre, jugada: p.jugada, especie: portadaDe(p, null).especie };
+    }
+  } catch (error) {
+    console.error(error);
+  }
+  const igual = (nueva && nueva.id) === (ultimaPartida && ultimaPartida.id) && (nueva && nueva.jugada) === (ultimaPartida && ultimaPartida.jugada);
+  ultimaPartida = nueva;
+  if (!igual) pintar();
+}
+
+function plantillaHoy() {
+  const perfil = miPerfil();
+  const hechos = TODOS_LOS_RETOS.filter((juego) => estadoDeReto(juego).fin).length;
+  const racha = rachaDe(perfil);
+  const bono = bonoRacha(racha + 1);
+
+  // La semana de lunes a domingo: los días de la racha, hoy y los que quedan
+  const dia = hoy();
+  const lunes = lunesDe(dia);
+  const ultimoDia = (perfil && perfil.juegos && perfil.juegos.dia) || dia;
+  const jugados = new Set(Array.from({ length: racha }, (_, i) => moverDia(ultimoDia, -i)));
+  const letras = [t("dia|L"), t("dia|M"), t("dia|X"), t("dia|J"), t("dia|V"), t("dia|S"), t("dia|D")];
+  const semana = letras
+    .map((letra, i) => {
+      const cada = moverDia(lunes, i);
+      return `<span class="${cada === dia ? "hoy-dia" : jugados.has(cada) ? "si" : ""}">${letra}</span>`;
+    })
+    .join("");
+
+  const sellos = TODOS_LOS_RETOS.map((_, i) => `<span class="${i < hechos ? "ok" : ""}"></span>`).join("");
+
+  const partida = ultimaPartida
+    ? `<div class="inicio-hoy-parte inicio-hoy-partida">
+         <span class="inicio-hoy-portada">${caraDePokemon({ id: ultimaPartida.especie, nombre: "" })}</span>
+         <span class="inicio-hoy-texto">
+           <span class="inicio-hoy-etiqueta">${t("Seguir jugando")}</span>
+           <strong>${escaparHTML(ultimaPartida.nombre)}</strong>
+           <span class="inicio-hoy-nota">${cuando(ultimaPartida.jugada)}</span>
+         </span>
+         <button class="inicio-hoy-boton continuar" data-partida="${escaparHTML(ultimaPartida.id)}">${icono("reanudar")} ${t("Continuar")}</button>
+       </div>`
+    : "";
+
+  return `
+    <section class="inicio-hoy ${ultimaPartida ? "" : "sin-partida"}" aria-label="${t("Hoy")}">
+      <div class="inicio-hoy-parte">
+        <span class="inicio-hoy-texto">
+          <span class="inicio-hoy-etiqueta">${t("Retos de hoy")}</span>
+          <span class="inicio-hoy-grande">${hechos} <small>${t("de {n}", { n: TODOS_LOS_RETOS.length })}</small></span>
+        </span>
+        <span class="inicio-hoy-sellos" aria-hidden="true">${sellos}</span>
+        <button class="inicio-hoy-boton seguir" data-vista="juegos">${hechos === TODOS_LOS_RETOS.length ? t("Ver") : t("Seguir")}${icono("derecha")}</button>
+      </div>
+      <div class="inicio-hoy-parte">
+        <span class="inicio-hoy-rayo">${icono("rayo")}</span>
+        <span class="inicio-hoy-texto">
+          <span class="inicio-hoy-etiqueta">${bono ? t("Racha · +{n} por reto", { n: bono }) : t("Racha")}</span>
+          <span class="inicio-hoy-grande">${t(racha === 1 ? "{n} día" : "{n} días", { n: racha })}</span>
+          <span class="inicio-hoy-semana" aria-hidden="true">${semana}</span>
+        </span>
+      </div>
+      <div class="inicio-hoy-parte">
+        <span class="inicio-hoy-texto">
+          <span class="inicio-hoy-etiqueta">${t("Tu saldo")}</span>
+          <span class="inicio-hoy-grande"><span class="ficha-cifra"><span class="ficha-moneda"></span>${numero(saldo(perfil))}</span></span>
+        </span>
+        <button class="inicio-hoy-ir" data-vista="tienda" aria-label="${t("Ir a la Tienda")}" title="${t("Ir a la Tienda")}">${icono("tienda")}${icono("derecha")}</button>
+      </div>
+      ${partida}
     </section>`;
 }
 
@@ -517,6 +635,7 @@ function pintar() {
   const aviso = seccion.querySelector(".sugerencias-aviso");
   const avisoAntes = aviso ? aviso.outerHTML : "";
 
+  // Sin sesión, abajo, los avisos y las sugerencias
   const pie = `
     <div class="inicio-columnas inicio-fila-baja">
       ${plantillaAvisos()}
@@ -530,12 +649,12 @@ function pintar() {
     ${plantillaCabecera()}
     ${invitado() ? plantillaBienvenida() : ""}
     ${conSesion()
-      ? `<div class="inicio-columnas">
+      ? `${plantillaHoy()}
+         <div class="inicio-columnas">
            <div class="inicio-lado inicio-izq">${plantillaLockes()}${plantillaNovedades()}</div>
-           <div class="inicio-lado">${plantillaAmigos()}${plantillaEquipos()}</div>
+           <div class="inicio-lado">${plantillaAmigos()}${plantillaEquipos()}${plantillaSugerencias()}</div>
          </div>`
-      : ""}
-    ${pie}`;
+      : pie}`;
 
   const nuevo = seccion.querySelector(".sugerencias-texto");
   nuevo.value = borrador;
@@ -550,47 +669,80 @@ function pintar() {
 
 // Nada de desplazarse dentro de las tarjetas: cada lista enseña las que caben ENTERAS en su hueco
 // (el que le deja la pantalla) y esconde el resto; el botón de «Ver todos» (a la derecha del título)
-// cuenta las que faltan. Si no cabe ni una, no se enseña ninguna antes que una cortada.
-// En el móvil (la sección baja entera, sin alto fijo) se enseñan todas las pintadas.
+// cuenta las que faltan. En el móvil (la sección baja entera, sin alto fijo) se enseñan todas las
+// pintadas (las novedades, solo unas pocas: data-max-movil).
+//
+// A la izquierda, lockes y novedades se reparten el alto: las novedades en rejilla, con filas
+// enteras. Se enseñan todos los lockes que caben mientras las novedades conserven sus
+// NOVEDADES_MIN_FILAS filas; con un solo locke (o al marcar los avisos como leídos), las novedades
+// se llevan el sitio que sobra y enseñan más filas.
 const PANTALLA_FIJA = window.matchMedia("(min-width: 761px)");
 
-// Los lockes son lo primero: si no cabe ni uno, se recortan las novedades (menos líneas de texto,
-// con «…»; enteras en «Ver todas») hasta que quepa, como mucho APRETAR veces.
-const APRETAR = 3;
+function esconderLosQueNoCaben(lista) {
+  const elementos = [...lista.children];
+  for (const elemento of elementos) elemento.hidden = false;
+  let visibles = elementos.length;
+  if (!PANTALLA_FIJA.matches) {
+    const tope = Number(lista.dataset.maxMovil);
+    if (tope && visibles > tope) {
+      visibles = tope;
+      for (let i = visibles; i < elementos.length; i++) elementos[i].hidden = true;
+    }
+    return visibles;
+  }
+  while (visibles > 0 && lista.scrollHeight > lista.clientHeight + 1) {
+    elementos[--visibles].hidden = true;
+  }
+  // En rejilla, filas enteras (que no quede una fila a medias)
+  const columnas = getComputedStyle(lista).gridTemplateColumns.split(" ").length;
+  if (lista.classList.contains("inicio-novedades-lista") && columnas > 1 && visibles > columnas) {
+    const entero = visibles - (visibles % columnas);
+    for (let i = entero; i < visibles; i++) elementos[i].hidden = true;
+    visibles = entero;
+  }
+  return visibles;
+}
+
+function textoVerTodos(lista, visibles) {
+  const boton = lista.closest(".inicio-bloque").querySelector(".inicio-ver-resto");
+  if (!boton) return;
+  const total = Number(lista.dataset.total) || lista.children.length;
+  const faltan = total - visibles;
+  boton.hidden = faltan <= 0;
+  boton.innerHTML = (lista.dataset.modo === "mas" && visibles
+    ? t("Ver todos ({n} más)", { n: faltan })
+    : t("Ver todos ({n})", { n: total })) + icono("derecha");
+}
 
 function ajustarListas() {
   if (!seccion || seccion.hidden) return;
-  delete seccion.dataset.apretado;
-  for (let nivel = 1; ; nivel++) {
-    repartirListas();
-    const lockes = seccion.querySelector(".inicio-lockes .inicio-lista");
-    const cabeUno = !PANTALLA_FIJA.matches || !lockes || [...lockes.children].some((locke) => !locke.hidden);
-    if (cabeUno || nivel > APRETAR) break;
-    seccion.dataset.apretado = nivel;
+  const lockes = seccion.querySelector(".inicio-lockes .inicio-lista");
+  const novedades = seccion.querySelector(".inicio-novedades .inicio-novedades-lista");
+
+  for (const lista of seccion.querySelectorAll(".inicio-lista, .inicio-amigos-lista, .inicio-novedades-lista")) {
+    if (lista === lockes || lista === novedades) continue;
+    textoVerTodos(lista, esconderLosQueNoCaben(lista));
   }
-}
 
-function repartirListas() {
-  for (const lista of seccion.querySelectorAll(".inicio-lista, .inicio-amigos-lista")) {
-    const elementos = [...lista.children];
-    for (const elemento of elementos) elemento.hidden = false;
-
-    let visibles = elementos.length;
-    if (PANTALLA_FIJA.matches) {
-      while (visibles > 0 && lista.scrollHeight > lista.clientHeight + 1) {
-        elementos[--visibles].hidden = true;
-      }
-    }
-
-    const boton = lista.closest(".inicio-bloque").querySelector(".inicio-ver-resto");
-    if (!boton) continue;
-    const total = Number(lista.dataset.total) || elementos.length;
-    const faltan = total - visibles;
-    boton.hidden = faltan <= 0;
-    boton.innerHTML = (lista.dataset.modo === "mas" && visibles
-      ? t("Ver todos ({n} más)", { n: faltan })
-      : t("Ver todos ({n})", { n: total })) + icono("derecha");
+  if (novedades) esconderLosQueNoCaben(novedades);
+  if (!lockes) return;
+  const hijos = [...lockes.children];
+  if (!PANTALLA_FIJA.matches) {
+    for (const hijo of hijos) hijo.hidden = false;
+    textoVerTodos(lockes, hijos.length);
+    return;
   }
+  const columnas = novedades ? getComputedStyle(novedades).gridTemplateColumns.split(" ").length : 1;
+  let visibles = hijos.length;
+  for (; visibles > 1; visibles--) {
+    hijos.forEach((hijo, i) => { hijo.hidden = i >= visibles; });
+    if (!novedades) break;
+    const filas = Math.floor(esconderLosQueNoCaben(novedades) / columnas);
+    if (filas >= NOVEDADES_MIN_FILAS || filas * columnas >= novedades.children.length) break;
+  }
+  hijos.forEach((hijo, i) => { hijo.hidden = i >= visibles; });
+  if (novedades) esconderLosQueNoCaben(novedades);
+  textoVerTodos(lockes, visibles);
 }
 
 // ---------- Enviar una sugerencia ----------
@@ -654,6 +806,15 @@ export function iniciar() {
 
   seccion.addEventListener("click", (e) => {
     if (e.target.closest(".inicio-novedades-todas")) return abrirNovedades();
+    if (e.target.closest(".inicio-leido")) {
+      escribir(CLAVE_AVISOS_LEIDOS, firmaAvisos());
+      return pintar();
+    }
+    const continuar = e.target.closest(".inicio-hoy-boton.continuar");
+    if (continuar) {
+      escribir(CLAVE_JUGAR, { partida: continuar.dataset.partida });
+      return irA("jugar");
+    }
     const locke = e.target.closest(".inicio-locke");
     if (locke) return irAlLocke(locke.dataset.id);
     const destino = e.target.closest("[data-vista]");
@@ -680,6 +841,8 @@ export function iniciar() {
   alCambiarPerfilesAmigos(pintar);
   alCambiarPresencia(pintar);
   alCambiarTotalDeUsuarios(pintar);
+  // Un reto terminado cambia «Hoy» (el mismo aviso que usa la sección Juegos)
+  document.addEventListener("reto-cambiado", pintar);
 
   // Al cambiar el tamaño de la ventana (o cuando llegan las letras) cambia lo que cabe
   let esperando = false;
@@ -697,5 +860,6 @@ export function iniciar() {
 
 export function mostrar() {
   pintar();
+  leerUltimaPartida();
   requestAnimationFrame(ajustarListas); // por si la sección acaba de aparecer
 }

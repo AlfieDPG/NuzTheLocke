@@ -10,6 +10,7 @@
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { usuarioActual } from "../comun/nube.js";
+import { claseMarcoDe } from "../comun/fichas.js";
 import { lockePorId, escucharActividad } from "../comun/lockes.js";
 import { escucharMensajesLocke, enviarMensajeLocke, MAX_MENSAJE } from "../comun/chat.js";
 import { textoSuceso, iconoSuceso } from "./actividad.js";
@@ -62,12 +63,20 @@ function plantillaHilo(locke) {
     for (const mensaje of mensajes) {
       if (uidFiltrado && mensaje.uid !== uidFiltrado) continue;
       const mio = mensaje.uid === yo;
+      const nombre = nombres[mensaje.uid] || t("Jugador");
+      const foto = (locke.fotos || {})[mensaje.uid] || "";
+      // La cara de quien habla: a la izquierda la de los demás, a la derecha la tuya
+      const cara = `<span class="panel-cara ${claseMarcoDe(mensaje.uid)}" title="${escaparHTML(nombre)}">${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-quitar-si-falla>` : escaparHTML((nombre[0] || "?").toUpperCase())}</span>`;
       cosas.push({
         cuando: mensaje.creado,
         html: `
-          <div class="panel-mensaje ${mio ? "mio" : ""}">
-            ${mio ? "" : `<b>${escaparHTML(nombres[mensaje.uid] || t("Jugador"))}</b>`}
-            <p>${escaparHTML(mensaje.texto)}</p>
+          <div class="panel-linea ${mio ? "mio" : ""}">
+            ${mio ? "" : cara}
+            <div class="panel-mensaje ${mio ? "mio" : ""}">
+              ${mio ? "" : `<b>${escaparHTML(nombre)}</b>`}
+              <p>${escaparHTML(mensaje.texto)}</p>
+            </div>
+            ${mio ? cara : ""}
           </div>`
       });
     }

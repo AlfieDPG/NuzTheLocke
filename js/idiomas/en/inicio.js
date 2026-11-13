@@ -3,6 +3,14 @@
 export default {
   "Notas y avisos": "Notes and notices",
   "Novedades": "What's new",
+  "Novedades y avisos": "News and notices",
+  "PARA TENER EN CUENTA": "GOOD TO KNOW",
+  "Ya lo he leído": "Got it",
+  "Retos de hoy": "Today's challenges",
+  "Racha · +{n} por reto": "Streak · +{n} per challenge",
+  "Tu saldo": "Your balance",
+  "Continuar": "Resume",
+  "Ir a la Tienda": "Go to the Shop",
   "Ver todas ({n})": "See all ({n})",
   "Bienvenido a NuzTheLocke": "Welcome to NuzTheLocke",
   "Todo lo que necesitas para jugar <b>Nuzlockes</b> (y cualquier otro locke) en un solo sitio: tus equipos, las rutas, los level caps, una calculadora de daño, un randomizer… y lockes compartidos con tus amigos.":

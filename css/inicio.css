@@ -1167,23 +1167,107 @@
   display: none;
 }
 
+/* ---------- Rediseño (2026-11-13): «Hoy», campana a la izquierda de los usuarios, Novedades y avisos
+   juntos y las sugerencias a la derecha ---------- */
 
-/* Si no cabe ni un locke en marcha, las novedades se recortan (js/inicio/index.js, ajustarListas):
-   5, 4 o 3 líneas (con la fecha) y «…». Enteras, en «Ver todas». */
-#vista-inicio[data-apretado] .inicio-novedad-texto {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  line-clamp: 5;
-  overflow: hidden;
+/* La campana, justo a la izquierda de «usuarios», que queda siempre en la esquina */
+.inicio-saludo { margin-right: auto; }
+
+/* La franja «Hoy»: retos, racha, saldo y, si la hay, la última partida */
+.inicio-hoy {
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr 0.7fr 1.25fr;
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 3px 0 rgb(76, 182, 92);
+}
+.inicio-hoy.sin-partida { grid-template-columns: 1.25fr 0.95fr 0.7fr; }
+.inicio-hoy-parte { display: flex; align-items: center; gap: 0.8rem; min-width: 0; padding: 0.9rem 1rem 0.8rem; border-left: 1px dashed rgba(var(--t-tinte), 0.14); }
+.inicio-hoy-parte:first-child { border-left: none; }
+.inicio-hoy-texto { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.inicio-hoy-etiqueta { color: var(--t-gris); font-size: 0.68rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+.inicio-hoy-grande { font-family: var(--letra-titulos); font-size: 1.5rem; font-weight: 800; line-height: 1.05; white-space: nowrap; }
+.inicio-hoy-grande small { color: var(--t-gris); font-size: 0.9rem; }
+.inicio-hoy-nota { color: var(--t-gris); font-size: 0.8rem; font-weight: 700; }
+.inicio-hoy-texto strong { overflow: hidden; font-family: var(--letra-titulos); font-size: 1.02rem; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Los sellos de los retos de hoy */
+.inicio-hoy-sellos { display: grid; grid-template-columns: repeat(9, 0.82rem); gap: 0.2rem; }
+.inicio-hoy-sellos span { width: 0.82rem; height: 0.82rem; box-sizing: border-box; border: 2px dashed rgba(var(--t-tinte), 0.28); border-radius: 50%; }
+.inicio-hoy-sellos span.ok { border: 2px solid rgb(110, 205, 124); background: rgba(110, 205, 124, 0.35); }
+
+/* La racha: el rayo y los siete días de la semana */
+.inicio-hoy-rayo { display: inline-flex; color: #f0a53c; }
+#vista-inicio .inicio-hoy-rayo .icono { width: 1.9rem; height: 1.9rem; }
+.inicio-hoy-semana { display: flex; gap: 0.2rem; margin-top: 0.25rem; }
+.inicio-hoy-semana span { display: flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: rgba(var(--t-tinte), 0.08); color: var(--t-gris); font-size: 0.55rem; font-weight: 900; }
+.inicio-hoy-semana span.si { background: rgba(240, 165, 60, 0.3); color: #f6c27a; }
+.inicio-hoy-semana span.hoy-dia { background: #f0a53c; color: #22201f; }
+
+/* Los botones de la franja: planos, del color de su sección y con letra blanca */
+.inicio-hoy-boton, .inicio-hoy-ir { display: inline-flex; align-items: center; gap: 0.3rem; flex: none; margin-left: auto; border: none; font-weight: bold; box-shadow: none; }
+.inicio-hoy-boton { height: 2rem; padding: 0 0.75rem; border-radius: 0.45rem; font-size: 0.85rem; color: #fff !important; }
+.inicio-hoy-boton.seguir { background: color-mix(in srgb, rgb(76, 182, 92) 78%, black); }
+.inicio-hoy-boton.continuar { background: color-mix(in srgb, rgb(186, 62, 102) 78%, black); }
+.inicio-hoy-boton:hover { filter: brightness(1.12); }
+.inicio-hoy-ir { gap: 0.1rem; padding: 0.3rem 0.45rem 0.3rem 0.65rem; border-radius: 2rem; background: rgba(200, 118, 74, 0.18); color: #e2976a !important; }
+.inicio-hoy-ir:hover { background: rgba(200, 118, 74, 0.3); }
+.inicio-hoy-portada { display: flex; align-items: center; justify-content: center; flex: none; width: 3.1rem; height: 3.1rem; overflow: hidden; border-radius: 0.8rem; background: radial-gradient(circle at 50% 40%, rgba(255, 140, 90, 0.55), rgba(190, 50, 40, 0.35) 70%); }
+.inicio-hoy-portada img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+
+/* Novedades y avisos: los avisos fijados arriba y las novedades en tres columnas debajo */
+.inicio-fijado { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.65rem 0.8rem; border-radius: 0.75rem; background: rgba(240, 196, 60, 0.07); box-shadow: inset 0 0 0 1px rgba(240, 196, 60, 0.25); }
+.inicio-fijado-cabeza { display: flex; align-items: center; gap: 0.45rem; color: color-mix(in srgb, #f4d27a var(--t-vivo), black); font-size: 0.78rem; font-weight: 900; letter-spacing: 0.06em; }
+#vista-inicio .inicio-fijado-cabeza .icono { width: 0.9rem; height: 0.9rem; }
+.inicio-leido { margin-left: auto; height: 1.6rem; padding: 0 0.7rem; border: none; border-radius: 0.4rem; background: var(--t-control); font-size: 0.78rem; font-weight: bold; letter-spacing: 0; }
+.inicio-leido:hover { background: var(--t-control-2); }
+.inicio-fijado-lista { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 0.9rem; margin: 0; padding: 0; list-style: none; }
+.inicio-fijado-lista li { display: flex; gap: 0.45rem; font-size: 0.82rem; line-height: 1.4; }
+.inicio-fijado-lista b { color: var(--t-texto-fuerte); }
+.inicio-fijado-lista .inicio-aviso-icono { width: 1rem; height: 1rem; margin-top: 0.1rem; }
+#vista-inicio .inicio-fijado-lista .inicio-aviso-icono .icono { width: 1rem; height: 1rem; }
+.inicio-novedades .inicio-novedades-lista { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+.inicio-novedades .inicio-novedad { padding: 0.55rem 0.7rem; font-size: 0.82rem; }
+/* Cada novedad, de tres líneas como mucho (con «…»; entera, en «Ver todas»): así caben más y no sobra hueco abajo */
+.inicio-novedades .inicio-novedad-texto { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; }
+
+/* Los conectados: cinco y un «+N» */
+.inicio-mas-gente { display: flex; align-items: center; justify-content: center; width: 2.8rem; height: 2.8rem; border-radius: 50%; background: var(--t-control); color: var(--t-gris-2); font-family: var(--letra-titulos); font-size: 1rem; font-weight: 800; }
+.inicio-amigos-mas { justify-content: flex-start; }
+
+@media (min-width: 761px) {
+  .inicio-fijo > .inicio-hoy { flex: none; }
+
+  /* A la izquierda, un locke (y «Ver todos») y las novedades y avisos se llevan el resto */
+  .inicio-fijo .inicio-lado.inicio-izq > .inicio-bloque.inicio-lockes { flex: none; }
+  .inicio-fijo .inicio-lado.inicio-izq > .inicio-bloque.inicio-novedades { flex: 1 1 auto; }
+  .inicio-fijo .inicio-bloque > .inicio-novedades-lista { flex: 1 1 auto; min-height: 0; overflow: hidden; align-content: start; }
+
+  /* A la derecha: Conectados, los últimos equipos (los que caben) y las sugerencias, hasta abajo */
+  .inicio-fijo .inicio-lado > .inicio-bloque.inicio-sugerencias { flex: 1 0 auto; }
+  .inicio-fijo .inicio-sugerencias .sugerencias-texto { min-height: 3.5rem; }
 }
 
-#vista-inicio[data-apretado="2"] .inicio-novedad-texto {
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
+@media (max-width: 760px) {
+  .inicio-hoy, .inicio-hoy.sin-partida { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inicio-hoy-parte { border-left: none; border-top: 1px dashed rgba(var(--t-tinte), 0.14); }
+  .inicio-hoy-parte:nth-child(-n + 2) { border-top: none; }
+  .inicio-hoy-parte:nth-child(even) { border-left: 1px dashed rgba(var(--t-tinte), 0.14); }
+  .inicio-hoy-sellos { display: none; }
+  .inicio-fijado-lista, .inicio-novedades .inicio-novedades-lista { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .inicio-hoy-grande { font-size: 1.25rem; }
 }
 
-#vista-inicio[data-apretado="3"] .inicio-novedad-texto {
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+/* Últimos equipos: el nombre a la izquierda y los Pokémon a la derecha, en una sola línea */
+.inicio-equipo { flex-direction: row; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.5rem 0.8rem 0.5rem 0.9rem; }
+.inicio-equipo strong { flex: 1 1 auto; min-width: 0; }
+.inicio-equipo .caras-equipo { flex: none; margin-left: auto; }
+.inicio-fijo .inicio-lista[data-modo="total"] { gap: 0.45rem; }
+
+/* Las sugerencias se quedan con lo que sobra (con un mínimo): primero caben los últimos equipos */
+@media (min-width: 761px) {
+  .inicio-fijo .inicio-lado > .inicio-bloque.inicio-sugerencias { flex: 1 1 0; min-height: 11.5rem; }
+  .inicio-fijo .inicio-sugerencias .sugerencias-texto { flex: 1 1 0; min-height: 3rem; }
 }
