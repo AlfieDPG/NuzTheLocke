@@ -1728,3 +1728,113 @@
   box-shadow: inset 3px 0 0 var(--color-locke), inset 0 0 0 1.5px rgb(var(--color-vista)), 0 2px 5px rgba(0, 0, 0, 0.3);
   cursor: default;
 }
+
+/* ---------- Rutas, rediseño (2026-11-13): barra de progreso, caras de los companeros y el «Progreso de»
+   más claro ---------- */
+
+/* «18 de 83» y la barrita, en vez de «Usadas: 18 / 83» */
+.rutas-progreso {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 0 1 20rem;
+  min-width: 11rem;
+}
+
+.rutas-progreso b {
+  font-family: var(--letra-titulos);
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+.rutas-progreso b small {
+  color: var(--t-gris);
+  font-size: 0.85rem;
+}
+
+.rutas-pista {
+  flex: 1;
+  height: 0.65rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--t-control);
+}
+
+.rutas-pista span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(var(--color-vista)), color-mix(in srgb, rgb(var(--color-vista)) 60%, white));
+  transition: width 0.25s;
+}
+
+/* Las caras de quienes del locke ya han capturado en ese lugar: dos como mucho y un «+N» */
+.ruta-companeros {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  margin-left: 0.1rem;
+  padding-left: 0.3rem;
+}
+
+.ruta-comp-cara,
+.ruta-comp-mas {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: -0.3rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--t-fondo);
+  box-shadow: 0 0 0 1.5px var(--t-fondo-2);
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+.ruta-comp-cara.fallada {
+  box-shadow: 0 0 0 2px var(--t-mal);
+  background: color-mix(in srgb, var(--t-mal) 35%, var(--t-fondo));
+  color: var(--t-mal);
+}
+
+.ruta-comp-cara.fallada img {
+  filter: grayscale(0.8) sepia(1) hue-rotate(-30deg) saturate(2.5);
+  opacity: 0.85;
+}
+
+.ruta-comp-cara img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ruta-comp-mas {
+  background: var(--t-control);
+  color: var(--t-gris-2);
+}
+
+/* «Progreso de» (con varios lockes del mismo juego): la fila aparte, con su aire, y cada locke como un
+   botón con su capa de color; el elegido, con el aro */
+.progreso-lockes {
+  margin: 0.85rem 0 0.4rem;
+  padding: 0.5rem 0.2rem 0;
+  border-top: 1px dashed rgba(var(--t-tinte), 0.2);
+  gap: 0.5rem;
+}
+
+.progreso-lockes button {
+  box-shadow: inset 4px 0 0 var(--color-locke);
+  background: var(--t-fondo-2);
+}
+
+.progreso-lockes button.activo {
+  background: var(--t-fondo-2);
+  box-shadow: inset 4px 0 0 var(--color-locke), inset 0 0 0 2px var(--color-locke);
+}
+
+/* Prueba: sin el sello ✓ de las rutas capturadas (ya se ven por su color y su retrato) */
+.ruta.usada::after {
+  display: none;
+}

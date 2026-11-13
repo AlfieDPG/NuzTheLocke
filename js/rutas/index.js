@@ -5,6 +5,12 @@
 // la misma lista pasa a tener casillas: apartados con su título, lugares que se quitan con
 // la X y se añaden escribiéndolos (con los de la web como sugerencia) o copiando de golpe
 // los de un juego de la web.
+//
+// Con un locke elegido (el de «Progreso de» o el único abierto de ese juego), cada lugar enseña las
+// caras (dos como mucho y un «+N») de los compañeros que ya han pasado por ahí; en rojo, los que
+// lo intentaron y no consiguieron la captura. Sale de la actividad del locke («ha capturado en la
+// Ruta 3», o «ruta-fallida», que no se ve en la lista), que no dice qué Pokémon: nadie ve lo que te
+// ha tocado.
 
 import { LUGARES, lugaresDelJuego, nombreDeLugar } from "./datos.js";
 import { crearSelectorJuego, CLAVE_HIERBA_RUTAS } from "../comun/selector-juego.js";
@@ -16,7 +22,10 @@ import { JUEGOS } from "../comun/juegos.js";
 import {
   rutasPropias, lugaresDe, seccionesDeLaWeb, lugaresDeLaWeb, MAX_LUGARES
 } from "../comun/personalizados.js";
-import { apuntarEnLockesDelJuego, claveDeProgresoActual, alCambiarLockes } from "../comun/lockes.js";
+import {
+  apuntarEnLockesDelJuego, claveDeProgresoActual, alCambiarLockes, lockeDeProgreso, lockePorId, leerActividad, estadoDe
+} from "../comun/lockes.js";
+import { usuarioActual } from "../comun/nube.js";
 import { crearFilaLockes, pintarFilaLockes, firmaLockes } from "../comun/progreso-lockes.js";
 import { plantillaCaptura, abrirCaptura, iniciarCapturas, quitarCaptura, quitarCapturasDelJuego, capturaDe } from "./capturas.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
@@ -78,9 +87,78 @@ function guardar() {
   escribir(CLAVE_MARCADAS, marcadas);
 }
 
+// «18 de 83» y una barrita que se va llenando
 function pintarProgreso() {
   const total = apartadosDelJuego().reduce((suma, a) => suma + lugares[a.clave].length, 0);
-  progreso.textContent = t("Usadas: {n} / {total}", { n: usadas.size, total });
+  const tanto = total ? Math.min(100, Math.round((usadas.size / total) * 100)) : 0;
+  progreso.innerHTML = `
+    <b>${usadas.size} <small>${t("de {n}", { n: total })}</small></b>
+    <span class="rutas-pista" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${usadas.size}"><span style="width: ${tanto}%"></span></span>`;
+}
+
+// ---------- Los compañeros del locke ----------
+
+const CARAS_A_LA_VISTA = 2;
+const CADUCA_CACHE = 2 * 60 * 1000;
+const cacheCompaneros = new Map(); // idLocke -> { cuando, lugares: Map(lugar -> [uid]) }
+let companeros = { idLocke: null, lugares: new Map() };
+let lecturaCompaneros = 0;
+
+function elLockeDeAqui() {
+  const id = juego ? lockeDeProgreso(juego.id, "rutasPropias") : null;
+  return id ? lockePorId(id) : null;
+}
+
+// Quién del locke elegido ya ha capturado en cada lugar (de su actividad). Se vuelve a pintar si hay algo.
+async function leerCompaneros() {
+  const locke = elLockeDeAqui();
+  const yo = usuarioActual();
+  const otros = locke && yo ? (locke.jugadores || []).filter((uid) => uid !== yo.uid && estadoDe(locke, uid) === "aceptado") : [];
+  const esta = ++lecturaCompaneros;
+  if (!otros.length) {
+    const habia = companeros.idLocke !== null;
+    companeros = { idLocke: null, lugares: new Map() };
+    if (habia && juego && !editando) pintarLista();
+    return;
+  }
+  let datos = cacheCompaneros.get(locke.id);
+  if (!datos || Date.now() - datos.cuando > CADUCA_CACHE) {
+    const sucesos = await leerActividad(locke.id, 1000);
+    if (esta !== lecturaCompaneros) return;
+    // Del más viejo al más nuevo: vale lo último que apuntó cada uno en cada lugar
+    const lugares = new Map();
+    for (const suceso of sucesos || []) {
+      const tipos = ["ruta", "ruta-fallida"];
+      if (!tipos.includes(suceso.tipo) || !suceso.detalle || suceso.uid === yo.uid || !otros.includes(suceso.uid)) continue;
+      const quienes = lugares.get(suceso.detalle) || new Map();
+      quienes.set(suceso.uid, suceso.tipo === "ruta-fallida");
+      lugares.set(suceso.detalle, quienes);
+    }
+    datos = { cuando: Date.now(), lugares };
+    if (sucesos) cacheCompaneros.set(locke.id, datos);
+  }
+  companeros = { idLocke: locke.id, lugares: datos.lugares };
+  if (juego && !editando) pintarLista();
+}
+
+// Las caras de quienes del locke ya han pasado por ese lugar (sin decir qué cogieron); en rojo, quien
+// lo intentó y no lo consiguió
+function plantillaCompaneros(clave) {
+  const lugar = companeros.lugares.get(nombreDelLugar(clave));
+  const locke = lugar && lugar.size ? lockePorId(companeros.idLocke) : null;
+  if (!locke) return "";
+  const quienes = [...lugar.entries()].map(([uid, fallada]) => ({ uid, fallada, nombre: (locke.nombres || {})[uid] || t("Jugador") }));
+  const titulo = quienes
+    .map((q) => (q.fallada ? t("{nombre} no lo consiguió aquí", { nombre: q.nombre }) : t("{nombre} ya ha capturado aquí", { nombre: q.nombre })))
+    .join("\n");
+  const caras = quienes.slice(0, CARAS_A_LA_VISTA).map((q) => {
+    const foto = (locke.fotos || {})[q.uid] || "";
+    return `<span class="ruta-comp-cara ${q.fallada ? "fallada" : ""}">${foto
+      ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-quitar-si-falla>`
+      : escaparHTML(((q.nombre || "?")[0] || "?").toUpperCase())}</span>`;
+  });
+  const mas = quienes.length - CARAS_A_LA_VISTA;
+  return `<span class="ruta-companeros" title="${escaparHTML(titulo)}">${caras.join("")}${mas > 0 ? `<span class="ruta-comp-mas">+${mas}</span>` : ""}</span>`;
 }
 
 function botonLugar(apartado, texto) {
@@ -110,7 +188,7 @@ function botonLugar(apartado, texto) {
   return `<button class="ruta ${evento ? "evento" : ""} ${usada ? "usada" : ""} ${fallada ? "fallada" : ""}" aria-pressed="${usada}"
     data-clave="${escaparHTML(clave)}" data-buscar="${escaparHTML(quitarAcentos(visible === texto ? texto : `${texto} ${visible}`))}">${
       usada ? plantillaCaptura(claveGuardado(), clave) : `<span class="ruta-hueco"></span>`
-    }<span class="ruta-textos">${contenido}${mote}</span></button>`;
+    }<span class="ruta-textos">${contenido}${mote}</span>${plantillaCompaneros(clave)}</button>`;
 }
 
 // «rutas:Ruta 3» -> «Ruta 3»; en los eventos, solo el lugar («Lugar: detalle»)
@@ -392,8 +470,13 @@ export function iniciar() {
   });
 
   activarEditor();
-  iniciarCapturas(() => {
+  // Al apuntar una captura: si es un «No la conseguí» (o se arregla uno), también a la actividad del locke,
+  // para que los compañeros vean ahí tu cara en rojo (o ya normal)
+  iniciarCapturas((clave, ahora, antes) => {
     if (juego && !editando) pintarLista();
+    if (!clave || !juego) return;
+    const tipo = ahora === "fallada" ? "ruta-fallida" : ahora === "capturada" && antes === "fallada" ? "ruta" : null;
+    if (tipo) apuntarEnLockesDelJuego("rutasPropias", juego.id, tipo, nombreDelLugar(clave), true).catch((error) => console.error(error));
   });
 
   buscador.addEventListener("input", filtrar);
@@ -477,7 +560,11 @@ function elegirJuego(nuevo, seguir = false) {
   }
 
   if (!mismo || !seguir) buscador.value = "";
+  // Las caras de otro locke no valen para este (hasta que llegue la actividad del nuevo)
+  const aqui = elLockeDeAqui();
+  if (companeros.idLocke !== (aqui ? aqui.id : null)) companeros = { idLocke: null, lugares: new Map() };
   pintarLista();
+  if (!editando) leerCompaneros().catch((error) => console.error(error));
 }
 
 export function mostrar() {

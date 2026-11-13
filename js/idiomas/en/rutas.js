@@ -20,6 +20,8 @@ export default {
   "Ula-Ula": "Ula'ula",
   "Poni": "Poni",
   "Usadas: {n} / {total}": "Used: {n} / {total}",
+  "{nombre} ya ha capturado aquí": "{nombre} has already caught something here",
+  "{nombre} no lo consiguió aquí": "{nombre} tried here but didn't catch anything",
   "Sin lugares.": "No locations.",
   "Copiar lugares de...": "Copy locations from...",
   "Apartado": "Section",

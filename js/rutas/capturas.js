@@ -128,11 +128,14 @@ async function elegirEspecie(pokemon) {
 function guardarEn(idJuego, clave, captura) {
   const guardadas = todas();
   const delJuego = { ...(guardadas[idJuego] || {}) };
+  const antes = delJuego[lugarDe(clave)] || null;
   if (captura) delJuego[lugarDe(clave)] = captura;
   else delete delJuego[lugarDe(clave)];
   guardadas[idJuego] = delJuego;
   escribir(CLAVE, guardadas);
-  alGuardar();
+  // Qué había y qué hay ahora («capturada», «fallada» o nada), para la actividad del locke
+  const estado = (c) => (c ? (c.fallada ? "fallada" : "capturada") : "quitada");
+  alGuardar(clave, estado(captura), estado(antes));
 }
 
 // Al desmarcar un lugar, lo que se capturó ahí se va con él (sin volver a pintar: ya lo hace
@@ -175,7 +178,7 @@ async function guardar() {
   guardarEn(enLugar.idJuego, enLugar.clave, captura);
 }
 
-// alCambiar: para volver a pintar la lista
+// alCambiar(clave, ahora, antes): para volver a pintar la lista y avisar a los lockes
 export function iniciarCapturas(alCambiar) {
   alGuardar = alCambiar;
   dialogo = document.querySelector("#dialogo-captura");
