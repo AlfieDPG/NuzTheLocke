@@ -99,10 +99,11 @@ export function plantillaCombates(locke) {
 export function plantillaRom(locke, uid, editable) {
   const pasada = seHaPasadoLaRom(locke, uid);
   const estado = pasada ? t("ROM superada") : t("ROM sin pasar");
-  const icono_ = icono(pasada ? "visto" : "mando");
+  // A todo el ancho, en su franja al pie de la ficha (css/versus.css, «Locke abierto»)
+  const icono_ = icono(pasada ? "corona" : "mando");
   return editable
-    ? `<button class="locke-rom ${pasada ? "pasada" : ""}" title="${estado} · ${pasada ? t("Desmarcar") : t("Me he pasado la ROM")}" aria-label="${estado}">${icono_}</button>`
-    : `<span class="locke-rom ${pasada ? "pasada" : ""}" title="${estado}" aria-label="${estado}">${icono_}</span>`;
+    ? `<button class="locke-rom ${pasada ? "pasada" : ""}" title="${pasada ? t("Desmarcar") : t("Me he pasado la ROM")}">${icono_} ${estado}</button>`
+    : `<span class="locke-rom ${pasada ? "pasada" : ""}">${icono_} ${estado}</span>`;
 }
 
 // Equipo final y MVP (con el locke cerrado). El tuyo se cambia con el lápiz.

@@ -39,8 +39,10 @@ import {
   crearLocke, editarLocke, invitarALocke, quitarDeLocke, sePuedenCambiarVidas,
   cambiarNumero, borrarLocke, enlaceParaSeguir, lockePorId, nuevoIdCadena, vidasDeLaSiguienteEtapa, pokemonQuePasan,
   hayEtapaSiguiente, crearSiguienteEtapa, siguenEnLaCadena, estaEliminado, combatesDe, victoriasDe, medallasDe, cambiarMedallas,
-  muertosDe, conKanto, puestosDe, elegirLockeDeProgreso
+  muertosDe, conKanto, puestosDe, elegirLockeDeProgreso, aceptarLocke, rechazarLocke
 } from "../comun/lockes.js";
+import { montarPanel, mostrarPanel, ocultarPanel, filtrarPanel } from "./panel.js";
+import { abrirCapa, cerrarCapa } from "../comun/atras.js";
 import { kantoEnCaps, cambiarKantoEnCaps } from "../levelcaps/datos.js";
 import { medallasDelLocke, marcarGimnasios } from "../comun/medallas.js";
 import { partidaDe, sePuedeLeer } from "../partida/partidas.js";
@@ -48,12 +50,12 @@ import {
   iniciarCombates, plantillaCombates, plantillaRom, plantillaSalon, abrirCombate, abrirTerminar, abrirSalon,
   alternarRom
 } from "./combates.js";
-import { iniciarPartida, plantillaPartida, accionPartida } from "./partida.js";
+import { iniciarPartida, plantillaPartida, plantillaJugar, accionPartida } from "./partida.js";
 import { REGLAS_ARBITRO, arbitroLimpio } from "../partida/arbitro.js";
 import { completarReglas, hayAlgo, misReglas, normasGuardadas, resumenNormas, hierbaEnPueblos } from "../randomizer/reglas.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
 import { campoNumero } from "../comun/numero.js";
-import { caraDePokemon } from "../comun/elegir-equipo.js";
+import { caraDePokemon, carasDeEquipo } from "../comun/elegir-equipo.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
 let seccion = null;
@@ -61,10 +63,10 @@ let lista = null;
 let aviso = null;
 let dialogo = null;
 let botonNuevo = null;
+let barra = null;      // la barra de arriba (Nuevo locke, aviso, vista): se esconde con un locke abierto
+let panelLocke = null; // el panel de la derecha de un locke abierto (js/versus/panel.js)
 
 const VIDAS_POR_DEFECTO = 10;
-const MOSTRAR_DE_ENTRADA = 5; // lockes que se ven sin pulsar «Ver todos»
-let verTodos = false;
 
 let invitables = []; // perfiles que salen para invitar, para copiar su nombre y su foto
 let elegidos = [];   // los que se van a meter al guardar (perfiles)
@@ -168,26 +170,27 @@ function alternarMedalla(locke, indice) {
 // En la ficha de los demás, donde en la tuya va la partida: el mismo recuadro del equipo pero
 // con sus caídos (los últimos, con su cuenta), y a la derecha su actividad. Lo que se ve ya está
 // en el cementerio, así que no destapa nada en un randomlocke.
-const CAIDOS_VISIBLES = 4;
+const CAIDOS_VISIBLES = 6;
 
 function plantillaCaidos(locke, uid) {
   const muertos = muertosDe(locke, uid);
-  const ultimos = muertos.slice(-CAIDOS_VISIBLES).reverse(); // el último, primero
-  const resto = muertos.length - ultimos.length;
+  // Seis casillas como las de tu equipo: la primera, la calavera (gris si aún no ha muerto nadie),
+  // y las otras cinco, sus últimas bajas (la última, primero)
+  const ultimos = muertos.slice(-(CAIDOS_VISIBLES - 1)).reverse();
+  const casillas = `<span class="locke-tarjeta-poke cuenta">${icono("calavera")}</span>` +
+    Array.from({ length: CAIDOS_VISIBLES - 1 }, (_, i) =>
+      ultimos[i]
+        ? `<span class="locke-tarjeta-poke caido" title="${escaparHTML(nombreMuerto(ultimos[i]))}">${retratoMuerto(ultimos[i])}</span>`
+        : `<span class="locke-tarjeta-poke hueco"></span>`
+    ).join("");
   const caidos = muertos.length
-    ? `<button class="locke-caidos" title="${t("Ver cementerio")}">
-         <span class="locke-caidos-cuenta">${icono("calavera")} ${muertos.length}</span>
-         <span class="locke-caidos-caras">
-           ${ultimos.map((muerto) => `<span title="${escaparHTML(nombreMuerto(muerto))}">${retratoMuerto(muerto)}</span>`).join("")}
-           ${resto ? `<small>+${resto}</small>` : ""}
-         </span>
-       </button>`
-    : `<div class="locke-caidos vacio">${icono("calavera")} ${t("Sin bajas")}</div>`;
+    ? `<button class="locke-fila-ancho locke-fila-casillas locke-caidos" title="${t("Ver cementerio")} (${muertos.length})">${casillas}</button>`
+    : `<div class="locke-fila-ancho locke-fila-casillas locke-caidos vacio" title="${t("Sin bajas")}">${casillas}</div>`;
 
   return `
-    <div class="locke-partida">
+    <div class="locke-partida locke-fila">
       ${caidos}
-      <button class="locke-actividad-de" title="${t("Ver su actividad")}">${icono("actividad")}</button>
+      <button class="locke-fila-lado locke-actividad-de" title="${t("Ver su actividad")}">${icono("actividad")}</button>
     </div>`;
 }
 
@@ -211,13 +214,15 @@ function plantillaPuesto(locke, uid, resumen = false) {
   const puesto = ranking && ranking.puestos[uid];
   if (!puesto || puesto > 3) return "";
   const texto = escaparHTML(porQue(ranking, uid, PUESTOS[puesto]));
-  if (resumen) return `<span class="locke-resumen-galardon puesto-${puesto}" data-puesto="${puesto}" title="${texto}" role="img" aria-label="${texto}"></span>`;
+  if (resumen === true) return `<span class="locke-resumen-galardon puesto-${puesto}" data-puesto="${puesto}" title="${texto}" role="img" aria-label="${texto}"></span>`;
   const clave = `${locke.id}:${uid}`;
   const entra = vistos.get(clave) !== puesto ? "entra" : "";
   vistos.set(clave, puesto);
-  return `
+  const galardon = `
     <span class="locke-galardon-cinta puesto-${puesto} ${entra}" aria-hidden="true"></span>
     <span class="locke-galardon puesto-${puesto} ${entra}" title="${texto}" role="img" aria-label="${texto}">${puesto}</span>`;
+  // En el banner de la ficha (locke abierto): en la esquina, colgado del borde de arriba
+  return resumen === "banner" ? `<span class="locke-puesto-banner">${galardon}</span>` : galardon;
 }
 
 function plantillaJugador(locke, uid) {
@@ -233,7 +238,6 @@ function plantillaJugador(locke, uid) {
   return `
     <div class="locke-jugador ${gano ? "ganador" : ""} ${pendiente ? "pendiente" : ""} ${esMio ? "mio" : ""} ${eliminado ? "eliminado" : ""}"
          data-uid="${escaparHTML(uid)}">
-      ${pendiente ? "" : plantillaPuesto(locke, uid)}
       <div class="locke-persona ${fondoVisualDe(uid).clase}" style="${fondoVisualDe(uid).estilo}">
         <div class="locke-cara ${claseMarcoDe(uid)}" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">
           ${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-respaldo="" data-quitar-si-falla>` : ""}
@@ -246,20 +250,23 @@ function plantillaJugador(locke, uid) {
         ${gano ? `<span class="locke-corona">${icono("corona")}</span>` : ""}
         ${pendiente ? `<span class="locke-pendiente">${t("Sin contestar")}</span>` : ""}
         ${eliminado ? `<span class="locke-eliminado">${t("Eliminado")}</span>` : ""}
-        ${pendiente ? "" : plantillaRom(locke, uid, esMio && !cerrado && !eliminado)}
+        ${pendiente ? "" : plantillaPuesto(locke, uid, "banner")}
       </div>
 
       ${plantillaCifras(locke, uid, esMio && !cerrado)}
       ${pendiente ? "" : plantillaMedallas(locke, uid, esMio && !cerrado)}
-      ${esMio && !pendiente ? plantillaPartida(locke) : ""}
-      ${!esMio && !pendiente && !cerrado && sePuedeLeer(locke) ? plantillaCaidos(locke, uid) : ""}
-      ${cerrado && !pendiente ? plantillaSalon(locke, uid, esMio) : ""}
+      <div class="locke-jugador-parte">
+        ${esMio && !pendiente ? plantillaPartida(locke) : ""}
+        ${!esMio && !pendiente && !cerrado && sePuedeLeer(locke) ? plantillaCaidos(locke, uid) : ""}
+        ${cerrado && !pendiente ? plantillaSalon(locke, uid, esMio) : ""}
+      </div>
+      ${pendiente ? "" : `<div class="locke-jugador-rom">${plantillaRom(locke, uid, esMio && !cerrado && !eliminado)}${esMio ? plantillaJugar(locke) : ""}</div>`}
     </div>`;
 }
 
 // Atajos del pie: a sus Rutas y sus Level caps si es un juego de la web, a sus normas si tiene,
 // a su cementerio y a su actividad
-function plantillaAtajos(locke) {
+function plantillaAtajos(locke, arriba = false) {
   const normas = normasCompletas(normasDeLocke(locke)).length;
 
   const rutas = destinoDe(locke, "rutas");
@@ -268,20 +275,19 @@ function plantillaAtajos(locke) {
     ${rutas ? `<button class="locke-ir" data-ir="rutas" data-juego="${escaparHTML(rutas)}">${icono("mapa")} ${t("Rutas")}</button>` : ""}
     ${caps ? `<button class="locke-ir" data-ir="levelcaps" data-juego="${escaparHTML(caps)}">${icono("escudo")} Level caps</button>` : ""}`;
 
+  const etiqueta = arriba ? "div" : "footer";
   return `
-    <footer class="locke-juego">
+    <${etiqueta} class="locke-juego ${arriba ? "locke-atajos-arriba" : ""}">
       ${atajos}
       ${normas ? `<button class="locke-ir" data-ir="normas">${icono("libro")} ${t("Normas")} (${normas})</button>` : ""}
       ${locke.randomizer && locke.estado !== "cerrado" ? `<button class="locke-ir" data-ir="randomizer">${icono("mezclar")} ${t("Randomizar mi ROM")}</button>` : ""}
       <button class="locke-ir" data-ir="cementerio">${icono("calavera")} ${t("Cementerio")} (${totalMuertos(locke)})</button>
-      <button class="locke-ir" data-ir="actividad">${icono("actividad")} ${t("Actividad")}</button>
-      ${(locke.jugadores || []).length > 1 ? `<button class="locke-ir" data-ir="chat">${icono("mensaje")} ${t("Chat")}</button>` : ""}
       ${locke.publico ? `<button class="locke-ir" data-ir="seguir" title="${t("Copiar el enlace para seguidores")}">${icono("enlace")} ${t("Enlace")}</button>` : ""}
       ${locke.estado === "cerrado" ? `<button class="locke-ir" data-ir="cronica">${icono("trofeo")} ${t("Crónica")}</button>` : ""}
-    </footer>`;
+    </${etiqueta}>`;
 }
 
-function plantillaLocke(locke) {
+function plantillaLocke(locke, resumido = false, combatesAparte = false) {
   const cerrado = locke.estado === "cerrado";
   const tipo = locke.tipo || { nombre: "Locke", color: "#3498db" };
   const juego = nombreJuego(locke);
@@ -292,22 +298,17 @@ function plantillaLocke(locke) {
     : `${icono("aspa")} ${t("Nadie ganó")}`;
   const fecha = cerrado && locke.fechaFin ? ` · ${escaparHTML(fechaLarga(locke.fechaFin))}` : "";
 
-  // Un locke cerrado ya no se toca, salvo para que quien lo creó pueda borrarlo. Terminado,
-  // cualquiera lo puede quitar de su lista (los demás lo siguen viendo).
+  // Un locke cerrado ya no se toca, salvo para que quien lo creó pueda borrarlo.
+  // resumido: en la lista resumida, solo la franja de arriba (pulsándola se abre el locke)
   const puedeEditar = !cerrado || soyCreador(locke);
-  const quitado = quitados().includes(locke.id);
-  const plegado = estaPlegado(locke.id);
-  const textoPlegar = plegado ? t("Ver entero") : t("Resumir");
+  const plegado = resumido;
 
   return `
-    <article class="locke ${cerrado ? "cerrado" : "abierto"} ${plegado ? "plegado" : ""}" data-id="${escaparHTML(locke.id)}"
+    <article class="locke ${cerrado ? "cerrado" : "abierto"} ${plegado ? "plegado se-abre" : ""}" data-id="${escaparHTML(locke.id)}"
              style="--color-locke: ${colorDeTipo(tipo)}">
       <header class="locke-cabecera">
         <div class="locke-titular">
-          <span class="locke-tipo">
-            <button class="locke-plegar" aria-expanded="${!plegado}" title="${textoPlegar}" aria-label="${textoPlegar}"></button>
-            ${escaparHTML(tipo.nombre)}
-          </span>
+          <span class="locke-tipo">${escaparHTML(tipo.nombre)}</span>
           <h2 class="locke-titulo">${escaparHTML(locke.nombre)}</h2>
           ${juego || cerrado || locke.publico
             ? `<div class="locke-meta">
@@ -316,48 +317,40 @@ function plantillaLocke(locke) {
                 ${cerrado ? `<span class="locke-resultado ${locke.ganador ? "" : "sin-ganador"}">${resultado}${fecha}</span>` : ""}
               </div>`
             : ""}
+          ${combatesAparte ? plantillaAtajos(locke, true) : ""}
         </div>
         ${plantillaResumen(locke)}
         <div class="locke-acciones">
           ${!cerrado && soyCreador(locke) ? `<button class="locke-terminar" title="${t("Terminar el locke")}">${icono("corona")} ${t("Terminar")}</button>` : ""}
           ${puedeEditar ? `<button class="locke-editar" title="${t("Editar locke")}">${icono("lapiz")}</button>` : ""}
-          ${cerrado
-            ? `<button class="locke-quitar-lista" title="${quitado ? t("Volver a ponerlo en tu lista") : t("Quitar de tu lista")}">${icono(quitado ? "deshacer" : "aspa")}</button>`
-            : ""}
           ${soyCreador(locke) ? `<button class="locke-borrar" title="${t("Borrar locke")}">${icono("papelera")}</button>` : ""}
         </div>
       </header>
 
       <div class="locke-cuerpo">
         ${locke.descripcion ? `<p class="locke-descripcion">${escaparHTML(locke.descripcion)}</p>` : ""}
-        ${plantillaCombates(locke)}
+        ${combatesAparte ? "" : plantillaCombates(locke)}
 
         <div class="locke-jugadores ${puestosDe(locke) ? "con-galardones" : ""}">
           ${locke.jugadores.map((uid) => plantillaJugador(locke, uid)).join("")}
         </div>
 
-        ${plantillaAtajos(locke)}
+        ${combatesAparte ? "" : plantillaAtajos(locke)}
       </div>
     </article>`;
 }
 
 // ---------- Lockes resumidos ----------
 //
-// El guion de al lado del tipo es un «−»: lo pulsas y el locke se queda en su franja de color con lo
-// básico (cada jugador con su cara, sus vidas, sus victorias si sois varios y sus medallas); pasa a ser
-// un «+» que lo vuelve a abrir. Arriba a la derecha, el interruptor los resume o los abre todos.
-// Se guarda el modo de todos y los lockes que van al revés que él. Solo en este navegador.
+// Arriba a la derecha, el interruptor: tarjetas (plantillaTarjeta) o lista resumida (cada locke en su
+// franja de color con lo básico de cada jugador). Pulsando cualquiera se abre el locke. Solo en este
+// navegador.
 
 const CLAVE_PLEGADOS = "poketeams-lockes-plegados-v1";
 
 function plegados() {
   const guardado = leer(CLAVE_PLEGADOS, null) || {};
   return { resumidos: !!guardado.resumidos, distintos: Array.isArray(guardado.distintos) ? guardado.distintos : [] };
-}
-
-function estaPlegado(id) {
-  const { resumidos, distintos } = plegados();
-  return resumidos !== distintos.includes(id);
 }
 
 function plantillaResumen(locke) {
@@ -385,52 +378,6 @@ function plantillaResumen(locke) {
   return `<ul class="locke-resumen" aria-label="${t("Resumen")}">${cada.join("")}</ul>`;
 }
 
-// Resumir o abrir un locke poco a poco: su cuerpo baja o sube de alto (como las fichas de Amigos)
-const sinAnimaciones = matchMedia("(prefers-reduced-motion: reduce)");
-
-function plegarTarjeta(tarjeta, plegar) {
-  const cuerpo = tarjeta.querySelector(":scope > .locke-cuerpo");
-  const boton = tarjeta.querySelector(".locke-plegar");
-  const texto = plegar ? t("Ver entero") : t("Resumir");
-  boton.setAttribute("aria-expanded", !plegar);
-  boton.title = texto;
-  boton.setAttribute("aria-label", texto);
-  for (const animacion of cuerpo.getAnimations()) animacion.cancel();
-  tarjeta.classList.remove("cerrando");
-  if (sinAnimaciones.matches) {
-    tarjeta.classList.toggle("plegado", plegar);
-    return;
-  }
-
-  tarjeta.classList.remove("plegado");
-  const abierto = { height: `${cuerpo.offsetHeight}px`, opacity: 1 };
-  const cerrado = { height: "0px", opacity: 0 };
-  cuerpo.style.overflow = "hidden";
-  if (plegar) tarjeta.classList.add("cerrando");
-  const animacion = cuerpo.animate(plegar ? [abierto, cerrado] : [cerrado, abierto], {
-    duration: 260,
-    easing: "ease-in-out",
-    fill: plegar ? "forwards" : "none" // al resumir, cerrado hasta que se esconda de verdad
-  });
-  animacion.onfinish = () => {
-    cuerpo.style.overflow = "";
-    if (!plegar) return;
-    tarjeta.classList.remove("cerrando");
-    tarjeta.classList.add("plegado");
-    animacion.cancel();
-  };
-}
-
-// El «−» / «+» de un locke: ese va al revés que el modo de todos (o deja de ir)
-function alternarPlegado(tarjeta) {
-  const id = tarjeta.dataset.id;
-  const plegar = !(tarjeta.classList.contains("plegado") || tarjeta.classList.contains("cerrando"));
-  const { resumidos, distintos } = plegados();
-  const otros = distintos.filter((otro) => otro !== id);
-  escribir(CLAVE_PLEGADOS, { resumidos, distintos: plegar === resumidos ? otros : [...otros, id] });
-  plegarTarjeta(tarjeta, plegar);
-}
-
 // El interruptor: todos resumidos o todos detallados (los que iban al revés dejan de ir)
 function aplicarModoLockes() {
   const { resumidos } = plegados();
@@ -446,10 +393,6 @@ function aplicarModoLockes() {
 function cambiarModoLockes(resumidos) {
   escribir(CLAVE_PLEGADOS, { resumidos, distintos: [] });
   aplicarModoLockes();
-  for (const tarjeta of lista.querySelectorAll(".locke")) {
-    const plegada = tarjeta.classList.contains("plegado") || tarjeta.classList.contains("cerrando");
-    if (plegada !== resumidos) plegarTarjeta(tarjeta, resumidos);
-  }
 }
 
 // ---------- Cadenas en la lista ----------
@@ -630,7 +573,172 @@ async function crearEtapa() {
   }
 }
 
+// ---------- La lista: tarjetas ----------
+//
+// Cada locke, una tarjeta pequeña: arriba su franja (tipo, nombre, juego y tu puesto) con el degradado
+// del color del tipo; debajo las caras de quienes juegan (tres como mucho y «+N»), tus cifras, tu equipo
+// (si tienes la partida vinculada) y tu próxima medalla. Al pulsarla se abre el locke entero.
+// De una cadena, la tarjeta es la de su etapa de ahora. Los terminados van todos abajo, plegados.
+
+const MAX_CARAS = 3;
+
+function caraJugador(locke, uid) {
+  const foto = (locke.fotos || {})[uid] || "";
+  const nombre = escaparHTML((locke.nombres || {})[uid] || t("Jugador"));
+  return `<span class="locke-tarjeta-cara ${claseMarcoDe(uid)}" title="${nombre}">${foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-quitar-si-falla>` : ""}</span>`;
+}
+
+// «Pokémon Diamante Brillante / Perla Reluciente» no cabe en la tarjeta: si tu partida vinculada dice
+// cuál de las dos es, solo esa
+function nombreJuegoCorto(locke) {
+  const completo = nombreJuego(locke);
+  const version = versionDeMedallas(locke, usuarioActual().uid);
+  return typeof version === "string" && version && completo.includes(version) ? `Pokémon ${version}` : completo;
+}
+
+function plantillaTarjeta(locke, cadena = null) {
+  const uid = usuarioActual().uid;
+  const tipo = locke.tipo || { nombre: "Locke", color: "#3498db" };
+  const juego = nombreJuegoCorto(locke);
+  const cerrado = locke.estado === "cerrado";
+  const jugadores = (locke.jugadores || []).filter((cada) => estadoDe(locke, cada) !== "pendiente");
+  const mas = jugadores.length - MAX_CARAS;
+
+  const ranking = !cerrado && jugadores.length > 1 ? puestosDe(locke) : null;
+  const puesto = ranking && ranking.puestos[uid];
+  const galardon = puesto && puesto <= 3
+    ? `<span class="locke-tarjeta-puesto puesto-${puesto}" title="${escaparHTML(porQue(ranking, uid, PUESTOS[puesto]))}">
+         <span class="locke-galardon-cinta puesto-${puesto}" aria-hidden="true"></span>
+         <span class="locke-galardon puesto-${puesto}">${puesto}</span>
+         <small>${t("de {n}", { n: jugadores.length })}</small>
+       </span>`
+    : "";
+
+  const fuera = estaEliminado(locke, uid);
+  const vidas = fuera ? icono("calavera") : locke.vidasIlimitadas ? "∞" : (locke.vidas || {})[uid] || 0;
+  const delJuego = medallasDelLocke(locke, versionDeMedallas(locke, uid));
+  const tiene = delJuego.length ? medallasDe(locke, uid).tiene.filter((i) => i < delJuego.length) : [];
+  const proxima = delJuego.find((_, i) => !tiene.includes(i));
+
+  const partida = !cerrado ? partidaDe(locke.id) : null;
+  const equipo = (partida && partida.equipo) || [];
+  const huecos = Array.from({ length: 6 }, (_, i) =>
+    equipo[i] ? `<span class="locke-tarjeta-poke">${caraDePokemon(equipo[i])}</span>` : `<span class="locke-tarjeta-poke hueco"></span>`
+  ).join("");
+
+  let pie = "";
+  if (cerrado) {
+    pie = locke.ganador
+      ? `${icono("corona")} ${t("Ganó {nombre}", { nombre: escaparHTML((locke.nombres || {})[locke.ganador] || t("alguien")) })}`
+      : `${icono("aspa")} ${t("Nadie ganó")}`;
+  } else if (proxima) {
+    pie = `<img class="locke-tarjeta-medalla" src="${escaparHTML(proxima.imagen)}" alt="" loading="lazy" data-quitar-si-falla> ${t("Próxima: {medalla}", { medalla: escaparHTML(proxima.nombre) })}`;
+  } else if (delJuego.length) {
+    pie = `${icono("visto")} ${t("Todas las medallas")}`;
+  }
+
+  return `
+    <article class="locke-tarjeta ${cerrado ? "cerrado" : ""}" data-id="${escaparHTML(locke.id)}" style="--color-locke: ${colorDeTipo(tipo)}"
+             tabindex="0" role="button" aria-label="${t("Abrir {nombre}", { nombre: escaparHTML(locke.nombre) })}">
+      <header class="locke-tarjeta-cabeza">
+        <span class="locke-tipo">${escaparHTML(cadena ? `${tipo.nombre} · ${t("Etapa {n}", { n: cadena.etapa })}` : tipo.nombre)}</span>
+        <h3>${escaparHTML(locke.nombre)}</h3>
+        ${juego ? `<span class="locke-juego-nombre" title="${escaparHTML(nombreJuego(locke))}">${icono("mando")} <span>${escaparHTML(juego)}</span></span>` : ""}
+        ${galardon}
+      </header>
+      <div class="locke-tarjeta-cuerpo">
+        <div class="locke-tarjeta-datos">
+          <span class="locke-tarjeta-caras">
+            ${jugadores.slice(0, MAX_CARAS).map((cada) => caraJugador(locke, cada)).join("")}
+            ${mas > 0 ? `<span class="locke-tarjeta-mas">+${mas}</span>` : ""}
+          </span>
+          <span class="locke-tarjeta-cifras">
+            ${jugadores.length > 1 ? `<span class="victorias"><b>${victoriasDe(locke, uid)}</b><small>${t("Victorias")}</small></span>` : ""}
+            <span class="vidas"><b>${vidas}</b><small>${t("Vidas")}</small></span>
+            ${delJuego.length ? `<span class="medallas"><b>${tiene.length}/${delJuego.length}</b><small>${t("Medallas")}</small></span>` : ""}
+          </span>
+        </div>
+        ${cerrado ? "" : `<div class="locke-tarjeta-equipo" title="${partida ? t("Equipo de la partida") : t("Sin vincular")}">${huecos}</div>`}
+      </div>
+      ${pie ? `<footer class="locke-tarjeta-pie">${pie}</footer>` : ""}
+    </article>`;
+}
+
+// Invitaciones sin contestar, arriba de todo, con sus botones
+function plantillaInvitaciones() {
+  return invitacionesALockes()
+    .map((locke) => {
+      const creador = locke.creador;
+      const nombre = escaparHTML((locke.nombres || {})[creador] || t("Alguien"));
+      const juego = nombreJuego(locke);
+      const datos = [escaparHTML((locke.tipo && locke.tipo.nombre) || "Locke"), juego ? escaparHTML(juego) : ""].filter(Boolean).join(" · ");
+      return `
+        <div class="locke-invitacion" data-id="${escaparHTML(locke.id)}">
+          ${caraJugador(locke, creador)}
+          <p>${t("{quien} te invita a {locke}", { quien: `<b>${nombre}</b>`, locke: `<b>«${escaparHTML(locke.nombre)}»</b>` })} <span>· ${datos}</span></p>
+          <button class="locke-invitacion-no">${t("Rechazar")}</button>
+          <button class="locke-invitacion-si">${t("Unirme")}</button>
+        </div>`;
+    })
+    .join("");
+}
+
+// ---------- Un locke abierto ----------
+//
+// Al pulsar una tarjeta, el locke entero (o su cadena) a la izquierda y, a la derecha, su actividad y
+// su chat (js/versus/panel.js). «Atrás» (o el botón «Lockes») vuelve a la lista.
+
+let abiertoId = null;
+const capaLocke = {
+  abierta: () => Boolean(abiertoId),
+  cerrar: () => {
+    cerrarLocke(false);
+    return true;
+  }
+};
+
+function abrirLocke(id) {
+  if (!lockePorId(id)) return;
+  abiertoId = id;
+  abrirCapa(capaLocke);
+  pintar();
+  window.scrollTo(0, 0);
+}
+
+function cerrarLocke(conHistorial = true) {
+  if (!abiertoId) return;
+  abiertoId = null;
+  if (conHistorial) cerrarCapa(capaLocke);
+  ocultarPanel();
+  pintar();
+}
+
+function pintarAbierto(locke) {
+  const elementos = agruparEnCadenas(misLockes());
+  const suyo = elementos.find((elemento) => (elemento.etapas ? elemento.etapas.some((etapa) => etapa.id === locke.id) : elemento.locke.id === locke.id));
+  seccion.classList.add("con-locke");
+  barra.hidden = true;
+  lista.innerHTML = `
+    <button class="lockes-volver">${icono("izquierda")} ${t("Lockes")}</button>
+    ${suyo && suyo.etapas ? plantillaCadena(suyo.etapas) : plantillaLocke(locke, false, true)}
+    ${suyo && suyo.etapas ? "" : `
+      <section class="locke locke-aparte" data-id="${escaparHTML(locke.id)}">
+        <h3>${icono("espadas")} ${t("Combates")}</h3>
+        ${plantillaCombates(locke) || `<p class="locke-aparte-vacio">${t("Este juego no tiene combates entre vosotros.")}</p>`}
+      </section>`}`;
+  panelLocke.hidden = false;
+  mostrarPanel(suyo && suyo.etapas ? suyo.etapas[suyo.etapas.length - 1].id : locke.id);
+}
+
+let verTerminados = false;
+let pestanas = null;
+
 function pintar() {
+  seccion.classList.remove("con-locke");
+  barra.hidden = false;
+  pestanas.hidden = true;
+  panelLocke.hidden = true;
+
   if (!hayNube() || !usuarioActual()) {
     lista.innerHTML = plantillaSinSesion();
     botonNuevo.hidden = true;
@@ -639,60 +747,53 @@ function pintar() {
     return;
   }
 
+  // Abierto (y sigue existiendo): solo ese
+  if (abiertoId) {
+    const locke = lockePorId(abiertoId);
+    if (locke) {
+      pintarAbierto(locke);
+      return;
+    }
+    abiertoId = null;
+    cerrarCapa(capaLocke);
+    ocultarPanel();
+  }
+
   botonNuevo.hidden = false;
 
   const fallo = fallaLosLockes();
-  const pendientes = invitacionesALockes().length;
   const mios = misLockes();
   seccion.querySelector(".lockes-vista").hidden = !mios.length;
 
   if (fallo) aviso.textContent = fallo;
-  else if (pendientes) {
-    aviso.textContent = t(pendientes === 1 ? "Tienes {n} invitación sin contestar: mírala en la campana." : "Tienes {n} invitaciones sin contestar: míralas en la campana.", { n: pendientes });
-  } else if (!mios.length) {
-    aviso.textContent = t("Todavía no tienes ningún locke. Crea uno con «Nuevo locke».");
-  } else {
-    aviso.textContent = "";
-  }
+  else if (!mios.length && !invitacionesALockes().length) aviso.textContent = t("Todavía no tienes ningún locke. Crea uno con «Nuevo locke».");
+  else aviso.textContent = "";
 
-  // Del más nuevo al más antiguo. Solo los MOSTRAR_DE_ENTRADA últimos; el resto detrás de
-  // un botón que los despliega todos. Los terminados que has quitado, aparte, al final.
-  const fuera = new Set(quitados());
-  const deLaLista = mios.filter((locke) => !(locke.estado === "cerrado" && fuera.has(locke.id)));
-  const apartados = mios.filter((locke) => !deLaLista.includes(locke));
-  if (!apartados.length) verQuitados = false;
-  const ordenados = agruparEnCadenas([...deLaLista].sort((uno, otro) => (otro.creado || 0) - (uno.creado || 0)));
-  const quedan = ordenados.length - MOSTRAR_DE_ENTRADA;
-  const visibles = verTodos || quedan <= 0 ? ordenados : ordenados.slice(0, MOSTRAR_DE_ENTRADA);
+  // Del más nuevo al más antiguo; los terminados, aparte, al final y plegados
+  const elementos = agruparEnCadenas([...mios].sort((uno, otro) => (otro.creado || 0) - (uno.creado || 0)));
+  const ultimaDe = (elemento) => (elemento.etapas ? elemento.etapas[elemento.etapas.length - 1] : elemento.locke);
+  const enMarcha = elementos.filter((elemento) => ultimaDe(elemento).estado !== "cerrado");
+  const terminados = elementos.filter((elemento) => ultimaDe(elemento).estado === "cerrado");
+  const { resumidos } = plegados();
+  const pieza = (elemento) => {
+    const locke = ultimaDe(elemento);
+    return resumidos ? plantillaLocke(locke, true) : plantillaTarjeta(locke, elemento.etapas ? locke.cadena : null);
+  };
+  const clase = resumidos ? "lockes-filas" : "lockes-rejilla";
+
+  // Terminados: una pestaña en la barra de arriba (solo si hay alguno)
+  if (!terminados.length) verTerminados = false;
+  pestanas.hidden = !terminados.length;
+  pestanas.innerHTML = `
+    <button class="${verTerminados ? "" : "elegido"}" data-terminados="no" aria-pressed="${!verTerminados}">${t("En marcha ({n})", { n: enMarcha.length })}</button>
+    <button class="${verTerminados ? "elegido" : ""}" data-terminados="si" aria-pressed="${verTerminados}">${icono("trofeo")} ${t("Terminados ({n})", { n: terminados.length })}</button>`;
+  const visibles = verTerminados ? terminados : enMarcha;
 
   lista.innerHTML =
-    visibles.map((elemento) => (elemento.etapas ? plantillaCadena(elemento.etapas) : plantillaLocke(elemento.locke))).join("") +
-    (quedan > 0
-      ? `<button class="versus-ver-mas">${icono(verTodos ? "menos" : "mas")} ${
-          verTodos ? t("Ver solo los últimos") : t("Ver todos ({n} más)", { n: quedan })
-        }</button>`
-      : "") +
-    (apartados.length
-      ? `<button class="versus-ver-quitados">${icono(verQuitados ? "menos" : "mas")} ${
-          verQuitados ? t("Esconder los quitados") : t("Quitados de tu lista ({n})", { n: apartados.length })
-        }</button>`
-      : "") +
-    (verQuitados ? apartados.map(plantillaLocke).join("") : "");
-}
-
-// ---------- Lockes quitados de tu lista ----------
-
-const CLAVE_QUITADOS = "poketeams-lockes-quitados-v1";
-let verQuitados = false;
-
-function quitados() {
-  return leer(CLAVE_QUITADOS, []) || [];
-}
-
-function alternarQuitado(id) {
-  const ids = quitados();
-  escribir(CLAVE_QUITADOS, ids.includes(id) ? ids.filter((otro) => otro !== id) : [...ids, id]);
-  pintar();
+    plantillaInvitaciones() +
+    (visibles.length
+      ? `<div class="${clase}">${visibles.map(pieza).join("")}</div>`
+      : terminados.length ? `<p class="lockes-vacio">${t("No tienes ningún locke en marcha.")}</p>` : "");
 }
 
 // ---------- Ventana de crear / editar ----------
@@ -1323,7 +1424,31 @@ function textoDeError(error, que) {
 export function iniciar() {
   seccion = document.querySelector("#vista-lockes");
   lista = seccion.querySelector(".versus-lista");
+  barra = seccion.querySelector(".barra-versus");
+  // La lista y, a su derecha, el panel de un locke abierto: juntos en una rejilla
+  const columnas = document.createElement("div");
+  columnas.className = "versus-columnas";
+  lista.before(columnas);
+  columnas.append(lista);
+  panelLocke = document.createElement("aside");
+  panelLocke.className = "locke-panel";
+  panelLocke.hidden = true;
+  columnas.append(panelLocke);
+  montarPanel(panelLocke);
   aviso = seccion.querySelector(".versus-aviso");
+  // Pestañas «En marcha / Terminados», a la izquierda del botón de cómo verlos
+  pestanas = document.createElement("div");
+  pestanas.className = "lockes-pestanas";
+  pestanas.setAttribute("role", "group");
+  pestanas.setAttribute("aria-label", t("Qué lockes ver"));
+  pestanas.hidden = true;
+  seccion.querySelector(".lockes-vista").before(pestanas);
+  pestanas.addEventListener("click", (e) => {
+    const boton = e.target.closest("[data-terminados]");
+    if (!boton) return;
+    verTerminados = boton.dataset.terminados === "si";
+    pintar();
+  });
   botonNuevo = seccion.querySelector("#nuevo-locke");
   dialogo = document.querySelector("#dialogo-nuevo-locke");
   dialogoElegir = document.querySelector("#dialogo-elegir-amigos");
@@ -1353,11 +1478,15 @@ export function iniciar() {
     });
   };
 
+  botonNuevo.innerHTML = `${icono("mas")} ${t("Nuevo locke")}`;
   botonNuevo.addEventListener("click", () => abrir(null));
 
   for (const boton of seccion.querySelectorAll(".lockes-vista [data-modo]")) {
     boton.innerHTML = icono(boton.dataset.modo);
-    boton.addEventListener("click", () => cambiarModoLockes(boton.dataset.modo === "resumidos"));
+    boton.addEventListener("click", () => {
+      cambiarModoLockes(boton.dataset.modo === "resumidos");
+      pintar();
+    });
   }
   aplicarModoLockes();
 
@@ -1471,6 +1600,14 @@ export function iniciar() {
     true
   );
 
+  lista.addEventListener("keydown", (e) => {
+    const tarjeta = e.target.closest(".locke-tarjeta");
+    if (tarjeta && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      abrirLocke(tarjeta.dataset.id);
+    }
+  });
+
   lista.addEventListener("click", async (e) => {
     // Sin sesión: abre la ventana de entrar de siempre (la del panel lateral)
     if (e.target.closest(".versus-entrar")) {
@@ -1482,14 +1619,25 @@ export function iniciar() {
       abrirEtapa(siguienteEtapa.dataset.id);
       return;
     }
-    if (e.target.closest(".versus-ver-mas")) {
-      verTodos = !verTodos;
-      pintar();
+    if (e.target.closest(".lockes-volver")) {
+      cerrarLocke();
       return;
     }
-    if (e.target.closest(".versus-ver-quitados")) {
-      verQuitados = !verQuitados;
-      pintar();
+    const invitacion = e.target.closest(".locke-invitacion");
+    if (invitacion && e.target.closest("button")) {
+      for (const cada of invitacion.querySelectorAll("button")) cada.disabled = true;
+      const si = Boolean(e.target.closest(".locke-invitacion-si"));
+      (si ? aceptarLocke(invitacion.dataset.id) : rechazarLocke(invitacion.dataset.id)).catch((error) => {
+        console.error(error);
+        for (const cada of invitacion.querySelectorAll("button")) cada.disabled = false;
+        aviso.textContent = t("No se ha podido guardar el cambio.");
+      });
+      return;
+    }
+    // Una tarjeta (o una fila de la lista resumida): se abre el locke
+    const paraAbrir = e.target.closest(".locke-tarjeta, .locke.se-abre");
+    if (paraAbrir && !(paraAbrir.matches(".locke.se-abre") && e.target.closest("button, a, .locke-cara, .locke-resumen-cara"))) {
+      abrirLocke(paraAbrir.dataset.id);
       return;
     }
 
@@ -1497,10 +1645,6 @@ export function iniciar() {
     const boton = e.target.closest("button");
     if (!tarjeta || !boton) return;
 
-    if (boton.classList.contains("locke-plegar")) {
-      alternarPlegado(tarjeta);
-      return;
-    }
 
     const id = tarjeta.dataset.id;
     const jugador = e.target.closest(".locke-jugador");
@@ -1515,7 +1659,9 @@ export function iniciar() {
       return;
     }
     if (boton.classList.contains("locke-actividad-de")) {
-      abrirActividad(id, jugador.dataset.uid);
+      // Con el locke abierto, el panel de la derecha pasa a ser solo lo suyo
+      if (abiertoId) filtrarPanel(jugador.dataset.uid);
+      else abrirActividad(id, jugador.dataset.uid);
       return;
     }
     if (boton.classList.contains("locke-ir") && boton.dataset.ir === "normas") {
@@ -1540,8 +1686,6 @@ export function iniciar() {
       irAlJuego(boton.dataset.ir, boton.dataset.juego, locke);
     } else if (boton.classList.contains("locke-editar")) {
       abrir(locke);
-    } else if (boton.classList.contains("locke-quitar-lista")) {
-      alternarQuitado(id);
     } else if (boton.classList.contains("locke-borrar")) {
       if (await confirmar(`${t("¿Borrar «{nombre}»?", { nombre: locke.nombre })}\n\n${t("Lo pierden todos los que juegan.")}`)) tarea = borrarLocke(id);
     } else if (boton.classList.contains("locke-terminar")) {

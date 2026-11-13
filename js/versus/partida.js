@@ -78,31 +78,43 @@ export function plantillaPartida(locke) {
   const estado = estadoVinculo(locke.id);
   const pendientes = partida ? muertosSinApuntar(locke.id, misMuertos(locke)).length : 0;
 
-  let accion = "";
+  // Una fila de siete casillas: seis para el equipo y una para el botón de la derecha.
+  // Sin vincular (o leyendo), el botón de vincular ocupa las seis y a la derecha va la ayuda;
+  // vinculada, el equipo ocupa las seis y a la derecha el lápiz (ahí se revincula o desvincula).
+  let ancho = "";
   if (estado === "leyendo") {
-    accion = `<button class="locke-partida-vincular" disabled>${icono("enlace")} ${t("Leyendo...")}</button>`;
+    ancho = `<button class="locke-fila-ancho locke-partida-vincular" disabled>${icono("enlace")} ${t("Leyendo...")}</button>`;
   } else if (estado === "pausado") {
-    accion = `<button class="locke-partida-reanudar" title="${t("Volver a leer la partida")}">${icono("reanudar")} ${t("Reanudar")}</button>`;
+    ancho = `<button class="locke-fila-ancho locke-partida-reanudar" title="${t("Volver a leer la partida")}">${icono("reanudar")} ${t("Reanudar")}</button>`;
   } else if (!partida) {
-    // Con la partida ya leída, volver a vincular está en la ventana, junto a «Desvincular»
-    accion = sePuedeVigilar
-      ? `<button class="locke-partida-vincular">${icono("enlace")} ${t("Vincular partida")}</button>`
-      : `<button class="locke-partida-vincular">${icono("subir")} ${t("Leer partida")}</button>`;
+    ancho = sePuedeVigilar
+      ? `<button class="locke-fila-ancho locke-partida-vincular">${icono("enlace")} ${t("Vincular partida")}</button>`
+      : `<button class="locke-fila-ancho locke-partida-vincular">${icono("subir")} ${t("Leer partida")}</button>`;
+  } else {
+    const equipo = partida.equipo || [];
+    ancho = `<div class="locke-fila-ancho locke-fila-casillas" title="${t("Equipo de la partida")}">${Array.from({ length: 6 }, (_, i) =>
+      equipo[i] ? `<span class="locke-tarjeta-poke">${caraDePokemon(equipo[i])}</span>` : `<span class="locke-tarjeta-poke hueco"></span>`
+    ).join("")}</div>`;
   }
-
-  // Rojo Fuego / Verde Hoja y los de DS también se juegan desde la web (js/jugar)
-  const jugar = ["frlg", "dp", "platino", "hgss", "bw", "b2w2"].includes(locke.juego)
-    ? `<button class="locke-partida-jugar" title="${t("Jugar desde la web")}">${icono("consola")} ${t("Jugar")}</button>`
-    : "";
+  const lado = partida && estado !== "leyendo"
+    ? `<button class="locke-fila-lado locke-partida-abrir" title="${t("Editar la partida")}" aria-label="${t("Editar la partida")}">${icono("lapiz")}</button>`
+    : `<button class="locke-fila-lado locke-partida-ayuda" title="${t("Cómo funciona")}">?</button>`;
 
   return `
-    <div class="locke-partida">
-      ${partida ? `<button class="locke-partida-abrir" title="${t("Ver cajas")}">${carasDeEquipo({ nombre: t("Equipo de la partida"), pokemon: partida.equipo })}</button>` : ""}
+    <div class="locke-partida locke-fila">
+      ${ancho}
+      ${lado}
       ${pendientes ? `<button class="locke-partida-muertos" title="${t("Muertos por apuntar")}">${icono("calavera")} ${pendientes}</button>` : ""}
-      ${accion}
-      ${jugar}
-      <button class="locke-partida-ayuda" title="${t("Cómo funciona")}">?</button>
     </div>`;
+}
+
+// Rojo Fuego / Verde Hoja y los de DS también se juegan desde la web (js/jugar): el botón va
+// junto al de la ROM, al pie de tu ficha
+export function plantillaJugar(locke) {
+  if (!sePuedeLeer(locke) || locke.estado === "cerrado") return "";
+  return ["frlg", "dp", "platino", "hgss", "bw", "b2w2"].includes(locke.juego)
+    ? `<button class="locke-partida-jugar" title="${t("Jugar desde la web")}">${icono("consola")} ${t("Jugar")}</button>`
+    : "";
 }
 
 // Los botones de la partida en tu bloque. true si era uno de ellos.

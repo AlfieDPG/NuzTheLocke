@@ -5042,3 +5042,279 @@ button.locke-caidos:hover .locke-caidos-caras img {
   font-size: 0.85rem;
   opacity: 0.75;
 }
+
+/* ---------- Lockes rediseñados (2026-11-13) ----------
+   La lista son tarjetas pequeñas (o la lista resumida de siempre); al pulsar una se abre el locke
+   entero con su actividad y su chat a la derecha (js/versus/panel.js). En las fichas, el puesto va
+   en la esquina del banner y «ROM superada» es un botón a todo el ancho en su franja de abajo. */
+
+.locke-plegar { display: none; }
+.locke.se-abre { cursor: pointer; transition: transform 0.15s; }
+.locke.se-abre:hover { transform: translateY(-2px); }
+
+/* Invitaciones sin contestar, arriba */
+.locke-invitacion { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem 0.6rem 0.9rem; border-radius: 0.9rem; background: var(--t-panel); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 3px 0 0 rgb(186, 62, 102); }
+.locke-invitacion p { flex: 1; min-width: 0; margin: 0; font-size: 0.92rem; }
+.locke-invitacion p b { font-family: var(--letra-titulos); }
+.locke-invitacion p span { color: rgba(var(--t-texto-rgb), 0.6); font-size: 0.85rem; }
+.locke-invitacion button { padding: 0.4rem 0.8rem; border: none; border-radius: 0.5rem; background: var(--t-control); font-weight: bold; cursor: pointer; }
+.locke-invitacion button:hover { background: var(--t-control-2); }
+.locke-invitacion .locke-invitacion-si { background: color-mix(in srgb, rgb(186, 62, 102) 78%, black); color: #fff; }
+.locke-invitacion .locke-invitacion-si:hover { background: color-mix(in srgb, rgb(186, 62, 102) 78%, black); filter: brightness(1.12); }
+
+/* Las tarjetas */
+.lockes-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(19.5rem, 1fr)); gap: 0.9rem; }
+.lockes-filas { display: flex; flex-direction: column; gap: 0.85rem; }
+.locke-tarjeta { display: flex; flex-direction: column; overflow: hidden; border-radius: 0.9rem; background: var(--t-panel); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), inset 0.3rem 0 0 var(--color-locke, #3498db); cursor: pointer; transition: transform 0.15s; }
+.locke-tarjeta:hover, .locke-tarjeta:focus-visible { transform: translateY(-2px); }
+.locke-tarjeta.cerrado { opacity: 0.8; }
+.locke-tarjeta-cabeza { position: relative; display: flex; flex-direction: column; gap: 0.1rem; padding: 0.75rem 3.6rem 0.7rem 1.15rem; border-bottom: 1px dashed rgba(var(--t-tinte), 0.14); background: linear-gradient(100deg, color-mix(in srgb, var(--color-locke, #3498db) 17%, transparent), transparent 100%); }
+.locke-tarjeta-cabeza h3 { margin: 0; overflow: hidden; font-size: 1.25rem; text-overflow: ellipsis; white-space: nowrap; }
+.locke-tarjeta-cabeza .locke-juego-nombre { font-size: 0.82rem; }
+.locke-tarjeta-puesto { position: absolute; top: 0.75rem; right: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+.locke-tarjeta-puesto b { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--metal-brillo) 0 14%, var(--metal) 50%, var(--metal-sombra)); box-shadow: 0 0 0 0.12rem var(--metal-canto), 0 2px 5px rgba(0, 0, 0, 0.4); color: var(--metal-tinta); font-family: var(--letra-titulos); font-size: 0.9rem; }
+.locke-tarjeta-puesto small { color: rgba(var(--t-texto-rgb), 0.6); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+.locke-tarjeta-cuerpo { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.75rem 0.9rem 0.8rem 1.15rem; }
+.locke-tarjeta-datos { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.locke-tarjeta-caras { display: flex; padding-left: 0.4rem; }
+.locke-tarjeta-cara, .locke-tarjeta-mas { position: relative; display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; margin-left: -0.4rem; border-radius: 50%; background: var(--t-fondo); box-shadow: 0 0 0 2px var(--t-panel); overflow: hidden; }
+.locke-tarjeta-cara img { width: 100%; height: 100%; object-fit: cover; }
+.locke-tarjeta-mas { background: var(--t-control-2); font-family: var(--letra-titulos); font-size: 0.78rem; font-weight: 800; }
+.locke-tarjeta-cifras { display: flex; }
+.locke-tarjeta-cifras > span { display: flex; flex-direction: column; align-items: center; padding: 0 0.65rem; border-left: 1px dashed rgba(var(--t-tinte), 0.14); }
+.locke-tarjeta-cifras > span:first-child { border-left: none; }
+.locke-tarjeta-cifras b { display: flex; align-items: center; font-family: var(--letra-titulos); font-size: 1.35rem; line-height: 1.1; }
+.locke-tarjeta-cifras b .icono { width: 1.2rem; height: 1.2rem; }
+.locke-tarjeta-cifras small { color: rgba(var(--t-texto-rgb), 0.6); font-size: 0.58rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.locke-tarjeta-cifras .victorias b { color: #f0c43c; }
+.locke-tarjeta-cifras .vidas b { color: #e05a4a; }
+.locke-tarjeta-cifras .medallas b { color: #f0964a; }
+.locke-tarjeta-equipo { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.35rem; }
+.locke-tarjeta-poke { display: grid; place-items: center; aspect-ratio: 1; border-radius: 0.6rem; background: var(--t-fondo-2); overflow: hidden; }
+.locke-tarjeta-poke img { width: 85%; height: 85%; object-fit: contain; image-rendering: pixelated; }
+.locke-tarjeta-poke.hueco { border: 2px dashed rgba(var(--t-tinte), 0.18); background: none; }
+.locke-tarjeta-pie { display: flex; align-items: center; gap: 0.45rem; padding: 0.55rem 0.9rem 0.6rem 1.15rem; border-top: 1px dashed rgba(var(--t-tinte), 0.12); color: rgba(var(--t-texto-rgb), 0.75); font-size: 0.82rem; font-weight: 700; }
+.locke-tarjeta-pie .icono { width: 1rem; height: 1rem; }
+.locke-tarjeta-medalla { width: 1.15rem; height: 1.15rem; object-fit: contain; }
+
+/* Terminados, plegados al final */
+.versus-ver-terminados { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.65rem 1rem; border: none; border-radius: 0.75rem; background: var(--t-fondo-2); color: rgba(var(--t-texto-rgb), 0.8); font-weight: bold; text-align: left; cursor: pointer; }
+.versus-ver-terminados .icono { width: 1.05rem; height: 1.05rem; }
+.versus-ver-terminados .icono:last-child { margin-left: auto; }
+
+/* ---------- Un locke abierto: el locke a la izquierda y el panel a la derecha ---------- */
+.lockes-volver { display: inline-flex; align-items: center; gap: 0.25rem; align-self: flex-start; padding: 0.2rem 0.4rem 0.2rem 0.1rem; border: none; background: none; color: rgba(var(--t-texto-rgb), 0.7); font-weight: 800; cursor: pointer; }
+.lockes-volver:hover { color: var(--t-texto); }
+.lockes-volver .icono { width: 1.1rem; height: 1.1rem; }
+#vista-lockes.con-locke .versus-columnas { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; gap: 1rem; align-items: start; }
+.locke-panel { position: sticky; top: 0.85rem; display: flex; flex-direction: column; height: calc(100dvh - 1.7rem); max-height: 48rem; overflow: hidden; border-radius: 0.9rem; background: var(--t-panel); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.locke-panel[hidden] { display: none; }
+.panel-cabeza { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.8rem 0.9rem 0.7rem; border-bottom: 1px dashed rgba(var(--t-tinte), 0.14); }
+.panel-cabeza h3 { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-size: 1.1rem; }
+.panel-cabeza h3 .icono { width: 1.1rem; height: 1.1rem; color: rgb(var(--color-vista)); }
+.panel-filtros { display: flex; gap: 0.2rem; padding: 0.2rem; border-radius: 0.6rem; background: var(--t-fondo-2); }
+.panel-filtros button { flex: 1; height: 1.7rem; border: none; border-radius: 0.45rem; background: none; color: rgba(var(--t-texto-rgb), 0.75); font-size: 0.78rem; font-weight: 800; cursor: pointer; }
+.panel-filtros button.activo { background: var(--t-control-2); color: var(--t-texto); }
+.panel-solo { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.4rem 0.3rem 0.65rem; border-radius: 0.55rem; background: rgba(240, 150, 74, 0.14); font-size: 0.82rem; font-weight: 800; }
+.panel-solo button { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; margin-left: auto; border: none; border-radius: 50%; background: none; color: inherit; cursor: pointer; }
+.panel-solo .icono { width: 0.9rem; height: 0.9rem; }
+.panel-hilo { display: flex; flex-direction: column; gap: 0.6rem; flex: 1; min-height: 0; overflow-y: auto; padding: 0.8rem 0.9rem; scrollbar-width: thin; }
+.panel-vacio { margin: auto; color: rgba(var(--t-texto-rgb), 0.55); font-size: 0.88rem; text-align: center; }
+.panel-suceso { display: grid; grid-template-columns: 1.3rem minmax(0, 1fr) auto; align-items: start; gap: 0.5rem; color: rgba(var(--t-texto-rgb), 0.82); font-size: 0.82rem; line-height: 1.35; }
+.panel-suceso .suceso-icono { display: grid; place-items: center; width: 1.3rem; height: 1.3rem; }
+.panel-suceso .suceso-icono .icono { width: 1rem; height: 1rem; }
+.panel-suceso .suceso-icono img { width: 1.3rem; height: 1.3rem; border-radius: 50%; object-fit: cover; }
+.panel-suceso time { color: rgba(var(--t-texto-rgb), 0.5); font-size: 0.7rem; white-space: nowrap; }
+.panel-mensaje { align-self: flex-start; max-width: 85%; padding: 0.45rem 0.7rem; border-radius: 0.8rem 0.8rem 0.8rem 0.25rem; background: var(--t-fondo-2); font-size: 0.88rem; }
+.panel-mensaje b { display: block; font-size: 0.74rem; }
+.panel-mensaje p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.panel-mensaje.mio { align-self: flex-end; border-radius: 0.8rem 0.8rem 0.25rem 0.8rem; background: color-mix(in srgb, rgb(var(--color-vista)) 24%, var(--t-fondo-2)); }
+.panel-escribir { display: flex; gap: 0.25rem; margin: 0.6rem 0.75rem 0.75rem; padding: 0.2rem; border-radius: 0.65rem; background: var(--t-fondo-2); }
+.panel-campo { flex: 1; min-width: 0; padding: 0.4rem 0.55rem; border: none; outline: none; background: transparent !important; color: var(--t-texto); font: inherit; font-size: 0.9rem; }
+.panel-escribir button { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border: none; border-radius: 0.5rem; background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black); color: #fff; cursor: pointer; }
+.panel-escribir .icono { width: 1rem; height: 1rem; }
+.panel-error { margin: -0.3rem 0.9rem 0.6rem; color: var(--t-mal); font-size: 0.8rem; }
+
+/* Las fichas de los jugadores: todas del mismo alto; el puesto en el banner; la ROM, abajo */
+.locke-jugadores, .locke-jugadores.con-galardones { align-items: stretch; padding-top: 0.9rem; row-gap: 0.85rem; }
+.locke-jugador { padding-bottom: 0; }
+.locke-jugador-parte { display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; flex: 1; min-height: 2.6rem; }
+.locke-jugador-rom { margin: 0 -0.95rem; padding: 0.55rem 0.95rem 0.65rem; border-top: 1px dashed rgba(var(--t-tinte), 0.12); }
+.locke-jugador-rom .locke-rom { display: flex; gap: 0.4rem; width: 100%; height: 2.1rem; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 800; }
+.locke-jugador-rom span.locke-rom { border: 1px dashed rgba(var(--t-tinte), 0.18); }
+.locke-jugador-rom .locke-rom .icono { width: 1rem; height: 1rem; }
+.locke-jugador-rom .locke-rom.pasada { border: none; background: linear-gradient(180deg, rgba(240, 196, 60, 0.3), rgba(240, 196, 60, 0.16)); box-shadow: inset 0 0 0 1.5px rgba(240, 196, 60, 0.6); color: #f6d67a; }
+.locke-galardon.en-banner { position: relative; top: auto; right: auto; flex: none; margin-left: auto; }
+.locke-galardon.en-banner::before { display: none; }
+
+@media (max-width: 1100px) {
+  #vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr); }
+  .locke-panel { position: static; height: 30rem; }
+}
+
+/* Con el panel al lado queda menos ancho: las fichas se reparten la fila (tres caben) */
+#vista-lockes.con-locke .locke-jugadores { grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr)); }
+
+/* Segunda pasada (2026-11-13): tarjetas más grandes, retratos redondeados, medallas con cinta,
+   combates aparte (debajo del locke) y el panel hasta abajo */
+.lockes-rejilla { grid-template-columns: repeat(auto-fill, minmax(23rem, 1fr)); gap: 1rem; }
+.locke-tarjeta-cabeza { padding: 0.95rem 4.2rem 0.85rem 1.3rem; }
+.locke-tarjeta-cabeza h3 { font-size: 1.45rem; }
+.locke-tarjeta-cabeza .locke-juego-nombre { font-size: 0.88rem; }
+.locke-tarjeta-cuerpo { gap: 0.85rem; padding: 0.95rem 1.1rem 1rem 1.3rem; }
+.locke-tarjeta-cara, .locke-tarjeta-mas { width: 2.45rem; height: 2.45rem; margin-left: -0.5rem; }
+.locke-tarjeta-mas { font-size: 0.9rem; }
+.locke-tarjeta-cifras > span { padding: 0 0.8rem; }
+.locke-tarjeta-cifras b { font-size: 1.65rem; }
+.locke-tarjeta-cifras small { font-size: 0.62rem; }
+.locke-tarjeta-equipo { gap: 0.5rem; }
+.locke-tarjeta-poke { border-radius: 0.75rem; }
+.locke-tarjeta-poke img { width: 100%; height: 100%; border-radius: 0.75rem; object-fit: cover; }
+.locke-tarjeta-pie { padding: 0.7rem 1.1rem 0.75rem 1.3rem; font-size: 0.88rem; }
+.locke-tarjeta-medalla { width: 1.3rem; height: 1.3rem; }
+
+/* La medalla del puesto con su cinta (la de las fichas), en la esquina de la tarjeta */
+.locke-tarjeta-puesto { position: absolute; top: 1.1rem; right: 1.15rem; display: flex; flex-direction: column; align-items: center; width: 1.9rem; padding-top: 2.15rem; }
+.locke-tarjeta-puesto b { display: none; }
+.locke-tarjeta-puesto .locke-galardon { top: 0; right: 0; z-index: 1; }
+.locke-tarjeta-puesto .locke-galardon-cinta { top: -0.25rem; right: -0.35rem; z-index: 0; }
+.locke-tarjeta-puesto small { white-space: nowrap; }
+
+/* En la ficha de cada jugador: en el banner, a la derecha, colgada del borde de arriba */
+.locke-puesto-banner { position: relative; z-index: 1; flex: none; width: 1.9rem; height: 1.9rem; margin-left: auto; }
+.locke-puesto-banner .locke-galardon { top: 0; right: 0; z-index: 1; }
+.locke-puesto-banner .locke-galardon-cinta { top: -0.25rem; right: -0.35rem; z-index: 0; }
+.locke-persona .locke-nombre-caja { flex: 1; min-width: 0; }
+
+/* Las fichas, más anchas: el panel algo más estrecho */
+#vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr) 20rem; }
+#vista-lockes.con-locke .locke-jugadores { grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr)); }
+
+/* Combates, aparte, debajo del locke */
+.locke.locke-aparte { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.85rem 1.1rem 1rem; border-left: none; }
+.locke-aparte h3 { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-size: 1.1rem; }
+.locke-aparte h3 .icono { width: 1.1rem; height: 1.1rem; color: var(--color-locke, rgb(var(--color-vista))); }
+.locke-aparte .locke-combates { margin: 0; padding: 0; border: none; }
+
+/* El panel, de arriba abajo de la pantalla */
+.locke-panel { max-height: none; height: calc(100dvh - 1.7rem); }
+
+@media (max-width: 1100px) {
+  #vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr); }
+  .locke-panel { height: 30rem; }
+}
+
+/* Tercera pasada (2026-11-13): «Nuevo locke» con su «+» y más oscuro, chat más ancho, atajos arriba
+   y el nombre del juego en una sola línea en las tarjetas */
+#nuevo-locke { display: inline-flex; align-items: center; gap: 0.4rem; background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black); }
+#nuevo-locke:hover { background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black); filter: brightness(1.12); }
+#nuevo-locke .icono { width: 1.05rem; height: 1.05rem; }
+
+#vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr) 25rem; }
+
+.locke-atajos-arriba { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.55rem 0 0; padding: 0; border: none; background: none; }
+.locke-atajos-arriba .locke-ir { padding: 0.3rem 0.65rem; border-radius: 0.5rem; background: rgba(var(--t-tinte), 0.07); font-size: 0.8rem; }
+.locke-atajos-arriba .locke-ir:hover { background: rgba(var(--t-tinte), 0.14); }
+
+.locke-tarjeta-cabeza .locke-juego-nombre { display: flex; min-width: 0; }
+.locke-tarjeta-cabeza .locke-juego-nombre > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1100px) {
+  #vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Tres fichas por fila aunque el chat sea más ancho */
+#vista-lockes.con-locke .locke-jugadores { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+#vista-lockes.con-locke .locke-jugador { padding-left: 0.8rem; padding-right: 0.8rem; }
+#vista-lockes.con-locke .locke-jugador-rom { margin: 0 -0.8rem; padding-left: 0.8rem; padding-right: 0.8rem; }
+
+/* Cuarta pasada (como el diseño): a la derecha «Actividad y chat», de arriba abajo de la pantalla;
+   a la izquierda el locke y debajo Combates. Fichas de hasta cuatro por fila. */
+#vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr) 27rem; }
+/* El panel empieza a la altura de la tarjeta del locke (debajo del botón «Lockes») */
+#vista-lockes.con-locke .locke-panel { max-height: none; margin-top: calc(2.2rem + 0.85rem); height: calc(100dvh - 1.7rem - 2.2rem - 0.85rem); }
+#vista-lockes.con-locke .locke-jugadores { grid-template-columns: repeat(auto-fill, minmax(max(13.5rem, calc((100% - 3 * 0.85rem) / 4)), 1fr)); column-gap: 0.85rem; }
+#vista-lockes.con-locke .locke-jugador { padding-left: 0.85rem; padding-right: 0.85rem; }
+#vista-lockes.con-locke .locke-jugador-rom { margin: 0 -0.85rem; padding-left: 0.85rem; padding-right: 0.85rem; }
+.locke-aparte-vacio { margin: 0.3rem 0 0; color: rgba(var(--t-texto-rgb), 0.6); font-size: 0.9rem; }
+@media (max-width: 1100px) {
+  #vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr); }
+  #vista-lockes.con-locke .locke-panel { height: 30rem; margin-top: 0; }
+}
+
+/* «En marcha / Terminados»: pestañas en la barra, junto al botón de cómo verlos */
+.lockes-pestanas { display: inline-flex; gap: 0.15rem; margin-left: auto; padding: 0.2rem; border-radius: 0.55rem; background: var(--t-panel); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); }
+.lockes-pestanas[hidden] { display: none; }
+.lockes-pestanas button { display: inline-flex; align-items: center; gap: 0.3rem; height: 1.9rem; padding: 0 0.7rem; border: none; border-radius: 0.4rem; background: transparent; color: var(--t-gris); font-size: 0.85rem; font-weight: bold; white-space: nowrap; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.lockes-pestanas button:hover { color: var(--t-texto); }
+.lockes-pestanas button.elegido { background: var(--t-control); color: var(--t-texto); }
+.lockes-pestanas .icono { width: 1rem; height: 1rem; }
+.lockes-pestanas:not([hidden]) + .lockes-vista { margin-left: 0; }
+.lockes-vacio { margin: 0.5rem 0; color: rgba(var(--t-texto-rgb), 0.6); }
+@media (max-width: 600px) {
+  .lockes-pestanas button { padding: 0 0.5rem; font-size: 0.8rem; }
+}
+/* Tu partida y las bajas de los demás: una fila de siete casillas iguales, seis anchas (equipo,
+   bajas o el botón de vincular) y la séptima para el botón de la derecha (ayuda, lápiz o actividad) */
+.locke-jugador .locke-fila { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; align-items: stretch; width: 100%; min-height: 0; }
+.locke-fila-ancho { grid-column: 1 / 7; min-width: 0; margin: 0; }
+.locke-fila-casillas { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.35rem; padding: 0; border: none; background: none; box-shadow: none; font: inherit; color: inherit; }
+.locke-jugador .locke-fila-casillas.locke-caidos { padding: 0; background: none; box-shadow: none; }
+.locke-fila-casillas .locke-tarjeta-poke { border-radius: 0.6rem; }
+.locke-fila-casillas .locke-tarjeta-poke:not(.hueco) { background: var(--t-fondo); }
+.locke-jugador .locke-fila-lado { grid-column: 7; display: grid; place-items: center; width: auto; height: auto; aspect-ratio: 1; padding: 0; border-radius: 0.6rem; }
+.locke-fila-lado .icono { width: 45%; height: 45%; }
+.locke-jugador .locke-fila .locke-fila-ancho.locke-partida-vincular,
+.locke-jugador .locke-fila .locke-fila-ancho.locke-partida-reanudar { display: flex; align-items: center; justify-content: center; gap: 0.4rem; border-radius: 0.6rem; font-size: 0.85rem; overflow: hidden; white-space: nowrap; }
+.locke-jugador .locke-partida-abrir.locke-fila-lado { background: var(--t-fondo); }
+/* Muertos sin apuntar: una pastillita roja sobre la esquina del equipo */
+.locke-fila .locke-partida-muertos { position: absolute; top: -0.45rem; right: calc((100% - 6 * 0.25rem) / 7 + 0.1rem); padding: 0.05rem 0.4rem; border-radius: 999px; font-size: 0.75rem; }
+/* Las bajas: apagadas y con el fondo rojizo, como en el cementerio */
+.locke-tarjeta-poke.caido { background: rgba(var(--t-rojo-rgb), 0.16) !important; box-shadow: inset 0 0 0 1.5px rgba(var(--t-rojo-rgb), 0.55); }
+.locke-tarjeta-poke.caido img { width: 100%; height: 100%; border-radius: 0.6rem; object-fit: cover; filter: grayscale(0.85) brightness(0.9); image-rendering: pixelated; box-shadow: none; background: none; }
+button.locke-caidos:hover .locke-tarjeta-poke.caido img { filter: none; }
+.locke-tarjeta-poke.caido.mas { color: var(--t-rojo); font-family: var(--letra-titulos); font-size: 0.95rem; font-weight: 800; }
+.locke-jugador .locke-caidos.vacio { display: flex; align-items: center; justify-content: center; gap: 0.35rem; border: 1px dashed rgba(var(--t-tinte), 0.18); background: none; box-shadow: none; font-size: 0.85rem; }
+/* Al pie: la ROM y, en tu ficha, «Jugar» a su lado */
+.locke-jugador-rom { display: flex; gap: 0.35rem; }
+.locke-jugador-rom .locke-rom { flex: 1; min-width: 0; }
+.locke-jugador-rom .locke-partida-jugar { flex: none; height: 2.1rem; border-radius: 0.5rem; }
+.locke-jugador .locke-fila-lado .icono { width: 1.1rem; height: 1.1rem; }
+.locke-jugador .locke-fila-lado.locke-partida-ayuda { font-size: 0.95rem; font-weight: 800; }
+.locke-jugador-rom .locke-partida-jugar { padding: 0 0.8rem; font-size: 0.85rem; font-weight: 800; }
+.locke-jugador .locke-fila .locke-tarjeta-poke,
+.locke-jugador .locke-fila .locke-tarjeta-poke img { border-radius: 0.55rem; }
+.locke-jugador .locke-fila .locke-tarjeta-poke img { width: 100%; height: 100%; object-fit: cover; }
+.locke-jugador .locke-fila, .locke-jugador .locke-fila-casillas { gap: 0.25rem; }
+.locke-jugador .locke-fila .locke-tarjeta-poke,
+.locke-jugador .locke-fila .locke-tarjeta-poke img,
+.locke-jugador .locke-fila .locke-fila-lado { border-radius: 0.4rem; }
+/* Los botones de la derecha (ayuda, lápiz, actividad), redondos como antes */
+.locke-jugador .locke-fila .locke-fila-lado { align-self: center; width: 88%; justify-self: center; border-radius: 50%; }
+
+/* «Lockes» (volver) igual que «Nuevo locke»: mismo botón, mismo sitio, mismo tamaño */
+#nuevo-locke, #vista-lockes .lockes-volver { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; height: 2.2rem; min-width: 8.8rem; padding: 0 1.1rem; }
+#vista-lockes .lockes-volver { align-self: flex-start; border: none; border-radius: 0.45rem; background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black); color: #fff; font-family: inherit; font-size: 1rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); cursor: pointer; }
+#vista-lockes .lockes-volver:hover { color: #fff; filter: brightness(1.12); }
+#vista-lockes .lockes-volver .icono { width: 1.05rem; height: 1.05rem; }
+
+/* Las bajas de los demás: la calavera suelta (roja; gris si aún no ha muerto nadie) y cinco
+   casillas con sus últimas bajas, con reborde rojo */
+.locke-jugador .locke-fila .locke-tarjeta-poke.cuenta { background: none !important; box-shadow: none; color: var(--t-rojo); }
+.locke-jugador .locke-fila .locke-tarjeta-poke.cuenta .icono { width: 1.45rem; height: 1.45rem; }
+.locke-caidos.vacio .locke-tarjeta-poke.cuenta { color: rgba(var(--t-texto-rgb), 0.3); }
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { box-shadow: inset 0 0 0 2px rgba(var(--t-rojo-rgb), 0.8); }
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) img { padding: 2px; }
+.locke-jugador .locke-caidos.vacio.locke-fila-casillas { display: grid; border: none; font-size: inherit; }
+/* «Lockes» a la misma altura que «Nuevo locke» (centrado en la barra, que mide lo de las pestañas)
+   y con la misma letra; el ancho, el suyo */
+#nuevo-locke, #vista-lockes .lockes-volver { font-size: 0.88rem; }
+#vista-lockes .lockes-volver { min-width: 0; margin-top: 0.05rem; }
+#vista-lockes.con-locke .locke-panel { margin-top: calc(2.25rem + 0.85rem); height: calc(100dvh - 1.7rem - 2.25rem - 0.85rem); }
+/* El reborde rojo de las bajas, bien marcado */
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { box-shadow: inset 0 0 0 2.5px rgb(var(--t-rojo-rgb)), 0 0 6px rgba(var(--t-rojo-rgb), 0.45); }
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) img { padding: 3px; }
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { box-sizing: border-box; border: 2.5px solid rgb(var(--t-rojo-rgb)); box-shadow: 0 0 6px rgba(var(--t-rojo-rgb), 0.5); }
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) img { padding: 0; border-radius: 0.2rem; }
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { border: 1.5px solid color-mix(in srgb, rgb(var(--t-rojo-rgb)) 65%, #8a7a78); box-shadow: 0 0 4px rgba(var(--t-rojo-rgb), 0.25); }
+.locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { border: none; box-shadow: none; }
