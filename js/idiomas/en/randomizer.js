@@ -1,6 +1,19 @@
 // Randomizer (js/randomizer): las opciones, la barra y los avisos
 
 export default {
+  // Rediseño: Empezar con, resumen y código
+  "EMPEZAR CON": "START WITH",
+  "Randomlocke clásico": "Classic randomlocke",
+  "Solo salvajes": "Wild only",
+  "Caos total": "Total chaos",
+  "Antes de descargar": "Before downloading",
+  "Lo que va a cambiar": "What will change",
+  "Todo está sin cambios: la ROM saldría igual que la del juego.": "Everything is unchanged: the ROM would come out like the original game.",
+  "¿Empezar con «{nombre}»? Se cambia lo que has elegido ahora.": "Start with “{nombre}”? What you have chosen now will be replaced.",
+  "Empezar": "Start",
+  "no": "no",
+  "Apartados del Randomizer": "Randomizer sections",
+
   // Opciones de siempre
   "Sin cambios": "No change",
   "Fuerza parecida": "Similar strength",

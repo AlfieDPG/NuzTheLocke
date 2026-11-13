@@ -11,22 +11,6 @@
   white-space: nowrap;
 }
 
-/* Las pestañas, siempre en una fila: si no caben, se desplazan de lado (el relleno de los lados
-   deja sitio a las curvas de la elegida) */
-#vista-randomizer > .random-pestanas.selector-regiones:first-child {
-  flex-wrap: nowrap;
-  gap: 0.6rem;
-  margin-left: 0;
-  padding: 0 1.2rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-#vista-randomizer > .random-pestanas.selector-regiones:first-child button {
-  flex: none;
-  padding-inline: 0.85rem;
-}
-
 /* La ROM y el botón de randomizar */
 .random-barra {
   display: flex;
@@ -183,14 +167,22 @@
 }
 /* Un apartado por tarjeta, todas en una columna */
 .random-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(var(--columnas, 1), minmax(0, 1fr));
+  align-items: start;
+  gap: 0.8rem;
+}
+
+/* Cada columna de tarjetas encajadas (js/randomizer/index.js, empaquetar) */
+.random-columna {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  max-width: 56rem;
-  container: tarjetas / inline-size;
+  min-width: 0;
 }
 
 .random-tarjeta {
+  container: tarjetas / inline-size;
   padding: 0.3rem 1rem 0.5rem;
   border-radius: 0.7rem;
   background: var(--t-panel);
@@ -373,7 +365,7 @@
 
 /* Si no caben (tarjetas estrechas): los botones pegados, en columna y a lo ancho (nunca unos sí y
    otros no) */
-@container tarjetas (max-width: 640px) {
+@container tarjetas (max-width: 700px) {
   .random-tarjeta header,
   .random-fila:has(.random-segmentado),
   .random-fila:has(.random-iniciales) {
@@ -400,26 +392,6 @@
   .random-barra-valor input {
     width: 8rem;
   }
-}
-/* Pestaña con algo cambiado: el punto, centrado con el texto (si no, se queda en la línea
-   de base y parece caído) */
-.random-pestanas button {
-  display: inline-flex;
-  align-items: center;
-}
-
-.random-punto {
-  display: inline-block;
-  flex: none;
-  width: 0.4rem;
-  height: 0.4rem;
-  margin-left: 0.4rem;
-  border-radius: 50%;
-  background: rgb(var(--color-vista));
-}
-
-.random-pestanas .activa .random-punto {
-  background: var(--t-fondo);
 }
 /* «i» al lado del nombre de una opción (o del título de un apartado): abre su explicación */
 .random-info {
@@ -450,4 +422,349 @@
   border-color: rgb(var(--color-vista));
   background: rgb(var(--color-vista));
   color: var(--t-tinta);
+}
+
+/* ---------- Rediseño (2026-11-13): la ROM arriba, «Empezar con», pestañas con su cuenta y, a la derecha, lo
+   que va a cambiar y los botones ---------- */
+
+.random-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.2rem;
+  padding-top: 0.9rem;
+}
+
+.random-cabecera .random-barra,
+.random-cabecera .random-normas {
+  margin: 0;
+}
+
+.random-estado {
+  margin: 0.2rem 0 0.2rem;
+  min-height: 1.1rem;
+}
+
+.random-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 23rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+.random-izq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+/* «Empezar con»: ajustes de un clic */
+.random-rapidos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--t-panel);
+}
+
+.random-rapidos > span {
+  margin-right: 0.3rem;
+  color: var(--t-gris);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.random-rapido {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.1rem;
+  padding: 0 0.8rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--t-fondo-2);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.random-rapido:hover:not(:disabled) {
+  background: var(--t-control);
+}
+
+.random-rapido:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+#vista-randomizer .random-rapido svg {
+  width: 1rem;
+  height: 1rem;
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
+}
+
+.random-rapido small {
+  color: var(--t-gris);
+  font-size: 0.72rem;
+}
+
+.random-rapido.elegido {
+  background: rgba(var(--color-vista), 0.16);
+  box-shadow: inset 0 0 0 1.5px rgba(var(--color-vista), 0.7);
+}
+
+/* El panel de las opciones: pestañas arriba y tarjetas debajo */
+.random-opciones {
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+}
+
+.random-subpestanas {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.5rem 0.5rem 0;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(var(--t-tinte), 0.1);
+  scrollbar-width: none;
+}
+
+.random-subpestanas button {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 2.2rem;
+  padding: 0 0.85rem;
+  border: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: transparent;
+  color: var(--t-gris-2);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.random-subpestanas button:hover:not(.activa) {
+  color: var(--t-texto);
+}
+
+.random-subpestanas button.activa {
+  background: var(--t-fondo-2);
+  color: var(--t-texto);
+  box-shadow: inset 0 2px 0 rgb(var(--color-vista));
+}
+
+.random-subpestanas b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.4rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: rgba(var(--color-vista), 0.25);
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), white 20%);
+  font-size: 0.68rem;
+}
+
+.random-opciones .random-tarjetas {
+  padding: 0.85rem;
+}
+
+/* Las tarjetas: título arriba y, debajo, la opción principal a todo el ancho */
+.random-opciones .random-tarjeta {
+  padding: 0.55rem 0.9rem 0.65rem;
+  border: none;
+  border-radius: 0.8rem;
+  background: var(--t-fondo-2);
+  box-shadow: none;
+}
+
+.random-opciones .random-tarjeta.encendida {
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.random-opciones .random-tarjeta header {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  min-height: 0;
+  padding: 0.1rem 0 0.4rem;
+}
+
+.random-opciones .random-tarjeta header .random-segmentado {
+  display: flex;
+}
+
+.random-opciones .random-tarjeta header .random-segmentado button {
+  flex: 1;
+  text-align: center;
+}
+
+.random-opciones .random-segmentado {
+  background: var(--t-panel);
+}
+
+.random-opciones .random-interruptor {
+  background: var(--t-panel);
+}
+
+.random-opciones .random-fila {
+  min-height: 2.4rem;
+}
+
+/* Las filas con botones pegados: el nombre arriba y los botones a todo el ancho */
+.random-opciones .random-fila:has(.random-segmentado),
+.random-opciones .random-fila:has(.random-iniciales) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.random-opciones .random-fila .random-segmentado {
+  display: flex;
+}
+
+.random-opciones .random-fila .random-segmentado button {
+  flex: 1;
+  text-align: center;
+}
+
+.random-opciones .random-segmentado button.activa {
+  color: #fff;
+  background: color-mix(in srgb, rgb(var(--color-vista)) 70%, black);
+}
+
+/* El resumen y los botones, a la derecha */
+.random-lado {
+  position: sticky;
+  top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-height: calc(100dvh - 1.7rem);
+  padding: 0.9rem 1rem 1rem;
+  overflow-y: auto;
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+  background-image: linear-gradient(180deg, rgba(var(--color-vista), 0.13), rgba(var(--color-vista), 0) 9rem);
+}
+
+.random-lado h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.random-lado-nota,
+.random-nota-chica {
+  color: var(--t-gris);
+  font-size: 0.78rem;
+}
+
+.random-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.random-grupo-titulo {
+  display: block;
+  color: var(--t-gris);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.random-grupo-titulo b {
+  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), white 20%);
+}
+
+.random-grupo ul {
+  margin: 0.15rem 0 0;
+  padding: 0 0 0 1.1rem;
+}
+
+.random-grupo li {
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.random-sin {
+  margin: 0;
+  color: var(--t-gris);
+  font-size: 0.88rem;
+}
+
+.random-acciones {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 0.3rem;
+}
+
+.random-acciones .random-ir,
+.random-acciones .random-jugar {
+  flex: 1;
+  justify-content: center;
+  height: 2.5rem;
+  padding: 0 0.7rem;
+  box-shadow: none;
+}
+
+.random-acciones .random-ir {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 62%, black);
+  color: #fff;
+}
+
+.random-acciones .random-ir:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+@media (max-width: 1100px) {
+  .random-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .random-lado {
+    position: static;
+    max-height: none;
+  }
+}
+
+/* Los botones pegados siempre en una fila (también en tarjetas estrechas) */
+.random-opciones .random-segmentado {
+  flex-direction: row !important;
+}
+
+.random-opciones .random-segmentado button {
+  min-width: 0;
+  padding: 0.42rem 0.35rem;
+  font-size: 0.84rem;
+  text-align: center !important;
+}
+
+.random-subpestanas button {
+  padding: 0 0.65rem;
+  font-size: 0.86rem;
+}
+
+.random-subpestanas b {
+  margin-left: 0.3rem;
+}
+
+/* Lo de arriba a la derecha (normas, «?» y botones), con su sombrita para que resalten */
+.random-normas select,
+.random-boton-normas,
+.random-ayuda {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
 }

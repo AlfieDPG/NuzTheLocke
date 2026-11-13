@@ -1,8 +1,11 @@
 // ---------- Sección «Randomizer» ----------
 //
-// Arriba, las pestañas (Pokémon, iniciales, entrenadores...); debajo, la ROM y el botón de
-// randomizar y las normas de la pestaña. Todo empieza «sin cambios». Desde un locke
-// («Randomizar mi ROM») las normas son las del locke y no se tocan: elegir la ROM y randomizar.
+// Arriba, la ROM y de dónde vienen las normas (sueltas, guardadas o de un locke). Debajo, a la
+// izquierda, «Empezar con» (ajustes de un clic), las pestañas (Pokémon, iniciales, entrenadores...)
+// con cuántas cosas cambian en cada una y sus tarjetas (encajadas en columnas, cada una bajo la más
+// corta); a la derecha, «Lo que va a cambiar» (el resumen) y los botones de randomizar.
+// Todo empieza «sin cambios». Desde un locke («Randomizar mi ROM») las normas son las del locke y no
+// se tocan: elegir la ROM y randomizar.
 //
 // La ROM no sale nunca del navegador: se lee, se randomiza aquí y se descarga. Las de GBA y DS, además, con
 // «Randomizar y jugar»: sin descargar nada, pasa a ser una partida nueva de «Jugar» (js/jugar/partidas.js).
@@ -371,8 +374,7 @@ function plantillaNormas() {
   const opcion = (valor, texto) => `<option value="${escaparHTML(valor)}" ${valor === elegida ? "selected" : ""}>${escaparHTML(texto)}</option>`;
   return `
     <div class="random-normas">
-      <span>${t("Normas")}</span>
-      <select class="random-normas-elegir">
+      <select class="random-normas-elegir" aria-label="${t("Normas")}">
         ${opcion("", t("Sin guardar"))}
         ${guardadas.length ? `<optgroup label="${t("Guardadas")}">${guardadas.map((n) => opcion(`g:${n.id}`, n.nombre)).join("")}</optgroup>` : ""}
         ${lockes.length ? `<optgroup label="${t("De un locke")}">${lockes.map((l) => opcion(`l:${l.id}`, l.nombre)).join("")}</optgroup>` : ""}
@@ -400,14 +402,6 @@ function elegirNormas(valor) {
   else pintar();
 }
 
-// Todo sin cambios, para empezar de nuevo (también en las normas guardadas que estén elegidas)
-async function vaciarNormas() {
-  if (idLocke || !(await confirmar(t("¿Borrar todo lo elegido para randomizar?"), { aceptar: t("Borrar todo") }))) return;
-  mias = completarReglas();
-  guardarMias();
-  pintar();
-}
-
 async function accionNormas(que) {
   if (que === "guardar") {
     const nombre = await preguntar(t("Nombre para estas normas:"), "");
@@ -431,6 +425,123 @@ async function accionNormas(que) {
     if (rom) revisarRom();
     else pintar();
   }
+}
+
+// ---------- Empezar con: ajustes de un clic ----------
+//
+// Cada uno es un trozo de normas que se pone encima de «sin cambios». Lo que el juego de la ROM no
+// tiene (campo «no») se deja como está. «elegido»: las normas de ahora son justo esas.
+
+const AJUSTES_RAPIDOS = [
+  {
+    id: "clasico", titulo: "Randomlocke clásico", icono: "mezclar",
+    reglas: {
+      evoluciones: { dificiles: true },
+      iniciales: { modo: "cualquiera" },
+      estaticos: { modo: "parecida" },
+      intercambios: { modo: "parecida" },
+      entrenadores: { modo: "parecida", lideresTipo: true },
+      salvajes: { modo: "parecida", variedad: true },
+      objetos: { suelo: true, sinMalos: true, tiendas: true, mentas: true }
+    }
+  },
+  {
+    id: "salvajes", titulo: "Solo salvajes", icono: "mapa",
+    reglas: { iniciales: { modo: "cualquiera" }, salvajes: { modo: "parecida", variedad: true }, estaticos: { modo: "parecida" } }
+  },
+  {
+    id: "caos", titulo: "Caos total", icono: "rayo",
+    reglas: {
+      stats: { modo: "azar" }, tipos: { modo: "azar" }, habilidades: { modo: "azar" }, evoluciones: { modo: "azar", dificiles: true, objetos: true },
+      iniciales: { modo: "cualquiera" }, estaticos: { modo: "cualquiera", totems: "cualquiera", aliados: "cualquiera", aura: "azar" },
+      intercambios: { modo: "cualquiera" }, ataques: { modo: "azar", orden: true }, mt: { ataques: true, compat: "aleatoria" },
+      tutores: { ataques: true, compat: "aleatoria" },
+      entrenadores: { modo: "cualquiera", extras: ["lideres", "rivales"], cuantos: 2, objetos: ["lideres", "rivales", "normales"] },
+      salvajes: { modo: "cualquiera", variedad: true, objetos: true }, objetos: { suelo: true, tiendas: true, mentas: true }
+    }
+  },
+  { id: "nada", titulo: "Personalizado", icono: "deshacer", reglas: {} }
+];
+
+// Cada campo (y los que cuelgan de él) de un apartado, recursivo
+function recorrerCampos(campos, hacer) {
+  for (const c of campos) {
+    hacer(c);
+    if (c.hijos) recorrerCampos(c.hijos, hacer);
+  }
+}
+
+// Las normas de ese ajuste rápido, sin lo que el juego de ahora no tiene
+function reglasDeAjuste(ajuste) {
+  const reglas = completarReglas();
+  for (const [apartado, valores] of Object.entries(ajuste.reglas)) Object.assign(reglas[apartado], JSON.parse(JSON.stringify(valores)));
+  for (const p of PESTANAS) {
+    for (const a of p.apartados) {
+      const fuera = (SIN_APARTADOS[juegoActual()] || []).includes(a.id);
+      recorrerCampos(a.campos, (c) => {
+        if (fuera || noLoTiene(c)) reglas[a.id][c.k] = JSON.parse(JSON.stringify(REGLAS_VACIAS[a.id][c.k]));
+      });
+    }
+  }
+  return reglas;
+}
+
+// ---------- Lo que va a cambiar ----------
+
+// La frase de una opción que no está «sin cambios»
+function frase(a, c, valor) {
+  const nombre = c.texto || a.titulo;
+  const opciones = typeof c.opciones === "function" ? c.opciones(juegoActual()) : c.opciones;
+  const etiqueta = (v) => ((opciones || []).find(([x]) => x === v) || [])[1];
+  if (c.tipo === "casilla") return valor ? nombre : `${nombre}: ${t("no")}`;
+  if (c.tipo === "barra") return `${nombre}: ${c.formato(valor)}`;
+  if (c.tipo === "iniciales") return nombre;
+  if (c.tipo === "opciones" && c.varias) return `${nombre}: ${(valor || []).map(etiqueta).filter(Boolean).join(", ")}`;
+  const texto = etiqueta(valor);
+  return texto ? `${nombre}: ${texto}` : nombre;
+}
+
+// Por pestaña, las frases de lo que ya no está «sin cambios» (solo lo que se ve para este juego)
+function cambiosDe(reglas) {
+  const salida = [];
+  for (const p of PESTANAS.filter(pestanaVisible)) {
+    const lineas = [];
+    for (const a of p.apartados.filter(apartadoVisible)) {
+      const mirar = (campos) => {
+        for (const c of campos) {
+          if (noLoTiene(c) || (c.si && !c.si(reglas))) continue;
+          const valor = reglas[a.id][c.k];
+          if (JSON.stringify(valor) !== JSON.stringify(REGLAS_VACIAS[a.id][c.k])) lineas.push(frase(a, c, valor));
+          if (c.hijos && c.abre && c.abre(reglas)) mirar(c.hijos);
+        }
+      };
+      mirar(a.campos);
+    }
+    if (lineas.length) salida.push({ pestana: p, lineas });
+  }
+  return salida;
+}
+
+function plantillaLado(reglas) {
+  const cambios = cambiosDe(reglas);
+  return `
+    <aside class="random-lado">
+      <span class="random-lado-nota">${t("Antes de descargar")}</span>
+      <h2>${t("Lo que va a cambiar")}</h2>
+      <div class="random-resumen">
+        ${cambios.length
+          ? cambios.map(({ pestana: p, lineas }) => `
+              <div class="random-grupo">
+                <span class="random-grupo-titulo">${escaparHTML(p.titulo)} · <b>${lineas.length}</b></span>
+                <ul>${lineas.map((l) => `<li>${escaparHTML(l)}</li>`).join("")}</ul>
+              </div>`).join("")
+          : `<p class="random-sin">${t("Todo está sin cambios: la ROM saldría igual que la del juego.")}</p>`}
+      </div>
+      <div class="random-acciones">
+        ${rom && !rom.es3DS && !rom.carpeta ? `<button class="random-jugar" ${!rom.error && !trabajando && hayAlgo(reglas) ? "" : "disabled"} title="${t("Sin descargar nada: se queda en «Jugar», lista para jugar")}">${icono("consola")} ${t("Randomizar y jugar")}</button>` : ""}
+        <button class="random-ir" ${rom && !rom.error && !trabajando && hayAlgo(reglas) ? "" : "disabled"} title="${hayAlgo(reglas) ? "" : t("Cambia algo primero")}">${icono("mezclar")} ${trabajando ? t("Randomizando...") : t("Randomizar")}</button>
+      </div>
+    </aside>`;
 }
 
 // ---------- Pintar ----------
@@ -560,26 +671,78 @@ function pintar() {
   const visibles = PESTANAS.filter(pestanaVisible);
   const actual = visibles.find((p) => p.id === pestana) || visibles[0];
 
-  // Una pestaña con algo cambiado lleva un punto
-  const cambiada = (p) => p.apartados.some((a) => tarjetaCambiada(a, reglas));
+  // Cada pestaña lleva cuántas cosas cambian en ella
+  const cuentas = new Map(cambiosDe(reglas).map(({ pestana: p, lineas }) => [p.id, lineas.length]));
+  const rapido = (a) => {
+    const reglasA = reglasDeAjuste(a);
+    const cuantos = a.id === "nada" ? "" : cambiosDe(reglasA).reduce((suma, c) => suma + c.lineas.length, 0);
+    const elegido = JSON.stringify(completarReglas(reglas)) === JSON.stringify(reglasA);
+    return `<button class="random-rapido ${elegido ? "elegido" : ""}" data-rapido="${a.id}" ${bloqueado ? "disabled" : ""}>${icono(a.icono)}${escaparHTML(t(a.titulo))}${cuantos ? `<small>${cuantos}</small>` : ""}</button>`;
+  };
   vista.innerHTML = `
-    <div class="selector-regiones random-pestanas">
-      ${visibles.map((p) => `<button data-pestana="${p.id}" class="${p.id === actual.id ? "activa" : ""}">${escaparHTML(p.titulo)}${cambiada(p) ? `<i class="random-punto"></i>` : ""}</button>`).join("")}
-    </div>
-    ${plantillaNormas()}
-    <div class="random-barra">
-      <button class="random-elegir">${icono("subir")} ${rom ? t("Otra ROM") : t("Elegir ROM")}</button>
-      <button class="random-elegir-carpeta" title="${t("Los de Switch: la carpeta «romfs» sacada desde el emulador")}">${icono("carpeta")} ${t("Elegir carpeta")}</button>
-      <button class="random-ayuda" title="${t("Qué elegir en cada consola y qué hacer con lo que sale")}" aria-label="${t("Ayuda")}">?</button>
-      <span class="random-rom ${rom && rom.error ? "con-error" : ""}">${rom ? escaparHTML(rom.error || `${rom.nombre} · ${rom.archivo.name}`) : ""}</span>
-      <button class="random-vaciar" ${!idLocke && hayAlgo(reglas) ? "" : "disabled"}>${icono("deshacer")} ${t("Borrar todo")}</button>
-      ${rom && !rom.es3DS && !rom.carpeta ? `<button class="random-jugar" ${!rom.error && !trabajando && hayAlgo(reglas) ? "" : "disabled"} title="${t("Sin descargar nada: se queda en «Jugar», lista para jugar")}">${icono("consola")} ${t("Randomizar y jugar")}</button>` : ""}
-      <button class="random-ir" ${rom && !rom.error && !trabajando && hayAlgo(reglas) ? "" : "disabled"} title="${hayAlgo(reglas) ? "" : t("Cambia algo primero")}">${icono("mezclar")} ${trabajando ? t("Randomizando...") : t("Randomizar")}</button>
+    <div class="random-cabecera">
+      <div class="random-barra">
+        <button class="random-elegir">${icono("subir")} ${rom ? t("Otra ROM") : t("Elegir ROM")}</button>
+        <button class="random-elegir-carpeta" title="${t("Los de Switch: la carpeta «romfs» sacada desde el emulador")}">${icono("carpeta")} ${t("Elegir carpeta")}</button>
+        <button class="random-ayuda" title="${t("Qué elegir en cada consola y qué hacer con lo que sale")}" aria-label="${t("Ayuda")}">?</button>
+        <span class="random-rom ${rom && rom.error ? "con-error" : ""}">${rom ? escaparHTML(rom.error || `${rom.nombre} · ${rom.archivo.name}`) : ""}</span>
+      </div>
+      ${plantillaNormas()}
     </div>
     <span class="random-estado"></span>
-    <div class="random-tarjetas">${actual.apartados.filter(apartadoVisible).map((a) => plantillaApartado(a, reglas, bloqueado)).join("")}</div>
+    <div class="random-cuerpo">
+      <div class="random-izq">
+        <div class="random-rapidos">
+          <span>${t("EMPEZAR CON")}</span>
+          ${AJUSTES_RAPIDOS.map(rapido).join("")}
+        </div>
+        <section class="random-opciones">
+          <nav class="random-subpestanas" aria-label="${t("Apartados del Randomizer")}">
+            ${visibles.map((p) => `<button data-pestana="${p.id}" class="${p.id === actual.id ? "activa" : ""}">${escaparHTML(p.titulo)}${cuentas.get(p.id) ? `<b>${cuentas.get(p.id)}</b>` : ""}</button>`).join("")}
+          </nav>
+          <div class="random-tarjetas">${actual.apartados.filter(apartadoVisible).map((a) => plantillaApartado(a, reglas, bloqueado)).join("")}</div>
+        </section>
+      </div>
+      ${plantillaLado(reglas)}
+    </div>
     <input class="random-archivo" type="file" accept=".nds,.3ds,.gba" hidden>
     <input class="random-carpeta" type="file" webkitdirectory hidden>`;
+  empaquetar();
+}
+
+// Las tarjetas, encajadas como piezas: en tantas columnas como quepan, cada una bajo la columna más corta
+// (en vez de filas con huecos cuando una es más baja que la de al lado). Se mide con las tarjetas ya
+// en su ancho de columna.
+const ANCHO_TARJETA = 25; // rem
+function empaquetar() {
+  const contenedor = vista && vista.querySelector(".random-tarjetas");
+  if (!contenedor || !contenedor.offsetWidth) return;
+  const tarjetas = [...contenedor.querySelectorAll(".random-tarjeta")];
+  for (const tarjeta of tarjetas) contenedor.append(tarjeta);
+  contenedor.querySelectorAll(".random-columna").forEach((columna) => columna.remove());
+
+  const estilo = getComputedStyle(contenedor);
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const hueco = parseFloat(estilo.columnGap) || 0;
+  const util = contenedor.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight);
+  const columnas = Math.max(1, Math.min(tarjetas.length, Math.floor((util + hueco) / (ANCHO_TARJETA * rem + hueco))));
+  contenedor.style.setProperty("--columnas", columnas);
+  if (columnas < 2) return;
+
+  // Con las tarjetas sueltas en la rejilla de ese ancho, se miden y se reparten
+  const alturas = tarjetas.map((tarjeta) => tarjeta.offsetHeight);
+  const cajas = Array.from({ length: columnas }, () => {
+    const columna = document.createElement("div");
+    columna.className = "random-columna";
+    return columna;
+  });
+  const llevan = new Array(columnas).fill(0);
+  tarjetas.forEach((tarjeta, i) => {
+    const mas = llevan.indexOf(Math.min(...llevan));
+    cajas[mas].append(tarjeta);
+    llevan[mas] += alturas[i] + hueco;
+  });
+  contenedor.append(...cajas);
 }
 // ---------- ROM ----------
 
@@ -802,6 +965,16 @@ function buscarCampo(apartado, clave) {
   return null;
 }
 
+async function aplicarRapido(id) {
+  const ajuste = AJUSTES_RAPIDOS.find((a) => a.id === id);
+  if (!ajuste || idLocke) return;
+  // Con algo ya elegido, antes se avisa: se pierde lo de ahora
+  if (hayAlgo(mias) && !(await confirmar(t("¿Empezar con «{nombre}»? Se cambia lo que has elegido ahora.", { nombre: t(ajuste.titulo) }), { aceptar: t("Empezar") }))) return;
+  mias = reglasDeAjuste(ajuste);
+  guardarMias();
+  pintar();
+}
+
 function cambiar(apartado, campo, valor) {
   mias[apartado][campo] = valor;
   guardarMias();
@@ -826,7 +999,7 @@ export function iniciar() {
     else if (boton.classList.contains("random-ir")) randomizar();
     else if (boton.classList.contains("random-jugar")) randomizar(true);
     else if (boton.dataset.normas) accionNormas(boton.dataset.normas);
-    else if (boton.classList.contains("random-vaciar")) vaciarNormas();
+    else if (boton.dataset.rapido) aplicarRapido(boton.dataset.rapido);
   });
 
   vista.addEventListener("change", (e) => {
@@ -853,6 +1026,14 @@ export function iniciar() {
 
   const ayuda = document.querySelector("#dialogo-ayuda-rom");
   ayuda.querySelector(".ayuda-rom-cerrar").addEventListener("click", () => ayuda.close());
+
+  // Al cambiar el ancho, las tarjetas se vuelven a encajar
+  let anchoAntes = 0;
+  new ResizeObserver(() => {
+    if (Math.abs(vista.clientWidth - anchoAntes) < 2) return;
+    anchoAntes = vista.clientWidth;
+    empaquetar();
+  }).observe(vista);
 
   // Los nombres de los Pokémon, para elegir las iniciales a mano
   cargarDatos().then(() => vista.isConnected && pintar()).catch(() => {});
