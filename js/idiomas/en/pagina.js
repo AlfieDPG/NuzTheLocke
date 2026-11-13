@@ -73,6 +73,7 @@ export default {
   "Equipo": "Team",
   "Herramientas": "Tools",
   "Comunidad": "Community",
+  "Ocio": "Leisure",
   "Seguidores": "Followers",
   "Descargar imagen": "Download image",
   "Compartir": "Share",
