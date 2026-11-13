@@ -2,8 +2,11 @@
 //
 //   · Normas generales: las básicas de cualquier Nuzlocke. Fijas, iguales para todos.
 //   · Conjuntos: cada uno puede crear los suyos (p. ej. «Randomlocke del grupo»), con un
-//     nombre, sus normas y una casilla para que lleven también las generales. Se guardan
-//     como los equipos (en el navegador y, con sesión, en tu cuenta).
+//     nombre y sus normas: las que se marcan de un catálogo (generales, variantes y cláusulas,
+//     que se guardan con el id del catálogo) y las que se escriben a mano. Se guardan como los
+//     equipos (en el navegador y, con sesión, en tu cuenta).
+//     Los conjuntos de antes llevan «conGenerales»: las generales no estaban en la lista sino
+//     detrás de esa casilla; al tocar una general se pasan a la lista (conGeneralesComoNormas).
 //
 // Al crear o editar un locke se elige qué normas usa: las generales o uno de tus conjuntos.
 // Se guarda una COPIA dentro del locke (locke.normas), igual que el tipo: así cambiar luego
@@ -66,6 +69,84 @@ export const NORMAS_GENERALES = [
     texto: "No se pueden comprar objetos curativos."
   }
 ].map((norma) => ({ ...norma, nombre: t(norma.nombre), texto: t(norma.texto) }));
+
+// Variantes de Nuzlocke (se marcan de un clic en la sección «Normas»; la «i» enseña el texto)
+export const NORMAS_VARIANTES = [
+  {
+    id: "variante-hardcore",
+    nombre: "Hardcore",
+    resumen: "Sin objetos en combate, modo fijo y level caps",
+    texto: "Modo Hardcore: no se pueden usar objetos en combate, el modo de combate es fijo (sin cambiar de Pokémon gratis cuando se debilita un rival) y se respetan los level caps: ningún Pokémon supera el nivel del Pokémon más alto del siguiente líder."
+  },
+  {
+    id: "variante-monotipo",
+    nombre: "Monotipo",
+    resumen: "Todo el equipo de un tipo",
+    texto: "Todo el equipo es de un único tipo, elegido al empezar. Solo se capturan Pokémon que tengan ese tipo (como uno de sus dos tipos)."
+  },
+  {
+    id: "variante-wedlocke",
+    nombre: "Wedlocke",
+    resumen: "Parejas: solo combate uno de cada",
+    texto: "Los Pokémon capturados se emparejan. Si uno de la pareja muere, el otro también. En el equipo van las parejas completas y en combate solo lucha uno de cada pareja."
+  },
+  {
+    id: "variante-egglocke",
+    nombre: "Egglocke",
+    resumen: "Capturas cambiadas por huevos",
+    texto: "En vez de capturar el Pokémon de cada zona, recibes un huevo con un Pokémon aleatorio. Se eclosiona antes de seguir."
+  },
+  {
+    id: "variante-wonderlocke",
+    nombre: "Wonderlocke",
+    resumen: "Capturas al Intercambio Prodigioso",
+    texto: "Cada captura se envía al Intercambio Prodigioso y el Pokémon que llega a cambio es el que se usa."
+  },
+  {
+    id: "variante-randomlocke",
+    nombre: "Randomlocke",
+    resumen: "ROM preparada en el Randomizer",
+    texto: "Se juega con una ROM randomizada. Las normas del Randomizer se eligen en su sección y se comparten con el locke."
+  }
+].map((norma) => ({ ...norma, grupo: "variante", nombre: t(norma.nombre), resumen: t(norma.resumen), texto: t(norma.texto) }));
+
+// Cláusulas para afinar
+export const NORMAS_CLAUSULAS = [
+  {
+    id: "clausula-duplicados",
+    nombre: "Cláusula de duplicados",
+    texto: "Si el primer Pokémon que encuentras en una zona es de una especie (o de una línea evolutiva) que ya tienes, no cuenta: puedes probar con el siguiente."
+  },
+  {
+    id: "clausula-niveles",
+    nombre: "Level caps: no pasar del nivel del líder",
+    texto: "Ningún Pokémon puede superar el nivel del Pokémon más alto del siguiente líder o combate importante."
+  },
+  {
+    id: "clausula-regalos",
+    nombre: "Los regalos cuentan como captura",
+    texto: "Los Pokémon que te regalan (el inicial y los de la historia) cuentan como la captura de esa zona."
+  },
+  {
+    id: "clausula-estaticos",
+    nombre: "Los estáticos cuentan como captura",
+    texto: "Los Pokémon estáticos (legendarios y otros que esperan quietos en el mapa) cuentan como la captura de esa zona."
+  }
+].map((norma) => ({ ...norma, grupo: "clausula", nombre: t(norma.nombre), texto: t(norma.texto) }));
+
+// Qué normas del catálogo puede vigilar el árbitro (js/partida/arbitro.js: nivel, captura, motes, repetidos)
+export const ARBITRO_DE = {
+  "general-captura": "captura",
+  "general-motes": "motes",
+  "clausula-duplicados": "repetidos",
+  "clausula-niveles": "nivel"
+};
+
+export const CATALOGO = [...NORMAS_GENERALES, ...NORMAS_VARIANTES, ...NORMAS_CLAUSULAS];
+
+export function normaDelCatalogo(id) {
+  return CATALOGO.find((norma) => norma.id === id) || null;
+}
 
 const oyentes = new Set();
 
@@ -168,6 +249,32 @@ export function borrarConjunto(id) {
 }
 
 // ---------- Normas de un conjunto ----------
+
+// Los conjuntos de antes llevaban las generales detrás de una casilla (conGenerales): se pasan a la
+// lista, normas sueltas que se pueden quitar de una en una
+export function conGeneralesComoNormas(idConjunto) {
+  const estado = guardado();
+  const conjunto = estado.conjuntos.find((cada) => cada.id === idConjunto);
+  if (!conjunto || !conjunto.conGenerales) return;
+  const ya = new Set(conjunto.normas.map((norma) => norma.id));
+  conjunto.normas = [
+    ...NORMAS_GENERALES.filter((norma) => !ya.has(norma.id)).map(({ id, nombre, texto }) => ({ id, nombre, texto })),
+    ...conjunto.normas
+  ];
+  conjunto.conGenerales = false;
+  guardar(estado);
+}
+
+// Marcar o quitar una norma del catálogo en un conjunto
+export function alternarNormaDelCatalogo(idConjunto, id) {
+  const norma = normaDelCatalogo(id);
+  if (!norma) return;
+  conGeneralesComoNormas(idConjunto);
+  const conjunto = conjuntoPorId(idConjunto);
+  if (!conjunto) return;
+  if (conjunto.normas.some((cada) => cada.id === id)) quitarNorma(idConjunto, id);
+  else guardarNorma(idConjunto, { id, nombre: norma.nombre, texto: norma.texto });
+}
 
 // Crea o, si ya existe ese id, cambia
 export function guardarNorma(idConjunto, norma) {
