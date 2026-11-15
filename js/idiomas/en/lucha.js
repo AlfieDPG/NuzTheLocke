@@ -27,8 +27,13 @@ export default {
   "Entra con tu cuenta para retar a tus amigos.": "Sign in to challenge your friends.",
   "Firebase no deja leer los combates. Falta publicar las reglas de Firestore.": "Firebase won't let the battles be read. The Firestore rules need publishing.",
   "No se han podido cargar los combates.": "The battles couldn't be loaded.",
-  "Aún no tienes combates. Reta a un amigo con uno de tus equipos o, desde «Lockes», en un combate de vuestro locke.":
-    "You don't have any battles yet. Challenge a friend with one of your teams or, from “Lockes”, in one of your locke's battles.",
+  "Todavía no has combatido": "You haven't battled yet",
+  "Reta a un amigo con uno de tus equipos, con el nivel y el escenario que queráis.":
+    "Challenge a friend with one of your teams, at the level and on the stage you both choose.",
+  "Desde «Lockes», los combates de vuestro locke se juegan aquí y suman la victoria solos.":
+    "From “Lockes”, your locke's battles are played here and add the win by themselves.",
+  "Todo queda guardado: puedes ver la repetición de cada combate terminado.":
+    "Everything is saved: you can watch the replay of every finished battle.",
   "Te retan": "Challenges for you",
   "Retos": "Challenges",
   "Ver repetición": "Watch replay",

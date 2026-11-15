@@ -220,7 +220,6 @@ function bloque(titulo, contenido, clase = "") {
 function pintarLista() {
   if (!vistaLista) return;
   const barra = `
-    <p class="lucha-en-pruebas">${icono("aviso")} ${t("Sección en pruebas: todavía puede fallar. Si algo va mal, cuéntalo en el foro.")}</p>
     <div class="lucha-barra">
       <button type="button" class="lucha-boton lucha-retar">${icono("lucha")} ${t("Retar a un amigo")}</button>
       <p class="lucha-explica">${t("Combates por turnos con los equipos que quieras, contra tus amigos y sin salir de la web. Cada uno elige cuando puede: no hace falta estar a la vez.")}</p>
@@ -250,10 +249,16 @@ function pintarLista() {
   const terminadas = todas.filter((lucha) => lucha.estado === "fin").slice(0, MAX_TERMINADAS);
 
   if (!todas.length) {
-    vistaLista.innerHTML = `${barra}
+    vistaLista.innerHTML = `
       <div class="lucha-nada">
         <span class="lucha-nada-icono">${icono("lucha")}</span>
-        <p>${t("Aún no tienes combates. Reta a un amigo con uno de tus equipos o, desde «Lockes», en un combate de vuestro locke.")}</p>
+        <h3>${t("Todavía no has combatido")}</h3>
+        <ul class="lucha-nada-lista">
+          <li>${t("Reta a un amigo con uno de tus equipos, con el nivel y el escenario que queráis.")}</li>
+          <li>${t("Desde «Lockes», los combates de vuestro locke se juegan aquí y suman la victoria solos.")}</li>
+          <li>${t("Todo queda guardado: puedes ver la repetición de cada combate terminado.")}</li>
+        </ul>
+        <button type="button" class="lucha-boton lucha-retar">${icono("lucha")} ${t("Retar a un amigo")}</button>
       </div>`;
     return;
   }

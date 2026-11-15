@@ -765,9 +765,8 @@ function pintar() {
   const mios = misLockes();
   seccion.querySelector(".lockes-vista").hidden = !mios.length;
 
-  if (fallo) aviso.textContent = fallo;
-  else if (!mios.length && !invitacionesALockes().length) aviso.textContent = t("Todavía no tienes ningún locke. Crea uno con «Nuevo locke».");
-  else aviso.textContent = "";
+  const sinNada = !fallo && !mios.length && !invitacionesALockes().length;
+  aviso.textContent = fallo || "";
 
   // Del más nuevo al más antiguo; los terminados, aparte, al final y plegados
   const elementos = agruparEnCadenas([...mios].sort((uno, otro) => (otro.creado || 0) - (uno.creado || 0)));
@@ -788,6 +787,22 @@ function pintar() {
     <button class="${verTerminados ? "" : "elegido"}" data-terminados="no" aria-pressed="${!verTerminados}">${t("En marcha ({n})", { n: enMarcha.length })}</button>
     <button class="${verTerminados ? "elegido" : ""}" data-terminados="si" aria-pressed="${verTerminados}">${icono("trofeo")} ${t("Terminados ({n})", { n: terminados.length })}</button>`;
   const visibles = verTerminados ? terminados : enMarcha;
+
+  if (sinNada) {
+    lista.innerHTML = `
+      <div class="lockes-nada">
+        ${icono("libro")}
+        <h3>${t("Aquí van tus lockes")}</h3>
+        <ul>
+          <li>${t("Un locke es una partida de Pokémon con normas: sola o con amigos, para ver quién llega más lejos.")}</li>
+          <li>${t("Apuntas el equipo, las capturas y las bajas, y la web te dice quién va ganando.")}</li>
+          <li>${t("Con amigos, cada uno juega lo suyo y los combates entre vosotros se juegan en «Combates».")}</li>
+        </ul>
+        <button type="button" class="lockes-nada-boton">${icono("mas")} ${t("Nuevo locke")}</button>
+      </div>`;
+    lista.querySelector(".lockes-nada-boton").addEventListener("click", () => botonNuevo.click());
+    return;
+  }
 
   lista.innerHTML =
     plantillaInvitaciones() +

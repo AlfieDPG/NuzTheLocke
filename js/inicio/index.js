@@ -120,9 +120,9 @@ const NOVEDADES = [
   },
   {
     fecha: "2026-11-02", vista: "lucha", icono: "lucha", color: "222, 112, 52",
-    es: `Nueva sección <b>Combates</b> (en pruebas): reta a un amigo y combatid sin salir de la web,
+    es: `Nueva sección <b>Combates</b>: reta a un amigo y combatid sin salir de la web,
       también en los combates de tus lockes.`,
-    en: `New <b>Battles</b> section (in testing): challenge a friend and battle without leaving the
+    en: `New <b>Battles</b> section: challenge a friend and battle without leaving the
       site, also in your lockes' battles.`
   },
   {

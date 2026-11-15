@@ -185,8 +185,8 @@ const TEMAS = [
       },
       {
         es: "¿Cómo funcionan los combates entre amigos?", en: "How do battles between friends work?",
-        res: `En «Combates», «Retar a un amigo»: eliges tu equipo y él elige el suyo al aceptar. El combate lo calcula el motor de Showdown en vuestros navegadores y va por turnos: cada uno elige cuando puede, no hace falta estar a la vez. Desde un combate de un locke, «Retar» reta a tu rival en ese combate y, al terminar, la victoria se apunta sola. La sección aún está en pruebas.`,
-        ren: `In “Battles”, “Challenge a friend”: you choose your team and they choose theirs when accepting. The battle is calculated by Showdown's engine in your browsers and goes turn by turn: each one picks when they can, you don't need to be there at the same time. From a locke battle, “Challenge” challenges your rival in that battle and, when it ends, the win is recorded automatically. The section is still in testing.`
+        res: `En «Combates», «Retar a un amigo»: eliges tu equipo y él elige el suyo al aceptar. El combate lo calcula el motor de Showdown en vuestros navegadores y va por turnos: cada uno elige cuando puede, no hace falta estar a la vez. Desde un combate de un locke, «Retar» reta a tu rival en ese combate y, al terminar, la victoria se apunta sola.`,
+        ren: `In “Battles”, “Challenge a friend”: you choose your team and they choose theirs when accepting. The battle is calculated by Showdown's engine in your browsers and goes turn by turn: each one picks when they can, you don't need to be there at the same time. From a locke battle, “Challenge” challenges your rival in that battle and, when it ends, the win is recorded automatically.`
       },
       {
         es: "¿Qué son los retos del día?", en: "What are the daily challenges?",

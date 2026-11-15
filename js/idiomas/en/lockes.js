@@ -486,6 +486,13 @@ export default {
   "Vinculada": "Linked",
   "Editar la partida": "Edit the save",
   "Qué lockes ver": "Which lockes to show",
+  "Aquí van tus lockes": "Your lockes go here",
+  "Un locke es una partida de Pokémon con normas: sola o con amigos, para ver quién llega más lejos.":
+    "A locke is a Pokémon run with rules: alone or with friends, to see who gets furthest.",
+  "Apuntas el equipo, las capturas y las bajas, y la web te dice quién va ganando.":
+    "You log your team, catches and losses, and the site tells you who's winning.",
+  "Con amigos, cada uno juega lo suyo y los combates entre vosotros se juegan en «Combates».":
+    "With friends, everyone plays their own game and your battles against each other are played in “Battles”.",
   "No tienes ningún locke en marcha.": "You have no ongoing lockes.",
   "Este juego no tiene combates entre vosotros.": "This game has no battles between you.",
   "Sin vincular": "Not linked",

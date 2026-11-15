@@ -45,6 +45,13 @@ export default {
   "normas": "rules",
   "norma": "rule",
   "Crear norma": "Create rule",
+  "Aquí van las normas de tus lockes": "Your locke rules go here",
+  "Un conjunto es tu lista de normas: márcalas, quítalas o escribe las tuyas.":
+    "A set is your list of rules: tick them, remove them or write your own.",
+  "Úsalo al crear un locke y el árbitro vigilará las que pueda mientras juegas.":
+    "Use it when creating a locke and the referee will watch what it can while you play.",
+  "Puedes tener varios conjuntos y copiarlos como texto para compartirlos.":
+    "You can have several sets and copy them as text to share them.",
   "Nombre del conjunto": "Set name",
   "Cambiar el nombre": "Change the name",
   "las vigila el árbitro": "watched by the referee",

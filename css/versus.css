@@ -5263,6 +5263,37 @@ button.locke-caidos:hover .locke-caidos-caras img {
 .lockes-pestanas button.elegido { background: var(--t-control); color: var(--t-texto); }
 .lockes-pestanas .icono { width: 1rem; height: 1rem; }
 .lockes-pestanas:not([hidden]) + .lockes-vista { margin-left: 0; }
+/* Sin ningún locke todavía: misma tarjeta que «Jugar» sin partidas */
+.lockes-nada {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: 44rem;
+  margin: 1rem auto;
+  padding: 2rem 1.5rem;
+  border: 2px dashed rgba(var(--color-vista), 0.5);
+  border-radius: 0.9rem;
+  color: var(--t-gris-2);
+  text-align: center;
+}
+.lockes-nada > .icono { width: 3rem; height: 3rem; color: rgb(var(--color-vista)); }
+.lockes-nada h3 { margin: 0; color: var(--t-texto); font-size: 1.35rem; }
+.lockes-nada ul { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.lockes-nada-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta);
+  font: inherit;
+  cursor: pointer;
+}
+.lockes-nada-boton .icono { width: 1.1rem; height: 1.1rem; }
 .lockes-vacio { margin: 0.5rem 0; color: rgba(var(--t-texto-rgb), 0.6); }
 @media (max-width: 600px) {
   .lockes-pestanas button { padding: 0 0.5rem; font-size: 0.8rem; }

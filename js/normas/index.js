@@ -220,7 +220,17 @@ function pintar() {
     cuerpo.innerHTML = cabecera(conjunto.nombre, todos, locke) + cuerpoConjunto(conjunto);
   } else {
     // Sin ningún conjunto todavía
-    cuerpo.innerHTML = `<button class="normas-nuevo grande">${icono("mas")} ${t("Crear norma")}</button>`;
+    cuerpo.innerHTML = `
+      <div class="normas-nada">
+        ${icono("libro")}
+        <h3>${t("Aquí van las normas de tus lockes")}</h3>
+        <ul>
+          <li>${t("Un conjunto es tu lista de normas: márcalas, quítalas o escribe las tuyas.")}</li>
+          <li>${t("Úsalo al crear un locke y el árbitro vigilará las que pueda mientras juegas.")}</li>
+          <li>${t("Puedes tener varios conjuntos y copiarlos como texto para compartirlos.")}</li>
+        </ul>
+        <button class="normas-nuevo grande">${icono("mas")} ${t("Crear norma")}</button>
+      </div>`;
   }
 }
 

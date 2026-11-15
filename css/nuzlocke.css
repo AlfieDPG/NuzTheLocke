@@ -1533,6 +1533,47 @@
   height: 0.9rem;
 }
 
+/* Sin ningún conjunto todavía: misma tarjeta que «Jugar» sin partidas */
+.normas-nada {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: 44rem;
+  margin: 1rem auto;
+  padding: 2rem 1.5rem;
+  border: 2px dashed rgba(var(--color-vista), 0.5);
+  border-radius: 0.9rem;
+  color: var(--t-gris-2);
+  text-align: center;
+}
+
+.normas-nada > .icono {
+  width: 3rem;
+  height: 3rem;
+  color: rgb(var(--color-vista));
+}
+
+.normas-nada h3 {
+  margin: 0;
+  color: var(--t-texto);
+  font-size: 1.35rem;
+}
+
+.normas-nada ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.normas-nada .normas-nuevo.grande {
+  align-self: center;
+  margin-top: 0.3rem;
+}
+
 .normas-vacio {
   margin: 0;
   font-size: 0.92rem;

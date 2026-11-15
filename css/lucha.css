@@ -410,16 +410,34 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-  max-width: 30rem;
-  margin: 3rem auto;
+  gap: 0.7rem;
+  max-width: 44rem;
+  margin: 2rem auto;
+  padding: 2rem 1.5rem;
+  border: 2px dashed rgba(var(--color-vista), 0.5);
+  border-radius: 0.9rem;
+  color: var(--t-gris-2);
   text-align: center;
-  opacity: 0.85;
+}
+
+.lucha-nada h3 {
+  margin: 0;
+  color: var(--t-texto);
+  font-size: 1.35rem;
+}
+
+.lucha-nada-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .lucha-nada-icono .icono {
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 3rem;
+  height: 3rem;
   color: rgb(var(--color-vista));
 }
 
