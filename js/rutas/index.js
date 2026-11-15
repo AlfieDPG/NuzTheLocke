@@ -109,6 +109,12 @@ function elLockeDeAqui() {
   return id ? lockePorId(id) : null;
 }
 
+// Las caras, solo si son de otro locke que el de ahora (o aún no se han leído)
+function leerCompanerosSiCambia() {
+  const aqui = elLockeDeAqui();
+  if ((aqui ? aqui.id : null) !== companeros.idLocke) leerCompaneros().catch((error) => console.error(error));
+}
+
 // Quién del locke elegido ya ha capturado en cada lugar (de su actividad). Se vuelve a pintar si hay algo.
 async function leerCompaneros() {
   const locke = elLockeDeAqui();
@@ -144,7 +150,7 @@ async function leerCompaneros() {
 // Las caras de quienes del locke ya han pasado por ese lugar (sin decir qué cogieron); en rojo, quien
 // lo intentó y no lo consiguió
 function plantillaCompaneros(clave) {
-  const lugar = companeros.lugares.get(nombreDelLugar(clave));
+  const lugar = companeros.lugares.get(lugarEntero(clave));
   const locke = lugar && lugar.size ? lockePorId(companeros.idLocke) : null;
   if (!locke) return "";
   const quienes = [...lugar.entries()].map(([uid, fallada]) => ({ uid, fallada, nombre: (locke.nombres || {})[uid] || t("Jugador") }));
@@ -189,6 +195,13 @@ function botonLugar(apartado, texto) {
     data-clave="${escaparHTML(clave)}" data-buscar="${escaparHTML(quitarAcentos(visible === texto ? texto : `${texto} ${visible}`))}">${
       usada ? plantillaCaptura(claveGuardado(), clave) : `<span class="ruta-hueco"></span>`
     }<span class="ruta-textos">${contenido}${mote}</span>${plantillaCompaneros(clave)}</button>`;
+}
+
+// «rutas:Ruta 3» -> «Ruta 3»; en los eventos, entero («Vieja Mansión: Rotom»). Es lo que se apunta
+// en la actividad del locke y lo que se busca para las caras de los compañeros: con solo el lugar,
+// el evento y la ruta del mismo sitio («Vieja Mansión») se confundían y marcar uno marcaba los dos.
+function lugarEntero(clave) {
+  return clave.slice(clave.indexOf(":") + 1);
 }
 
 // «rutas:Ruta 3» -> «Ruta 3»; en los eventos, solo el lugar («Lugar: detalle»)
@@ -437,8 +450,11 @@ export function iniciar() {
   // y también si cambian tus lockes (uno nuevo, uno que se cierra...)
   filaLockes = crearFilaLockes(lista, () => juego && elegirJuego(juego, true));
   alCambiarLockes(() => {
-    if (!juego || editando || vista.hidden || firmaLockes(juego.id, "rutasPropias") === firmaPintada) return;
-    elegirJuego(juego, true);
+    if (!juego || editando || vista.hidden) return;
+    if (firmaLockes(juego.id, "rutasPropias") !== firmaPintada) elegirJuego(juego, true);
+    // La firma solo cambia con dos o más lockes del juego: con uno, al llegar los lockes (al entrar
+    // en la web ya en «Rutas») no cambiaba y nunca se leían las caras de los compañeros
+    else leerCompanerosSiCambia();
   });
 
   // Un solo oyente para todos los botones de lugar
@@ -465,7 +481,7 @@ export function iniciar() {
     pintarProgreso();
 
     // A la actividad de tus lockes de este juego («ha capturado en la Ruta 3»)
-    apuntarEnLockesDelJuego("rutasPropias", juego.id, "ruta", nombreDelLugar(clave), usadas.has(clave))
+    apuntarEnLockesDelJuego("rutasPropias", juego.id, "ruta", lugarEntero(clave), usadas.has(clave))
       .catch((error) => console.error(error));
   });
 
@@ -476,7 +492,7 @@ export function iniciar() {
     if (juego && !editando) pintarLista();
     if (!clave || !juego) return;
     const tipo = ahora === "fallada" ? "ruta-fallida" : ahora === "capturada" && antes === "fallada" ? "ruta" : null;
-    if (tipo) apuntarEnLockesDelJuego("rutasPropias", juego.id, tipo, nombreDelLugar(clave), true).catch((error) => console.error(error));
+    if (tipo) apuntarEnLockesDelJuego("rutasPropias", juego.id, tipo, lugarEntero(clave), true).catch((error) => console.error(error));
   });
 
   buscador.addEventListener("input", filtrar);
@@ -577,4 +593,7 @@ export function mostrar() {
   selectorJuego.elegirPorId(id);
   // Mismo juego, pero con marcas nuevas (o los pueblos con hierba) desde fuera: se vuelve a pintar
   if (juego && !editando && JSON.stringify([marcadas, hierba]) !== antes) elegirJuego(juego, true);
+  // Las caras de los compañeros: si los lockes llegaron con la sección escondida, aún no estaban;
+  // y si ya estaban, al volver se leen de nuevo (lo que hayan marcado mientras tanto)
+  else if (juego && !editando) leerCompaneros().catch((error) => console.error(error));
 }

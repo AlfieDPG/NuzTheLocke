@@ -1,3 +1,5 @@
+import { datos } from "./datos.js";
+import { esPropio, descripcionPropia } from "./propios.js";
 import { pedirJSON, URL_API } from "./api.js";
 import { etiquetaForma, obtenerVariedades, formaDeTipo } from "./formas.js";
 import { indicePMD } from "./formas-pmd.js";
@@ -61,8 +63,25 @@ function textoReciente(entradas, idiomas = enIngles ? ["en"] : ["es", "en"]) {
   return "";
 }
 
+// Habilidades: PokeAPI no tiene texto en español de las de 9.ª generación en adelante
+// (Hospitalidad, Paleosíntesis...). Para esas, el «Efecto» de su página de WikiDex, resumido
+// (datos/descripciones-habilidades.json: { id: texto }).
+const URL_HABILIDADES_ES = new URL("../../datos/descripciones-habilidades.json", import.meta.url);
+let habilidadesEs = null; // se descarga una sola vez y solo si hace falta
+
 export async function descripcionHabilidad(id) {
-  return textoReciente((await pedirJSON(`${URL_API}ability/${id}`)).flavor_text_entries);
+  if (esPropio(id)) return descripcionPropia(datos && datos.habilidades, id);
+  const entradas = (await pedirJSON(`${URL_API}ability/${id}`)).flavor_text_entries;
+  if (!enIngles && !(entradas || []).some((e) => e.language.name === "es")) {
+    if (!habilidadesEs) {
+      habilidadesEs = fetch(URL_HABILIDADES_ES)
+        .then((respuesta) => (respuesta.ok ? respuesta.json() : {}))
+        .catch(() => ({}));
+    }
+    const texto = (await habilidadesEs)[id];
+    if (texto) return texto;
+  }
+  return textoReciente(entradas);
 }
 
 // Objetos: PokeAPI no tiene texto en español de muchos objetos de los juegos de Switch
@@ -115,6 +134,7 @@ export async function descripcionObjeto(objeto) {
 
 // La descripción de un ataque en el idioma de la web (para los guardados antes de tenerla)
 export async function descripcionAtaque(id) {
+  if (esPropio(id)) return descripcionPropia(datos && datos.ataques, id);
   return extraerDescripcion(await pedirJSON(`${URL_API}move/${id}`), enIngles ? "en" : "es");
 }
 

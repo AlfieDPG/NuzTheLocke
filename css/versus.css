@@ -3986,6 +3986,19 @@ button.partida-ficha.arrastrando {
   font-weight: bold;
 }
 
+/* Ataque o habilidad propio de Pokémon Añil (js/comun/propios.js): al pasar por encima, su
+   descripción y que no se exporta */
+.editor-propio {
+  flex: none;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: bold;
+  cursor: help;
+}
+
 /* Objeto y habilidad, uno al lado del otro */
 .editor-par {
   display: grid;

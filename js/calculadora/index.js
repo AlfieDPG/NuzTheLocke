@@ -16,7 +16,7 @@ import { escaparHTML, quitarAcentos } from "../comun/utilidades.js";
 import { coloresTipo, tiposEs, iconoTipo } from "../comun/tipos.js";
 import { imagenConRespaldo, urlsRetrato, urlsIconoObjeto } from "../comun/imagenes.js";
 import { activarAutocompletado, iconoPokemon as iconoSugerencia, iconoObjeto } from "../comun/autocompletado.js";
-import { cargarDatos, datos } from "../comun/datos.js";
+import { cargarDatos, datos, sinPropios } from "../comun/datos.js";
 import { leer } from "../comun/almacen.js";
 import { sumarContador } from "../comun/contadores.js";
 import { obtenerStats, datosDeGenero, generosPosibles, generoDe, ICONO_GENERO, NOMBRE_GENERO } from "../comun/pokemon.js";
@@ -403,7 +403,7 @@ function pintarLado(lado) {
 
   const campoHabilidad = ficha.querySelector(".calc-habilidad-campo");
   if (campoHabilidad) {
-    activarAutocompletado(campoHabilidad, datos.habilidades, (entrada) => {
+    activarAutocompletado(campoHabilidad, sinPropios(datos.habilidades), (entrada) => {
       c.habilidad = { id: entrada.id, es: entrada.es, en: entrada.en };
       buscandoHabilidad = null;
       pintarTodo();
@@ -734,6 +734,12 @@ function elegirDePokedex(lado, entrada) {
   const otro = lados[lado === "atacante" ? "defensor" : "atacante"];
   if (otro && otro.entreno && otro.entreno.nivel) c.entreno = { nivel: otro.entreno.nivel };
   ponerEnLado(lado, c);
+}
+
+// Desde la ficha de la Pokédex: de defensor (lo normal es mirar a un rival)
+export function ponerDesdePokedex(clave) {
+  const entrada = listaPokemon.find((cada) => cada.fila.clave === clave);
+  if (entrada) elegirDePokedex("defensor", entrada);
 }
 
 // ---------- Arranque ----------

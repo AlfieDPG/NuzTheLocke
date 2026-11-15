@@ -1,4 +1,5 @@
-// Sección «Pokédex»: tabla con las estadísticas base de todos los Pokémon.
+// Sección «Pokédex»: tabla con las estadísticas base de todos los Pokémon y, a la derecha, la
+// ficha del que se pulse (./ficha.js; en pantallas estrechas sale por encima de la tabla).
 //
 // Cada columna tiene un botón en su cabecera: la primera vez que se pulsa ordena de
 // menor a mayor y, al volver a pulsarlo, de mayor a menor (el nombre, de la A a la Z
@@ -7,18 +8,18 @@
 // Para añadir una columna basta con añadirla a COLUMNAS: la cabecera, las celdas y
 // la ordenación salen solas.
 
-import { cargarPokedex, RETRATOS, archivoHoja, nombreDeFila } from "./datos.js";
+import { cargarPokedex, RETRATOS, nombreDeFila, fotoDeFila } from "./datos.js";
 import { cargarDatos } from "../comun/datos.js";
-import { imagenConRespaldo, urlsPMD } from "../comun/imagenes.js";
 import { coloresTipo, tiposEs, iconoTipo } from "../comun/tipos.js";
 import { quitarAcentos } from "../comun/utilidades.js";
-import { abrirEvoluciones, cerrarEvoluciones } from "./evoluciones.js";
+import { prepararFicha, mostrarFicha, filaDeLaFicha } from "./ficha.js";
 import { t, LOCALE, enIngles } from "../comun/idioma.js";
 import { icono } from "../comun/iconos.js";
 import { activarMenuMas } from "../comun/menu-mas.js";
+import { irA, prepararSeccion } from "../navegacion.js";
 
 // "valor" es lo que se usa para ordenar. La columna de la foto no lo tiene, así que no se ordena.
-// "corto": el título en el móvil, donde no caben los largos (css/pokedex.css)
+// "corto": el título que se ve (con la ficha al lado no caben los largos, que van en el «title»)
 const COLUMNAS = [
   { clave: "numero", titulo: t("Nº"), clase: "col-numero", valor: (p) => p.numero },
   { clave: "foto", titulo: "", clase: "col-foto" },
@@ -30,7 +31,7 @@ const COLUMNAS = [
   { clave: "ataque-especial", titulo: t("stat|At. Esp."), corto: t("corto|AtE"), clase: "col-dato", valor: (p) => p.bases[3] },
   { clave: "defensa-especial", titulo: t("stat|Def. Esp."), corto: t("corto|DefE"), clase: "col-dato", valor: (p) => p.bases[4] },
   { clave: "velocidad", titulo: t("stat|Velocidad"), corto: t("corto|Vel."), clase: "col-dato", valor: (p) => p.bases[5] },
-  { clave: "total", titulo: t("Total"), corto: t("corto|Tot."), clase: "col-dato col-total", valor: (p) => p.total }
+  { clave: "total", titulo: t("Total"), movil: t("corto|Tot."), clase: "col-dato col-total", valor: (p) => p.total }
 ];
 
 const vista = document.getElementById("vista-pokedex");
@@ -43,7 +44,9 @@ const listaTipos = cajaTipo.querySelector(".pokedex-tipo-lista");
 const cuentaEl = vista.querySelector(".pokedex-cuenta");
 const botonFiltros = vista.querySelector(".pokedex-filtros-boton");
 const panelFiltros = vista.querySelector(".pokedex-filtros");
+const cuerpoVista = vista.querySelector(".pokedex-cuerpo");
 const tabla = vista.querySelector(".tabla-pokedex");
+const ficha = vista.querySelector(".pokedex-ficha");
 const cabecera = tabla.querySelector("thead");
 const cuerpo = tabla.querySelector("tbody");
 
@@ -57,32 +60,6 @@ function mostrarAviso(texto) {
   aviso.hidden = !texto;
 }
 
-// Retrato de Mundo Misterioso: el de la forma concreta (Mega-Charizard X, Palafin Héroe...)
-// y, si Mundo Misterioso no tiene esa forma, el de la especie. Aquí NUNCA se cae a un
-// sprite de PokeAPI: en las formas modernas esos son renders 3D y desentonan en la tabla.
-//
-// A día de hoy solo dos formas no tienen retrato propio y salen con el de su especie:
-// Mega Kangaskhan (Mundo Misterioso solo dibujó a la cría) y Calyrex Jinete Espectral.
-function foto(p) {
-  // Lo normal: su casilla de la hoja de retratos (ver RETRATOS en ./datos.js)
-  if (p.retrato >= 0) {
-    const porHoja = RETRATOS.columnas * RETRATOS.filasPorHoja;
-    const dentro = p.retrato % porHoja;
-    const columna = dentro % RETRATOS.columnas;
-    const fila = Math.floor(dentro / RETRATOS.columnas);
-    const hoja = archivoHoja(Math.floor(p.retrato / porHoja));
-    return `<span class="pokedex-foto en-hoja" style="background-image:url(${hoja});--columna:${columna};--fila:${fila}"></span>`;
-  }
-  if (p.retrato === -1) return ""; // Mundo Misterioso no tiene ninguno
-
-  // Tabla montada sin hoja (desde PokeAPI): uno a uno
-  const urls = [
-    ...urlsPMD({ id: p.numero, formaPMD: p.forma }),
-    ...(p.forma ? urlsPMD({ id: p.numero, formaPMD: 0 }) : [])
-  ];
-  return imagenConRespaldo(urls, `class="pokedex-foto" alt="" loading="lazy" data-quitar-si-falla`);
-}
-
 function numeroDex(id) {
   return String(id).padStart(4, "0");
 }
@@ -93,9 +70,9 @@ function chipTipo(tipo) {
 
 function filaPokemon(p) {
   return `
-    <tr>
+    <tr data-clave="${p.clave}" tabindex="0">
       <td class="col-numero">${numeroDex(p.numero)}</td>
-      <td class="col-foto"><button class="pokedex-evo" data-numero="${p.numero}" data-clave="${p.clave}" title="${t("Línea evolutiva")}">${foto(p)}</button></td>
+      <td class="col-foto">${fotoDeFila(p)}</td>
       <td class="col-nombre">${p.visible}</td>
       <td class="col-tipos">${p.tipos.map(chipTipo).join("")}</td>
       ${p.bases.map((base) => `<td class="col-dato">${base}</td>`).join("")}
@@ -112,8 +89,8 @@ function celdaCabecera(c) {
 
   return `
     <th class="${c.clase} ${activa ? "ordenada" : ""}">
-      <button data-orden="${c.clave}" title="${sentido}">
-        ${c.corto ? `<span class="titulo-largo">${c.titulo}</span><span class="titulo-corto">${c.corto}</span>` : c.titulo}<span class="flecha">${flecha}</span>
+      <button data-orden="${c.clave}" title="${c.corto ? `${c.titulo} · ` : ""}${sentido}">
+        ${c.movil ? `<span class="titulo-largo">${c.titulo}</span><span class="titulo-corto">${c.movil}</span>` : c.corto || c.titulo}<span class="flecha">${flecha}</span>
       </button>
     </th>`;
 }
@@ -211,7 +188,7 @@ function pasaFiltros(p) {
   return !textoBuscado || p.busqueda.includes(textoBuscado);
 }
 
-// Lo que se mueve (el panel de filtros, el bocadillo...), solo si no se ha pedido que no
+// Lo que se mueve (el panel de filtros), solo si no se ha pedido que no
 const suave = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // El panel de filtros se abre bajando poco a poco (y la tabla, con él) y se cierra igual.
@@ -229,6 +206,7 @@ function desplegarFiltros(abrir) {
   panelFiltros.hidden = false;
   if (!suave()) {
     panelFiltros.hidden = !abrir;
+    medirFicha();
     return;
   }
 
@@ -239,11 +217,12 @@ function desplegarFiltros(abrir) {
   const abierto = { transform: "translateY(0)", clipPath: "inset(0 0 0 0)", opacity: 1 };
   const cerrado = { transform: `translateY(${-alto}px)`, clipPath: `inset(${alto}px 0 0 0)`, opacity: 0 };
   const panel = panelFiltros.animate(abrir ? [cerrado, abierto] : [abierto, cerrado], opciones);
-  const debajo = tabla.animate(
+  const debajo = cuerpoVista.animate(
     abrir ? [{ transform: `translateY(${-alto}px)` }, { transform: "translateY(0)" }] : [{ transform: "translateY(0)" }, { transform: `translateY(${-alto}px)` }],
     opciones
   );
   animacionesFiltros = [panel, debajo];
+  debajo.finished.then(medirFicha, () => {});
   // Al cerrar, el panel se quita justo cuando la tabla ha llegado arriba: no se nota el cambio
   if (!abrir) {
     panel.onfinish = () => {
@@ -251,6 +230,7 @@ function desplegarFiltros(abrir) {
       panel.cancel();
       debajo.cancel();
       animacionesFiltros = [];
+      medirFicha();
     };
   }
 }
@@ -300,9 +280,11 @@ function aplicarFiltros() {
     if (pasa) visibles++;
   }
 
-  cuentaEl.textContent =
-    visibles === pokemon.length ? `${visibles} Pokémon` : t("{n} de {total}", { n: visibles, total: pokemon.length });
+  const cuenta = visibles === pokemon.length ? `${visibles} Pokémon` : t("{n} de {total}", { n: visibles, total: pokemon.length });
+  cuentaEl.innerHTML = `${cuenta}${visibles ? `<span class="pokedex-pista"> · ${t("pulsa una fila para verlo a la derecha")}</span>` : ""}`;
   tabla.hidden = visibles === 0;
+  // Sin ninguno, ni tabla ni ficha: solo el aviso
+  cuerpoVista.hidden = visibles === 0;
   mostrarAviso(visibles === 0 ? t("Ningún Pokémon coincide con la búsqueda.") : "");
 }
 
@@ -319,7 +301,6 @@ function prepararFiltros() {
     const boton = e.target.closest("[data-tipo]");
     if (!boton) return;
     tipoElegido = boton.dataset.tipo;
-    cerrarEvoluciones();
     pintarTipo();
     aplicarFiltros();
   });
@@ -342,7 +323,6 @@ function prepararFiltros() {
       const filtro = FILTROS.find((cada) => cada.clave === boton.dataset.filtro);
       if (marcados.size === filtro.opciones.length - 1) marcados.clear();
     } else return;
-    cerrarEvoluciones();
     pintarFiltros();
     aplicarFiltros();
   });
@@ -370,8 +350,8 @@ export async function iniciar() {
   }
 
   // Medidas de las hojas de retratos, para que el CSS sepa dónde cae cada casilla
-  tabla.style.setProperty("--hoja-columnas", RETRATOS.columnas);
-  tabla.style.setProperty("--hoja-filas", RETRATOS.filasPorHoja);
+  vista.style.setProperty("--hoja-columnas", RETRATOS.columnas);
+  vista.style.setProperty("--hoja-filas", RETRATOS.filasPorHoja);
 
   cuerpo.innerHTML = pokemon.map(filaPokemon).join("");
   [...cuerpo.children].forEach((fila, i) => filas.set(pokemon[i].clave, fila));
@@ -389,16 +369,92 @@ export async function iniciar() {
     if (boton) ordenarPor(boton.dataset.orden);
   });
 
-  // La foto: su línea evolutiva en un bocadillo (./evoluciones.js)
+  // Pulsar una fila (o Intro en ella): ese Pokémon, a la ficha
   cuerpo.addEventListener("click", (e) => {
-    const boton = e.target.closest(".pokedex-evo");
-    if (boton) abrirEvoluciones(boton, Number(boton.dataset.numero), Number(boton.dataset.clave));
+    const fila = e.target.closest("tr[data-clave]");
+    if (fila) elegir(Number(fila.dataset.clave), true);
   });
-  // Al buscar, filtrar u ordenar, la foto se mueve o se esconde: el bocadillo se va
-  campoBuscar.addEventListener("input", cerrarEvoluciones);
-  cabecera.addEventListener("click", cerrarEvoluciones);
+  cuerpo.addEventListener("keydown", (e) => {
+    const fila = e.target.closest("tr[data-clave]");
+    if (!fila) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      elegir(Number(fila.dataset.clave), true);
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      // Arriba y abajo: a la fila de al lado que esté a la vista
+      e.preventDefault();
+      let otra = fila;
+      do otra = e.key === "ArrowDown" ? otra.nextElementSibling : otra.previousElementSibling;
+      while (otra && otra.hidden);
+      if (otra) {
+        otra.focus();
+        if (!estrecha.matches) elegir(Number(otra.dataset.clave), false);
+      }
+    }
+  });
+
+  prepararFicha(ficha, {
+    // Un Pokémon de la línea evolutiva: su forma si está en la tabla y si no, su especie
+    alElegir: (clave, numero) => elegir(filas.has(clave) ? clave : numero, false),
+    alEquipo: async (fila) => {
+      cerrarFicha();
+      const modulo = await prepararSeccion("equipos");
+      await irA("crear");
+      await modulo.anadirDesdePokedex(fila);
+    },
+    aCalculadora: async (fila) => {
+      cerrarFicha();
+      const modulo = await prepararSeccion("calculadora");
+      await irA("calculadora");
+      modulo.ponerDesdePokedex(fila.clave);
+    },
+    alCerrar: cerrarFicha
+  });
+
+  // Con la ficha al lado, sale ya la del primero; en pantallas estrechas, al pulsar
+  if (!estrecha.matches && pokemon.length) elegir(pokemon[0].clave, false);
+  medirFicha();
+  window.addEventListener("resize", medirFicha);
 }
+
+// Dónde empieza la ficha con la página arriba del todo: ahí se queda al bajar y mide hasta el
+// final de la pantalla (css/pokedex.css). Cambia con la ventana y al abrir o cerrar los filtros.
+function medirFicha() {
+  if (vista.hidden || estrecha.matches) return;
+  const arriba = cuerpoVista.getBoundingClientRect().top + window.scrollY;
+  vista.style.setProperty("--pdx-arriba", `${Math.round(arriba)}px`);
+}
+
+// Por debajo de este ancho la ficha no cabe al lado: sale por encima de la tabla (css/pokedex.css)
+const estrecha = matchMedia("(max-width: 1100px)");
+
+function elegir(clave, conRaton) {
+  const p = pokemon.find((cada) => cada.clave === clave);
+  if (!p) return;
+  const antes = filaDeLaFicha();
+  if (antes && filas.get(antes.clave)) filas.get(antes.clave).classList.remove("elegida");
+  filas.get(clave).classList.add("elegida");
+  if (estrecha.matches) {
+    vista.classList.add("con-ficha");
+    document.documentElement.classList.add("pokedex-ficha-abierta");
+  } else if (!conRaton) {
+    // Desde la línea evolutiva o con las flechas: que la fila se vea
+    filas.get(clave).scrollIntoView({ block: "nearest" });
+  }
+  mostrarFicha(p);
+}
+
+function cerrarFicha() {
+  vista.classList.remove("con-ficha");
+  document.documentElement.classList.remove("pokedex-ficha-abierta");
+}
+
+// Escape cierra la ficha cuando va por encima
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && vista.classList.contains("con-ficha")) cerrarFicha();
+});
 
 export function mostrar() {
   // la tabla se mantiene como se dejó (con el orden que eligiera el usuario)
+  requestAnimationFrame(medirFicha);
 }

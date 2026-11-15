@@ -66,7 +66,8 @@ export function textoSuceso(suceso, locke) {
     case "rom":
       return suceso.delta > 0 ? t("{quien} se ha pasado la ROM", datos) : t("{quien} ha desmarcado la ROM", datos);
     case "ruta":
-      return t("{quien} ha capturado en {detalle}", { ...datos, detalle: `<strong>${escaparHTML(nombreDeLugar(suceso.detalle || ""))}</strong>` });
+      // Los eventos llegan enteros («Vieja Mansión: Rotom (estático en el televisor...)»): sin el paréntesis
+      return t("{quien} ha capturado en {detalle}", { ...datos, detalle: `<strong>${escaparHTML(nombreDeLugar(suceso.detalle || "").replace(/\s*\([^)]*\)\s*$/, ""))}</strong>` });
     case "cap":
       return t("{quien} ha vencido a {detalle}", { ...datos, detalle: `<strong>${escaparHTML(textoDeCombate(suceso.detalle || ""))}</strong>` });
     case "edicion":

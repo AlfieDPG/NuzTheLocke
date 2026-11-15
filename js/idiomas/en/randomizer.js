@@ -134,6 +134,9 @@ export default {
   "Sin lo de las tiendas normales": "Without what regular shops sell",
   "Siempre hay piedras evolutivas": "Evolution stones always available",
   "Caramelos Raros baratos": "Cheap Rare Candies",
+  "Esenciales baratos": "Cheap essentials",
+  "Caramelos Raros y Poké Balls a 10 ₽, y los Caramelos Raros, a la venta desde la primera tienda: en un locke se compran a montones.":
+    "Rare Candies and Poké Balls for ₽10, and Rare Candies on sale from the first shop: in a locke you buy loads of them.",
   "Precios equilibrados": "Balanced prices",
   "Objetos de otras generaciones": "Items from other generations",
   "Mentas": "Mints",

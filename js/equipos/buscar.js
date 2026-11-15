@@ -34,6 +34,7 @@ const AJUSTES = [
   ["sinEvs", "Sin EVs", "Como si nadie tuviera EVs: para cuando las normas no los cuentan o se ponen luego"],
   ["ivsPerfectos", "IVs perfectos", "Como si todos tuvieran 31 en todo"],
   ["sinNaturaleza", "Naturaleza neutra", "Como si todos tuvieran una neutra: por las mentas, o si no cuenta"],
+  ["mismoNivel", "Sin contar el nivel", "Como si todos tuvieran el nivel del más alto: para ver quién vale más aunque aún haya que entrenarlo"],
   ["clausulaObjetos", "Cláusula de objetos", "Sin repetir objeto en el equipo: si dos llevan el mismo, lo lleva al que más le sirve y el otro va sin objeto"]
 ];
 
@@ -120,9 +121,10 @@ async function cargarLocke(locke, lockes, pedir = false) {
 // El Pokémon como se analiza: con los ajustes, una copia con otro entreno (para «Usar este
 // equipo» sigue yendo lo de la partida, en «partida»)
 function conAjustes(p) {
-  const { sinEvs, ivsPerfectos, sinNaturaleza } = actual.ajustes;
-  if (!sinEvs && !ivsPerfectos && !sinNaturaleza) return p;
+  const { sinEvs, ivsPerfectos, sinNaturaleza, mismoNivel } = actual.ajustes;
+  if (!sinEvs && !ivsPerfectos && !sinNaturaleza && !mismoNivel) return p;
   const entreno = { ...p.entreno };
+  if (mismoNivel) entreno.nivel = Math.max(...actual.caja.map((otro) => otro.entreno.nivel || 1), entreno.nivel || 1);
   if (sinEvs) entreno.evs = [0, 0, 0, 0, 0, 0];
   if (ivsPerfectos) entreno.ivs = [31, 31, 31, 31, 31, 31];
   if (sinNaturaleza) delete entreno.naturaleza;
@@ -172,10 +174,17 @@ function textoFuente() {
 
 // Un Pokémon de la caja: lo que se pulsa para ver su ficha y, en las esquinas de arriba,
 // dejarlo fuera (izquierda) y fijarlo (derecha)
+// Su nivel de verdad y, con «Sin contar el nivel», el que se usa para la nota
+function textoNivel(m) {
+  const real = (m.original || m.poke).entreno.nivel;
+  const cuenta = m.poke.entreno.nivel;
+  return real === cuenta ? t("Nv. {nivel}", { nivel: real }) : t("Nv. {nivel} (cuenta como {cuenta})", { nivel: real, cuenta });
+}
+
 function ficha(m, i) {
   const p = m.poke;
   const marca = actual.estados.get(m) || "";
-  const nivel = t("Nv. {nivel}", { nivel: p.entreno.nivel });
+  const nivel = t("Nv. {nivel}", { nivel: (m.original || p).entreno.nivel });
   return `
     <li class="buscar-ficha ${marca} ${m === actual.elegido ? "elegida" : ""}">
       <button type="button" class="buscar-ficha-ver" data-ficha="${i}" title="${escaparHTML(t("{nombre}: ver su ficha", { nombre: nombreDe(p) }))}">
@@ -205,7 +214,7 @@ function miniatura(m, fijos) {
         title="${escaparHTML(t("{nombre}: ver su ficha", { nombre: nombreDe(m.poke) }))}">
         ${imagenConRespaldo(urlsRetrato(m.poke), `class="buscar-retrato" alt="" draggable="false"`)}
         <span class="buscar-ficha-nombre">${escaparHTML(nombreDe(m.poke))}</span>
-        <span class="buscar-ficha-datos">${t("Nv. {nivel}", { nivel: m.poke.entreno.nivel })}</span>
+        <span class="buscar-ficha-datos">${t("Nv. {nivel}", { nivel: (m.original || m.poke).entreno.nivel })}</span>
         ${sinObjeto}
         ${fijos.has(suyo) ? `<span class="buscar-marca">${icono("candado")}</span>` : ""}
       </button>
@@ -257,7 +266,7 @@ function pintarPrincipal() {
           <input type="checkbox" data-ajuste="${id}" ${actual.ajustes[id] ? "checked" : ""}><span>${t(texto)}</span>
         </label>`).join("")}
     </fieldset>
-    <p class="analisis-explica">${t("Pulsa un Pokémon para ver su ficha. En sus esquinas, la ✕ lo deja fuera de la búsqueda y el candado lo fija (irá seguro en el equipo). La nota no mira el nivel: fíjate en el de cada uno por si hay que entrenarlo.")}</p>
+    <p class="analisis-explica">${t("Pulsa un Pokémon para ver su ficha. En sus esquinas, la ✕ lo deja fuera de la búsqueda y el candado lo fija (irá seguro en el equipo). La nota compara a cada uno con rivales de su nivel; con «Sin contar el nivel», todos como si tuvieran el del más alto.")}</p>
     ${actual.candidatos.length
       ? `<ul class="buscar-caja">${actual.candidatos.map(ficha).join("")}</ul>`
       : `<p class="analisis-mensaje">${t("No hay ningún Pokémon vivo en la caja de este locke.")}</p>`}
@@ -362,7 +371,7 @@ function pintarFicha() {
       ${imagenConRespaldo(urlsRetrato(p), `class="buscar-lado-retrato" alt="" draggable="false"`)}
       <div class="buscar-lado-nombre">
         <h3>${escaparHTML(nombreDe(p))}</h3>
-        <span>${p.mote ? `${escaparHTML(nombre(p))} · ` : ""}${t("Nv. {nivel}", { nivel: p.entreno.nivel })}${nat ? ` · ${escaparHTML(nombre(nat))}` : ""}</span>
+        <span>${p.mote ? `${escaparHTML(nombre(p))} · ` : ""}${textoNivel(m)}${nat ? ` · ${escaparHTML(nombre(nat))}` : ""}</span>
         <div class="chips">${chips}</div>
       </div>
       <div class="analisis-nota">

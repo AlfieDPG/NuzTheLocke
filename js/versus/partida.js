@@ -72,6 +72,13 @@ function nombreDe(p) {
 
 // ---------- En tu bloque ----------
 
+// Se vincula el archivo (y se vigila solo) salvo sin la API del navegador: entonces se lee cada vez
+// que se pulsa. (Pokémon Añil guarda en AppData, que Chrome y Edge no dejan vincular: la ayuda
+// explica cómo pasar sus partidas a Documentos, y entonces se vincula como los demás.)
+function soloLeer() {
+  return !sePuedeVigilar;
+}
+
 export function plantillaPartida(locke) {
   if (!sePuedeLeer(locke) || locke.estado === "cerrado") return "";
   const partida = partidaDe(locke.id);
@@ -87,7 +94,7 @@ export function plantillaPartida(locke) {
   } else if (estado === "pausado") {
     ancho = `<button class="locke-fila-ancho locke-partida-reanudar" title="${t("Volver a leer la partida")}">${icono("reanudar")} ${t("Reanudar")}</button>`;
   } else if (!partida) {
-    ancho = sePuedeVigilar
+    ancho = !soloLeer(locke.id)
       ? `<button class="locke-fila-ancho locke-partida-vincular">${icono("enlace")} ${t("Vincular partida")}</button>`
       : `<button class="locke-fila-ancho locke-partida-vincular">${icono("subir")} ${t("Leer partida")}</button>`;
   } else {
@@ -127,7 +134,7 @@ export function accionPartida(boton, id) {
   if (boton.classList.contains("locke-partida-vincular")) {
     // Lo que hace falta para leerla, ya mientras se elige el archivo
     prepararConversion().catch((error) => console.error(error));
-    if (sePuedeVigilar) vincular(id).catch(fallo);
+    if (!soloLeer(id)) vincular(id).catch(fallo);
     else leerUnaVez(id);
   } else if (boton.classList.contains("locke-partida-reanudar")) {
     reanudar(id).catch(fallo);
@@ -283,8 +290,9 @@ function pintarPartida() {
     `${titulo} <small>${[partida.entrenador, partida.version, cuando].filter(Boolean).map(escaparHTML).join(" · ")}</small>
      <button class="partida-ayuda" title="${t("Cómo funciona")}">?</button>`;
   const botonVincular = dialogo.querySelector(".partida-vincular");
-  botonVincular.innerHTML = icono(sePuedeVigilar ? "enlace" : "subir");
-  botonVincular.title = sePuedeVigilar ? t("Volver a vincular (elegir otra vez el archivo)") : t("Volver a leer");
+  const vincula = !soloLeer(idAbierto);
+  botonVincular.innerHTML = icono(vincula ? "enlace" : "subir");
+  botonVincular.title = vincula ? t("Volver a vincular (elegir otra vez el archivo)") : t("Volver a leer");
 
   // Cambios sin guardar: se guardan al cerrar (o se descartan)
   const pendientes = cuantosCambios(idAbierto);
@@ -738,7 +746,7 @@ export function iniciarPartida(alRepintar, alAvisar) {
       if (!(await confirmar(t("Los cambios sin guardar se pierden. ¿Seguir?"), { aceptar: t("Seguir"), peligro: true }))) return;
       descartarCambios();
     }
-    if (!sePuedeVigilar) {
+    if (soloLeer(id)) {
       leerUnaVez(id);
       return;
     }

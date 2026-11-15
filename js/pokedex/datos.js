@@ -20,6 +20,7 @@ import { etiquetaForma, formaVisible, nombreConFormaEnIngles } from "../comun/fo
 import { enIngles } from "../comun/idioma.js";
 import { indicePMD } from "../comun/formas-pmd.js";
 import { leer, escribir } from "../comun/almacen.js";
+import { imagenConRespaldo, urlsPMD } from "../comun/imagenes.js";
 
 // NO cambiar esta clave sin motivo: si se cambia, se vuelve a descargar todo. Sí hay que
 // subirla al rehacer datos/pokedex.json, para que los navegadores dejen la copia vieja.
@@ -246,6 +247,34 @@ export const RETRATOS = {
 
 export function archivoHoja(numero) {
   return `img/pokedex/retratos-${numero}.webp`;
+}
+
+// Retrato de Mundo Misterioso de una fila: el de la forma concreta (Mega-Charizard X, Palafin
+// Héroe...) y, si Mundo Misterioso no tiene esa forma, el de la especie. Aquí NUNCA se cae a un
+// sprite de PokeAPI: en las formas modernas esos son renders 3D y desentonan en la tabla.
+//
+// A día de hoy solo dos formas no tienen retrato propio y salen con el de su especie:
+// Mega Kangaskhan (Mundo Misterioso solo dibujó a la cría) y Calyrex Jinete Espectral.
+// El tamaño lo pone el CSS (.pokedex-foto); las medidas de la hoja, --hoja-columnas y
+// --hoja-filas en la sección.
+export function fotoDeFila(p) {
+  // Lo normal: su casilla de la hoja de retratos
+  if (p.retrato >= 0) {
+    const porHoja = RETRATOS.columnas * RETRATOS.filasPorHoja;
+    const dentro = p.retrato % porHoja;
+    const columna = dentro % RETRATOS.columnas;
+    const fila = Math.floor(dentro / RETRATOS.columnas);
+    const hoja = archivoHoja(Math.floor(p.retrato / porHoja));
+    return `<span class="pokedex-foto en-hoja" style="background-image:url(${hoja});--columna:${columna};--fila:${fila}"></span>`;
+  }
+  if (p.retrato === -1) return ""; // Mundo Misterioso no tiene ninguno
+
+  // Tabla montada sin hoja (desde PokeAPI): uno a uno
+  const urls = [
+    ...urlsPMD({ id: p.numero, formaPMD: p.forma }),
+    ...(p.forma ? urlsPMD({ id: p.numero, formaPMD: 0 }) : [])
+  ];
+  return imagenConRespaldo(urls, `class="pokedex-foto" alt="" loading="lazy" data-quitar-si-falla`);
 }
 
 const URL_POKEDEX = new URL("../../datos/pokedex.json", import.meta.url);

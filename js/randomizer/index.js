@@ -295,7 +295,7 @@ const PESTANAS = [
             hijos: [{ k: "sinNormales", tipo: "casilla", texto: "Sin lo de las tiendas normales" }]
           },
           { k: "piedras", tipo: "casilla", texto: "Siempre hay piedras evolutivas" },
-          { k: "caramelos", tipo: "casilla", texto: "Caramelos Raros baratos" },
+          { k: "caramelos", tipo: "casilla", texto: "Esenciales baratos", ayuda: "Caramelos Raros y Poké Balls a 10 ₽, y los Caramelos Raros, a la venta desde la primera tienda: en un locke se compran a montones." },
           { k: "precios", tipo: "casilla", texto: "Precios equilibrados" }
         ]
       },

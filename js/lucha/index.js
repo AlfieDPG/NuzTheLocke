@@ -14,6 +14,7 @@
 // Desde «Lockes», cada combate de un locke tiene «Lucha» para retar al rival en ese combate: al
 // terminar, la victoria se suma sola en ese combate del locke (sumarVictoriaCombate).
 
+import { esEspeciePropia, imagenPropia } from "../comun/propios.js";
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { t, enIngles } from "../comun/idioma.js";
@@ -459,7 +460,8 @@ async function equipoParaLucha(elegido) {
   if (elegido.deLaPartida) {
     const { pasteDeEquipo, prepararConversion } = await import("../partida/convertir.js");
     await prepararConversion();
-    paste = pasteDeEquipo(pokemon);
+    // Con los ataques y habilidades propios de Pokémon Añil: el motor los conoce (./propios.js)
+    paste = pasteDeEquipo(pokemon, { conPropios: true });
   } else {
     paste = pasteDelEquipo(pokemon);
   }
@@ -579,6 +581,11 @@ const URL_SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sp
 const idsDeForma = new Map(); // "lucario-mega" -> id de PokeAPI (o null, si no lo tiene)
 
 function urlsSprite({ num, idForma, shiny, espalda }) {
+  // Los Pokémon propios de Pokémon Añil: sus dibujos animados del juego (js/comun/propios.js)
+  if (esEspeciePropia(num)) {
+    const tipo = espalda ? "espalda" : "";
+    return [imagenPropia(num, { tipo, shiny, animada: true }), imagenPropia(num, { tipo, shiny }), imagenPropia(num, { tipo })];
+  }
   const atras = espalda ? "back/" : "";
   const brillo = shiny ? "shiny/" : "";
   const id = idForma && idForma !== num ? idForma : num;
@@ -2151,7 +2158,7 @@ async function abrirCombate(id) {
   observador.observe(arena);
   abierto.observador = observador;
   pintarBotonSonido();
-  if (actual.motor && actual.motor !== motor.VERSION) {
+  if (motor.versionDistinta(actual)) {
     avisar(t("Este combate empezó con otra versión del motor: puede que no se pueda seguir."));
   }
   encolar(abierto.lector.leer(combate.lineasNuevas()));

@@ -873,3 +873,8 @@ dialog textarea {
     color: var(--t-texto);
   }
 }
+/* Los Pokémon propios de Pokémon Añil (Royaleon, Cefireon): sus dibujos del juego son pixel art
+   pequeño; al agrandarlos, sin suavizar (js/comun/propios.js) */
+img[src*="/img/anil/"] {
+  image-rendering: pixelated;
+}

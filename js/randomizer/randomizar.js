@@ -48,7 +48,10 @@ const NIVEL_INICIAL = 5;
 const PIEDRAS = [80, 81, 82, 83, 84, 85]; // Solar, Lunar, Fuego, Trueno, Agua, Hoja
 const PIEDRAS_EVOLUTIVAS = [...PIEDRAS, 107, 108, 109]; // y Piedra Brillante, Noche y Alba
 const CARAMELO_RARO = 50;
-const PRECIO_CARAMELO = 10; // en decenas: 100
+// «Esenciales baratos»: los Caramelos Raros y las Poké Balls que se compran (de la Ultra Ball a la
+// Veloz Ball; ni la Master ni la Gloria), a 10 ₽: en un locke se compran a montones
+const POKE_BALLS = rango(2, 15);
+const PRECIO_ESENCIAL = 10;
 const NINCADA = 290;
 const SHEDINJA = 292;
 const MAX_EQUIPO = 6;
@@ -1065,8 +1068,12 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
   hacer("piedras en las tiendas", r.objetos.piedras && !datos.perfil.sinObjetos, () => venderSiempre(datos, azar("piedras"), PIEDRAS_EVOLUTIVAS));
   hacer("mentas", mentas, () => (datos.perfil.mentasEnSuelo ? esparcirMentas(datos, azar("mentas"), objetos) : venderMentas(datos)));
   hacer("precios", r.objetos.precios && !datos.perfil.sinObjetos, () => equilibrarPrecios(datos, objetos));
-  hacer("Caramelos Raros baratos", caramelos, () => {
-    datos.precios[CARAMELO_RARO] = datos.perfil.preciosEnDecenas === false ? PRECIO_CARAMELO * 10 : PRECIO_CARAMELO;
+  hacer("esenciales baratos", caramelos, () => {
+    // En los juegos con los precios en decenas (5.ª generación y 3DS), 1 = 10 ₽
+    const precio = datos.perfil.preciosEnDecenas === false ? PRECIO_ESENCIAL : PRECIO_ESENCIAL / 10;
+    for (const id of [CARAMELO_RARO, ...POKE_BALLS]) {
+      if (datos.precios[id] !== undefined && datos.precios[id] > 0) datos.precios[id] = precio;
+    }
   });
   // (antes de escribir los scripts)
   hacer("Pokédex Nacional", r.varios.pokedex, () => M.ponerPokedexNacional(datos));

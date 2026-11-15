@@ -4,6 +4,7 @@ import { cargarDatos } from "../comun/datos.js";
 import { t } from "../comun/idioma.js";
 import { cargarEstado } from "./estado.js";
 import { iniciarCrear, renderCrear, mostrarMensaje } from "./crear.js";
+export { anadirDesdePokedex } from "./crear.js";
 import { renderMisEquipos } from "./mis-equipos.js";
 import { iniciarImportar } from "./importar.js";
 import { icono } from "../comun/iconos.js";

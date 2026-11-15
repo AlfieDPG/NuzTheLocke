@@ -26,6 +26,7 @@ import {
   VERSIONES, versionesDe, lugaresDe, lugarIntercambio, nombreLugar, creadoEnWeb, partidaGuardada
 } from "./editor-comun.js";
 import { confirmar } from "../comun/ventanas.js";
+import { juegoDelPropio } from "../comun/propios.js";
 import { t, nombre as nombreDe } from "../comun/idioma.js";
 
 let dialogo = null;
@@ -120,12 +121,23 @@ function plantillaBall(poke) {
     </span>`;
 }
 
+// Los ataques y habilidades propios de Pokémon Añil (js/comun/propios.js): una etiqueta con el
+// nombre del juego y, al pasar por encima, su descripción y que no se pueden exportar
+function etiquetaPropio(entrada) {
+  const juego = juegoDelPropio(entrada);
+  if (!juego) return "";
+  const aviso = t("Propio de {juego}: no existe en los juegos oficiales, así que no se exporta a Showdown. En «Combates» sí funciona.", { juego });
+  const texto = entrada.descripcion ? `${entrada.descripcion}\n\n${aviso}` : aviso;
+  return `<span class="editor-propio" title="${escaparHTML(texto)}">${escaparHTML(juego.replace(/^Pokémon /, ""))}</span>`;
+}
+
 function plantillaHabilidad(poke) {
   const propia = (poke.habilidades || []).find((h) => h.id === poke.habilidad);
   return `
     <span class="editor-combo">
       <span class="editor-buscar"><input class="editor-habilidad-campo" type="text" placeholder="${t("Habilidad")}" autocomplete="off" aria-label="${t("Habilidad")}" value="${escaparHTML(poke.habilidad ? nombreDe(habilidad(poke.habilidad)) : "")}"></span>
       ${propia && propia.num === 4 ? `<span class="editor-oculta">${t("oculta")}</span>` : ""}
+      ${poke.habilidad ? etiquetaPropio(habilidad(poke.habilidad)) : ""}
     </span>`;
 }
 
@@ -146,6 +158,7 @@ function plantillaAtaque(a, i) {
     <div class="editor-ataque" style="--color:${coloresTipo[info.tipo] || "var(--t-control)"}">
       ${info.tipo ? iconoTipo(info.tipo) : ""}
       <span class="editor-ataque-nombre">${escaparHTML(nombreDe(ataque(a.id)))}</span>
+      ${etiquetaPropio(ataque(a.id))}
       <span class="editor-ataque-pp">${a.pp}/${maximos}</span>
       <button class="editor-ataque-quitar" data-hueco="${i}" title="${t("Cambiar")}">${icono("aspa")}</button>
     </div>`;

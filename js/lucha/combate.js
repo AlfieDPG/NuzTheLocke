@@ -16,9 +16,27 @@
 // Nivel 50: se les pone aquí a los equipos (la regla «Adjust Level» del motor no se aplica antes de
 // empezar).
 
-import { Battle, Teams, Dex, toID, VERSION } from "./motor.js";
+import { Battle, Teams, Dex, toID, VERSION as VERSION_MOTOR } from "./motor.js";
+import { anadirPropiosAlMotor, VERSION_PROPIOS, nombresPropios } from "./propios.js";
+
+// Los ataques y habilidades propios de Pokémon Añil, con sus efectos (./propios.js)
+anadirPropiosAlMotor(Dex);
+
+// La que se apunta en cada lucha: la del motor y la de los propios («0.10.12+anil1»)
+const VERSION = `${VERSION_MOTOR}+${VERSION_PROPIOS}`;
 
 export { VERSION, Dex, toID };
+
+// ¿Puede descuadrarse este combate con la versión de ahora? Solo si cambia el motor o, si sus
+// equipos llevan algo propio de Pokémon Añil, la versión de sus efectos
+export function versionDistinta(lucha) {
+  if (!lucha.motor || lucha.motor === VERSION) return false;
+  const [motor, propios = ""] = lucha.motor.split("+");
+  if (motor !== VERSION_MOTOR) return true;
+  if (propios === VERSION_PROPIOS) return false;
+  const pastes = Object.values(lucha.equipos || {}).join("\n");
+  return nombresPropios().some((nombre) => pastes.includes(nombre));
+}
 
 // La semilla del combate: las dos mitades (la de quien reta y la de quien acepta), mezcladas
 export function semillaDe(lucha) {

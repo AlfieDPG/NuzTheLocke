@@ -150,8 +150,8 @@ const TEMAS = [
       },
       {
         es: "¿Cómo veo la línea evolutiva de un Pokémon?", en: "How do I see a Pokémon's evolution line?",
-        res: `En la «Pokédex», pulsa la foto del Pokémon: sale su línea evolutiva con cómo evoluciona cada uno.`,
-        ren: `In the “Pokédex”, click the Pokémon's picture: its evolution line appears with how each one evolves.`
+        res: `En la «Pokédex», pulsa su fila: a la derecha sale su ficha, con su línea evolutiva y cómo evoluciona cada uno, sus debilidades, habilidades y los ataques que aprende en cada juego.`,
+        ren: `In the “Pokédex”, click its row: its card appears on the right, with its evolution line and how each one evolves, its weaknesses, abilities and the moves it learns in each game.`
       }
     ]
   },

@@ -1,4 +1,5 @@
 import { quitarAcentos, normalizarNombre } from "./utilidades.js";
+import { anadirPropios } from "./propios.js";
 
 // ---------- Carga de datos (nombres en español e inglés) ----------
 
@@ -135,14 +136,24 @@ let promesaDatos = null;
 
 export function cargarDatos() {
   if (!promesaDatos) {
-    promesaDatos = leerODescargar().then((d) => {
+    promesaDatos = leerODescargar().then(async (d) => {
       // En inglés las dos «As One» se llaman igual: como en español, con el Pokémon detrás
       for (const h of d.habilidades) if (h.id === 266 || h.id === 267) h.en = `As One (${h.id === 266 ? "Glastrier" : "Spectrier"})`;
+      // Los ataques y habilidades propios de Pokémon Añil (./propios.js)
+      await anadirPropios(d);
       return (datos = d);
     });
     promesaDatos.catch(() => (promesaDatos = null));
   }
   return promesaDatos;
+}
+
+// Una lista de nombres sin lo propio de Pokémon Añil (./propios.js): para elegir donde no se puede
+// usar (la calculadora, el randomizer)
+const sinPropiosHechas = new WeakMap();
+export function sinPropios(lista) {
+  if (!sinPropiosHechas.has(lista)) sinPropiosHechas.set(lista, lista.filter((entrada) => !entrada.propio));
+  return sinPropiosHechas.get(lista);
 }
 
 // Índice nombre inglés normalizado -> entrada, creado la primera vez que se busca en cada lista

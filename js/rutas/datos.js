@@ -159,7 +159,7 @@ export const LUGARES = {
       "Ruta 1", "Ruta 2 Sur", "Ruta 2 Norte", "Ruta 3", "Ruta 4", "Ruta 5", "Ruta 6", "Ruta 7", "Ruta 8",
       "Ruta 9", "Ruta 10 Norte", "Ruta 10 Sur", "Ruta 11", "Ruta 12 Norte", "Ruta 12 Sur", "Ruta 13",
       "Ruta 14", "Ruta 15", "Ruta 16", "Ruta 17", "Ruta 18", "Ruta 19", "Ruta 20", "Ruta 21", "Ruta 22",
-      "Ruta 23", "Ruta 25",
+      "Ruta 23", "Ruta 24", "Ruta 25",
       "Bosque Verde", "Monte Moon Exterior", "Monte Moon", "Túnel Diglett", "Túnel Roca", "Torre Pokémon",
       "Camino de Bicis", "Zona Safari 1", "Zona Safari 2", "Zona Safari 3", "Zona Safari 4",
       "Central Eléctrica", "Islas Espuma", "Mansión Quemada", "Volcán Canela", "Cataratas Tohjo",

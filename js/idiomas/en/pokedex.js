@@ -100,5 +100,25 @@ export default {
   "corto|AtE": "SpA",
   "corto|DefE": "SpD",
   "corto|Vel.": "Spe",
-  "corto|Tot.": "Tot"
+  "corto|Tot.": "Tot",
+
+  // La ficha (js/pokedex/ficha.js)
+  "pulsa una fila para verlo a la derecha": "click a row to see it on the right",
+  "Ficha de {nombre}": "{nombre}'s card",
+  "Cerrar ficha": "Close card",
+  "Añadir a equipo": "Add to team",
+  "En la calculadora": "In the calculator",
+  "Debilidades": "Weaknesses",
+  "Evolución": "Evolution",
+  "Ataques que aprende": "Moves it learns",
+  "Nv. {n}": "Lv. {n}",
+  "Evol.": "Evo.",
+  "Por MT": "By TM",
+  "Con tutores": "From tutors",
+  "Por huevo": "By egg",
+  "fila|MT": "TM",
+  "fila|Tutor": "Tutor",
+  "fila|Huevo": "Egg",
+  "No aprende ataques por nivel en este juego.": "It learns no moves by level in this game.",
+  "No hay datos de sus ataques.": "There's no data on its moves."
 };

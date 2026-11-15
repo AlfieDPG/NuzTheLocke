@@ -20,6 +20,11 @@ import { sePuedeEditarGBA, leerHuecoGBA, huecoVacioGBA, editarHuecosGBA, cuantos
 import { POKEMON_GBA } from "./pokemongba.js";
 import { bolsillosGBA, leerMochilaGBA, escribirMochilaGBA } from "./mochilagba.js";
 import { esPartidaVitro, leerPartidaVitro, prepararVitro, CAJAS_VITRO } from "./vitro.js";
+import { esPartidaAnil, leerPartidaAnil, prepararAnil, CAJAS_ANIL } from "./anil.js";
+import {
+  POKEMON_ANIL, leerHuecoAnil, huecoVacioAnil, editarHuecosAnil, cuantosEquipoAnil, entrenadorAnil, sePuedeEditarAnil,
+  bolsillosAnil, leerMochilaEditableAnil, escribirMochilaAnil
+} from "./escribiranil.js";
 import {
   POKEMON_VITRO, leerHuecoVitro, huecoVacioVitro, editarHuecosVitro, cuantosEquipoVitro, entrenadorVitro, sePuedeEditarVitro,
   bolsillosVitro, leerMochilaEditableVitro, escribirMochilaVitro
@@ -39,7 +44,7 @@ import {
 } from "./bdsp.js";
 
 // Los juegos en los que se puede editar la partida (ids de js/comun/juegos.js)
-export const EDITABLES = [...JUEGOS_EDITABLES, ...JUEGOS_EDITABLES_DS, ...JUEGOS_EDITABLES_SWITCH, "bdsp", "vitro", "frlg"];
+export const EDITABLES = [...JUEGOS_EDITABLES, ...JUEGOS_EDITABLES_DS, ...JUEGOS_EDITABLES_SWITCH, "bdsp", "vitro", "anil", "frlg"];
 
 export const CARAMELO_RARO = 50;
 
@@ -148,6 +153,25 @@ export function formatoDe(bytes) {
       entrenadorDe: entrenadorVitro,
       pokemon: POKEMON_VITRO,
       mochila: { bolsillosDe: bolsillosVitro, leerMochila: leerMochilaEditableVitro, escribirMochila: escribirMochilaVitro }
+    };
+  }
+  // Pokémon Añil (fangame de PC, ver ./anil.js y ./escribiranil.js). Antes de leer, await preparar()
+  if (esPartidaAnil(bytes)) {
+    return {
+      id: "anil",
+      preparar: prepararAnil,
+      gen: 8,
+      cajas: CAJAS_ANIL,
+      cajasAbiertas: () => CAJAS_ANIL,
+      leer: leerPartidaAnil,
+      sePuedeEditar: sePuedeEditarAnil,
+      leerHueco: leerHuecoAnil,
+      huecoVacio: huecoVacioAnil,
+      editarHuecos: editarHuecosAnil,
+      cuantosEquipo: cuantosEquipoAnil,
+      entrenadorDe: entrenadorAnil,
+      pokemon: POKEMON_ANIL,
+      mochila: { bolsillosDe: bolsillosAnil, leerMochila: leerMochilaEditableAnil, escribirMochila: escribirMochilaAnil }
     };
   }
   const mapa = mapaDS(bytes);

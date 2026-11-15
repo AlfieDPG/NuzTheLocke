@@ -4,6 +4,10 @@
 // oficial; en lo demás, los retratos de Mundo Misterioso y, si no los hay, sprites.
 
 import { indicePMD } from "./formas-pmd.js";
+import { esEspeciePropia, imagenPropia } from "./propios.js";
+
+// Los Pokémon propios de Pokémon Añil (Royaleon, Cefireon) no tienen arte ni retrato de Mundo
+// Misterioso: en todas partes, su dibujo del juego (./propios.js)
 
 const URL_SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/";
 const URL_PMD = "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/";
@@ -18,6 +22,7 @@ function idImagen(p) {
 // los Pokémon guardados hace tiempo pueden tener ahí el arte de la especie, y entonces
 // una Mega o una forma de Alola salían con el dibujo de la forma normal.
 export function urlArte(p) {
+  if (esEspeciePropia(p.id)) return imagenPropia(p.id, { shiny: p.shiny });
   return `${URL_SPRITES}pokemon/other/official-artwork/${p.shiny ? "shiny/" : ""}${idImagen(p)}.png`;
 }
 
@@ -50,6 +55,7 @@ export function urlsArte(p) {
 // hay, el de su especie, como en la Pokédex. Nunca los sprites de PokeAPI: los de las formas
 // modernas son renders 3D.
 export function urlsRetrato(p) {
+  if (esEspeciePropia(p.id)) return urlsPMD(p);
   const propias = urlsPMD(p);
   const conForma = indicePMD(p.idForma, p.formaPMD) || esHembraDistinta(p);
   return conForma ? [...new Set([...propias, ...urlsPMD({ id: p.id, shiny: p.shiny })])] : propias;
@@ -58,6 +64,7 @@ export function urlsRetrato(p) {
 // Sprite pixelado pequeño (96x96). Sirve también para las formas alternativas,
 // que tienen su propio id (Mega-Charizard X es el 10034).
 export function urlSpritePixel(id) {
+  if (esEspeciePropia(id)) return imagenPropia(id);
   return `${URL_SPRITES}pokemon/${id}.png`;
 }
 
@@ -67,6 +74,7 @@ function cuatroCifras(n) {
 
 // Retratos de Pokémon Mundo Misterioso (PMD SpriteCollab), de más a menos concreto
 export function urlsPMD(p) {
+  if (esEspeciePropia(p.id)) return [p.shiny && imagenPropia(p.id, { shiny: true }), imagenPropia(p.id)].filter(Boolean);
   const dex = cuatroCifras(p.id);
   // Se corrige aquí (y no solo al añadir el Pokémon) para que también se arreglen
   // los equipos que ya estaban guardados con el número antiguo.

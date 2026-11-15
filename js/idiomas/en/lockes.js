@@ -234,6 +234,8 @@ export default {
   "Objetos": "Items",
   "Medicinas": "Medicine",
   "MT y MO": "TMs and HMs",
+  "Propio de {juego}: no existe en los juegos oficiales, así que no se exporta a Showdown. En «Combates» sí funciona.":
+    "Exclusive to {juego}: it doesn't exist in the official games, so it isn't exported to Showdown. It does work in “Battles”.",
   "MT y DT": "TMs and TRs",
   "MT": "TMs",
   "Bayas": "Berries",

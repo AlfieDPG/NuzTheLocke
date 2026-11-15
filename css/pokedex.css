@@ -357,85 +357,7 @@ td.col-numero {
   color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
 }
 
-/* ---------- Línea evolutiva (js/pokedex/evoluciones.js) ---------- */
-
-/* La foto es un botón: al pulsarla sale el bocadillo */
-.pokedex-evo {
-  display: block;
-  margin: 0 auto;
-  padding: 0.1rem;
-  border: none;
-  border-radius: 0.4rem;
-  background: transparent;
-  cursor: pointer;
-  transition: transform 0.12s, background-color 0.12s, box-shadow 0.12s;
-}
-
-/* Al pasar por encima, el mismo efecto que las caras de «Mis equipos»: un pelín más grande
-   y con el borde amarillo */
-.pokedex-evo:hover,
-.pokedex-evo:focus-visible {
-  position: relative;
-  z-index: 1;
-  transform: scale(1.12);
-  background: rgba(var(--color-vista), 0.18);
-  box-shadow: 0 0 0 2px rgba(var(--color-vista), 0.7), 0 4px 12px rgba(0, 0, 0, 0.45);
-  outline: none;
-}
-
-.bocadillo-evo {
-  --flecha: 2rem;
-  position: absolute;
-  z-index: 50;
-  box-sizing: border-box; /* para que crezca hasta su medida exacta (js/pokedex/evoluciones.js) */
-  /* Ancho para tres Pokémon, sus flechas y la Mega (con el aire de la derecha, .evo-arbol) */
-  max-width: min(52rem, calc(100vw - 16px));
-  padding: 0.75rem 0.9rem;
-  border-radius: 0.7rem;
-  background: var(--t-panel);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(var(--t-tinte), 0.08);
-  color: var(--t-texto);
-  font-size: 0.85rem;
-  transform-origin: var(--flecha) top;
-  animation: bocadillo-aparece 0.18s ease-out;
-}
-
-/* Al abrirse, crece un poco desde el piquito */
-.bocadillo-evo.encima {
-  transform-origin: var(--flecha) bottom;
-}
-
-@keyframes bocadillo-aparece {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bocadillo-evo {
-    animation: none;
-  }
-}
-
-/* El piquito, apuntando a la foto: arriba si el bocadillo va debajo y al revés */
-.bocadillo-evo::before {
-  content: "";
-  position: absolute;
-  top: -0.45rem;
-  left: calc(var(--flecha) - 0.45rem);
-  width: 0.9rem;
-  height: 0.9rem;
-  background: var(--t-panel);
-  box-shadow: -1px -1px 0 rgba(var(--t-tinte), 0.08);
-  transform: rotate(45deg);
-}
-
-.bocadillo-evo.encima::before {
-  top: auto;
-  bottom: -0.45rem;
-  box-shadow: 1px 1px 0 rgba(var(--t-tinte), 0.08);
-}
+/* ---------- Línea evolutiva (js/pokedex/evoluciones.js), dentro de la ficha ---------- */
 
 /* Con su propio scroll si la línea es muy larga. Lleva aire por dentro (y se come lo mismo de
    fuera, así no cambia nada): al pasar por encima de un Pokémon crece y se ilumina, y sin ese
@@ -593,4 +515,502 @@ td.col-numero {
   padding: 0.9rem 1rem 0.9rem 1.1rem;
   border-radius: 0.9rem;
   box-shadow: inset 5px 0 0 rgb(var(--color-vista)), 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- Rediseño: la tabla y, a la derecha, la ficha (js/pokedex/ficha.js) ---------- */
+
+.pokedex-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 27.5rem;
+  gap: 1rem;
+  align-items: start;
+  margin: 0.85rem 0;
+}
+
+.pokedex-cuerpo .tabla-pokedex {
+  margin: 0;
+}
+
+/* Con la ficha al lado la tabla es más estrecha: columnas más justas y los títulos cortos
+   (en el móvil manda css/movil.css).
+   En proporción, para que al ensanchar la pantalla crezcan todas y no solo la del nombre */
+@media (min-width: 761px) {
+  .tabla-pokedex .col-numero { width: 7%; }
+  .tabla-pokedex .col-foto { width: 6%; }
+  .tabla-pokedex .col-nombre { width: 24%; }
+  .tabla-pokedex .col-tipos { width: 9%; padding-right: 0.5rem; text-align: center; }
+  .tabla-pokedex .col-dato { width: 7.5%; }
+  .tabla-pokedex .col-total { width: 9%; }
+  .tabla-pokedex .col-numero { text-align: center; }
+}
+
+.pokedex-cuerpo[hidden] {
+  display: none;
+}
+
+.tabla-pokedex td.col-foto .pokedex-foto {
+  margin: 0 auto;
+}
+
+/* Cada fila se pulsa: pasa a la ficha */
+.tabla-pokedex tbody tr {
+  cursor: pointer;
+}
+
+.tabla-pokedex tbody tr:focus-visible {
+  outline: 2px solid rgba(var(--color-vista), 0.7);
+  outline-offset: -2px;
+}
+
+.tabla-pokedex tbody tr.elegida {
+  background: rgba(var(--color-vista), 0.16);
+}
+
+.tabla-pokedex tbody tr.elegida td:first-child {
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.pokedex-pista {
+  opacity: 0.85;
+}
+
+/* La ficha: de alto fijo, desde donde empieza hasta el final de la pantalla, y quieta ahí al
+   bajar por la tabla (--pdx-arriba lo mide js/pokedex/index.js). Lo que sobra es para los
+   ataques, que llevan su propio scroll; solo si los demás apartados no dejan sitio ni para
+   unos pocos, baja la ficha entera */
+.pokedex-ficha {
+  position: sticky;
+  top: var(--pdx-arriba, 0.85rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  height: calc(100vh - var(--pdx-arriba, 0.85rem) - 0.85rem);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 1rem 1.1rem 1.1rem;
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+  box-shadow: inset 0 0 0 1px rgba(var(--color-vista), 0.35);
+  overscroll-behavior: contain;
+  /* Si no cabe todo se puede bajar, pero sin barra: estropeaba la tarjeta */
+  scrollbar-width: none;
+}
+
+.pokedex-ficha::-webkit-scrollbar {
+  display: none;
+}
+
+.pdx-apartado[hidden] {
+  display: none;
+}
+
+.pdx-cerrar {
+  display: none;
+}
+
+/* La cabeza, con un velo del color de su primer tipo por detrás */
+.pdx-cabeza {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  margin: -1rem -1.1rem 0;
+  padding: 1rem 1.1rem 0.2rem;
+  border-radius: 0.9rem 0.9rem 0 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tipo) 22%, transparent), transparent);
+}
+
+.pdx-grande {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 5.75rem;
+  height: 5.75rem;
+  border-radius: 1.1rem;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-tipo) 50%, transparent), color-mix(in srgb, var(--color-tipo) 12%, transparent) 70%);
+}
+
+.pdx-grande .pokedex-foto {
+  width: 4.9rem;
+  height: 4.9rem;
+}
+
+.pdx-titulo {
+  min-width: 0;
+}
+
+.pokedex-ficha h2 {
+  margin: 0;
+  font-family: var(--letra-titulos);
+  font-size: 1.8rem;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.pokedex-ficha h2 small {
+  color: var(--t-gris);
+  font-size: 1rem;
+}
+
+.pdx-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+/* Pastilla de un tipo: su color (algo más oscuro, para que se lea la letra blanca) y su icono */
+.pdx-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem 0.1rem 0.35rem;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--color-tipo) 78%, black);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+.pdx-tipo .icono-tipo {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.pdx-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+/* Planos, de color y con la letra blanca, como los demás botones nuevos */
+.pdx-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, rgb(var(--color-boton)) 78%, black);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pdx-boton:hover {
+  background: color-mix(in srgb, rgb(var(--color-boton)) 66%, black);
+}
+
+.pdx-boton .icono {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.pdx-al-equipo { --color-boton: 64, 112, 214; }
+.pdx-a-calculadora { --color-boton: 155, 110, 230; }
+
+.pdx-apartado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.pdx-apartado h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--t-gris-2);
+  font-family: var(--letra);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pdx-apartado h3::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  height: 1px;
+  background: rgba(var(--t-tinte), 0.1);
+}
+
+/* El juego de los ataques, al final de la raya */
+.pdx-juego-caja {
+  order: 2;
+}
+
+.pdx-juego {
+  max-width: 13rem;
+  padding: 0.15rem 0.4rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--t-control);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.pdx-cargando {
+  margin: 0;
+  color: var(--t-gris);
+  font-size: 0.82rem;
+}
+
+/* Contra él: ×4, ×2... y los tipos de cada uno */
+.pdx-efectos {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.3rem 0.6rem;
+  align-items: center;
+}
+
+.pdx-efectos b {
+  font-family: var(--letra-titulos);
+  font-size: 0.95rem;
+  text-align: right;
+}
+
+.pdx-efectos div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.pdx-efectos .mal4 { color: #ff6b5a; }
+.pdx-efectos .mal2 { color: #f19a8e; }
+.pdx-efectos .bien2 { color: #8fd6a3; }
+.pdx-efectos .bien4 { color: #4fd17e; }
+.pdx-efectos .cero { color: var(--t-gris); }
+
+/* La línea evolutiva, más apretada que en el bocadillo de antes (la ficha es estrecha) */
+.pdx-evo .evo-arbol {
+  max-height: none;
+  margin: -0.4rem -0.5rem;
+  padding: 0.4rem 0.8rem 0.4rem 0.5rem;
+}
+
+.pdx-evo .evo-pokemon {
+  width: 4.4rem;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.pdx-evo .evo-pokemon:focus-visible {
+  outline: 2px solid rgba(var(--color-vista), 0.7);
+}
+
+.pdx-evo .evo-metodo {
+  width: 4.6rem;
+  font-size: 0.68rem;
+}
+
+.pdx-evo .evo-cara {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* «Formas»: las Megas y los cambios de forma; casilla y, al lado, qué hace falta */
+.evo-cambios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+}
+
+.pdx-formas .evo-pokemon {
+  width: 4rem;
+}
+
+.evo-cambio {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.evo-cambio-casillas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* Varias con el mismo texto: el texto encima y las casillas en fila */
+.evo-cambio.varios {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+}
+
+.evo-cambio.varios .evo-cambio-como {
+  max-width: none;
+}
+
+.evo-cambio .evo-pokemon {
+  border: 1px dashed rgba(var(--color-vista), 0.45);
+}
+
+.evo-cambio-como {
+  max-width: 6.5rem;
+  color: var(--t-gris);
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+
+/* Los retratos de Mundo Misterioso, con las puntas redondeadas como en el resto de la web */
+.tabla-pokedex .pokedex-foto { border-radius: 0.35rem; }
+.pdx-grande .pokedex-foto { border-radius: 0.8rem; }
+.evo-cara { border-radius: 0.45rem; }
+
+.pdx-habilidades {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pdx-habilidad {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.pdx-habilidad b {
+  flex: none;
+  width: 7rem;
+}
+
+.pdx-oculta {
+  color: var(--t-gris);
+  font-size: 0.7rem;
+}
+
+.pdx-apartado-ataques {
+  flex: 1;
+  min-height: 9rem;
+}
+
+.pdx-lista-ataques {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-height: 0;
+  margin-right: -0.5rem;
+  padding-right: 0.5rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.pdx-ataques {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pdx-ataque {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.45rem;
+  background: var(--t-fondo-2);
+  font-size: 0.82rem;
+}
+
+.pdx-nv {
+  color: var(--t-gris);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.pdx-ataque .pdx-tipo {
+  padding: 0 0.45rem 0 0.3rem;
+  font-size: 0.64rem;
+}
+
+.pdx-subtitulo {
+  margin: 0.35rem 0 0;
+  color: var(--t-gris-2);
+  font-size: 0.75rem;
+}
+
+/* Pantallas estrechas: la tabla sola y la ficha, al pulsar, por encima de todo */
+@media (max-width: 1100px) {
+  .pokedex-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pokedex-pista {
+    display: none;
+  }
+
+  .pokedex-ficha {
+    display: none;
+  }
+
+  #vista-pokedex.con-ficha .pokedex-ficha:not([hidden]) {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    height: auto;
+    border-radius: 0;
+    box-shadow: none;
+    padding-top: 3rem;
+    animation: pdx-entra 0.18s ease-out;
+  }
+
+  #vista-pokedex.con-ficha .pdx-cabeza {
+    margin-top: -3rem;
+    padding-top: 3rem;
+    border-radius: 0;
+  }
+
+  .pdx-cerrar {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: none;
+    border-radius: 50%;
+    background: var(--t-control);
+    color: var(--t-texto);
+    cursor: pointer;
+  }
+
+  .pdx-cerrar .icono {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  html.pokedex-ficha-abierta {
+    overflow: hidden;
+  }
+}
+
+@keyframes pdx-entra {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #vista-pokedex.con-ficha .pokedex-ficha {
+    animation: none;
+  }
 }

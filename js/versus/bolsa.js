@@ -26,7 +26,7 @@ const ICONOS = {
 };
 // En los de Switch ya no hay MO: en Espada / Escudo son MT y DT; en Perla Reluciente, solo MT
 // En GS Vitro, el de los objetos de combate se llama «Mejoras» (como en el juego)
-const NOMBRES_DE = { swsh: { mt: t("MT y DT") }, bdsp: { mt: t("MT") }, vitro: { mt: t("MT"), combate: t("Mejoras") } };
+const NOMBRES_DE = { swsh: { mt: t("MT y DT") }, bdsp: { mt: t("MT") }, vitro: { mt: t("MT"), combate: t("Mejoras") }, anil: { mt: t("MT y MO") } };
 
 let elegido = "objetos"; // el bolsillo que se ve
 

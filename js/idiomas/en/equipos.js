@@ -301,8 +301,12 @@ export default {
   "Fijarlo: irá seguro en el equipo": "Lock it in: it will surely be on the team",
   "Fuera de la búsqueda (pulsa para que vuelva a contar)": "Left out of the search (click to count it again)",
   "Dejarlo fuera de la búsqueda": "Leave it out of the search",
-  "Pulsa un Pokémon para ver su ficha. En sus esquinas, la ✕ lo deja fuera de la búsqueda y el candado lo fija (irá seguro en el equipo). La nota no mira el nivel: fíjate en el de cada uno por si hay que entrenarlo.":
-    "Click a Pokémon to see its details. In its corners, the ✕ leaves it out of the search and the lock locks it in (it will surely be on the team). The score ignores level: check each one's level in case it needs training.",
+  "Pulsa un Pokémon para ver su ficha. En sus esquinas, la ✕ lo deja fuera de la búsqueda y el candado lo fija (irá seguro en el equipo). La nota compara a cada uno con rivales de su nivel; con «Sin contar el nivel», todos como si tuvieran el del más alto.":
+    "Click a Pokémon to see its details. In its corners, the ✕ leaves it out of the search and the lock locks it in (it will surely be on the team). The score compares each one with rivals of its own level; with “Ignore level”, all of them as if they had the highest one's.",
+  "Sin contar el nivel": "Ignore level",
+  "Como si todos tuvieran el nivel del más alto: para ver quién vale más aunque aún haya que entrenarlo":
+    "As if everyone had the highest one's level: to see who is better even if they still need training",
+  "Nv. {nivel} (cuenta como {cuenta})": "Lv. {nivel} (counts as {cuenta})",
   "Pulsa un Pokémon para ver su ficha: ataques, habilidad, objeto, estadísticas y el porqué de su nota.":
     "Click a Pokémon to see its details: moves, ability, item, stats and the reason behind its score.",
   "Base {base}": "Base {base}",

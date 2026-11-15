@@ -4220,7 +4220,6 @@ img.con-marco.con-marco {
 #vista-juegos :is(.eficaz-opciones, .tipos-opciones) button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-tipo) 78%, black);
   filter: brightness(1.12);
-  transform: translateY(-1px);
 }
 
 /* ¿De qué tipo es?: los que marcas, con un aro blanco y una marca en la esquina */
@@ -4230,8 +4229,7 @@ img.con-marco.con-marco {
 
 #vista-juegos .tipos-opciones button.elegido {
   background: color-mix(in srgb, var(--color-tipo) 90%, black);
-  box-shadow: inset 0 0 0 3px #fff, 0 0 0 3px rgba(var(--color-vista), 0.6), 0 4px 10px rgba(0, 0, 0, 0.4);
-  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 3px #fff, 0 0 0 3px rgba(var(--color-vista), 0.6);
 }
 
 #vista-juegos .tipos-opciones button.elegido::after {
@@ -4372,7 +4370,6 @@ img.con-marco.con-marco {
 
 #vista-juegos .masomenos-botones button:hover {
   filter: brightness(1.1);
-  transform: translateY(-1px);
 }
 
 /* ¿Quién es ese Pokémon?: la casilla va abajo del reto, así que sus sugerencias se abren hacia arriba
@@ -4662,7 +4659,7 @@ img.con-marco.con-marco {
 @keyframes juego-marca {
   0% { transform: scale(0.9); }
   60% { transform: scale(1.06); }
-  100% { transform: translateY(-1px); }
+  100% { transform: none; }
 }
 
 /* Supereficaz: el rival nuevo entra por la derecha y, con él, un destello verde o rojo de cómo fue
@@ -4764,4 +4761,16 @@ img.con-marco.con-marco {
   .juego-fin-fichas.llega .ficha-moneda {
     animation: none;
   }
+}
+
+/* El reto, sin barra de scroll a la vista: al acertar o marcar, los botones crecen un momento (y las
+   opciones entran desde abajo) y, si el reto iba justo de alto, salía una barra durante la animación
+   que además estrechaba todo. Si de verdad no cabe (ventanas muy bajas), se sigue bajando con la
+   rueda o el dedo. */
+#vista-juegos .retos-juego .juego {
+  scrollbar-width: none;
+}
+
+#vista-juegos .retos-juego .juego::-webkit-scrollbar {
+  display: none;
 }

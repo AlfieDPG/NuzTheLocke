@@ -17,6 +17,7 @@ import { activarTooltips, actualizarTooltip, ocultarTooltip, escaparHTML } from 
 import { activarAutocompletado, iconoPokemon, iconoObjeto } from "../comun/autocompletado.js";
 import { pasteDelEquipo, copiarAlPortapapeles } from "./exportar.js";
 import { iniciarEntreno, abrirEntreno, textoEntreno, STATS } from "./entreno.js";
+import { filaStat, bloqueTipos } from "../comun/fichas-pokemon.js";
 import { iniciarAnalisis } from "./analizar.js";
 import { iniciarBuscar } from "./buscar.js";
 import { icono } from "../comun/iconos.js";
@@ -34,7 +35,7 @@ const contadorEl = document.getElementById("contador");
 const avisoEl = document.getElementById("aviso");
 
 // Lo que hay que dejar el ratón encima de la habilidad o el objeto para ver su ficha
-const RETRASO_FICHAS = 1000;
+const RETRASO_FICHAS = 500;
 
 // Mensaje en lugar de las tarjetas (cargando, error...)
 export function mostrarMensaje(texto) {
@@ -88,6 +89,26 @@ async function agregarPokemon(entrada) {
     const p = variedad ? await pedirVariedad(variedad) : await pedirJSON(`${URL_API}pokemon/${entrada.id}`);
     estado.equipo.push(await pokemonDesdeAPI(p, entrada));
 
+    guardarEquipo();
+    mostrarAviso("");
+    renderCrear();
+  } catch (error) {
+    mostrarAviso(t("No he podido cargar ese Pokémon."));
+  }
+}
+
+// Desde la ficha de la Pokédex: esa forma justa (sin preguntar cuál), al equipo que estás creando
+export async function anadirDesdePokedex(fila) {
+  if (estado.equipo.length >= MAX_EQUIPO) {
+    mostrarAviso(t("El equipo ya tiene 6 Pokémon."));
+    return;
+  }
+  const entrada = datos.pokemon.find((p) => p.id === fila.numero);
+  if (!entrada) return;
+  mostrarAviso(t("Añadiendo..."));
+  try {
+    const p = await pedirJSON(`${URL_API}pokemon/${fila.clave}`);
+    estado.equipo.push(await pokemonDesdeAPI(p, entrada));
     guardarEquipo();
     mostrarAviso("");
     renderCrear();
@@ -732,13 +753,13 @@ export function iniciarCrear() {
     renderCrear();
   });
 
-  // Habilidad y objeto: la ficha sale tras un segundo con el ratón encima (si no, moverse por
-  // la página era un no parar de fichas). La del Pokémon y las de los ataques, al momento.
+  // La del Pokémon (sus stats base), la habilidad y el objeto: la ficha sale tras medio segundo con el
+  // ratón encima (si no, moverse por la página era un no parar de fichas). Las de los ataques, al momento.
   activarTooltips(
     resultado,
     ".arte, .ataque[data-indice], .ataque.habilidad, .ataque.objeto",
     contenidoFicha,
-    (elemento) => (elemento.matches(".habilidad, .objeto") ? RETRASO_FICHAS : 0)
+    (elemento) => (elemento.matches(".arte, .habilidad, .objeto") ? RETRASO_FICHAS : 0)
   );
 
   const buscadorPokemon = activarAutocompletado(campoBuscar, datos.pokemon, agregarPokemon, { icono: iconoPokemon });

@@ -17,6 +17,7 @@ import { leerPartidaSwSh, esPartidaSwSh } from "./switch.js";
 import { leerPartidaBDSP, esPartidaBDSP } from "./bdsp.js";
 import { leerPartidaGBA, esPartidaGBA, prepararGBA, avisoGBA } from "./gba.js";
 import { leerPartidaVitro, esPartidaVitro, prepararVitro } from "./vitro.js";
+import { leerPartidaAnil, esPartidaAnil, prepararAnil } from "./anil.js";
 import { convertirPartida } from "./convertir.js";
 import { cargarPokedex } from "../pokedex/datos.js";
 import { marcarCapturas } from "./rutas.js";
@@ -32,7 +33,7 @@ const CLAVE = "poketeams-partidas-v1";
 const MAX_VISTAS = 300; // infracciones ya apuntadas que se recuerdan (arbitroVistas)
 
 // Juegos que se saben leer (ids de js/comun/juegos.js)
-export const JUEGOS_LEIBLES = ["frlg", "dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", "sm", "usum", "swsh", "bdsp", "vitro"];
+export const JUEGOS_LEIBLES = ["frlg", "dp", "platino", "hgss", "bw", "b2w2", "xy", "oras", "sm", "usum", "swsh", "bdsp", "vitro", "anil"];
 
 // De qué consola es la partida (la que sepa leerla), o null
 function lectorDe(bytes) {
@@ -42,6 +43,7 @@ function lectorDe(bytes) {
   if (esPartidaDS(bytes)) return leerPartidaDS;
   if (esPartidaGBA(bytes)) return leerPartidaGBA;
   if (esPartidaVitro(bytes)) return leerPartidaVitro;
+  if (esPartidaAnil(bytes)) return leerPartidaAnil;
   return null;
 }
 
@@ -159,6 +161,7 @@ export async function procesarArchivo(locke, bytes, archivo = "", enVivo = null)
     if (!lector) return { error: t("Ese archivo no es una partida que se sepa leer."), dudoso: true };
     if (lector === leerPartidaGBA) await prepararGBA();
     if (lector === leerPartidaVitro) await prepararVitro();
+    if (lector === leerPartidaAnil) await prepararAnil();
     try {
       leida = lector(bytes);
     } catch (error) {

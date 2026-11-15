@@ -240,7 +240,6 @@
         </section>
 
         <section id="vista-pokedex" hidden>
-          <div class="pokedex-aviso" hidden></div>
           <div class="barra-pokedex" hidden>
             <input class="pokedex-buscar" type="search" placeholder="Buscar Pokémon...">
             <!-- El tipo, en un desplegable propio (con el icono de cada tipo): js/pokedex/index.js -->
@@ -252,10 +251,16 @@
             <span class="pokedex-cuenta"></span>
           </div>
           <div class="pokedex-filtros" hidden></div>
-          <table class="tabla-pokedex" hidden>
-            <thead></thead>
-            <tbody></tbody>
-          </table>
+          <!-- «Cargando...» y «Ningún Pokémon coincide...», donde iría la tabla -->
+          <div class="pokedex-aviso" hidden></div>
+          <!-- La tabla y, a la derecha, la ficha del Pokémon pulsado (js/pokedex/ficha.js) -->
+          <div class="pokedex-cuerpo">
+            <table class="tabla-pokedex" hidden>
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+            <aside class="pokedex-ficha" hidden></aside>
+          </div>
         </section>
 
         <section id="vista-calculadora" hidden>
@@ -982,6 +987,7 @@
       <h3>Vincular</h3>
       <p>En X / Y, Rubí Omega / Zafiro Alfa, Sol / Luna y Ultrasol / Ultraluna eliges el archivo «main» de la partida del emulador (Citra o Lime3DS). En Rojo Fuego / Verde Hoja, la .sav del emulador (mGBA, VisualBoyAdvance...), o juega desde la sección «Jugar» y no hace falta vincular nada. En Diamante / Perla, Platino, HeartGold / SoulSilver, Negro / Blanco y Negro 2 / Blanco 2, el archivo de guardado (.dsv de DeSmuME o .sav). En Espada / Escudo, el archivo «main» de la partida, y en Diamante Brillante / Perla Reluciente, el «SaveData.bin» (de Eden, Ryujinx o yuzu, o los que saca JKSV de la consola). La web lo vuelve a leer cada vez que guardas en el juego. Solo en Chrome o Edge de ordenador; en otros navegadores se lee a mano.</p>
       <p data-t>En <b>Pokémon GS Vitro</b> (el fangame de PC), el archivo <b>Game.rxdata</b> de la carpeta de partidas guardadas de Windows: <b>C:\Users\(tu usuario)\Saved Games\Pokemon GS Vitro</b>. Para editarla, cierra antes el juego.</p>
+      <p data-t>En <b>Pokémon Añil</b>, el archivo <b>Partida 1.rxdata</b> (o 2, 3...). El juego lo guarda en AppData, y Chrome y Edge no dejan vincular nada de ahí: hay que pasar sus partidas a Documentos una vez. Con el juego cerrado, abre «Símbolo del sistema» (busca <b>cmd</b> en el menú Inicio) y pega estas dos líneas:<br><code>move "%APPDATA%\Pokemon Anil" "%USERPROFILE%\Documents\Pokemon Anil"</code><br><code>mklink /J "%APPDATA%\Pokemon Anil" "%USERPROFILE%\Documents\Pokemon Anil"</code><br>El juego sigue guardando como siempre (en AppData queda un acceso que lleva a Documentos) y aquí vinculas <b>Documentos\Pokemon Anil\Partida 1.rxdata</b>. Para editarla, cierra antes el juego.</p>
       <h3>No me deja elegir el archivo</h3>
       <p data-t>Chrome y Edge no dejan elegir nada de dentro de las carpetas del sistema, como <b>AppData</b>, y muchos emuladores guardan ahí las partidas. Como la web tiene que leer la partida de verdad (no una copia), hay que decirle al emulador que la guarde en una carpeta normal, como Documentos:</p>
       <p data-t><b>Citra, Lime3DS o Azahar:</b> Configurar → Almacenamiento → cambia la carpeta de la tarjeta SD.<br><b>Eden, yuzu o Sudachi:</b> Emulación → Configurar → Sistema de archivos → cambia la carpeta de la NAND.<br>Antes de cambiarla, copia lo que había en la carpeta de antes a la nueva, o el emulador no verá tus partidas.</p>

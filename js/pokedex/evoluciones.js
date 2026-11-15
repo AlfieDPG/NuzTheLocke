@@ -1,5 +1,5 @@
-// Bocadillo de la Pokédex: al pulsar la foto de un Pokémon sale, pegada a ella, su línea
-// evolutiva entera y cómo evoluciona cada uno. Lleva también:
+// Línea evolutiva de la ficha de la Pokédex (js/pokedex/ficha.js): la línea entera y cómo
+// evoluciona cada uno. Lleva también:
 //   · las formas regionales, cada una con su propia línea (Vulpix de Alola -> Ninetales de
 //     Alola, Meowth de Galar -> Perrserker...);
 //   · las megaevoluciones (con su megapiedra) y los cambios de forma (Giratina Origen,
@@ -18,9 +18,6 @@ import { tiposEs } from "../comun/tipos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { sumarContador } from "../comun/contadores.js";
 import { t, nombre } from "../comun/idioma.js";
-
-let bocadillo = null;
-let abiertoDe = null; // botón de la foto que lo ha abierto
 
 // ---------- Nombres ----------
 
@@ -364,9 +361,50 @@ function retrato(n) {
   return imagenConRespaldo(urls, `class="evo-cara" alt="" data-quitar-si-falla`);
 }
 
-// clave: el id de la fila pulsada (el de su forma): esa sale marcada
-function plantillaNodo(n, clave) {
+// La casilla de un Pokémon (retrato, nombre y forma); la de la fila pulsada, marcada
+function cajaNodo(n, clave) {
   const actual = (n.forma.idForma || n.especie) === clave;
+  return `
+    <div class="evo-pokemon ${actual ? "actual" : ""}" data-clave="${n.forma.idForma || n.especie}" data-numero="${n.especie}" role="button" tabindex="0">
+      ${retrato(n)}
+      <span>${escaparHTML(n.nombre)}</span>
+      ${n.forma.etiqueta ? `<small>${escaparHTML(n.forma.etiqueta)}</small>` : ""}
+    </div>`;
+}
+
+// Las Megas y los cambios de forma de toda la línea, colgando de quien salen
+function cambiosDe(n) {
+  return [...n.cambios, ...n.hijos.flatMap((rama) => cambiosDe(rama.nodo))];
+}
+
+// Debajo de la línea, en filas que se parten si no caben (a lo ancho de la ficha no cabían),
+// con lo que hace falta (la megapiedra...). Las que piden lo mismo (los cinco motores de
+// Rotom), juntas y con el texto una sola vez.
+function plantillaCambios(raices, clave) {
+  const grupos = new Map(); // texto -> casillas
+  for (const rama of raices.flatMap(cambiosDe)) {
+    const texto = rama.textos.join(" · ");
+    if (!grupos.has(texto)) grupos.set(texto, []);
+    grupos.get(texto).push(rama.nodo);
+  }
+  if (!grupos.size) return "";
+  return `
+    <div class="evo-cambios">
+      ${[...grupos]
+        .map(
+          ([texto, nodos]) => `
+            <div class="evo-cambio ${nodos.length > 1 ? "varios" : ""}">
+              <div class="evo-cambio-casillas">${nodos.map((n) => cajaNodo(n, clave)).join("")}</div>
+              <span class="evo-cambio-como">${escaparHTML(texto)}</span>
+            </div>`
+        )
+        .join("")}
+    </div>`;
+}
+
+// clave: el id de la fila pulsada (el de su forma): esa sale marcada. Sin las Megas ni los
+// cambios de forma, que van aparte (plantillaCambios)
+function plantillaNodo(n, clave) {
   const paso = (rama, cambio) => `
     <div class="evo-paso ${cambio ? "cambio" : ""}">
       <div class="evo-metodo">
@@ -375,125 +413,31 @@ function plantillaNodo(n, clave) {
       </div>
       ${plantillaNodo(rama.nodo, clave)}
     </div>`;
-  const pasos = [...n.hijos.map((rama) => paso(rama, false)), ...n.cambios.map((rama) => paso(rama, true))];
+  const pasos = n.hijos.map((rama) => paso(rama, false));
 
   return `
     <div class="evo-rama">
-      <div class="evo-pokemon ${actual ? "actual" : ""}">
-        ${retrato(n)}
-        <span>${escaparHTML(n.nombre)}</span>
-        ${n.forma.etiqueta ? `<small>${escaparHTML(n.forma.etiqueta)}</small>` : ""}
-      </div>
+      ${cajaNodo(n, clave)}
       ${pasos.length ? `<div class="evo-hijos">${pasos.join("")}</div>` : ""}
     </div>`;
 }
 
-// Pegado a la foto: debajo si cabe y si no encima, sin salirse por los lados. La flecha del
-// bocadillo apunta siempre al centro de la foto.
-function colocar() {
-  if (!bocadillo || !abiertoDe) return;
-  const foto = abiertoDe.getBoundingClientRect();
-  const ancho = bocadillo.offsetWidth;
-  const alto = bocadillo.offsetHeight;
-  const margen = 8;
-
-  const izquierda = Math.max(margen, Math.min(foto.left - 16, window.innerWidth - ancho - margen));
-  const debajo = foto.bottom + 10 + alto <= window.innerHeight || foto.top - 10 - alto < 0;
-  const arriba = debajo ? foto.bottom + 10 : foto.top - 10 - alto;
-
-  bocadillo.classList.toggle("encima", !debajo);
-  bocadillo.style.left = `${izquierda + window.scrollX}px`;
-  bocadillo.style.top = `${arriba + window.scrollY}px`;
-  bocadillo.style.setProperty("--flecha", `${foto.left + foto.width / 2 - izquierda}px`);
-}
-
-const suave = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-// Al cerrarse se desvanece un momento (ya no se puede pulsar) y después se quita
-export function cerrarEvoluciones() {
-  if (bocadillo) {
-    const viejo = bocadillo;
-    viejo.style.pointerEvents = "none";
-    if (suave()) {
-      const animacion = viejo.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(0.96)" }], { duration: 120, easing: "ease-in" });
-      animacion.onfinish = () => viejo.remove();
-    } else viejo.remove();
-  }
-  bocadillo = null;
-  abiertoDe = null;
-}
-
-// Cuando llega la línea (en vez del «Cargando...»), el bocadillo crece hasta su tamaño en vez
-// de saltar; si va encima de la foto, su borde de abajo se queda quieto
-function crecer(antes) {
-  if (!suave()) return;
-  const ahora = { ancho: bocadillo.offsetWidth, alto: bocadillo.offsetHeight, arriba: bocadillo.style.top };
-  if (Math.abs(ahora.ancho - antes.ancho) < 2 && Math.abs(ahora.alto - antes.alto) < 2) return;
-  const este = bocadillo;
-  // Mientras crece, lo de dentro no se sale ni saca barras de scroll; el piquito (que está
-  // fuera, ::before) sí se ve: por eso «clip» con margen y no «hidden»
-  const arbol = este.querySelector(".evo-arbol");
-  este.style.overflow = "clip";
-  este.style.overflowClipMargin = "0.6rem";
-  if (arbol) arbol.style.overflow = "hidden";
-  const animacion = este.animate(
-    [
-      { width: `${antes.ancho}px`, height: `${antes.alto}px`, top: antes.arriba },
-      { width: `${ahora.ancho}px`, height: `${ahora.alto}px`, top: ahora.arriba }
-    ],
-    { duration: 200, easing: "ease-out" }
-  );
-  animacion.onfinish = () => {
-    este.style.overflow = "";
-    este.style.overflowClipMargin = "";
-    if (arbol) arbol.style.overflow = "";
-  };
-}
-
-// boton: la foto pulsada; numero: su número de la Pokédex; clave: el id de su forma (la de la
-// fila). Pulsar la misma otra vez lo cierra.
-export async function abrirEvoluciones(boton, numero, clave = numero) {
-  if (abiertoDe === boton) {
-    cerrarEvoluciones();
-    return;
-  }
-  cerrarEvoluciones();
-
-  abiertoDe = boton;
+// La línea de un Pokémon y sus formas, ya pintadas: { linea, formas } (vacío lo que no tenga:
+// la línea si no evoluciona; las formas si no tiene Megas ni cambios de forma). numero: su
+// número de la Pokédex; clave: el id de su forma (la de la fila), que sale marcada.
+export async function htmlEvoluciones(numero, clave = numero) {
   sumarContador("evoluciones"); // para los logros
-  bocadillo = document.createElement("div");
-  bocadillo.className = "bocadillo-evo";
-  bocadillo.innerHTML = `<p class="evo-aviso">${t("Cargando...")}</p>`;
-  document.body.appendChild(bocadillo);
-  colocar();
-
-  const este = bocadillo;
-  let html;
   try {
     const raices = await montar(numero);
-    const evoluciona = raices.some((n) => n.hijos.length || n.cambios.length) || raices.length > 1;
-    html = `
-      <div class="evo-arbol">
-        ${raices.map((n) => `<div class="evo-linea">${plantillaNodo(n, clave)}</div>`).join("")}
-        ${evoluciona ? "" : `<p class="evo-aviso">${t("No evoluciona.")}</p>`}
-      </div>`;
+    const evoluciona = raices.some((n) => n.hijos.length) || raices.length > 1;
+    return {
+      linea: evoluciona
+        ? `<div class="evo-arbol">${raices.map((n) => `<div class="evo-linea">${plantillaNodo(n, clave)}</div>`).join("")}</div>`
+        : "",
+      formas: plantillaCambios(raices, clave)
+    };
   } catch (error) {
     console.error(error);
-    html = `<p class="evo-aviso">${t("No se ha podido cargar. Revisa tu conexión.")}</p>`;
+    return { linea: `<p class="evo-aviso">${t("No se ha podido cargar. Revisa tu conexión.")}</p>`, formas: "" };
   }
-  if (bocadillo !== este) return; // mientras cargaba se ha cerrado o se ha abierto otro
-  const antes = { ancho: bocadillo.offsetWidth, alto: bocadillo.offsetHeight, arriba: bocadillo.style.top };
-  bocadillo.innerHTML = html;
-  colocar();
-  crecer(antes);
 }
-
-// ---------- Cerrar ----------
-
-document.addEventListener("click", (e) => {
-  if (bocadillo && !bocadillo.contains(e.target) && !(abiertoDe && abiertoDe.contains(e.target))) cerrarEvoluciones();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") cerrarEvoluciones();
-});
-window.addEventListener("resize", colocar);

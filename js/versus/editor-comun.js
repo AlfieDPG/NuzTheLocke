@@ -6,6 +6,7 @@ import { quitarAcentos, normalizarNombre } from "../comun/utilidades.js";
 import { imagenConRespaldo, urlsIconoObjeto } from "../comun/imagenes.js";
 import { tiposEs } from "../comun/tipos.js";
 import { cargarDatos, datos, buscarPorNombreIngles } from "../comun/datos.js";
+import { esPropio } from "../comun/propios.js";
 import { pedirJSON, URL_API } from "../comun/api.js";
 import { formasDeTipoDe, etiquetaEnIngles } from "../comun/formas.js";
 import { generoDe, generosPosibles } from "../comun/pokemon.js";
@@ -30,6 +31,10 @@ import { lugarVitro } from "../partida/vitro.js";
 import {
   existeEnVitro, bolsilloVitro, habilidadesVitro, lugaresVitro, aprendeVitro, LUGAR_INTERCAMBIO_VITRO
 } from "../partida/escribirvitro.js";
+import { lugarAnil } from "../partida/anil.js";
+import {
+  existeEnAnil, bolsilloAnil, habilidadesAnil, lugaresAnil, aprendeAnil, especieAnil, LUGAR_INTERCAMBIO_ANIL
+} from "../partida/escribiranil.js";
 
 // Cada juego que se edita: su generación y lo último que existe en él (números de especie,
 // objeto, ataque, habilidad y ball). lugares: hasta qué número de lugar es suyo (gen 4 y 5).
@@ -56,13 +61,32 @@ export const LIMITES = {
   bdsp: { gen: 8, especies: 493, objetos: 1822, ataques: 826, habilidades: 267, balls: 26 },
   // GS Vitro (fangame): lo que tiene sale de sus datos (../partida/escribirvitro.js). Sin juego de
   // origen ni formas que elegir, con sus propios lugares, bolsillos y habilidades de cada especie
-  vitro: { gen: 8, especies: 1025, objetos: OBJETOS_EN.length - 1, ataques: 919, habilidades: 310, balls: 26 }
+  vitro: { gen: 8, especies: 1025, objetos: OBJETOS_EN.length - 1, ataques: 919, habilidades: 310, balls: 26 },
+  // Pokémon Añil (fangame), igual que Vitro (../partida/escribiranil.js). Con sus ataques y
+  // habilidades propios (números desde el 30001) y sus dos Pokémon (Royaleon y Cefireon, 20001 y
+  // 20002): js/comun/propios.js
+  anil: { gen: 8, especies: Infinity, objetos: OBJETOS_EN.length - 1, ataques: Infinity, habilidades: Infinity, balls: 26 }
 };
 
 // Los dos de Switch numeran los lugares y guardan la bolsa cada uno a su manera
 const BOLSILLO_SWITCH = { swsh: bolsilloSwSh, bdsp: bolsilloBDSP };
 
-const esVitro = (juego) => juego === "vitro";
+// Los fangames de PC (GS Vitro y Pokémon Añil): lo que tienen sale de sus propios datos. Sin juego de
+// origen ni formas que elegir, con sus lugares, bolsillos y habilidades de cada especie
+const FANGAMES = {
+  vitro: {
+    nombre: "GS Vitro", existe: existeEnVitro, bolsillo: bolsilloVitro, habilidades: habilidadesVitro,
+    lugares: lugaresVitro, lugar: lugarVitro, aprende: aprendeVitro, intercambio: LUGAR_INTERCAMBIO_VITRO
+  },
+  anil: {
+    nombre: "Pokémon Añil", existe: existeEnAnil, bolsillo: bolsilloAnil, habilidades: habilidadesAnil,
+    lugares: lugaresAnil, lugar: lugarAnil, aprende: aprendeAnil, intercambio: LUGAR_INTERCAMBIO_ANIL,
+    // Las estadísticas base de su juego (y las de sus Pokémon propios, que no están en la Pokédex)
+    especie: especieAnil
+  }
+};
+const fangame = (juego) => FANGAMES[juego] || null;
+const esVitro = (juego) => Boolean(fangame(juego));
 
 function genDe(juego) {
   return (LIMITES[juego] || {}).gen || 6;
@@ -129,7 +153,7 @@ export function objetosDe(juego) {
     // En Espada / Escudo no están todos los de antes (los cristales Z, por ejemplo)
     const existe = BOLSILLO_SWITCH[juego]
       ? (id) => Boolean(BOLSILLO_SWITCH[juego](id))
-      : esVitro(juego) ? (id) => existeEnVitro("objetos", id)
+      : esVitro(juego) ? (id) => fangame(juego).existe("objetos", id)
       : genDe(juego) === 3 ? (id) => OBJETOS_PARTIDA_GEN3.has(id)
       // (en la 5.ª, del 505 al 531 no hay nada: eran de HeartGold y SoulSilver, y ahí van las mentas)
       // (en la 5.ª y en 3DS, del 505 al 531 no hay nada: eran de HeartGold y SoulSilver, y ahí van las mentas)
@@ -156,8 +180,8 @@ export function hastaLimite(nombre, juego) {
     // Las especies que hay en el juego, si no están todas (Espada / Escudo)
     const disponibles = nombre === "pokemon" && delEditor && delEditor.disponibles && delEditor.disponibles[juego];
     const hay = disponibles ? new Set(disponibles) : null;
-    // En Vitro, solo los ataques que tiene el juego
-    const enVitro = esVitro(juego) && nombre === "ataques" ? (id) => existeEnVitro("ataques", id) : () => true;
+    // En los fangames, solo los ataques que tiene el juego
+    const enVitro = esVitro(juego) && nombre === "ataques" ? (id) => fangame(juego).existe("ataques", id) : () => true;
     listas.set(clave, datos[nombre].filter((entrada) => entrada.id <= LIMITES[juego][nombre === "pokemon" ? "especies" : nombre] && (!hay || hay.has(entrada.id)) && enVitro(entrada.id)));
   }
   return listas.get(clave);
@@ -202,12 +226,15 @@ export const VERSIONES = [
 // Los que caben en una partida de ese juego (los de su generación o de antes). En Vitro no hay
 // juego de origen: todos son suyos
 export function versionesDe(juego) {
-  if (esVitro(juego)) return [{ id: 0, es: "GS Vitro", en: "GS Vitro", nombre: "GS Vitro", gen: 8 }];
+  if (esVitro(juego)) {
+    const nombre = fangame(juego).nombre;
+    return [{ id: 0, es: nombre, en: nombre, nombre, gen: 8 }];
+  }
   return VERSIONES.filter((v) => v.gen <= genDe(juego));
 }
 
 export function lugarIntercambio(juego) {
-  return esVitro(juego) ? LUGAR_INTERCAMBIO_VITRO : INTERCAMBIO[genDe(juego)];
+  return esVitro(juego) ? fangame(juego).intercambio : INTERCAMBIO[genDe(juego)];
 }
 
 // Los lugares del juego, sin repetir nombre. En 3DS, el N está en la posición N / 2; en gen 4
@@ -215,11 +242,11 @@ export function lugarIntercambio(juego) {
 export function lugaresDe(juego) {
   const clave = `lugares-${juego}`;
   if (!listas.has(clave) && esVitro(juego)) {
-    const lista = lugaresVitro().map(({ id, es }) => {
+    const lista = fangame(juego).lugares().map(({ id, es }) => {
       const en = lugarEnIngles(es, juego);
       return { id, es, en, buscar: quitarAcentos(`${es} ${en}`) };
     });
-    lista.push({ id: LUGAR_INTERCAMBIO_VITRO, es: "Intercambio", en: "Link Trade", buscar: "intercambio link trade" });
+    lista.push({ id: fangame(juego).intercambio, es: "Intercambio", en: "Link Trade", buscar: "intercambio link trade" });
     listas.set(clave, lista);
   }
   // Rojo Fuego: los de Kanto y las Islas Sete (sin repetir nombre; el de los intercambios, al final)
@@ -263,8 +290,8 @@ export function nombreLugar(numero, creado = false, juego = "xy") {
 
 function nombreLugarEs(numero, creado = false, juego = "xy") {
   if (esVitro(juego)) {
-    if (numero === LUGAR_INTERCAMBIO_VITRO) return creado ? "NuzTheLocke" : "Intercambio";
-    return lugarVitro(numero) || `Lugar ${numero}`;
+    if (numero === fangame(juego).intercambio) return creado ? "NuzTheLocke" : "Intercambio";
+    return fangame(juego).lugar(numero) || `Lugar ${numero}`;
   }
   const gen = genDe(juego);
   if (creado && numero === INTERCAMBIO[gen]) return "NuzTheLocke";
@@ -299,7 +326,7 @@ const BOLSILLO_EN_GEN6 = { 216: "clave", 504: "medicinas" };
 const BOLSILLO_GEN3 = { 3: "balls", 4: "mt", 5: "bayas", 8: "clave" };
 
 export function bolsilloDe(objetoId, juego = "xy") {
-  if (esVitro(juego)) return bolsilloVitro(objetoId) || "objetos";
+  if (esVitro(juego)) return fangame(juego).bolsillo(objetoId) || "objetos";
   const gen = genDe(juego);
   if (gen === 3) return BOLSILLO_GEN3[((delEditor && delEditor.bolsillos) || {})[objetoId]] || "objetos";
   // Las mentas de la 4.ª a la 7.ª generación son como el Caramelo Raro: van con las medicinas
@@ -364,6 +391,12 @@ export function balls(juego = "xy") {
 
 export async function cargarInfoAtaque(id) {
   if (!id || infoAtaques.has(id)) return;
+  // Los propios de Pokémon Añil (js/comun/propios.js): con lo que trae su juego
+  if (esPropio(id)) {
+    const propio = ataque(id);
+    infoAtaques.set(id, { tipo: propio.tipo || "normal", pp: propio.pp || 1 });
+    return;
+  }
   const local = delEditor && delEditor.ataques[id];
   if (local) {
     infoAtaques.set(id, { tipo: local[0], pp: local[1] });
@@ -423,13 +456,15 @@ export async function datosEspecie(especie, forma, juego) {
 
   // Vitro: sus habilidades y los ataques que aprende en su juego; lo demás, como siempre
   if (esVitro(juego)) {
+    const propia = fangame(juego).especie ? fangame(juego).especie(especie, forma) : null;
     const general = await datosEspecie(especie, 0, "swsh").catch(() => ({ generoRatio: 4, difGenero: false, felicidad: 70, ciclos: 20 }));
     return {
       ...general,
+      ...(propia ? { generoRatio: propia.generoRatio, felicidad: propia.felicidad, ciclos: propia.ciclos } : {}),
       opcion,
-      bases: basesDe(especie, forma),
-      habilidades: habilidadesVitro(especie).map(({ id, num }) => ({ num, ...habilidad(id) })),
-      aprende: await aprendeVitro(especie)
+      bases: propia ? propia.bases : basesDe(especie, forma),
+      habilidades: fangame(juego).habilidades(especie, forma).map(({ id, num }) => ({ num, ...habilidad(id) })),
+      aprende: await fangame(juego).aprende(especie)
     };
   }
 
