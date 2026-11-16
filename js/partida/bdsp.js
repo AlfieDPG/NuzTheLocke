@@ -219,6 +219,12 @@ function igualesSalvoSuma(uno, otro) {
 
 // trozos: [{ inicio, datos }] (lo que se escribe tal cual). Devuelve la partida nueva con el MD5
 // al día, comprobada: que fuera de los trozos y del MD5 no cambia nada.
+export function escribirTrozosBDSP(original, trozos) {
+  const permiso = sePuedeEditarBDSP(original);
+  if (!permiso.ok) throw new Error(permiso.motivo);
+  return escribirTrozos(original, trozos);
+}
+
 function escribirTrozos(original, trozos) {
   const nuevo = original.slice();
   for (const { inicio, datos } of trozos) nuevo.set(datos, inicio);

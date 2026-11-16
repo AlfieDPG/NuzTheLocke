@@ -49,6 +49,10 @@ const CLAVE_JUGAR = "poketeams-jugar-v1"; // lo que se le pide a «Jugar» al ll
 // Para esconderlo del todo, súbelo a un número que no se vaya a alcanzar.
 const MINIMO_REGISTRADOS = 50;
 
+// Página de donaciones (Ko-fi). Vacía, no sale el botón. Para activarlo: pon aquí tu enlace,
+// p. ej. "https://ko-fi.com/tu_usuario".
+const URL_DONAR = "";
+
 // ---------- Avisos (los escribe el desarrollador; los ven todos) ----------
 //
 // AVISOS: un punto cada uno, con su icono (de js/comun/iconos.js) y un color en «r, g, b». El texto
@@ -97,6 +101,60 @@ const avisosLeidos = () => leer(CLAVE_AVISOS_LEIDOS, "") === firmaAvisos();
 // formato de textos que los avisos.
 
 const NOVEDADES = [
+  {
+    fecha: "2026-11-17", vista: "lockes", icono: "bandera", color: "214, 88, 76",
+    es: `Editar la partida, con pestaña nueva de <b>Eventos</b>: cambia el dinero, los PB, las fichas o los vatios,
+      activa la Pokédex Nacional o complétala entera, como en PKHeX.`,
+    en: `Editing your save gets a new <b>Events</b> tab: change your money, BP, coins or watts, unlock
+      the National Pokédex or complete it, like in PKHeX.`
+  },
+  {
+    fecha: "2026-11-15", vista: "lockes", icono: "enlace", color: "214, 88, 76",
+    es: `Nuevo juego: <b>Pokémon Añil</b>. Vincula y edita tu partida; sus Pokémon propios salen en la
+      Pokédex y se pueden usar en «Combates».`,
+    en: `New game: <b>Pokémon Añil</b>. Link and edit your save; its own Pokémon show up in the Pokédex
+      and can be used in “Battles”.`
+  },
+  {
+    fecha: "2026-11-13", vista: "lockes", icono: "espadas", color: "214, 88, 76",
+    es: `<b>Lockes</b> renovados: tarjetas con las medallas de cada uno, invitaciones que se aceptan con un
+      clic y un panel de actividad con <b>chat del locke</b>.`,
+    en: `Revamped <b>Lockes</b>: cards with everyone's badges, invitations you accept in one click and an
+      activity panel with a <b>locke chat</b>.`
+  },
+  {
+    fecha: "2026-11-13", vista: "normas", icono: "libro", color: "205, 165, 100",
+    es: `Nuevo creador de <b>Normas</b>: variantes (Hardcore, Monotipo, Wedlocke, Egglocke, Wonderlocke...),
+      cláusulas y normas tuyas; el árbitro vigila las que puede.`,
+    en: `New <b>Rules</b> builder: variants (Hardcore, Monotype, Wedlocke, Egglocke, Wonderlocke...), clauses
+      and your own rules; the referee watches the ones it can.`
+  },
+  {
+    fecha: "2026-11-15", vista: "pokedex", icono: "pokedex", color: "232, 82, 110",
+    es: `La <b>Pokédex</b> tiene ficha: debilidades, evolución y los ataques que aprende (por nivel, MT, tutor
+      o huevo), y desde ella, al equipo o a la calculadora.`,
+    en: `The <b>Pokédex</b> has a details card: weaknesses, evolution and the moves it learns (by level, TM,
+      tutor or egg), and from there, to your team or the calculator.`
+  },
+  {
+    fecha: "2026-11-13", vista: "randomizer", icono: "mezclar", color: "160, 205, 80",
+    es: `<b>Randomizer</b> renovado: empieza con un estilo (Randomlocke clásico, Solo salvajes, Caos total),
+      revisa lo que va a cambiar antes de descargar y prueba «Esenciales baratos».`,
+    en: `Revamped <b>Randomizer</b>: start from a style (Classic randomlocke, Wild only, Total chaos), check
+      what will change before downloading and try “Cheap essentials”.`
+  },
+  {
+    fecha: "2026-11-13", vista: "rutas", icono: "mapa", color: "82, 183, 136",
+    es: `En <b>Rutas</b> ves en cada zona si tus compañeros del locke ya han capturado ahí (o lo intentaron).`,
+    en: `In <b>Routes</b> you see in each area whether your locke partners have already caught there (or tried).`
+  },
+  {
+    fecha: "2026-11-15", vista: "equipos", icono: "estrella", color: "64, 112, 214",
+    es: `<b>Buscar equipo</b>: fija con el candado a los que quieres sí o sí, deja fuera a otros y compáralos
+      «Sin contar el nivel».`,
+    en: `<b>Find a team</b>: lock in the ones you want no matter what, leave others out and compare them
+      “Ignore level”.`
+  },
   {
     fecha: "2026-11-12", vista: "inicio", icono: "casa", color: "231, 76, 60",
     es: `La web, <b>adaptada al móvil</b>: las secciones de más uso en una barra abajo y el resto en «Más».
@@ -384,6 +442,14 @@ function plantillaCabecera() {
        </div>`
     : "";
 
+  // Al lado, un botón discreto para ayudar a pagar los servidores
+  const donar = URL_DONAR
+    ? `<a class="inicio-donar" href="${URL_DONAR}" target="_blank" rel="noopener"
+          title="${t("NuzTheLocke es gratis y sin anuncios. Si te gusta, puedes ayudar a pagar los servidores.")}">
+         ${icono("corazon")}<span><b>${t("Apoyar la web")}</b><small>${t("ayuda con los servidores")}</small></span>
+       </a>`
+    : "";
+
   // Con sesión, un vistazo: cuántos lockes en marcha y cuántos amigos conectados
   let vistazo = "";
   if (conSesion()) {
@@ -406,6 +472,7 @@ function plantillaCabecera() {
       ${pendientes
         ? `<button class="inicio-avisos">${icono("campana")} ${t("{n} sin contestar", { n: pendientes })}</button>`
         : ""}
+      ${donar}
       ${usuarios}
     </header>`;
 }

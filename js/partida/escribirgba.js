@@ -174,13 +174,18 @@ export function cuantosEquipoGBA(bytes) {
 
 // Cambia esos trozos del bloque grande ([{ o, datos }]) y deja la partida bien
 export function escribirGrandeGBA(archivo, trozos) {
+  return escribirBloquesGBA(archivo, trozos.map((t) => ({ ...t, bloque: "grande" })));
+}
+
+// Como escribirGrandeGBA, en el bloque que diga cada trozo ([{ bloque: "pequeno" | "grande", o, datos }])
+export function escribirBloquesGBA(archivo, trozos) {
   const permiso = sePuedeEditarGBA(archivo);
   if (!permiso.ok) throw new Error(permiso.motivo);
   const original = crudoGBA(archivo);
   const mapa = mapaGBA(original);
   const nuevo = original.slice();
   const tocados = new Set();
-  for (const { o, datos } of trozos) escribirEn(nuevo, mapa, "grande", o, datos, tocados);
+  for (const { bloque, o, datos } of trozos) escribirEn(nuevo, mapa, bloque, o, datos, tocados);
   cerrarCambios(original, nuevo, mapa, tocados);
   return empaquetarGBA(archivo, nuevo);
 }

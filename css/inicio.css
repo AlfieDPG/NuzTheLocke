@@ -121,6 +121,64 @@
   color: var(--t-texto);
 }
 
+/* Apoyar la web (Ko-fi), junto a los usuarios: discreto, con el corazón latiendo al pasar */
+.inicio-donar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: none;
+  padding: 0.5rem 0.9rem 0.5rem 0.75rem;
+  border-radius: 0.6rem;
+  background: rgba(231, 76, 110, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(231, 76, 110, 0.45);
+  color: var(--t-texto);
+  text-decoration: none;
+  line-height: 1.15;
+  transition: background 0.15s;
+}
+
+.inicio-donar:hover {
+  background: rgba(231, 76, 110, 0.22);
+}
+
+#vista-inicio .inicio-donar .icono {
+  width: 1.35rem;
+  height: 1.35rem;
+  color: color-mix(in srgb, #e74c6e var(--t-vivo), black);
+  fill: currentColor;
+}
+
+.inicio-donar:hover .icono {
+  animation: inicio-latido 0.9s ease-in-out infinite;
+}
+
+@keyframes inicio-latido {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.2); }
+  60% { transform: scale(0.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inicio-donar:hover .icono {
+    animation: none;
+  }
+}
+
+.inicio-donar span {
+  display: flex;
+  flex-direction: column;
+}
+
+.inicio-donar b {
+  font-size: 0.92rem;
+}
+
+.inicio-donar small {
+  color: var(--t-gris-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .inicio-avisos,
 .inicio-entrar {
   display: inline-flex;
@@ -1082,6 +1140,10 @@
 
   .inicio-cabecera {
     flex-wrap: wrap;
+  }
+
+  .inicio-donar small {
+    display: none;
   }
 
   .inicio-locke-caras {

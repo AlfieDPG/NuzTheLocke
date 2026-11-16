@@ -42,9 +42,17 @@ const TAM_EQUIPO_GEN4 = 0xec;
 
 // Gen 5: la tabla de los CRC (su largo; su propio CRC va 0xE bytes detrás), el largo del bloque
 // de la bolsa y dónde empieza la copia de seguridad
+// otros: más bloques con su CRC ([inicio, largo, número en la tabla]; de PKHeX, SaveBlockAccessor5BW/B2W2):
+// el de varios (dinero, medallas), el de la Pokédex y el del Metro Batalla (los PB, en +0)
 const GEN5 = {
-  bw: { tabla: 0x23f00, largoTabla: 0x8c, largoBolsa: 0x9c0, copia: 0x24000 },
-  b2w2: { tabla: 0x25f00, largoTabla: 0x94, largoBolsa: 0x9ec, copia: 0x26000 }
+  bw: {
+    tabla: 0x23f00, largoTabla: 0x8c, largoBolsa: 0x9c0, copia: 0x24000,
+    otros: { varios: [0x21200, 0xec, 52], pokedex: [0x21600, 0x4d4, 55], metro: [0x21d00, 0x1ac, 58] }
+  },
+  b2w2: {
+    tabla: 0x25f00, largoTabla: 0x94, largoBolsa: 0x9ec, copia: 0x26000,
+    otros: { varios: [0x21100, 0xf0, 52], pokedex: [0x21400, 0x4dc, 54], metro: [0x21b00, 0x1ac, 57] }
+  }
 };
 const TAM_EQUIPO_GEN5 = 0xdc;
 const EQUIPO_GEN5 = 0x18e00; // bloque del equipo: el número en +4 y los Pokémon desde +8
@@ -135,6 +143,9 @@ export function mapaDS(bytes) {
     }));
     bloques.push({ nombre: "bolsa", inicio: BOLSA_GEN5, datos: j.largoBolsa, crc: BOLSA_GEN5 + j.largoBolsa + 2, entrada: j.tabla + 25 * 2 });
     bloques.push({ nombre: "equipo", inicio: EQUIPO_GEN5, datos: LARGO_EQUIPO_GEN5, crc: EQUIPO_GEN5 + LARGO_EQUIPO_GEN5 + 2, entrada: j.tabla + 26 * 2 });
+    for (const [nombre, [inicio, datos, n]] of Object.entries(j.otros)) {
+      bloques.push({ nombre, inicio, datos, crc: inicio + datos + 2, entrada: j.tabla + n * 2 });
+    }
     return {
       id, gen: 5, datos: j, numCajas: 24,
       equipo: EQUIPO_GEN5 + 8, tamEquipo: TAM_EQUIPO_GEN5, cuantos: EQUIPO_GEN5 + 4,

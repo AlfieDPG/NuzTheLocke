@@ -4835,10 +4835,27 @@ button.locke-caidos:hover .locke-caidos-caras img {
 
 /* ---------- Bolsa: mismo tamaño que las cajas, y los Caramelos Raros junto al buscador ---------- */
 
-/* La ventana mide lo mismo en las dos pestañas (antes la bolsa quedaba más estrecha) */
+/* La ventana mide lo mismo en las tres pestañas: lo que miden las cajas (con el hueco del editor solo
+   en pantallas anchas, como en js/versus/editor.js; si no, el ancho normal). El alto, fijo en .partida-cuerpo */
 #dialogo-partida.en-bolsa {
   --color-pestana: 82, 183, 136;
-  width: min(104rem, 97vw);
+}
+
+@media (min-width: 1100px) {
+  #dialogo-partida.en-bolsa {
+    width: min(104rem, 97vw);
+  }
+
+  /* En las cajas manda el alto del hueco del editor (.partida-lado), que lleva 0.9rem de relleno
+     arriba encima de su alto: la bolsa y los eventos, igual de altos */
+  #dialogo-partida.en-bolsa .partida-cuerpo {
+    height: calc(min(76vh, 54rem) + 0.9rem);
+  }
+}
+
+/* Cada pestaña, su color: cajas azul, bolsa verde, eventos ámbar */
+#dialogo-partida.en-eventos {
+  --color-pestana: 232, 163, 61;
 }
 
 .bolsa-barra {
@@ -4856,6 +4873,170 @@ button.locke-caidos:hover .locke-caidos-caras img {
 .bolsa-barra .bolsa-caramelos {
   order: 0;
   margin-left: auto;
+}
+
+/* ---------- Eventos: dinero, PB, Pokédex, objetos que desbloquean algo ---------- */
+
+.eventos {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.eventos-aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+
+.eventos-aviso .icono {
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.eventos-grupo h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.eventos-grupo h3 .icono {
+  width: 1rem;
+  height: 1rem;
+  color: rgb(var(--color-pestana));
+}
+
+.eventos-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+  gap: 0.4rem;
+}
+
+.eventos-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.45rem;
+  background: rgba(var(--t-oscurecer), 0.2);
+}
+
+.eventos-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.eventos-texto strong {
+  font-size: 0.9rem;
+}
+
+.eventos-texto small {
+  font-size: 0.76rem;
+  line-height: 1.35;
+  opacity: 0.7;
+}
+
+.eventos-control {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.eventos-control .numero {
+  width: 8.5rem;
+}
+
+.eventos-numero {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(var(--t-tinte), 0.12);
+  border-radius: 0.35rem;
+  background: var(--t-fondo);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.eventos-numero:focus {
+  outline: none;
+  border-color: rgb(var(--color-pestana));
+}
+
+.eventos-cuenta {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.eventos-completar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: rgb(var(--color-pestana));
+  color: var(--t-tinta);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.eventos-completar:disabled {
+  background: var(--t-control);
+  color: var(--t-texto);
+  cursor: default;
+  opacity: 0.7;
+}
+
+.eventos-completar .icono {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.eventos-interruptor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.eventos-interruptor input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: rgb(var(--color-pestana));
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .eventos-lista {
+    grid-template-columns: 1fr;
+  }
+
+  .eventos-fila {
+    flex-wrap: wrap;
+  }
+
+  .eventos-control {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 
 /* Con cambios, «Guardar» con su icono (ya no es solo una ✕) */

@@ -52,6 +52,10 @@ export default {
   "amigos conectados": "friends online",
   "usuarios": "users",
   "Usuarios registrados": "Registered users",
+  "Apoyar la web": "Support the site",
+  "ayuda con los servidores": "help with server costs",
+  "NuzTheLocke es gratis y sin anuncios. Si te gusta, puedes ayudar a pagar los servidores.":
+    "NuzTheLocke is free and ad-free. If you like it, you can help pay for the servers.",
   "Victorias": "Wins",
   "Vidas": "Lives",
   "Lockes en marcha": "Ongoing lockes",

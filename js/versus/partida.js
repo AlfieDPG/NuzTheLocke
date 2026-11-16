@@ -31,6 +31,8 @@ import {
 import { EDITABLES, formatoDeSeguro } from "../partida/formato.js";
 import { POR_CAJA } from "../partida/tresds.js";
 import { pintarBolsa, activarBolsa } from "./bolsa.js";
+import { pintarEventos, activarEventos } from "./eventos.js";
+import { hayEventos } from "../partida/eventos.js";
 import { mover } from "../partida/huecos.js";
 import { prepararConversion, cajaConDetalle, pasteDeEquipo } from "../partida/convertir.js";
 import { copiarAlPortapapeles } from "../equipos/exportar.js";
@@ -273,16 +275,19 @@ function pintarPartida() {
   const partida = conCambios ? { ...guardada, ...conCambios, cajasMuertos: cajasMuertosDe(guardada) } : guardada;
 
   const conSitio = suelta ? EDITABLES.includes(guardada.juego) : editable(locke);
-  if (!conSitio) pestana = "cajas";
+  if (!conSitio || (pestana === "eventos" && !hayEventos(guardada.juego))) pestana = "cajas";
   // El hueco del editor, a la derecha de las cajas, ya desde que se abre (en la bolsa no hace falta)
   reservarEditor(conSitio && pestana === "cajas");
-  dialogo.classList.toggle("en-bolsa", pestana === "bolsa");
+  dialogo.classList.toggle("en-bolsa", pestana === "bolsa" || pestana === "eventos"); // el tamaño
+  dialogo.classList.toggle("en-eventos", pestana === "eventos"); // su color
   const cuando = new Date(partida.actualizada).toLocaleString(LOCALE, {
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
   });
-  // Editando, dos pestañas: las cajas y la bolsa
+  // Editando, tres pestañas: las cajas, la bolsa y los eventos (en los juegos que tienen)
+  const pestanas = [["cajas", t("Cajas"), "caja"], ["bolsa", t("Bolsa"), "mochila"]];
+  if (hayEventos(guardada.juego)) pestanas.push(["eventos", t("Eventos"), "bandera"]);
   const titulo = conSitio
-    ? `<span class="partida-pestanas">${[["cajas", t("Cajas"), "caja"], ["bolsa", t("Bolsa"), "mochila"]]
+    ? `<span class="partida-pestanas">${pestanas
         .map(([id, texto, dibujo]) => `<button class="partida-pestana ${pestana === id ? "activa" : ""}" data-pestana="${id}">${icono(dibujo)} ${texto}</button>`)
         .join("")}</span>`
     : `${icono("caja")} ${t("Cajas")}`;
@@ -312,6 +317,12 @@ function pintarPartida() {
 
   dialogo.querySelector(".partida-copias").hidden = !conSitio || pendientes > 0;
 
+  if (pestana === "eventos") {
+    return pintarEventos(dialogo.querySelector(".partida-cuerpo"), idAbierto).catch((error) => {
+      console.error(error);
+      dialogo.querySelector(".partida-cuerpo").innerHTML = `<p>${escaparHTML(t(error.message || "No se han podido leer los eventos."))}</p>`;
+    });
+  }
   if (pestana === "bolsa") {
     return pintarBolsa(dialogo.querySelector(".partida-cuerpo"), idAbierto).catch((error) => {
       console.error(error);
@@ -719,6 +730,7 @@ export function iniciarPartida(alRepintar, alAvisar) {
     }
   });
   activarBolsa(dialogo.querySelector(".partida-cuerpo"), () => idAbierto);
+  activarEventos(dialogo.querySelector(".partida-cuerpo"), () => idAbierto);
   const ayuda = document.querySelector("#dialogo-ayuda-partida");
   ayuda.querySelector(".ayuda-partida-cerrar").addEventListener("click", () => ayuda.close());
   alCambiarBorrador(() => {
