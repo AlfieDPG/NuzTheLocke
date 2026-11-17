@@ -2007,6 +2007,8 @@
   gap: 0.1rem;
   margin-left: 1.35rem;
   padding-left: 1.2rem;
+  /* Color mate (no transparente): donde se juntan la línea y el codo no sale más oscuro */
+  --foro-linea: color-mix(in srgb, var(--t-panel) 84%, rgb(var(--t-tinte)));
 }
 
 .foro-rama-hijos > * {
@@ -2020,8 +2022,8 @@
   left: -1.2rem;
   width: 0.95rem;
   height: 1.55rem;
-  border-bottom: 2px solid rgba(var(--t-tinte), 0.14);
-  border-left: 2px solid rgba(var(--t-tinte), 0.14);
+  border-bottom: 2px solid var(--foro-linea);
+  border-left: 2px solid var(--foro-linea);
   border-bottom-left-radius: 0.6rem;
   pointer-events: none;
 }
@@ -2032,7 +2034,7 @@
   top: 0;
   bottom: -0.3rem;
   left: -1.2rem;
-  border-left: 2px solid rgba(var(--t-tinte), 0.14);
+  border-left: 2px solid var(--foro-linea);
   pointer-events: none;
 }
 

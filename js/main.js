@@ -9,6 +9,7 @@ import { perfilesDeAmigos } from "./comun/perfiles.js";
 import { iniciarAjustes } from "./comun/ajustes.js";
 import { icono } from "./comun/iconos.js";
 import "./comun/numero.js"; // las flechas de las casillas de número (en toda la web)
+import "./comun/mudanza.js"; // «Nos mudamos», solo en la dirección vieja (alfiedpg.github.io)
 import "./comun/teclado.js"; // pulsar con el teclado las fotos, avisos y bloques que no son botones
 import { activarPestanasDeslizantes } from "./comun/pestanas-deslizantes.js";
 import { iniciarMovil } from "./movil.js";

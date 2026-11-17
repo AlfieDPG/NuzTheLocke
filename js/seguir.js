@@ -10,6 +10,7 @@
 // cambian. Los datos están en js/comun/lockes.js; las frases de la actividad, las del resto
 // de la web (js/versus/actividad.js).
 
+import "./comun/mudanza.js"; // «Nos mudamos», solo en la dirección vieja
 import { CONFIG_FIREBASE, hayConfiguracion } from "./comun/firebase-config.js";
 import { activarAppCheck } from "./comun/appcheck.js";
 import { activarRespaldoImagenes } from "./comun/imagenes.js";
