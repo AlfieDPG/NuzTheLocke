@@ -4877,7 +4877,7 @@ button.locke-caidos:hover .locke-caidos-caras img {
 
 /* ---------- Eventos: dinero, PB, Pokédex, objetos que desbloquean algo ---------- */
 
-.eventos {
+.eventos-pestana {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;

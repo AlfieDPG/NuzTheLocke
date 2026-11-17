@@ -58,7 +58,7 @@ export async function pintarEventos(contenedor, idLocke) {
     return;
   }
   contenedor.innerHTML = `
-    <div class="eventos" data-juego="${juego}">
+    <div class="eventos-pestana" data-juego="${juego}">
       <p class="eventos-aviso">${icono("aviso")} ${t("Como lo demás, se guarda al cerrar la ventana, con el juego cerrado. La partida de antes queda en «Copias».")}</p>
       ${GRUPOS.filter(([id]) => eventos.some((e) => e.grupo === id))
         .map(([id, nombre, dibujo]) => `
@@ -102,7 +102,7 @@ async function cambiar(contenedor, idLocke, id, valor) {
 
 export function activarEventos(contenedor, idDe) {
   contenedor.addEventListener("click", (e) => {
-    if (!contenedor.querySelector(".eventos")) return;
+    if (!contenedor.querySelector(".eventos-pestana")) return;
     const boton = e.target.closest(".eventos-completar");
     if (boton) {
       boton.disabled = true;
@@ -110,7 +110,7 @@ export function activarEventos(contenedor, idDe) {
     }
   });
   contenedor.addEventListener("change", (e) => {
-    if (!contenedor.querySelector(".eventos")) return;
+    if (!contenedor.querySelector(".eventos-pestana")) return;
     const filaEvento = e.target.closest(".eventos-fila");
     if (!filaEvento) return;
     if (e.target.matches(".eventos-numero")) cambiar(contenedor, idDe(), filaEvento.dataset.evento, e.target.value);
