@@ -13,6 +13,7 @@
 //
 // Todo se guarda solo. Los datos están en js/comun/normas.js.
 
+import { leer, escribir } from "../comun/almacen.js";
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import {
@@ -209,7 +210,13 @@ function pintar() {
 
   // Si el abierto ya no existe (conjunto borrado, locke borrado), el último que se miró o el primero
   if ((pestana === PESTANA_LOCKE && !locke) || (pestana !== PESTANA_LOCKE && !conjuntoPorId(pestana))) {
-    const ultimo = localStorage.getItem(CLAVE_ULTIMO);
+    const ultimo = leer(CLAVE_ULTIMO, null) || (() => {
+      try {
+        return localStorage.getItem(CLAVE_ULTIMO); // de antes: sin JSON
+      } catch (error) {
+        return null;
+      }
+    })();
     pestana = (todos.find((conjunto) => conjunto.id === ultimo) || todos[0] || {}).id || null;
   }
 
@@ -416,7 +423,7 @@ export function iniciar() {
       pintar();
     } else if (boton.dataset.conjunto) {
       pestana = boton.dataset.conjunto;
-      if (pestana !== PESTANA_LOCKE) localStorage.setItem(CLAVE_ULTIMO, pestana);
+      if (pestana !== PESTANA_LOCKE) escribir(CLAVE_ULTIMO, pestana);
       abierto = false;
       menuAbierto = false;
       pintar();

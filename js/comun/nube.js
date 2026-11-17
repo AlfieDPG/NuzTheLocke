@@ -378,8 +378,11 @@ export function dejarDeSubir() {
 // Equipos, rutas, level caps... lo de usuarios/{uid}/datos
 export async function borrarMisDatosGuardados() {
   dejarDeSubir();
-  const guardados = await funcionesBD.getDocs(funcionesBD.collection(bd, "usuarios", usuario.uid, "datos"));
-  await Promise.all(guardados.docs.map((cada) => funcionesBD.deleteDoc(cada.ref)));
+  // Y las partidas de «Jugar» (js/jugar/nube-partidas.js)
+  for (const coleccion of ["datos", "jugar", "jugarSav"]) {
+    const guardados = await funcionesBD.getDocs(funcionesBD.collection(bd, "usuarios", usuario.uid, coleccion));
+    await Promise.all(guardados.docs.map((cada) => funcionesBD.deleteDoc(cada.ref)));
+  }
 }
 
 // Lo último, cuando ya no queda nada suyo en Firestore: la cuenta en sí, lo suyo en este

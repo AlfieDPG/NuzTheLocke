@@ -9,6 +9,8 @@
 //           (perfil.premiosLockes) + los regalos (regalos.js)
 //           − lo pagado (perfil.compras)
 //           − lo gastado en huevos + lo devuelto por repetidos (perfil.huevos, ver coleccion.js)
+//           ± lo apostado en los combates (perfil.apuestas: { idLucha: -n apostado, 0 devuelto, +n ganado },
+//             ver js/comun/luchas.js)
 // Así cada logro da sus Pokédólares (también los conseguidos antes de que hubiera Pokédólares) sin
 // apuntar nada más.
 //
@@ -151,8 +153,13 @@ export function balanceHuevos(perfil) {
   return (Number(huevos.devueltos) || 0) - (Number(huevos.gastados) || 0);
 }
 
+// Lo ganado (o perdido, si sale negativo) apostando en los combates
+export function fichasDeApuestas(perfil) {
+  return Object.values((perfil && perfil.apuestas) || {}).reduce((suma, n) => suma + (Number(n) || 0), 0);
+}
+
 export function saldo(perfil) {
-  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) + fichasDeLockes(perfil) + fichasDeRegalos() - gastadas(perfil) + balanceHuevos(perfil));
+  return Math.max(0, fichasDeLogros(perfil) + fichasDeJuegos(perfil) + fichasDeLockes(perfil) + fichasDeRegalos() - gastadas(perfil) + balanceHuevos(perfil) + fichasDeApuestas(perfil));
 }
 
 // ---------- Jugadas ----------

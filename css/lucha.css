@@ -377,6 +377,14 @@
   opacity: 0.7;
 }
 
+.lucha-grande-botones {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.lucha-grande-botones > .lucha-abrir,
 .lucha-grande > .lucha-abrir {
   padding: 0.75rem 1.3rem;
   font-size: 1.05rem;
@@ -2271,4 +2279,63 @@
 .lucha-retar-escena.aleatorio .icono {
   width: 1.4rem;
   height: 1.4rem;
+}
+
+/* ---------- Tiempo por turno (js/lucha/index.js, ticReloj) ---------- */
+.lucha-reloj {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--t-control);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.lucha-reloj:empty {
+  display: none;
+}
+
+.lucha-reloj.poco {
+  background: var(--t-mal);
+  color: #fff;
+}
+
+/* ---------- Combates de amigos que se pueden mirar ---------- */
+.lucha-fila > .lucha-fila-fotos {
+  grid-area: foto;
+  display: flex;
+}
+
+.lucha-fila-fotos .lucha-foto + .lucha-foto {
+  margin-left: -0.7rem;
+}
+
+/* ---------- Apuestas (js/comun/luchas.js) ---------- */
+.lucha-retar-nivel button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lucha-retar-saldo {
+  margin-left: 0.4rem;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.lucha-retar-ayuda {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.lucha-retar-apostado.error,
+.lucha-final-apuesta {
+  font-weight: 700;
+}
+
+.lucha-retar-apostado.error {
+  color: var(--t-mal);
 }

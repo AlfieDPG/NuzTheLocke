@@ -108,10 +108,42 @@ export function revisarEquipo(paste, formato, nivel = "tal") {
   return { sets, problemas, vale: sets.length > 0 };
 }
 
+// Los tipos y estadísticas del randomizer de cada jugador (lucha.random, ver js/comun/randomizados.js):
+// { uid: { "6": "fire/water|78,84,78,109,85,100" } } -> Map(número -> { tipos: ["Fire", "Water"], stats })
+function randomDe(lucha, uid, dex) {
+  const mapa = new Map();
+  for (const [numero, texto] of Object.entries(((lucha.random || {})[uid]) || {})) {
+    const [tipos, stats] = String(texto || "").split("|");
+    const numeros = (stats || "").split(",").map(Number);
+    if (!tipos || numeros.length !== 6 || numeros.some((n) => !Number.isInteger(n) || n < 1 || n > 255)) continue;
+    const nombres = tipos.split("/").map((tipo) => dex.types.get(tipo)).filter((tipo) => tipo.exists).map((tipo) => tipo.name).slice(0, 2);
+    if (nombres.length) mapa.set(Number(numero), { tipos: nombres, stats: numeros });
+  }
+  return mapa;
+}
+
+// Un Pokémon del motor con otros tipos y estadísticas base (las de la ROM randomizada de su dueño). Solo la
+// especie tal cual (sin formas ni megas: esas luchan con las del juego). La especie del motor no se toca
+// (es de todos): se le pone una copia con lo cambiado, que se queda también al cambiar de Pokémon.
+function ponerRandom(pokemon, dato) {
+  const original = pokemon.baseSpecies;
+  const [hp, atk, def, spa, spd, spe] = dato.stats;
+  const nueva = Object.create(original, {
+    types: { value: dato.tipos, enumerable: true },
+    baseStats: { value: { hp, atk, def, spa, spd, spe }, enumerable: true },
+    bst: { value: hp + atk + def + spa + spd + spe, enumerable: true }
+  });
+  pokemon.baseSpecies = nueva;
+  pokemon.maxhp = 0;
+  pokemon.setSpecies(nueva);
+  pokemon.hp = pokemon.maxhp;
+}
+
 export class Combate {
   constructor(lucha) {
     this.formato = lucha.formato;
     this.sets = {};
+    this.random = {}; // lado -> Map(número de especie -> { tipos, stats }) de su randomizer
     this.indices = {}; // lado -> { nombre en el combate: posición en su equipo }
     const motor = new Battle({ formatid: lucha.formato, seed: semillaDe(lucha) });
     lucha.jugadores.forEach((uid, i) => {
@@ -119,6 +151,11 @@ export class Combate {
       const { sets } = revisarEquipo((lucha.equipos || {})[uid], lucha.formato, lucha.nivel);
       this.sets[lado] = sets;
       motor.setPlayer(lado, { name: lado, team: sets });
+      this.random[lado] = randomDe(lucha, uid, motor.dex);
+      for (const pokemon of motor[lado].pokemon) {
+        const dato = !pokemon.baseSpecies.forme && this.random[lado].get(pokemon.baseSpecies.num);
+        if (dato) ponerRandom(pokemon, dato);
+      }
       // Con el nombre que le pone el motor (un «Tyranitar-Mega» sin mote se llama «Tyranitar»), que es
       // el que sale en lo que cuenta
       this.indices[lado] = {};
@@ -129,6 +166,13 @@ export class Combate {
     this.motor = motor;
     this.leidas = 0;
     this.decisiones = 0; // cuántas veces se ha elegido ya (= el turno de Firestore que toca)
+  }
+
+  // Los tipos («fire») y las estadísticas base que tiene esa especie en el randomizer de ese lado, o null
+  datosRandom(lado, especieNombre) {
+    const especie = this.motor.dex.species.get(especieNombre || "");
+    const dato = especie.exists && !especie.forme && (this.random[lado] || new Map()).get(especie.num);
+    return dato ? { tipos: dato.tipos.map((tipo) => tipo.toLowerCase()), stats: dato.stats } : null;
   }
 
   get terminado() {

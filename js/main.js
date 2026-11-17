@@ -4,11 +4,12 @@ import { activarRespaldoImagenes } from "./comun/imagenes.js";
 import { iniciarNavegacion, irA, vistaInicial } from "./navegacion.js";
 import { iniciarSesionUI } from "./sesion.js";
 import { sumarContador } from "./comun/contadores.js";
-import { usuarioActual } from "./comun/nube.js";
+import { usuarioActual, alCambiarSesion } from "./comun/nube.js";
 import { perfilesDeAmigos } from "./comun/perfiles.js";
 import { iniciarAjustes } from "./comun/ajustes.js";
 import { icono } from "./comun/iconos.js";
 import "./comun/numero.js"; // las flechas de las casillas de número (en toda la web)
+import "./comun/teclado.js"; // pulsar con el teclado las fotos, avisos y bloques que no son botones
 import { activarPestanasDeslizantes } from "./comun/pestanas-deslizantes.js";
 import { iniciarMovil } from "./movil.js";
 
@@ -89,3 +90,15 @@ iniciarSesionUI().catch((error) => console.error(error));
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js").catch((error) => console.error(error));
 }
+
+// Las partidas de «Jugar» también van a la cuenta (js/jugar/nube-partidas.js): al entrar, un rato después
+// (para no frenar el arranque), se juntan con las de la cuenta aunque no se abra «Jugar»
+alCambiarSesion((usuario) => {
+  if (!usuario) return;
+  setTimeout(() => {
+    if (usuarioActual() !== usuario) return;
+    import("./jugar/nube-partidas.js")
+      .then(({ sincronizarPartidas }) => sincronizarPartidas())
+      .catch((error) => console.error("No se han podido juntar las partidas de «Jugar» con la cuenta", error));
+  }, 8000);
+});

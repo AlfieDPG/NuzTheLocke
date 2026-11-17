@@ -32,8 +32,31 @@ export const CLAVES_SINCRONIZADAS = [
   "poketeams-lockes-quitados-v1",         // lockes terminados que has quitado de tu lista (versus)
   "poketeams-avisos-arbitro-v1",          // avisos del árbitro que ya has visto en la campana (avisos.js)
   "poketeams-ajustes-v1",                 // tema (comun/ajustes.js)
-  "poketeams-juegos-propios-v1"           // los de antes (rutas y level caps juntos): se pasan
+  "poketeams-juegos-propios-v1",          // los de antes (rutas y level caps juntos): se pasan
                                           // solos a los dos de arriba (personalizados.js)
+  // Desde 2026-11-17, también lo que antes se quedaba solo en el navegador (para no perderlo al cambiar
+  // de dirección la web ni de dispositivo). Lo que solo es caché (datos, Pokédex, ataques), no.
+  "poketeams-randomizer-v1",              // tus normas del randomizer (randomizer/reglas.js)
+  "poketeams-randomizer-guardadas-v1",    // normas del randomizer guardadas con nombre
+  "poketeams-randomizer-semillas-v1",     // la semilla de cada locke: misma semilla = misma ROM
+  "poketeams-randomizer-aviso-carpeta-v1", // aviso de la carpeta de Switch ya visto
+  "poketeams-luchas-pendientes-v1",       // elecciones selladas sin destapar (comun/luchas.js)
+  "poketeams-lucha-sonido-v1",            // sonido en los combates
+  "poketeams-jugar-v1",                   // la partida elegida en «Jugar»
+  "poketeams-jugar-ajustes-v1",           // controles y ajustes de «Jugar»
+  "poketeams-juegos-v1",                  // el reto del día a medias (juegos/comun.js)
+  "poketeams-amigos-vista-v1",            // cómo se ve la lista de Amigos
+  "poketeams-buscar-ajustes-v1",          // ajustes de «Buscar equipo»
+  "poketeams-buscar-locke-v1",            // último locke elegido en «Buscar equipo»
+  "poketeams-lockes-plegados-v1",         // lockes plegados
+  "poketeams-normas-ultimo-v1",           // último conjunto de normas mirado
+  "poketeams-pokedex-juego-v1",           // juego elegido en la ficha de la Pokédex
+  "poketeams-progreso-locke-v1",          // locke elegido para cada juego en Rutas y Level caps
+  "poketeams-avisos-leidos-v1",           // novedades y avisos ya leídos (Inicio)
+  "poketeams-avisos-foro-v1",             // avisos del foro ya vistos
+  "poketeams-avisos-foro-otros-v1",       // otros avisos del foro ya vistos
+  "poketeams-normas-ajenas-quitadas-v1",  // normas de otros ya quitadas (comun/lockes.js)
+  "poketeams-rutas-limpias-v1"            // lockes cerrados cuyas Rutas ya se limpiaron
 ];
 
 // Cuándo se cambió cada clave por última vez: { clave: milisegundos }.

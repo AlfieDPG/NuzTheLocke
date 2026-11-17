@@ -10,6 +10,8 @@
 //
 // Todo con elementos sueltos que se quitan solos al acabar su animación (css/lucha.css).
 
+import { leer, escribir } from "../comun/almacen.js";
+
 const CLAVE_SONIDO = "poketeams-lucha-sonido-v1";
 const URL_GRITOS = "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/";
 
@@ -48,7 +50,11 @@ const esperar = (ms) => new Promise((cumplir) => setTimeout(cumplir, ms));
 
 let contexto = null;
 let salida = null;
+// Se sincroniza con la cuenta (js/comun/almacen.js). Antes se guardaba «si»/«no» sin JSON: un «no» de
+// antes se respeta.
 let conSonido = (() => {
+  const guardado = leer(CLAVE_SONIDO, null);
+  if (typeof guardado === "boolean") return guardado;
   try {
     return localStorage.getItem(CLAVE_SONIDO) !== "no";
   } catch (error) {
@@ -57,16 +63,13 @@ let conSonido = (() => {
 })();
 
 export function haySonido() {
-  return conSonido;
+  const guardado = leer(CLAVE_SONIDO, null);
+  return typeof guardado === "boolean" ? guardado : conSonido;
 }
 
 export function ponerSonido(si) {
   conSonido = si;
-  try {
-    localStorage.setItem(CLAVE_SONIDO, si ? "si" : "no");
-  } catch (error) {
-    // sin sitio: vale solo para esta vez
-  }
+  escribir(CLAVE_SONIDO, Boolean(si));
 }
 
 function audio() {

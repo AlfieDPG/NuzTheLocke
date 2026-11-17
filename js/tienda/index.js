@@ -14,7 +14,7 @@ import { usuarioActual, alCambiarSesion, hayNube } from "../comun/nube.js";
 import { miPerfil, alCambiarMiPerfil, guardarMiPerfil } from "../comun/perfiles.js";
 import { FONDOS, FONDOS_TIENDA, claseFondo, estiloFondo, fondoDe } from "../comun/fondos.js";
 import {
-  saldo, fichasDeLogros, fichasDeJuegos, fichasDeLockes, PREMIOS_LOCKE, BONO_MAX, FICHAS_POR_NIVEL, MARCOS, TITULOS,
+  saldo, fichasDeLogros, fichasDeJuegos, fichasDeLockes, fichasDeApuestas, PREMIOS_LOCKE, BONO_MAX, FICHAS_POR_NIVEL, MARCOS, TITULOS,
   loTiene, tieneMarco, porPrecio, marcoDe, claseMarco, claseTitulo, tituloDe, comprar
 } from "../comun/fichas.js";
 import { fichasDeRegalos } from "../comun/regalos.js";
@@ -49,7 +49,8 @@ function desglose(perfil) {
     [t("logros"), fichasDeLogros(perfil)],
     [t("retos"), fichasDeJuegos(perfil)],
     [t("lockes"), fichasDeLockes(perfil)],
-    [t("regalos"), fichasDeRegalos()]
+    [t("regalos"), fichasDeRegalos()],
+    [t("apuestas"), fichasDeApuestas(perfil)]
   ].filter(([, cuanto]) => cuanto > 0);
 }
 

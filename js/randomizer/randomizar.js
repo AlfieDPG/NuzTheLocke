@@ -1112,7 +1112,17 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
     intercambios: cambiosIntercambio,
     entrenadores: nombresEntrenadores
   });
-  return { juego: rom.titulo, hecho, cambiados: rom.cambiados.size };
+  // Cómo han quedado los tipos y las estadísticas (para los combates del locke: js/comun/randomizados.js)
+  const cambianLuchas = r.tipos.modo !== "no" || r.stats.modo !== "no" || Boolean(r.stats.generacion);
+  const especies = {};
+  if (cambianLuchas) {
+    const ultima = datos.perfil.ultimaEspecie || 1025;
+    for (let id = 1; id <= ultima; id++) {
+      const e = datos.especies[id];
+      if (e && e.tipos && e.tipos.length && e.stats && e.stats.length === 6) especies[id] = `${e.tipos.join("/")}|${e.stats.join(",")}`;
+    }
+  }
+  return { juego: rom.titulo, hecho, cambiados: rom.cambiados.size, especies };
 }
 
 export { ULTIMA_ESPECIE, ULTIMO_ATAQUE };

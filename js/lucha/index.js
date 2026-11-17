@@ -19,8 +19,8 @@ import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { t, enIngles } from "../comun/idioma.js";
 import { usuarioActual, hayNube } from "../comun/nube.js";
-import { claseMarcoDe, plantillaTituloDeUid, fondoVisualDe } from "../comun/fichas.js";
-import { amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos } from "../comun/perfiles.js";
+import { claseMarcoDe, plantillaTituloDeUid, fondoVisualDe, saldo } from "../comun/fichas.js";
+import { amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos, miPerfil } from "../comun/perfiles.js";
 import { lockes, combatesDe, nombreCombate, estadoDe, lockePorId, sumarVictoriaCombate } from "../comun/lockes.js";
 import { generacionDeJuego } from "../comun/juegos.js";
 import { elegirEquipo, carasDeEquipo, caraDePokemon } from "../comun/elegir-equipo.js";
@@ -37,8 +37,14 @@ import { activarTooltips, actualizarTooltip, ocultarTooltip } from "../comun/too
 import {
   alCambiarLuchas, misLuchas, fallanLasLuchas, luchaPorId, ladoDe, rivalDe, meToca, retar, aceptarReto,
   borrarLucha, terminar, rendirse, escucharTurnos, apuntarEnTurno, sello, conSal, sinSal, pendienteDe, cancelarEleccion,
-  guardarPendiente, ponerEspera, MAX_PASTE
+  guardarPendiente, ponerEspera, MAX_PASTE, terminarPorTiempo, ponerReloj, tiempoQueQueda, apuntarSinTiempo,
+  SEGUNDOS_TURNO, MAX_SIN_TIEMPO, luchasParaMirar, APUESTAS, rechazarReto, sePuedeQuitar,
+  puedoGanarPorAbandono, ganarPorAbandono
 } from "../comun/luchas.js";
+
+// Pokédólares, con la moneda de la web
+const moneda = (n) => `<span class="ficha-cifra"><span class="ficha-moneda"></span>${Number(n).toLocaleString()}</span>`;
+const miSaldo = () => saldo(miPerfil() || {});
 
 let seccion = null;
 let vistaLista = null;
@@ -65,6 +71,17 @@ function cargarMotor() {
 function yo() {
   const usuario = usuarioActual();
   return usuario ? usuario.uid : "";
+}
+
+// Dentro de un combate: el jugador desde el que se ve (yo; o, si solo miro, el amigo que juega)
+function quienSoy() {
+  return (abierto && abierto.mira) || yo();
+}
+
+// Mirando un combate de amigos: desde el lado de uno de ellos (el primero que sea amigo mío)
+function aQuienMiro(lucha) {
+  const amigos = new Set(amigosAceptados().map((amistad) => amistad.otro));
+  return lucha.jugadores.find((uid) => amigos.has(uid)) || lucha.jugadores[0];
 }
 
 function nombreEn(lucha, uid) {
@@ -126,7 +143,7 @@ function nombreConTitulo(lucha, uid) {
 
 function datosLucha(lucha) {
   const locke = textoLocke(lucha);
-  return `${escaparHTML(textoFormato(lucha.formato))} · ${escaparHTML(textoNivel(lucha.nivel))}${locke ? ` · ${escaparHTML(locke)}` : ""}`;
+  return `${escaparHTML(textoFormato(lucha.formato))} · ${escaparHTML(textoNivel(lucha.nivel))}${locke ? ` · ${escaparHTML(locke)}` : ""}${lucha.apuesta ? ` · ${t("apuesta")} ${moneda(lucha.apuesta)}` : ""}`;
 }
 
 // Un combate en marcha, en grande: los dos jugadores frente a frente con sus equipos
@@ -153,7 +170,10 @@ function tarjetaEnMarcha(lucha) {
         </div>
         ${jugador(rival, "suyo")}
       </div>
-      <button type="button" class="lucha-boton lucha-abrir">${icono("lucha")} ${toca ? t("Luchar") : t("Ver")}</button>
+      <div class="lucha-grande-botones">
+        <button type="button" class="lucha-boton lucha-abrir">${icono("lucha")} ${toca ? t("Luchar") : t("Ver")}</button>
+        ${puedoGanarPorAbandono(lucha) ? `<button type="button" class="boton-gris lucha-abandono">${icono("trofeo")} ${t("Ganar por abandono")}</button>` : ""}
+      </div>
     </article>`;
 }
 
@@ -182,7 +202,7 @@ function filaLucha(lucha) {
     clase = empate ? "" : gana ? "gana" : "pierde";
     estado =`<span class="lucha-estado ${empate ? "" : gana ? "gana" : "pierde"}">${
       empate ? t("Empate") : gana ? t("Ganaste") : t("Perdiste")
-    }${lucha.rendido ? ` · ${lucha.rendido === uid ? t("te rendiste") : t("se rindió")}` : ""}</span>`;
+    }${lucha.rendido ? ` · ${lucha.rendido === uid ? t("te rendiste") : t("se rindió")}` : ""}${lucha.abandono ? ` · ${lucha.abandono === uid ? t("no jugaste") : t("no jugó")}` : ""}${lucha.apuesta && !empate ? ` · ${gana ? "+" : "−"}${moneda(lucha.apuesta)}` : ""}</span>`;
     botones = `
       <button type="button" class="boton-gris lucha-abrir">${icono("reanudar")} ${t("Ver repetición")}</button>
       <button type="button" class="boton-gris lucha-quitar" title="${t("Quitar de la lista")}">${icono("papelera")}</button>`;
@@ -247,8 +267,11 @@ function pintarLista() {
     .filter((lucha) => lucha.estado === "jugando")
     .sort((una, otra) => Number(meToca(otra)) - Number(meToca(una)));
   const terminadas = todas.filter((lucha) => lucha.estado === "fin").slice(0, MAX_TERMINADAS);
+  const deAmigos = luchasParaMirar()
+    .sort((una, otra) => Number(otra.estado === "jugando") - Number(una.estado === "jugando"))
+    .slice(0, MAX_TERMINADAS);
 
-  if (!todas.length) {
+  if (!todas.length && !deAmigos.length) {
     vistaLista.innerHTML = `
       <div class="lucha-nada">
         <span class="lucha-nada-icono">${icono("lucha")}</span>
@@ -266,7 +289,32 @@ function pintarLista() {
   vistaLista.innerHTML = `${barra}
     ${bloque(t("En marcha"), enMarcha.map(tarjetaEnMarcha).join(""), "en-marcha")}
     ${bloque(t("Retos"), retos.map(filaLucha).join(""))}
-    ${bloque(t("Terminadas"), terminadas.map(filaLucha).join(""))}`;
+    ${bloque(t("Terminadas"), terminadas.map(filaLucha).join(""))}
+    ${bloque(t("De tus amigos"), deAmigos.map(filaMirar).join(""))}`;
+}
+
+// Un combate de amigos que se puede mirar (en marcha) o ver su repetición
+function filaMirar(lucha) {
+  const [uno, otro] = lucha.jugadores;
+  const enMarcha = lucha.estado === "jugando";
+  const resultado = enMarcha
+    ? `<span class="lucha-estado reto">${t("En marcha")}</span>`
+    : `<span class="lucha-estado">${lucha.ganador === "empate" ? t("Empate") : t("Ganó {nombre}", { nombre: escaparHTML(nombreEn(lucha, lucha.ganador)) })}</span>`;
+  return `
+    <article class="lucha-fila lucha-fila-mirar" data-id="${escaparHTML(lucha.id)}">
+      <span class="lucha-fila-fotos">${fotoEn(lucha, uno)}${fotoEn(lucha, otro)}</span>
+      <div class="lucha-fila-texto">
+        <div class="lucha-fila-nombre">${nombreConTitulo(lucha, uno)} <span class="lucha-vs">vs</span> ${nombreConTitulo(lucha, otro)}</div>
+        <small>${datosLucha(lucha)}</small>
+      </div>
+      <div class="lucha-fila-equipos">
+        ${carasEn(lucha, uno)}<span class="lucha-vs">vs</span>${carasEn(lucha, otro)}
+      </div>
+      ${resultado}
+      <div class="lucha-fila-botones">
+        <button type="button" class="boton-gris lucha-abrir">${icono(enMarcha ? "directo" : "reanudar")} ${enMarcha ? t("Mirar") : t("Ver repetición")}</button>
+      </div>
+    </article>`;
 }
 
 // ---------- Retar y aceptar ----------
@@ -350,7 +398,8 @@ async function pintarRetar() {
   const locke = retando.locke && lockePorId(retando.locke.id);
   const genFija = aceptando || (locke && generacionDeJuego(locke.juego));
   const campoReglas = genFija
-    ? `<p class="lucha-retar-dato">${icono("libro")} ${t("Reglas de la {formato}", { formato: escaparHTML(textoFormato(formato)) })} · ${escaparHTML(textoNivel(nivel))}${aceptando && lucha.vistaPrevia === false ? ` · ${t("sin vista previa")}` : ""}</p>`
+    ? `<p class="lucha-retar-dato">${icono("libro")} ${t("Reglas de la {formato}", { formato: escaparHTML(textoFormato(formato)) })} · ${escaparHTML(textoNivel(nivel))}${aceptando && lucha.vistaPrevia === false ? ` · ${t("sin vista previa")}` : ""}${aceptando && lucha.tiempo ? ` · ${t("{n} s por turno", { n: SEGUNDOS_TURNO })}` : ""}${aceptando && lucha.mirar ? ` · ${t("lo pueden mirar vuestros amigos")}` : ""}</p>${aceptando && lucha.apuesta ? `
+      <p class="lucha-retar-dato lucha-retar-apostado ${miSaldo() < lucha.apuesta ? "error" : ""}">${t("Apuesta")}: ${moneda(lucha.apuesta)} ${t("cada uno")}${miSaldo() < lucha.apuesta ? ` · ${t("no tienes suficientes (tienes {n})", { n: moneda(miSaldo()) })}` : ""}</p>` : ""}`
     : `
       <label>${t("Reglas")}
         <select class="lucha-retar-gen">
@@ -368,6 +417,21 @@ async function pintarRetar() {
       <button type="button" data-previa="si" class="${retando.vistaPrevia ? "elegido" : ""}">${t("Ver los dos equipos antes de empezar")}</button>
       <button type="button" data-previa="no" class="${retando.vistaPrevia ? "" : "elegido"}">${t("Sin vista previa")}</button>
     </div>
+    <span class="etiqueta-campo">${t("Tiempo")}</span>
+    <div class="lucha-retar-nivel">
+      <button type="button" data-tiempo="no" class="${retando.tiempo ? "" : "elegido"}">${t("Sin límite")}</button>
+      <button type="button" data-tiempo="si" class="${retando.tiempo ? "elegido" : ""}">${t("1 minuto por turno")}</button>
+    </div>
+    <span class="etiqueta-campo">${t("Quién lo ve")}</span>
+    <div class="lucha-retar-nivel">
+      <button type="button" data-mirar="si" class="${retando.mirar ? "elegido" : ""}">${t("Lo pueden mirar vuestros amigos")}</button>
+      <button type="button" data-mirar="no" class="${retando.mirar ? "" : "elegido"}">${t("Solo vosotros")}</button>
+    </div>
+    <span class="etiqueta-campo">${t("Apuesta")} <small class="lucha-retar-saldo">${t("tienes")} ${moneda(miSaldo())}</small></span>
+    <div class="lucha-retar-nivel lucha-retar-apuesta">
+      ${APUESTAS.map((n) => `<button type="button" data-apuesta="${n}" class="${retando.apuesta === n ? "elegido" : ""}" ${n > miSaldo() ? "disabled" : ""}>${n ? moneda(n) : t("Sin apuesta")}</button>`).join("")}
+    </div>
+    ${retando.apuesta ? `<p class="lucha-retar-ayuda">${t("Cada uno pone {n}. Quien gana se lleva los dos; en empate, cada uno recupera lo suyo.", { n: moneda(retando.apuesta) })}</p>` : ""}
     ${!genFija && retando.gen === 9 ? `
       <span class="etiqueta-campo">${t("Teracristalización")}</span>
       <div class="lucha-retar-nivel">
@@ -410,7 +474,8 @@ async function pintarRetar() {
     ${campoEquipo}`;
   const ok = dialogoRetar.querySelector(".lucha-retar-ok");
   ok.textContent = aceptando ? t("Aceptar y luchar") : t("Retar");
-  ok.disabled = !retando.rival || !revision || !revision.vale;
+  const faltan = aceptando ? (lucha && lucha.apuesta) > miSaldo() : retando.apuesta > miSaldo();
+  ok.disabled = !retando.rival || !revision || !revision.vale || faltan;
 }
 
 // Los nombres de los escenarios (js/lucha/escenario.js)
@@ -419,7 +484,7 @@ const NOMBRES_ESCENA = () => ({
 });
 
 async function abrirDialogoRetar(datos) {
-  retando = { modo: "retar", id: "", rival: "", locke: null, gen: 9, nivel: "tal", vistaPrevia: true, tera: true, escena: "", equipo: null, ...datos };
+  retando = { modo: "retar", id: "", rival: "", locke: null, gen: 9, nivel: "tal", vistaPrevia: true, tiempo: false, mirar: true, apuesta: 0, tera: true, escena: "", equipo: null, ...datos };
   dialogoRetar.querySelector(".lucha-retar-error").textContent = "";
   try {
     await pintarRetar();
@@ -490,6 +555,27 @@ async function elegirEquipoParaLucha(boton) {
   await pintarRetar();
 }
 
+// En un locke con randomizer: los tipos y estadísticas de mi ROM de las especies de mi equipo (solo esas).
+// Si no los hay (no he randomizado desde la web o fallan las reglas), null: lucha con los del juego.
+async function randomDelEquipo(motor, idLocke, paste, formato) {
+  try {
+    const { leerRandomizados } = await import("../comun/randomizados.js");
+    const todos = await leerRandomizados(idLocke, yo());
+    if (!todos) return null;
+    const dex = motor.Dex.forGen(motor.genDe(formato));
+    const mios = {};
+    for (const set of motor.revisarEquipo(paste, formato).sets) {
+      const especie = dex.species.get(set.species);
+      const dato = !especie.forme && todos[especie.num];
+      if (dato) mios[especie.num] = `${dato.tipos.join("/")}|${dato.stats.join(",")}`;
+    }
+    return Object.keys(mios).length ? mios : null;
+  } catch (error) {
+    console.error("No se han podido leer los datos del randomizer", error);
+    return null;
+  }
+}
+
 async function enviarReto() {
   const error = dialogoRetar.querySelector(".lucha-retar-error");
   const ok = dialogoRetar.querySelector(".lucha-retar-ok");
@@ -498,7 +584,9 @@ async function enviarReto() {
   try {
     const motor = await cargarMotor();
     if (retando.modo === "aceptar") {
-      await aceptarReto(retando.id, retando.equipo);
+      const lucha = luchaPorId(retando.id);
+      const random = lucha && lucha.locke ? await randomDelEquipo(motor, lucha.locke.id, retando.equipo.paste, lucha.formato) : null;
+      await aceptarReto(retando.id, retando.equipo, random);
       const id = retando.id;
       dialogoRetar.close();
       abrirCombate(id);
@@ -513,6 +601,10 @@ async function enviarReto() {
       formato: formatoActual(motor),
       nivel: retando.nivel,
       vistaPrevia: retando.vistaPrevia,
+      tiempo: retando.tiempo,
+      mirar: retando.mirar,
+      apuesta: retando.apuesta,
+      random: retando.locke ? await randomDelEquipo(motor, retando.locke.id, retando.equipo.paste, formatoActual(motor)) : null,
       escena: retando.escena,
       motor: motor.VERSION,
       locke: retando.locke
@@ -1225,6 +1317,10 @@ async function reproducir() {
   pintarCampo();
   pintarRegistro();
   pintarAcciones();
+  // Ya se ha visto todo: empieza a correr el tiempo del turno (si va con tiempo y no lo ha puesto ya el otro)
+  if (!abierto.espectador && !abierto.repeticion && abierto.lucha.estado === "jugando" && !abierto.combate.terminado && !abierto.perdioPorTiempo) {
+    ponerReloj(abierto.id, abierto.combate.decisiones).catch((error) => console.error("No se ha podido poner el reloj", error));
+  }
   // Repetición en marcha: el turno siguiente, después de una pausa
   const repeticion = abierto.repeticion;
   if (repeticion && repeticion.auto) {
@@ -1338,14 +1434,17 @@ async function avanzar() {
     do {
       abierto.otraVez = false;
       for (;;) {
+        if (abierto.perdioPorTiempo) break;
         const necesitan = abierto.combate.necesitan();
         if (!necesitan.length) break;
         const turno = turnoActual();
-        if (!necesitan.every((lado) => turno[`e${numeroDe(lado)}`])) break;
+        // Ya ha elegido (o se le ha acabado el tiempo y elige el motor)
+        if (!necesitan.every((lado) => turno[`e${numeroDe(lado)}`] || turno[`t${numeroDe(lado)}`])) break;
         // Elegían los dos a la vez: cada elección tiene que casar con su sello
         if (necesitan.length === 2) {
           for (const lado of necesitan) {
             const n = numeroDe(lado);
+            if (turno[`t${n}`]) continue;
             if (turno[`s${n}`] && (await sello(turno[`e${n}`])) !== turno[`s${n}`]) {
               if (yoMismo !== abierto) return;
               abierto.trampa = lado;
@@ -1355,10 +1454,31 @@ async function avanzar() {
           }
           if (yoMismo !== abierto) return;
         }
-        abierto.combate.aplicar(Object.fromEntries(necesitan.map((lado) => [lado, sinSal(turno[`e${numeroDe(lado)}`])])));
+        // Sin tiempo: se dice en el registro y se cuenta (a la MAX_SIN_TIEMPO.ª seguida, pierde)
+        let pierde = "";
+        for (const lado of necesitan) {
+          if (!turno[`t${numeroDe(lado)}`]) {
+            abierto.sinTiempo[lado] = 0;
+            continue;
+          }
+          abierto.sinTiempo[lado]++;
+          const quien = lado === abierto.lado
+            ? t("Se te ha acabado el tiempo ({n} de {max}): se elige solo.", { n: abierto.sinTiempo[lado], max: MAX_SIN_TIEMPO })
+            : t("A {nombre} se le ha acabado el tiempo ({n} de {max}): se elige solo.", { nombre: nombreEn(abierto.lucha, uidDe(lado)), n: abierto.sinTiempo[lado], max: MAX_SIN_TIEMPO });
+          encolar([{ tipo: "sin-tiempo", aviso: true, texto: quien }]);
+          if (abierto.sinTiempo[lado] >= MAX_SIN_TIEMPO) pierde = lado;
+        }
+        if (pierde) {
+          abierto.perdioPorTiempo = pierde;
+          break;
+        }
+        abierto.combate.aplicar(Object.fromEntries(necesitan.map((lado) => {
+          const k = numeroDe(lado);
+          return [lado, turno[`t${k}`] ? "default" : sinSal(turno[`e${k}`])];
+        })));
         encolar(abierto.lector.leer(abierto.combate.lineasNuevas()));
       }
-      await destaparSiToca();
+      if (!abierto.espectador) await destaparSiToca();
       if (yoMismo !== abierto) return;
     } while (abierto.otraVez);
   } finally {
@@ -1381,7 +1501,7 @@ async function destaparSiToca() {
   const turno = turnoActual();
   const mio = numeroDe(abierto.lado);
   const suyo = mio === 1 ? 2 : 1;
-  if (!turno[`s${mio}`] || turno[`e${mio}`] || !turno[`s${suyo}`]) return;
+  if (!turno[`s${mio}`] || turno[`e${mio}`] || turno[`t${mio}`] || !(turno[`s${suyo}`] || turno[`t${suyo}`])) return;
   const pendiente = pendienteDe(abierto.id, abierto.combate.decisiones);
   if (!pendiente) {
     abierto.sinPendiente = true;
@@ -1393,11 +1513,25 @@ async function destaparSiToca() {
 // A quién le toca (para la lista y la campana) y, si ya ha acabado, apuntar el resultado
 function apuntarEsperaYFinal() {
   const { combate, lucha, id } = abierto;
-  if (lucha.estado !== "jugando") return;
+  if (lucha.estado !== "jugando" || abierto.espectador) return;
+  if (abierto.perdioPorTiempo) {
+    if (abierto.finApuntado) return;
+    abierto.finApuntado = true;
+    const pierde = uidDe(abierto.perdioPorTiempo);
+    const ganador = rivalDe(lucha, pierde);
+    // Con apuesta, solo lo puede apuntar quien pierde (reglas): el otro espera
+    if (lucha.apuesta && pierde !== yo()) return;
+    terminarPorTiempo(id, pierde)
+      .then((apuntado) => (apuntado && lucha.locke ? sumarVictoriaCombate(lucha.locke.id, lucha.locke.combate, ganador) : null))
+      .catch((error) => console.error("No se ha podido apuntar el final de la lucha", error));
+    return;
+  }
   if (combate.terminado) {
     if (abierto.finApuntado) return;
     abierto.finApuntado = true;
     const ganador = combate.ganador ? uidDe(combate.ganador) : "empate";
+    // Con apuesta, solo lo puede apuntar quien pierde (reglas): el otro espera a que lo vea
+    if (lucha.apuesta && ganador === yo()) return;
     terminar(id, ganador)
       .then((apuntado) => {
         if (apuntado && lucha.locke && ganador !== "empate") return sumarVictoriaCombate(lucha.locke.id, lucha.locke.combate, ganador);
@@ -1408,7 +1542,7 @@ function apuntarEsperaYFinal() {
   }
   const turno = turnoActual();
   const espera = combate.necesitan()
-    .filter((lado) => !turno[`s${numeroDe(lado)}`] && !turno[`e${numeroDe(lado)}`])
+    .filter((lado) => !turno[`s${numeroDe(lado)}`] && !turno[`e${numeroDe(lado)}`] && !turno[`t${numeroDe(lado)}`])
     .map(uidDe);
   ponerEspera(id, espera).catch((error) => console.error("No se ha podido apuntar a quién le toca", error));
 }
@@ -1416,7 +1550,7 @@ function apuntarEsperaYFinal() {
 // ---------- Elegir ----------
 
 async function elegir(eleccion) {
-  if (!abierto || abierto.enviando) return;
+  if (!abierto || abierto.enviando || abierto.espectador) return;
   const { id, combate, lado } = abierto;
   // El motor tiene que aceptarla: si no, no se manda (antes se cambiaba en silencio por otra)
   if (!combate.valida(lado, eleccion)) {
@@ -1427,6 +1561,7 @@ async function elegir(eleccion) {
   }
   const n = combate.decisiones;
   const mio = numeroDe(lado);
+  if (turnoActual()[`t${mio}`]) return;
   const conSuSal = conSal(eleccion);
   abierto.enviando = true;
   abierto.especial = "";
@@ -1511,7 +1646,7 @@ function botonesEquipo(peticion, { vistaPrevia = false, atrapado = false } = {})
             <strong>${escaparHTML(nombrePokemon)}</strong>
             <small>${t("Nv.")} ${nivel}${estado && estado !== "fnt" ? ` · ${escaparHTML((abierto.modulos.ESTADOS[estado] || {}).corto || estado)}` : ""}</small>
             ${vistaPrevia
-              ? `<span class="lucha-previa-tipos">${(dex().species.get(pokemon.details.split(",")[0]).types || []).map((tipo) => iconoTipo(tipo.toLowerCase())).join("")}</span>`
+              ? `<span class="lucha-previa-tipos">${tiposVisibles(null, pokemon.details.split(",")[0], abierto.lado).map((tipo) => iconoTipo(tipo)).join("")}</span>`
               : `<span class="lucha-ps ${claseBarra(parte)}"><span style="width: ${(parte * 100).toFixed(1)}%"></span></span>`}
           </span>
         </button>`;
@@ -1557,14 +1692,54 @@ function pintarCambios(peticion, { atrapado = false, destacado = false } = {}) {
   panel.querySelector(".lucha-cambios-mini").innerHTML = botonesCambioMini(peticion, { atrapado });
 }
 
+// ---------- El tiempo del turno ----------
+
+// El hueco del reloj (lo rellena ticReloj): solo en los combates con tiempo
+function relojHTML() {
+  return abierto && abierto.lucha.tiempo && !abierto.repeticion ? `<span class="lucha-reloj"></span>` : "";
+}
+
+function ticReloj() {
+  if (!abierto || abierto.repeticion || abierto.lucha.estado !== "jugando" || abierto.perdioPorTiempo) return;
+  const n = abierto.combate.decisiones;
+  const queda = tiempoQueQueda(abierto.lucha, n);
+  for (const reloj of vistaCombate.querySelectorAll(".lucha-reloj")) {
+    if (queda === null) {
+      reloj.textContent = "";
+      continue;
+    }
+    const segundos = Math.max(0, Math.ceil(queda / 1000));
+    reloj.textContent = `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, "0")}`;
+    reloj.classList.toggle("poco", segundos <= 10);
+  }
+  // Pasado el tiempo (con un poco de margen por si los relojes no van iguales), se apunta a quien no ha
+  // elegido; si las reglas aún no lo dejan, se vuelve a probar en un rato
+  if (abierto.espectador || queda === null || queda > -1500 || abierto.reproduciendo || abierto.tiempoMandado === n || Date.now() < abierto.reintentoTiempo) return;
+  const turno = turnoActual();
+  const culpables = abierto.combate.necesitan().map(numeroDe).filter((k) => {
+    const otro = k === 1 ? 2 : 1;
+    return !turno[`e${k}`] && !turno[`t${k}`] && (!turno[`s${k}`] || turno[`s${otro}`]);
+  });
+  if (!culpables.length) return;
+  abierto.tiempoMandado = n;
+  const id = abierto.id;
+  apuntarSinTiempo(id, n, culpables).catch((error) => {
+    console.error("No se ha podido apuntar el tiempo agotado", error);
+    if (abierto && abierto.id === id) {
+      abierto.tiempoMandado = -1;
+      abierto.reintentoTiempo = Date.now() + 3000;
+    }
+  });
+}
+
 function pintarAcciones() {
   if (!abierto) return;
   const caja = vistaCombate.querySelector(".lucha-acciones");
   pintarCambios(null);
   const { combate, lado, lucha } = abierto;
-  const rival = nombreEn(lucha, rivalDe(lucha, yo()));
+  const rival = nombreEn(lucha, rivalDe(lucha, quienSoy()));
   const boton = vistaCombate.querySelector(".lucha-rendirse");
-  boton.hidden = lucha.estado !== "jugando" || combate.terminado;
+  boton.hidden = lucha.estado !== "jugando" || combate.terminado || abierto.espectador;
 
   if (abierto.trampa) {
     caja.innerHTML = `<p class="lucha-espera error">${t("La elección de {nombre} no casa con la que selló: el combate se ha parado.", {
@@ -1584,18 +1759,38 @@ function pintarAcciones() {
   }
 
   // Terminado (o rendido)
-  if (combate.terminado || lucha.estado === "fin") {
-    const ganador = lucha.estado === "fin" ? lucha.ganador : combate.ganador ? uidDe(combate.ganador) : "empate";
+  if (combate.terminado || lucha.estado === "fin" || abierto.perdioPorTiempo) {
+    const ganador = lucha.estado === "fin" ? lucha.ganador
+      : abierto.perdioPorTiempo ? rivalDe(lucha, uidDe(abierto.perdioPorTiempo))
+        : combate.ganador ? uidDe(combate.ganador) : "empate";
     const gano = ganador === yo();
     const texto = ganador === "empate"
       ? t("¡Empate!")
+      : abierto.espectador
+        ? `${t("Gana {nombre}.", { nombre: escaparHTML(nombreEn(lucha, ganador)) })}${lucha.rendido ? ` ${t("({nombre} se rindió)", { nombre: escaparHTML(nombreEn(lucha, lucha.rendido)) })}` : lucha.porTiempo ? ` ${t("(a {nombre} se le acabó el tiempo)", { nombre: escaparHTML(nombreEn(lucha, lucha.porTiempo)) })}` : ""}`
+      : lucha.abandono
+        ? lucha.abandono === yo()
+          ? t("Has perdido: llevabas más de un día sin jugar. Gana {nombre}.", { nombre: escaparHTML(rival) })
+          : t("¡Has ganado! {nombre} llevaba más de un día sin jugar.", { nombre: escaparHTML(rival) })
+      : lucha.porTiempo
+        ? lucha.porTiempo === yo()
+          ? t("Se te ha acabado el tiempo {n} veces seguidas. Gana {nombre}.", { n: MAX_SIN_TIEMPO, nombre: escaparHTML(rival) })
+          : t("A {nombre} se le ha acabado el tiempo {n} veces seguidas. ¡Has ganado!", { n: MAX_SIN_TIEMPO, nombre: escaparHTML(rival) })
       : lucha.rendido
         ? lucha.rendido === yo() ? t("Te has rendido. Gana {nombre}.", { nombre: escaparHTML(rival) }) : t("¡{nombre} se ha rendido! Has ganado.", { nombre: escaparHTML(rival) })
         : gano ? t("¡Has ganado!") : t("Has perdido. Gana {nombre}.", { nombre: escaparHTML(rival) });
     const locke = textoLocke(lucha);
+    const apuesta = lucha.apuesta && ganador !== "empate" && !abierto.espectador
+      ? gano
+        ? lucha.estado === "fin"
+          ? t("Te llevas {n}.", { n: moneda(lucha.apuesta * 2) })
+          : t("Te llevas {n}: llegan cuando {nombre} vea el final.", { n: moneda(lucha.apuesta * 2), nombre: escaparHTML(rival) })
+        : t("Pierdes lo apostado ({n}).", { n: moneda(lucha.apuesta) })
+      : "";
     caja.innerHTML = `
-      <div class="lucha-final ${ganador === "empate" ? "" : gano ? "gana" : "pierde"}">
+      <div class="lucha-final ${ganador === "empate" || abierto.espectador ? "" : gano ? "gana" : "pierde"}">
         <strong>${texto}</strong>
+        ${apuesta ? `<small class="lucha-final-apuesta">${apuesta}</small>` : ""}
         ${locke && ganador !== "empate" ? `<small>${t("Apuntado en el locke: {locke}", { locke: escaparHTML(locke) })}</small>` : ""}
         <button type="button" class="boton-gris lucha-volver">${t("Volver a los combates")}</button>
       </div>
@@ -1603,14 +1798,30 @@ function pintarAcciones() {
     return;
   }
 
+  // Solo mirando: quién tiene que elegir, y nada que pulsar
+  if (abierto.espectador) {
+    const faltan = combate.necesitan().filter((cada) => {
+      const k = numeroDe(cada);
+      const turno = turnoActual();
+      return !turno[`e${k}`] && !turno[`t${k}`];
+    });
+    const texto = faltan.length
+      ? t("Estás mirando. Esperando a {nombre}...", { nombre: faltan.map((cada) => escaparHTML(nombreEn(lucha, uidDe(cada)))).join(", ") })
+      : t("Estás mirando.");
+    caja.innerHTML = `${relojHTML()}<p class="lucha-espera">${texto}</p>`;
+    return;
+  }
+
   const necesitan = combate.necesitan();
   const turno = turnoActual();
   const mio = numeroDe(lado);
-  const yaElegi = turno[`s${mio}`] || turno[`e${mio}`];
+  const yaElegi = turno[`s${mio}`] || turno[`e${mio}`] || turno[`t${mio}`];
 
   if (!necesitan.includes(lado) || yaElegi || abierto.enviando) {
     const texto = abierto.enviando
       ? t("Mandando...")
+      : turno[`t${mio}`]
+        ? t("Se te ha acabado el tiempo: se elige solo. Esperando a {nombre}...", { nombre: escaparHTML(rival) })
       : abierto.sinPendiente
         ? t("Elegiste desde otro sitio: sigue el combate desde allí para destapar tu elección.")
         : yaElegi && necesitan.length === 2
@@ -1624,6 +1835,7 @@ function pintarAcciones() {
       const cual = pendiente ? textoEleccion(sinSal(pendiente)) : null;
       caja.innerHTML = `
         <div class="lucha-elegida">
+          ${relojHTML()}
           <p>${cual
             ? `${t("Has elegido {eleccion}.", { eleccion: `<strong>${escaparHTML(cual.texto)}</strong>` })} ${t("Esperando a {nombre}...", { nombre: escaparHTML(rival) })}`
             : texto}</p>
@@ -1631,7 +1843,11 @@ function pintarAcciones() {
         </div>`;
       return;
     }
-    caja.innerHTML = `<p class="lucha-espera">${texto}</p>`;
+    const abandono = !abierto.espectador && puedoGanarPorAbandono(lucha)
+      ? `<p class="lucha-espera">${t("{nombre} lleva más de un día sin jugar.", { nombre: escaparHTML(rival) })}
+          <button type="button" class="boton-gris lucha-abandono">${icono("trofeo")} ${t("Ganar por abandono")}</button></p>`
+      : "";
+    caja.innerHTML = `${relojHTML()}<p class="lucha-espera">${texto}</p>${abandono}`;
     return;
   }
 
@@ -1644,6 +1860,7 @@ function pintarAcciones() {
   // Antes de empezar: los dos equipos se ven en el campo (pintarPrevia); aquí, con quién sales
   if (peticion.teamPreview) {
     caja.innerHTML = `
+      ${relojHTML()}
       <p class="lucha-pregunta">${t("Elige con quién empiezas")}</p>
       <div class="lucha-equipo">${botonesEquipo(peticion, { vistaPrevia: true })}</div>`;
     return;
@@ -1651,7 +1868,7 @@ function pintarAcciones() {
 
   // Tras un debilitado: solo cambiar (en el panel de la derecha, que se destaca)
   if (peticion.forceSwitch) {
-    caja.innerHTML = `<p class="lucha-pregunta">${t("¿A quién sacas? Elígelo en «Cambiar».")}</p>`;
+    caja.innerHTML = `${relojHTML()}<p class="lucha-pregunta">${t("¿A quién sacas? Elígelo en «Cambiar».")}</p>`;
     pintarCambios(peticion, { destacado: true });
     return;
   }
@@ -1660,7 +1877,7 @@ function pintarAcciones() {
   const activa = (peticion.active || [])[0] || { moves: [] };
   const atrapado = Boolean(activa.trapped);
   caja.innerHTML = `
-    <p class="lucha-pregunta">${t("¿Qué hará {nombre}?", { nombre: escaparHTML((abierto.vista[lado].activo || {}).nombre || "") })}</p>
+    <p class="lucha-pregunta">${relojHTML()} ${t("¿Qué hará {nombre}?", { nombre: escaparHTML((abierto.vista[lado].activo || {}).nombre || "") })}</p>
     <div class="lucha-elegir">
       <div class="lucha-ataques">${activa.moves.map((ataque, i) => botonAtaque(ataque, i, activa)).join("")}</div>
       ${botonesEspeciales(activa)}
@@ -1716,9 +1933,12 @@ function nombreObjetoDe(id) {
 }
 
 // Los tipos que tiene ahora (teracristalizado, transformado...), en minúsculas («fire»)
-function tiposVisibles(activo, especieNombre) {
+// lado: de quién es (con randomizer, cada uno tiene sus tipos)
+function tiposVisibles(activo, especieNombre, lado = "") {
   if (activo && activo.tera) return [activo.tera];
   const especie = dex().species.get((activo && (activo.especieTransformado || activo.especie)) || especieNombre || "");
+  const random = lado && abierto.combate.datosRandom(lado, especie.name);
+  if (random) return random.tipos;
   return (especie.types || []).map((tipo) => tipo.toLowerCase());
 }
 
@@ -1781,7 +2001,7 @@ function bocadilloPokemon(lado, posicion) {
   const { set, nombre, visto, activo, conocido } = datos;
   const mio = lado === abierto.lado;
   const especie = dex().species.get(activo && activo.especie ? activo.especie : set.species);
-  const tipos = tiposVisibles(activo, especie.name);
+  const tipos = tiposVisibles(activo, especie.name, lado);
   const nivel = set.level || 100;
   // Del rival, el mote solo si ya ha salido
   const titulo = mio || visto ? nombre : especie.name;
@@ -1830,7 +2050,8 @@ function bocadilloPokemon(lado, posicion) {
 
   // Del rival: lo que se ve
   const porcentaje = visto ? Math.round(visto.psMax ? (visto.ps / visto.psMax) * 100 : 0) : 100;
-  const [lenta, rapida] = velocidadPosible(especie.baseStats.spe, nivel);
+  const random = abierto.combate.datosRandom(lado, especie.name);
+  const [lenta, rapida] = velocidadPosible(random ? random.stats[5] : especie.baseStats.spe, nivel);
   const posibles = Object.values(especie.abilities || {}).map((habilidad) => abierto.modulos.nombreHabilidad(habilidad));
   const ataques = [...conocido.ataques.entries()].map(([nombreAtaque, usos]) => {
     const ataque = dex().moves.get(nombreAtaque);
@@ -1858,7 +2079,7 @@ function bocadilloTransformado(lado, datos, estado) {
   const copiado = abierto.combate.sets[suLado].find((cada) => cada.posicion === suPosicion);
   const motorCopiado = pokemonDelMotor(suLado, suPosicion);
   const especieCopiada = dex().species.get(activo.especieTransformado || (copiado && copiado.species) || "");
-  const tipos = tiposVisibles(activo, especieCopiada.name);
+  const tipos = tiposVisibles(activo, especieCopiada.name, suLado);
   const caido = Boolean(visto && visto.debilitado);
   const titulo = mio || visto ? nombre : dex().species.get(set.species).name;
 
@@ -1924,7 +2145,7 @@ function bocadilloAtaque(indice, elemento) {
   const suyo = abierto.vista[otroLado(abierto.lado)].activo;
   let contra = "";
   if (suyo && ataque.category !== "Status") {
-    const efi = eficaciaContra(ataque.type, tiposVisibles(suyo));
+    const efi = eficaciaContra(ataque.type, tiposVisibles(suyo, "", otroLado(abierto.lado)));
     const textoEfi = efi === 0
       ? t("No le afecta")
       : efi > 1 ? t("Muy eficaz (×{n})", { n: efi }) : efi < 1 ? t("Poco eficaz (×{n})", { n: String(efi).replace(".", enIngles ? "." : ",") }) : t("Eficacia normal");
@@ -2021,14 +2242,15 @@ function ladoHTML(lado, clase) {
 }
 
 function esqueletoCombate(lucha) {
-  const rival = rivalDe(lucha, yo());
+  const soy = quienSoy();
+  const rival = rivalDe(lucha, soy);
   const locke = textoLocke(lucha);
-  const miLado = ladoDe(lucha, yo());
+  const miLado = ladoDe(lucha, soy);
   return `
     <div class="lucha-cabeza">
       <button type="button" class="boton-gris lucha-volver">${icono("atras")} ${t("Combates")}</button>
       <div class="lucha-cabeza-jugadores">
-        ${fotoEn(lucha, yo())}<strong>${escaparHTML(nombreEn(lucha, yo()))}</strong>
+        ${fotoEn(lucha, soy)}<strong>${escaparHTML(nombreEn(lucha, soy))}</strong>
         <span class="lucha-vs">vs</span>
         <strong>${escaparHTML(nombreEn(lucha, rival))}</strong>${fotoEn(lucha, rival)}
       </div>
@@ -2040,7 +2262,7 @@ function esqueletoCombate(lucha) {
       <div class="lucha-principal">
         <div class="lucha-equipos-barra">
           <div class="lucha-equipo-fila mio" data-lado="${miLado}">
-            <span class="lucha-equipo-nombre">${escaparHTML(nombreEn(lucha, yo()))}</span>
+            <span class="lucha-equipo-nombre">${escaparHTML(nombreEn(lucha, soy))}</span>
             <div class="lucha-huecos"></div>
           </div>
           <div class="lucha-equipo-fila suyo" data-lado="${otroLado(miLado)}">
@@ -2101,6 +2323,7 @@ function pintarBotonSonido() {
 function cerrarCombate() {
   if (abierto && abierto.dejar) abierto.dejar();
   if (abierto && abierto.observador) abierto.observador.disconnect();
+  if (abierto && abierto.reloj) clearInterval(abierto.reloj);
   abierto = null;
   ocultarTooltip();
   vistaCombate.hidden = true;
@@ -2128,7 +2351,9 @@ async function abrirCombate(id) {
   const actual = luchaPorId(id);
   if (!actual || vistaCombate.hidden) return;
 
-  const lado = ladoDe(actual, yo());
+  const espectador = !actual.jugadores.includes(yo());
+  const mira = espectador ? aQuienMiro(actual) : yo();
+  const lado = ladoDe(actual, mira);
   let combate;
   try {
     combate = new motor.Combate(actual);
@@ -2141,10 +2366,13 @@ async function abrirCombate(id) {
 
   abierto = {
     id, lucha: actual, lado, combate, modulos: motor,
-    lector: motor.crearLector({ miLado: lado, nombreRival: nombreEn(actual, rivalDe(actual, yo())) }),
+    espectador, mira,
+    lector: motor.crearLector({ miLado: lado, nombreRival: nombreEn(actual, rivalDe(actual, mira)) }),
     vista: nuevaVista(), registro: [], cola: [], historia: [], turnos: [], repeticion: null,
-    primeraVez: true, rapido: false, reproduciendo: false, avanzando: false, enviando: false, especial: "", fuerza: "normal"
+    primeraVez: true, rapido: false, reproduciendo: false, avanzando: false, enviando: false, especial: "", fuerza: "normal",
+    sinTiempo: { p1: 0, p2: 0 }, perdioPorTiempo: "", tiempoMandado: -1, reintentoTiempo: 0
   };
+  abierto.reloj = setInterval(ticReloj, 500);
   vistaCombate.innerHTML = esqueletoCombate(actual);
   const arena = vistaCombate.querySelector(".lucha-arena");
   motor.pintarEscena(arena, actual.id, actual.escena);
@@ -2206,13 +2434,19 @@ async function alPulsarLista(e) {
   if (!id) return;
   if (e.target.closest(".lucha-aceptar")) return abrirAceptar(id);
   if (e.target.closest(".lucha-abrir")) return abrirCombate(id);
+  if (e.target.closest(".lucha-abandono")) return pedirAbandono(id);
   const rechazar = e.target.closest(".lucha-rechazar, .lucha-retirar, .lucha-quitar");
   if (rechazar) {
     const pregunta = rechazar.matches(".lucha-rechazar")
       ? t("¿Rechazar el reto?")
       : rechazar.matches(".lucha-retirar") ? t("¿Retirar el reto?") : t("¿Quitar este combate de la lista? Se quita para los dos.");
+    const lucha = luchaPorId(id);
+    if (rechazar.matches(".lucha-quitar") && lucha && !sePuedeQuitar(lucha)) {
+      avisar(t("Todavía no se ha pagado la apuesta. Se puede quitar en cuanto se cobre (al abrirla quien ganó)."));
+      return;
+    }
     if (!(await confirmar(pregunta, { aceptar: rechazar.matches(".lucha-quitar") ? t("Quitar") : rechazar.matches(".lucha-rechazar") ? t("Rechazar") : t("Retirar") }))) return;
-    borrarLucha(id).catch((error) => {
+    (rechazar.matches(".lucha-rechazar") ? rechazarReto(id) : borrarLucha(id)).catch((error) => {
       console.error(error);
       avisar(t("No se ha podido. Prueba de nuevo."));
     });
@@ -2220,8 +2454,26 @@ async function alPulsarLista(e) {
   return undefined;
 }
 
+// Ganar porque el otro lleva más de un día sin jugar (si es de un locke, suma la victoria)
+async function pedirAbandono(id) {
+  const lucha = luchaPorId(id);
+  if (!puedoGanarPorAbandono(lucha)) return;
+  const rival = nombreEn(lucha, rivalDe(lucha, yo()));
+  if (!(await confirmar(t("¿Dar el combate por ganado? {nombre} lleva más de un día sin jugar.", { nombre: rival }), { aceptar: t("Ganar por abandono") }))) return;
+  try {
+    const apuntado = await ganarPorAbandono(id);
+    if (apuntado && lucha.locke) await sumarVictoriaCombate(lucha.locke.id, lucha.locke.combate, yo());
+  } catch (error) {
+    console.error(error);
+    avisar(error.code === "permission-denied"
+      ? t("Todavía no se puede (o faltan por publicar las reglas de Firestore).")
+      : t("No se ha podido. Prueba de nuevo."));
+  }
+}
+
 async function alPulsarCombate(e) {
   if (e.target.closest(".lucha-volver")) return cerrarCombate();
+  if (e.target.closest(".lucha-abandono") && abierto) return pedirAbandono(abierto.id);
   if (!abierto) return undefined;
   if (e.target.closest(".lucha-saltar")) {
     abierto.rapido = true;
@@ -2316,6 +2568,21 @@ function alPulsarRetar(e) {
   const previa = e.target.closest("[data-previa]");
   if (previa) {
     retando.vistaPrevia = previa.dataset.previa === "si";
+    return pintarRetar();
+  }
+  const apuesta = e.target.closest("[data-apuesta]");
+  if (apuesta && !apuesta.disabled) {
+    retando.apuesta = Number(apuesta.dataset.apuesta) || 0;
+    return pintarRetar();
+  }
+  const mirar = e.target.closest("[data-mirar]");
+  if (mirar) {
+    retando.mirar = mirar.dataset.mirar === "si";
+    return pintarRetar();
+  }
+  const tiempo = e.target.closest("[data-tiempo]");
+  if (tiempo) {
+    retando.tiempo = tiempo.dataset.tiempo === "si";
     return pintarRetar();
   }
   const tera = e.target.closest("[data-tera]");

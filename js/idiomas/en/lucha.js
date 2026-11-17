@@ -311,5 +311,52 @@ export default {
   "{quien} te reta a un combate": "{quien} challenges you to a battle",
   "Te toca en tu combate contra {quien}": "It's your turn in your battle against {quien}",
   "Elegir equipo y aceptar": "Choose a team and accept",
-  "Retarle aquí, en «Combates»: al terminar, la victoria se apunta sola": "Challenge them here, in “Battles”: when it ends, the win is recorded automatically"
+  "Retarle aquí, en «Combates»: al terminar, la victoria se apunta sola": "Challenge them here, in “Battles”: when it ends, the win is recorded automatically",
+
+  // ---------- Tiempo por turno ----------
+  "Tiempo": "Timer",
+  "Sin límite": "No limit",
+  "1 minuto por turno": "1 minute per turn",
+  "{n} s por turno": "{n} s per turn",
+  "Se te ha acabado el tiempo ({n} de {max}): se elige solo.": "You ran out of time ({n} of {max}): a move is chosen for you.",
+  "A {nombre} se le ha acabado el tiempo ({n} de {max}): se elige solo.": "{nombre} ran out of time ({n} of {max}): a move is chosen for them.",
+  "Se te ha acabado el tiempo: se elige solo. Esperando a {nombre}...": "You ran out of time: a move is chosen for you. Waiting for {nombre}...",
+  "Se te ha acabado el tiempo {n} veces seguidas. Gana {nombre}.": "You ran out of time {n} turns in a row. {nombre} wins.",
+  "A {nombre} se le ha acabado el tiempo {n} veces seguidas. ¡Has ganado!": "{nombre} ran out of time {n} turns in a row. You win!",
+
+  // ---------- Mirar combates de amigos ----------
+  "De tus amigos": "Your friends' battles",
+  "Mirar": "Watch",
+  "Quién lo ve": "Who can watch",
+  "Lo pueden mirar vuestros amigos": "Your friends can watch",
+  "Solo vosotros": "Only you two",
+  "lo pueden mirar vuestros amigos": "your friends can watch",
+  "Estás mirando.": "You're watching.",
+  "Estás mirando. Esperando a {nombre}...": "You're watching. Waiting for {nombre}...",
+  "({nombre} se rindió)": "({nombre} forfeited)",
+  "(a {nombre} se le acabó el tiempo)": "({nombre} ran out of time)",
+
+  // ---------- Abandono ----------
+  "Ganar por abandono": "Win by forfeit",
+  "no jugaste": "you didn't play",
+  "no jugó": "they didn't play",
+  "Has perdido: llevabas más de un día sin jugar. Gana {nombre}.": "You lost: you hadn't played for over a day. {nombre} wins.",
+  "¡Has ganado! {nombre} llevaba más de un día sin jugar.": "You win! {nombre} hadn't played for over a day.",
+  "{nombre} lleva más de un día sin jugar.": "{nombre} hasn't played for over a day.",
+  "¿Dar el combate por ganado? {nombre} lleva más de un día sin jugar.": "Claim the win? {nombre} hasn't played for over a day.",
+  "Todavía no se puede (o faltan por publicar las reglas de Firestore).": "It can't be done yet (or the Firestore rules still need publishing).",
+
+  // ---------- Apuestas ----------
+  "Apuesta": "Bet",
+  "apuestas": "bets",
+  "apuesta": "bet",
+  "tienes": "you have",
+  "Sin apuesta": "No bet",
+  "cada uno": "each",
+  "Cada uno pone {n}. Quien gana se lleva los dos; en empate, cada uno recupera lo suyo.": "Each of you puts in {n}. The winner takes both; in a draw, you each get yours back.",
+  "no tienes suficientes (tienes {n})": "you don't have enough (you have {n})",
+  "Te llevas {n}.": "You take {n}.",
+  "Te llevas {n}: llegan cuando {nombre} vea el final.": "You take {n}: they'll arrive once {nombre} sees the ending.",
+  "Pierdes lo apostado ({n}).": "You lose your bet ({n}).",
+  "Todavía no se ha pagado la apuesta. Se puede quitar en cuanto se cobre (al abrirla quien ganó).": "The bet hasn't been paid yet. You can remove it once it's collected (when the winner opens it)."
 };

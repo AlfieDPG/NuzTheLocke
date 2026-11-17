@@ -1642,3 +1642,9 @@
 .jugar-teclas-ventana .jugar-teclas {
   margin: 0.8rem 0 1rem;
 }
+
+/* Llegó de la cuenta sin su ROM (js/jugar/nube-partidas.js) */
+.jugar-tipo.sin-rom {
+  color: var(--t-mal);
+  border-color: currentColor;
+}

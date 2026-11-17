@@ -18,7 +18,8 @@ import { mapaDS } from "./nds.js";
 import { sePuedeEditarDS, cerrarCambiosDS } from "./escribirds.js";
 import { mapaGBA } from "./gba.js";
 import { escribirBloquesGBA } from "./escribirgba.js";
-import { abrirSwSh, LLAVES } from "./switch.js";
+import { abrirSwSh, LLAVES, entrenadorSwSh } from "./switch.js";
+import { DEX_SWSH, GENERO_SWSH } from "./dex-swsh.js";
 import { escribirBloques, sePuedeEditarSwitch } from "./escribirswitch.js";
 import { escribirTrozosBDSP, entrenadorBDSP } from "./bdsp.js";
 
@@ -206,10 +207,58 @@ const GEN7 = (total) => [
   pokedexPorTiras(6, { capturados: 0x88, vistos: 0xf0, tira: 0x8c }, total)
 ];
 
+// Espada/Escudo: tres Pokédex, cada una en su bloque (las de los DLC solo si la partida los tiene), con
+// 0x30 bytes por hueco (Zukan8 de PKHeX): +0 cuatro u64 de vistos (macho, hembra, macho variocolor,
+// hembra variocolor; un bit por forma), +0x20 u32 de capturado (bit 0; idiomas desde el bit 2; género que
+// se muestra en los bits 29-30), +0x24 cuántas veces se ha combatido con él.
+const BLOQUES_DEX_SWSH = [
+  ["galar", 0x4716c404],
+  ["armadura", 0x3f936ba9],
+  ["corona", 0x3c9366f0]
+];
+const dexesSwSh = (z) => BLOQUES_DEX_SWSH.filter(([, llave]) => z.tiene(llave));
+const totalSwSh = (z) => dexesSwSh(z).reduce((n, [dex]) => n + DEX_SWSH[dex].filter(Boolean).length, 0);
 const SWSH = [
   dinero(LLAVES.varios, 0x4, 9999999),
   numero16("pb", "Puntos de Batalla (PB)", LLAVES.varios, 0x11c, 9999, "Los Puntos de Batalla: se cambian por objetos en la Torre Batalla."),
-  numero32("vatios", "Vatios", LLAVES.entrenador, 0xd0, 9999999, "Los de las guaridas: para el Bazar de los vatios y las MT/DT de la Zona Silvestre.")
+  numero32("vatios", "Vatios", LLAVES.entrenador, 0xd0, 9999999, "Los de las guaridas: para el Bazar de los vatios y las MT/DT de la Zona Silvestre."),
+  {
+    ...pokedex(
+      0,
+      (z) => {
+        let n = 0;
+        for (const [dex, llave] of dexesSwSh(z)) {
+          const b = z.zona(llave);
+          DEX_SWSH[dex].forEach((e, i) => { if (e && bit(b, i * 0x30 + 0x20, 0)) n++; });
+        }
+        return n;
+      },
+      (z) => {
+        // El idioma de la partida, como lo marca el juego (sin el 0 ni el 6, que no se usan)
+        const idioma = z.idioma >= 1 && z.idioma <= 10 && z.idioma !== 6 ? z.idioma : 2;
+        const bitIdioma = 2 + (idioma >= 7 ? idioma - 2 : idioma - 1);
+        for (const [dex, llave] of dexesSwSh(z)) {
+          const b = z.zona(llave);
+          DEX_SWSH[dex].forEach((e, i) => {
+            if (!e) return;
+            const o = i * 0x30;
+            const g = GENERO_SWSH[e];
+            const yaTenia = bit(b, o + 0x20, 0);
+            if (g !== 254) ponerBit(b, o, 0); // visto macho (y los sin género)
+            if (g !== 0 && g !== 255) ponerBit(b, o + 8, 0); // visto hembra
+            ponerBit(b, o + 0x20, 0);
+            ponerBit(b, o + 0x20, bitIdioma);
+            if (!yaTenia) {
+              const c = u32(b, o + 0x20) & ~(0x1fff << 15) & ~(3 << 29);
+              poner32(b, o + 0x20, (c | (g === 254 ? 1 << 29 : 0)) >>> 0);
+            }
+            if (u32(b, o + 0x24) === 0) poner32(b, o + 0x24, 1);
+          });
+        }
+      }
+    ),
+    totalDe: totalSwSh
+  }
 ];
 
 // Perla Reluciente / Diamante Brillante: todo en el archivo, sin bloques (su MD5 al final)
@@ -343,6 +392,8 @@ function zonasSwSh(original) {
       }
       return copias.get(llave);
     },
+    tiene: (llave) => Boolean(mapa.get(llave)?.datos?.length),
+    idioma: entrenadorSwSh(original).idioma,
     cerrar: () => escribirBloques(original, copias)
   };
 }
@@ -386,7 +437,7 @@ export function leerEventos(bytes) {
   const lista = DE_CADA[juego];
   if (!lista) return [];
   const z = abrir(bytes, juego);
-  return lista.map(({ leer, poner, ...e }) => ({ ...e, valor: leer ? leer(z) : undefined }));
+  return lista.map(({ leer, poner, totalDe, ...e }) => ({ ...e, ...(totalDe ? { total: totalDe(z) } : {}), valor: leer ? leer(z) : undefined }));
 }
 
 export function aplicarEvento(bytes, id, valor, generos = {}) {
@@ -400,7 +451,7 @@ export function aplicarEvento(bytes, id, valor, generos = {}) {
   // Que se lea como se ha dejado
   const releido = abrir(nuevo, juego);
   const ahora = evento.leer(releido);
-  const esperado = evento.tipo === "pokedex" ? evento.total : evento.tipo === "casilla" ? Boolean(valor) : valor;
+  const esperado = evento.tipo === "pokedex" ? (evento.totalDe ? evento.totalDe(releido) : evento.total) : evento.tipo === "casilla" ? Boolean(valor) : valor;
   if (ahora !== esperado) throw new Error("El evento no se ha guardado bien.");
   return nuevo;
 }

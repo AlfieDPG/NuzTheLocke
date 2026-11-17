@@ -39,7 +39,7 @@ import { nombreDeJuego } from "../comun/juegos.js";
 import { medallasDelJuego } from "../comun/medallas.js";
 import { entregarPartida, registrarFuente, quitarFuente } from "../partida/vinculo.js";
 import { partidaDe, marcarMuertosVistos } from "../partida/partidas.js";
-import { listaDePartidas, datosDe, romDe, savDe, crearPartida, cambiarPartida, guardarSav, guardarRom, borrarPartida } from "./partidas.js";
+import { listaDePartidas, datosDe, romDe, savDe, crearPartida, cambiarPartida, guardarSav, guardarRom, borrarPartida, tieneRom } from "./partidas.js";
 import { firmwareDS } from "./firmware-ds.js";
 import { emitiendo, empezarDirecto, acabarDirecto, pintarCajaDirecto } from "./directo.js";
 import {
@@ -143,9 +143,66 @@ async function semillaDe(idLocke) {
   return semillas[idLocke];
 }
 
+// Las partidas que han llegado de la cuenta sin su ROM (hay que elegirla otra vez: ./nube-partidas.js)
+let sinRom = new Set();
+
 async function recargar() {
   partidas = await listaDePartidas();
+  const conRom = await Promise.all(partidas.map((p) => tieneRom(p.id)));
+  sinRom = new Set(partidas.filter((p, i) => !conRom[i]).map((p) => p.id));
   pintar();
+}
+
+// Juntar con la cuenta (sin esperar: la lista sale ya y se repinta si llega algo)
+let sincronizando = null;
+function sincronizarConLaCuenta() {
+  if (sincronizando || !usuarioActual()) return;
+  sincronizando = import("./nube-partidas.js")
+    .then(({ sincronizarPartidas }) => sincronizarPartidas())
+    .then((cambios) => (cambios && !partida ? recargar() : null))
+    .catch((error) => console.error("No se han podido juntar las partidas de «Jugar» con la cuenta", error))
+    .finally(() => (sincronizando = null));
+}
+
+// Una partida sin su ROM (llegó de la cuenta): se elige otra vez. Si era randomizada y se sabe cómo (semilla
+// y normas), la original, y se randomiza igual. Devuelve { nombre, bytes } o null.
+async function recuperarRom(id, datos) {
+  const conRandom = Boolean(datos.randomizada && datos.random && datos.random.semilla);
+  const texto = conRandom
+    ? t("Esta partida no tiene su ROM en este navegador. Elige la ROM ORIGINAL (sin randomizar) de {juego}: se randomiza igual que la primera vez.", { juego: nombreDeJuego(datos.juego || "frlg") })
+    : datos.randomizada
+      ? t("Esta partida no tiene su ROM en este navegador. Elige la ROM randomizada con la que la empezaste.")
+      : t("Esta partida no tiene su ROM en este navegador. Elige la ROM de {juego}.", { juego: nombreDeJuego(datos.juego || "frlg") });
+  if (!(await confirmar(texto, { aceptar: t("Elegir la ROM") }))) return null;
+  const archivo = await new Promise((resolver) => {
+    const entrada = document.createElement("input");
+    entrada.type = "file";
+    entrada.accept = datos.consola === "nds" ? ".nds" : ".gba";
+    entrada.addEventListener("change", () => resolver(entrada.files[0] || null));
+    entrada.addEventListener("cancel", () => resolver(null));
+    entrada.click();
+  });
+  if (!archivo) return null;
+  const extension = (archivo.name.split(".").pop() || "").toLowerCase();
+  if (extension !== (datos.consola || "gba")) {
+    avisar(t("Esa ROM no es de esta consola."));
+    return null;
+  }
+  const bytes = new Uint8Array(await archivo.arrayBuffer());
+  if (conRandom) {
+    try {
+      const { randomizarROM } = await import("../randomizer/randomizar.js");
+      await randomizarROM(bytes, datos.random.reglas, datos.random.semilla);
+    } catch (error) {
+      console.error(error);
+      avisar(t(error.message || "No se ha podido randomizar."));
+      return null;
+    }
+  }
+  const rom = { nombre: datos.rom || archivo.name, bytes };
+  await guardarRom(id, rom);
+  sinRom.delete(id);
+  return rom;
 }
 
 // ---------- Nueva partida ----------
@@ -252,6 +309,7 @@ async function nuevaPartida(idLocke = "") {
       const nombre = dialogo.querySelector(".jugar-nueva-nombre").value.trim() || archivo.replace(/\.(gba|nds)$/i, "");
       boton.disabled = true;
       let randomizada = false;
+      let random = null;
       if (como !== "no") {
         boton.innerHTML = `${icono("mezclar")} ${t("Randomizando...")}`;
         try {
@@ -259,8 +317,10 @@ async function nuevaPartida(idLocke = "") {
           await new Promise((resolver) => setTimeout(resolver, 30)); // que se vea «Randomizando...»
           const reglas = como === "locke" ? lockePorId(idElegido).randomizer.reglas : misNormas;
           // Con las del locke, tu semilla de ese locke (la misma ROM que en «Randomizer»); con las tuyas, una nueva
-          await randomizarROM(bytes, reglas, await semillaDe(como === "locke" ? idElegido : ""));
+          const semilla = await semillaDe(como === "locke" ? idElegido : "");
+          await randomizarROM(bytes, reglas, semilla);
           randomizada = true;
+          random = { semilla, reglas };
         } catch (fallo) {
           console.error(fallo);
           error(t(fallo.message || "No se ha podido randomizar."));
@@ -270,7 +330,7 @@ async function nuevaPartida(idLocke = "") {
         }
       }
       const id = await crearPartida({
-        nombre, consola: tipo.consola, juego: tipo.juego, idLocke: idElegido, bytes, randomizada,
+        nombre, consola: tipo.consola, juego: tipo.juego, idLocke: idElegido, bytes, randomizada, random,
         archivo: randomizada ? archivo.replace(/(\.(gba|nds))?$/i, ` (random).${tipo.consola}`) : archivo
       });
       dialogo.close();
@@ -357,7 +417,8 @@ function plantillaTipo(p) {
       : p.randomizada
         ? ["mezclar", t("Randomizada"), "random"]
         : ["consola", t("Normal"), "normal"];
-  return `<span class="jugar-tipo ${clase}">${icono(dibujo)} ${texto}</span>`;
+  const falta = sinRom.has(p.id) ? `<span class="jugar-tipo sin-rom" title="${t("Llegó de tu cuenta: al jugarla, elige la ROM otra vez")}">${icono("aviso")} ${t("Falta la ROM")}</span>` : "";
+  return `<span class="jugar-tipo ${clase}">${icono(dibujo)} ${texto}</span>${falta}`;
 }
 
 const nivelDePs = (p) => {
@@ -686,11 +747,14 @@ async function empezar(id) {
   if (partida || ocupado) return;
   ocupado = true;
   try {
-    const [datos, rom] = await Promise.all([datosDe(id), romDe(id)]);
-    if (!datos || !rom) {
+    const datos = await datosDe(id);
+    if (!datos) {
       avisar(t("No se encuentra esa partida en este navegador."));
       return;
     }
+    let rom = await romDe(id);
+    if (!rom || !rom.bytes) rom = await recuperarRom(id, datos);
+    if (!rom) return;
     // Con mentas metidas desde «Editar» y una ROM que no las tiene: se le ponen
     await mentasSiHacenFalta(id, rom, await savDe(id), datos.consola || "gba");
     // El locke solo se sigue si es tuyo y está en marcha (si no, se juega igual, sin apuntar nada)
@@ -1610,6 +1674,7 @@ export async function mostrar() {
   const pedido = leer(CLAVE_ELEGIDO, {}) || {};
   if (pedido.locke || pedido.partida) escribir(CLAVE_ELEGIDO, {});
   await recargar();
+  sincronizarConLaCuenta();
   if (partida) return;
   if (pedido.partida && partidas.some((p) => p.id === pedido.partida)) {
     destacada = pedido.partida;

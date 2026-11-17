@@ -865,6 +865,15 @@ function semillaPara() {
   return semillas[idLocke];
 }
 
+// Desde un locke: los tipos y estadísticas que han quedado, para sus combates (js/comun/randomizados.js).
+// Si falla (sin sesión, sin reglas publicadas), los combates usan los del juego y ya está.
+function apuntarParaLuchas(resultado) {
+  if (!idLocke || !resultado || !resultado.especies) return;
+  import("../comun/randomizados.js")
+    .then(({ guardarRandomizados }) => guardarRandomizados(idLocke, rom && rom.juego, resultado.especies))
+    .catch((error) => console.error("No se han podido apuntar los datos del randomizer para los combates", error));
+}
+
 // jugar: las de GBA, a una partida nueva de «Jugar» en lugar de descargarla
 async function randomizar(jugar = false) {
   if (!rom || rom.error || trabajando) return;
@@ -885,7 +894,7 @@ async function randomizar(jugar = false) {
       const juego3DS = await import("./juego-3ds.js");
       const sesion = new Sesion3DS(await new Rom3DS(lectorDeArchivo(rom.archivo)).abrir());
       await juego3DS.prepararRom(sesion);
-      await modulos.randomizar.randomizarROM(sesion, reglasActuales(), semillaPara());
+      apuntarParaLuchas(await modulos.randomizar.randomizarROM(sesion, reglasActuales(), semillaPara()));
       const nuevo = await sesion.construirRom();
       nombre = rom.archivo.name.replace(/(\.3ds)?$/i, " (random).3ds");
       const piezas = nuevo.partes.map((x) => (x.rango ? rom.archivo.slice(x.rango.desde, x.rango.desde + x.rango.tam) : x));
@@ -896,12 +905,13 @@ async function randomizar(jugar = false) {
       const motor = await import(rom.juego === "bdsp" ? "./juego-bdsp.js" : "./juego-swsh.js");
       const sesion = new SesionSwitch(rom.rutas, rom.juego, rom.nombre);
       await motor.prepararRom(sesion);
-      await modulos.randomizar.randomizarROM(sesion, reglasActuales(), semillaPara());
+      apuntarParaLuchas(await modulos.randomizar.randomizarROM(sesion, reglasActuales(), semillaPara()));
       bytes = sesion.zip();
       nombre = `${rom.nombre.replace(/\s*\/\s*/g, " y ")} (random).zip`;
     } else {
       bytes = new Uint8Array(await rom.archivo.arrayBuffer());
-      await modulos.randomizar.randomizarROM(bytes, reglasActuales(), semillaPara());
+      const semilla = semillaPara();
+      apuntarParaLuchas(await modulos.randomizar.randomizarROM(bytes, reglasActuales(), semilla));
       if (jugar) {
         const { crearPartida } = await import("../jugar/partidas.js");
         const extension = rom.esGBA ? "gba" : "nds";
@@ -909,7 +919,8 @@ async function randomizar(jugar = false) {
         const locke = idLocke ? lockePorId(idLocke) : null;
         const id = await crearPartida({
           nombre: locke ? locke.nombre : archivo.replace(/\.(gba|nds)$/i, ""), consola: extension, juego: rom.juego,
-          idLocke: locke && locke.juego === rom.juego ? idLocke : "", archivo, bytes, randomizada: true
+          idLocke: locke && locke.juego === rom.juego ? idLocke : "", archivo, bytes, randomizada: true,
+          random: { semilla, reglas: reglasActuales() }
         });
         sumarContador("randomizar");
         if (idLocke) sumarContador("randomizar-locke");

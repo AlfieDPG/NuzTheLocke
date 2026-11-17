@@ -1182,6 +1182,10 @@ export async function borrarLocke(id) {
   }
   // Su chat (mensajes y marcas de ritmo), por lo mismo
   await borrarChatDeLocke(id).catch((error) => console.error("No se ha podido borrar el chat del locke", error));
+  // Los tipos y estadísticas del randomizer de cada uno (js/comun/randomizados.js)
+  await import("./randomizados.js")
+    .then(({ borrarRandomizados }) => borrarRandomizados(id))
+    .catch((error) => console.error("No se han podido borrar los datos del randomizer del locke", error));
   await fn.deleteDoc(ref);
 }
 

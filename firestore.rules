@@ -94,7 +94,14 @@ service cloud.firestore {
           'poketeams-levelcaps-multiplicador-v1', 'poketeams-normas-v2', 'poketeams-contadores-v1',
           'poketeams-ruletas-v1', 'poketeams-rutas-propias-v1', 'poketeams-levelcaps-propios-v1',
           'poketeams-partidas-v1', 'poketeams-registrados-v1', 'poketeams-lockes-quitados-v1',
-          'poketeams-avisos-arbitro-v1', 'poketeams-ajustes-v1', 'poketeams-juegos-propios-v1'
+          'poketeams-avisos-arbitro-v1', 'poketeams-ajustes-v1', 'poketeams-juegos-propios-v1',
+          'poketeams-randomizer-v1', 'poketeams-randomizer-guardadas-v1', 'poketeams-randomizer-semillas-v1',
+          'poketeams-randomizer-aviso-carpeta-v1', 'poketeams-luchas-pendientes-v1', 'poketeams-lucha-sonido-v1',
+          'poketeams-jugar-v1', 'poketeams-jugar-ajustes-v1', 'poketeams-juegos-v1',
+          'poketeams-amigos-vista-v1', 'poketeams-buscar-ajustes-v1', 'poketeams-buscar-locke-v1',
+          'poketeams-lockes-plegados-v1', 'poketeams-normas-ultimo-v1', 'poketeams-pokedex-juego-v1',
+          'poketeams-progreso-locke-v1', 'poketeams-avisos-leidos-v1', 'poketeams-avisos-foro-v1',
+          'poketeams-avisos-foro-otros-v1', 'poketeams-normas-ajenas-quitadas-v1', 'poketeams-rutas-limpias-v1'
         ];
       }
 
@@ -103,6 +110,27 @@ service cloud.firestore {
         && claveValida()
         && request.resource.data.keys().hasOnly(['valor', 'actualizado'])
         && request.resource.data.valor is string
+        && request.resource.data.actualizado is number;
+    }
+
+    // Las partidas de «Jugar» (js/jugar/nube-partidas.js): sus datos y, aparte, su partida guardada en
+    // base64 (las de DS ocupan hasta 512 KB: unos 700.000 caracteres). La ROM no se sube nunca.
+    match /usuarios/{uid}/jugar/{id} {
+      allow read, delete: if identificado() && request.auth.uid == uid;
+      allow create, update: if identificado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['datos', 'savActualizado', 'actualizado'])
+        && request.resource.data.datos is map
+        && request.resource.data.datos.size() <= 20
+        && request.resource.data.savActualizado is number
+        && request.resource.data.actualizado is number;
+    }
+
+    match /usuarios/{uid}/jugarSav/{id} {
+      allow read, delete: if identificado() && request.auth.uid == uid;
+      allow create, update: if identificado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['sav', 'actualizado'])
+        && request.resource.data.sav is string
+        && request.resource.data.sav.size() <= 900000
         && request.resource.data.actualizado is number;
     }
 
@@ -176,9 +204,76 @@ service cloud.firestore {
           && huevos.get('devueltos', 0) is int && huevos.get('devueltos', 0) >= antes.get('devueltos', 0);
       }
 
+      // Topes de tamaño (holgados: lo normal se queda muy lejos). La foto propia es un webp de
+      // 160 px en base64 (js/perfil.js, fotoRecortada), unos pocos KB.
+      function textoCorto(campo, maximo) {
+        let v = request.resource.data.get(campo, '');
+        return v == null || (v is string && v.size() <= maximo);
+      }
+      function listaCorta(campo, maximo) {
+        let v = request.resource.data.get(campo, []);
+        return v == null || ((v is list || v is map) && v.size() <= maximo);
+      }
+      function topesBien() {
+        return request.resource.data.keys().size() <= 80
+          && textoCorto('nombre', 120)
+          && textoCorto('foto', 100000)
+          && textoCorto('titulo', 80)
+          && textoCorto('fondo', 80)
+          && textoCorto('color', 40)
+          && listaCorta('tipos', 40)
+          && listaCorta('escaparate', 12)
+          && listaCorta('ganados', 3000)
+          && listaCorta('perdidos', 3000)
+          && listaCorta('premiosLockes', 3000)
+          && listaCorta('foroSilenciados', 1000)
+          && listaCorta('logros', 1000)
+          && listaCorta('apuestas', 3000);
+      }
+
+      // Apuestas de los combates (apuestas: { idLucha: Pokédólares }, ver js/comun/luchas.js). Cada escritura
+      // toca como mucho una lucha, y solo así:
+      //   · -n al apostar: en el mismo lote que retar o aceptar esa lucha con «apuesta» n.
+      //   · de -n a 0: devolución (el reto sigue sin aceptar, lo han rechazado o ha sido empate).
+      //   · de -n a +n: cobrar (la lucha ha terminado y ha ganado él): recupera lo suyo y se lleva lo del otro.
+      function apuestasBien() {
+        let antes = resource == null ? {} : resource.data.get('apuestas', {});
+        let despues = request.resource.data.get('apuestas', {});
+        let cambio = despues.diff(antes);
+        // «ultimaApuesta»: la lucha que se toca (las reglas no saben sacar la clave de lo que cambia)
+        let idLucha = request.resource.data.get('ultimaApuesta', '');
+        return despues is map
+          && (cambio.affectedKeys().size() == 0
+            || (idLucha is string && idLucha != ''
+              && cambio.affectedKeys().hasOnly([idLucha]) && cambio.removedKeys().size() == 0
+              && apuestaBien(idLucha, antes, despues)));
+      }
+
+      function apuestaBien(idLucha, antes, despues) {
+        let ruta = /databases/$(database)/documents/luchas/$(idLucha);
+        let valor = despues[idLucha];
+        return valor is int && (
+          // Apostar
+          (!(idLucha in antes) && existsAfter(ruta)
+            && getAfter(ruta).data.get('apuesta', 0) > 0
+            && valor == -getAfter(ruta).data.apuesta
+            && uid in getAfter(ruta).data.jugadores
+            && getAfter(ruta).data.estado in ['reto', 'jugando'])
+          || ((idLucha in antes) && exists(ruta) && antes[idLucha] == -get(ruta).data.get('apuesta', 0) && antes[idLucha] < 0 && (
+            // Devolver
+            (valor == 0
+              && ((get(ruta).data.estado in ['reto', 'rechazado'] && get(ruta).data.jugadores[0] == uid)
+                || (get(ruta).data.estado == 'fin' && get(ruta).data.ganador == 'empate')))
+            // Cobrar
+            || (valor == get(ruta).data.apuesta
+              && get(ruta).data.estado == 'fin' && get(ruta).data.ganador == uid))));
+      }
+
       allow get: if identificado();
       allow create, update: if identificado() && request.auth.uid == uid && moteBien()
         && !request.resource.data.keys().hasAny(['correo'])
+        && topesBien()
+        && apuestasBien()
         && sobreMiBien()
         && juegosBien()
         && comprasBien();
@@ -629,16 +724,29 @@ service cloud.firestore {
       allow read: if identificado() && yo() in antes().jugadores;
       allow get: if antes().get('publico', false) == true;
 
+      // Topes de tamaño (holgados): el locke lo leen todos los que juegan cada vez que cambia
+      function lockeCorto() {
+        let d = despues();
+        return d.keys().size() <= 80
+          && d.jugadores is list && d.jugadores.size() <= 20
+          && d.get('nombre', '') is string && d.get('nombre', '').size() <= 120
+          && d.get('descripcion', '') is string && d.get('descripcion', '').size() <= 4000
+          && (d.get('juegoOtro', '') == null || d.get('juegoOtro', '').size() <= 120)
+          && (d.get('combates', []) == null || d.get('combates', []).size() <= 100);
+      }
+
       allow create: if identificado()
         && yo() in despues().jugadores
-        && despues().creador == yo();
+        && despues().creador == yo()
+        && lockeCorto();
 
       allow update: if identificado()
         && yo() in antes().jugadores
         && despues().creador == antes().creador
         && mapasBien()
         && contadoBien()
-        && cosasDelCreador();
+        && cosasDelCreador()
+        && lockeCorto();
 
       allow delete: if identificado() && yo() == antes().creador;
     }
@@ -711,6 +819,27 @@ service cloud.firestore {
         && (resource.data.uid == request.auth.uid
           || elLocke().creador == request.auth.uid
           || resource.data.expira <= request.time);
+    }
+
+    // ---------- Randomizer de cada jugador de un locke ----------
+    //
+    // Cómo han quedado los tipos y estadísticas de la ROM de cada uno (js/comun/randomizados.js), para los
+    // combates del locke. Lo escribe cada uno el suyo; lo leen los del locke. El creador lo borra al borrar el locke.
+
+    match /lockes/{id}/randomizados/{uid} {
+      function delLocke() {
+        return get(/databases/$(database)/documents/lockes/$(id)).data;
+      }
+
+      allow read: if identificado() && request.auth.uid in delLocke().jugadores;
+      allow create, update: if identificado() && request.auth.uid == uid
+        && request.auth.uid in delLocke().jugadores
+        && request.resource.data.keys().hasOnly(['especies', 'juego', 'creado'])
+        && request.resource.data.especies is map
+        && request.resource.data.especies.size() <= 1100
+        && request.resource.data.juego is string && request.resource.data.juego.size() <= 20
+        && request.resource.data.creado is number;
+      allow delete: if identificado() && (request.auth.uid == uid || request.auth.uid == delLocke().creador);
     }
 
     match /lockes/{id}/ritmoChat/{uid} {
@@ -1010,12 +1139,51 @@ service cloud.firestore {
         return caras is list && caras.size() <= 6;
       }
 
-      allow read: if identificado() && request.auth.uid in resource.data.jugadores;
+      // Apuesta (Pokédólares que pone cada uno): quien entra la deja apostada en su perfil en el mismo lote
+      function apuesta() {
+        return resource == null ? request.resource.data.get('apuesta', 0) : resource.data.get('apuesta', 0);
+      }
+
+      function apostado() {
+        return apuesta() == 0
+          || getAfter(/databases/$(database)/documents/perfiles/$(request.auth.uid)).data.get('apuestas', {}).get(id, 0) == -apuesta();
+      }
+
+      // Ganar por abandono (DIAS_ABANDONO en js/comun/luchas.js): le toca SOLO al otro desde hace más de un día
+      // (hora del servidor) y gana quien lo pide
+      function abandonoBien() {
+        let otro = resource.data.jugadores[0] == request.auth.uid ? resource.data.jugadores[1] : resource.data.jugadores[0];
+        return request.resource.data.get('abandono', '') == otro
+          && request.resource.data.ganador == request.auth.uid
+          && resource.data.get('espera', []) == [otro]
+          && 'esperaDesde' in resource.data
+          && request.time > resource.data.esperaDesde + duration.value(1, 'd');
+      }
+
+      // Lo que tiene apuntado en esta lucha cada uno al terminar la escritura
+      function suApuesta(quien) {
+        return getAfter(/databases/$(database)/documents/perfiles/$(quien)).data.get('apuestas', {}).get(id, 0);
+      }
+
+      // Mirones: los amigos que cada jugador apunta al retar o aceptar, si el combate se deja mirar
+      allow read: if identificado()
+        && (request.auth.uid in resource.data.jugadores || request.auth.uid in resource.data.get('mirones', []));
 
       allow create: if identificado()
         && request.resource.data.keys().hasOnly(['jugadores', 'nombres', 'fotos', 'estado', 'formato', 'nivel', 'motor',
-             'vistaPrevia', 'escena', 'semilla', 'equipos', 'caras', 'locke', 'creado', 'actualizado'])
+             'vistaPrevia', 'tiempo', 'mirar', 'mirones', 'random', 'apuesta', 'escena', 'semilla', 'equipos', 'caras', 'locke', 'creado', 'actualizado'])
         && request.resource.data.get('vistaPrevia', true) is bool
+        && request.resource.data.get('tiempo', false) is bool
+        && request.resource.data.get('mirar', false) is bool
+        && request.resource.data.get('apuesta', 0) in [0, 50, 100, 250, 500]
+        && apostado()
+        && request.resource.data.get('random', {}) is map
+        && request.resource.data.get('random', {}).keys().hasOnly([request.auth.uid])
+        && request.resource.data.get('random', {}).get(request.auth.uid, {}) is map
+        && request.resource.data.get('random', {}).get(request.auth.uid, {}).size() <= 6
+        && request.resource.data.get('mirones', []) is list
+        && request.resource.data.get('mirones', []).size() <= 200
+        && (request.resource.data.get('mirar', false) == true || request.resource.data.get('mirones', []).size() == 0)
         && request.resource.data.get('escena', '') in ['', 'pradera', 'atardecer', 'noche', 'nieve', 'playa', 'cueva']
         && request.resource.data.jugadores is list
         && request.resource.data.jugadores.size() == 2
@@ -1048,7 +1216,14 @@ service cloud.firestore {
           (resource.data.estado == 'reto'
             && request.auth.uid == resource.data.jugadores[1]
             && request.resource.data.estado == 'jugando'
-            && cambian().hasOnly(['estado', 'semilla', 'equipos', 'caras', 'nombres', 'fotos', 'actualizado'])
+            && cambian().hasOnly(['estado', 'semilla', 'equipos', 'caras', 'nombres', 'fotos', 'mirones', 'random', 'actualizado'])
+            && request.resource.data.get('random', {}).diff(resource.data.get('random', {})).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.get('random', {}).get(request.auth.uid, {}) is map
+            && request.resource.data.get('random', {}).get(request.auth.uid, {}).size() <= 6
+            && request.resource.data.get('mirones', []) is list
+            && request.resource.data.get('mirones', []).size() <= 400
+            && request.resource.data.get('mirones', []).hasAll(resource.data.get('mirones', []))
+            && (resource.data.get('mirar', false) == true || request.resource.data.get('mirones', []).size() == 0)
             && request.resource.data.semilla.a == resource.data.semilla.a
             && request.resource.data.semilla.keys().hasOnly(['a', 'b'])
             && request.resource.data.semilla.b is list && request.resource.data.semilla.b.size() == 4
@@ -1057,22 +1232,56 @@ service cloud.firestore {
             && request.resource.data.caras.diff(resource.data.caras).affectedKeys().hasOnly([request.auth.uid])
             && carasBien(request.resource.data.caras[request.auth.uid])
             && request.resource.data.nombres.diff(resource.data.nombres).affectedKeys().hasOnly([request.auth.uid])
-            && request.resource.data.fotos.diff(resource.data.fotos).affectedKeys().hasOnly([request.auth.uid]))
-          // A quién le toca
+            && request.resource.data.fotos.diff(resource.data.fotos).affectedKeys().hasOnly([request.auth.uid])
+            && apostado())
+          // Rechazar un reto con apuesta (no se borra: quien retó recupera lo suyo y luego lo borra)
+          || (resource.data.estado == 'reto'
+            && apuesta() > 0
+            && request.auth.uid == resource.data.jugadores[1]
+            && request.resource.data.estado == 'rechazado'
+            && cambian().hasOnly(['estado', 'actualizado']))
+          // A quién le toca (y desde cuándo, con la hora del servidor: solo cuando cambia, para el abandono)
           || (resource.data.estado == 'jugando'
-            && cambian().hasOnly(['espera', 'actualizado'])
+            && cambian().hasOnly(['espera', 'esperaDesde', 'actualizado'])
             && request.resource.data.espera is list
-            && request.resource.data.espera.size() <= 2)
-          // Terminar o rendirse
+            && request.resource.data.espera.size() <= 2
+            && (!('esperaDesde' in cambian())
+              || (request.resource.data.esperaDesde == request.time
+                && request.resource.data.espera != resource.data.get('espera', []))))
+          // El tiempo del turno empieza a correr: la hora del servidor, una sola vez por turno (n siempre sube)
+          || (resource.data.estado == 'jugando'
+            && resource.data.get('tiempo', false) == true
+            && cambian().hasOnly(['reloj'])
+            && request.resource.data.reloj.keys().hasOnly(['n', 'desde'])
+            && request.resource.data.reloj.desde == request.time
+            && request.resource.data.reloj.n is string
+            && request.resource.data.reloj.n.matches('^[0-9]{4}$')
+            && (!('reloj' in resource.data) || request.resource.data.reloj.n > resource.data.reloj.n))
+          // Terminar o rendirse (o perder por tiempo: porTiempo es quien pierde; o por abandono)
           || (resource.data.estado == 'jugando'
             && request.resource.data.estado == 'fin'
-            && cambian().hasOnly(['estado', 'ganador', 'rendido', 'actualizado'])
+            && cambian().hasOnly(['estado', 'ganador', 'rendido', 'porTiempo', 'abandono', 'actualizado'])
+            && (!('porTiempo' in request.resource.data)
+              || (request.resource.data.porTiempo in resource.data.jugadores
+                && request.resource.data.ganador != request.resource.data.porTiempo))
             && (request.resource.data.ganador in resource.data.jugadores || request.resource.data.ganador == 'empate')
+            // Con apuesta, el resultado lo apunta quien pierde (o un empate): nadie se da por ganador a sí mismo,
+            // salvo por abandono
+            && (apuesta() == 0 || request.resource.data.ganador != request.auth.uid || abandonoBien())
+            && (!('abandono' in request.resource.data) || abandonoBien())
             && (!('rendido' in request.resource.data)
               || (request.resource.data.rendido == request.auth.uid && request.resource.data.ganador != request.auth.uid)))
         );
 
-      allow delete: if identificado() && esJugador() && resource.data.estado != 'jugando';
+      // Con apuesta, solo cuando ya está todo pagado: el reto, devuelto a quien retó; al terminar, cobrado
+      // por el ganador (o devuelto a los dos si fue empate)
+      allow delete: if identificado() && esJugador() && resource.data.estado != 'jugando'
+        && (apuesta() == 0
+          || (resource.data.estado in ['reto', 'rechazado'] && suApuesta(resource.data.jugadores[0]) == 0)
+          || (resource.data.estado == 'fin' && resource.data.ganador == 'empate'
+            && suApuesta(resource.data.jugadores[0]) == 0 && suApuesta(resource.data.jugadores[1]) == 0)
+          || (resource.data.estado == 'fin' && resource.data.ganador != 'empate'
+            && suApuesta(resource.data.ganador) == apuesta()));
     }
 
     match /luchas/{id}/turnos/{n} {
@@ -1102,20 +1311,47 @@ service cloud.firestore {
           && valorBien('e' + mio());
       }
 
-      allow read: if identificado() && request.auth.uid in lucha().jugadores;
+      allow read: if identificado()
+        && (request.auth.uid in lucha().jugadores || request.auth.uid in lucha().get('mirones', []));
+
+      // Tiempo agotado (t1/t2): solo con tiempo, en el turno cuyo reloj corre, pasados 60 s
+      // (SEGUNDOS_TURNO en js/comun/luchas.js) y a quien aún no ha destapado su elección
+      function seAcabo(k, antes) {
+        return !(('t' + k) in request.resource.data)
+          || ('t' + k) in antes
+          || (request.resource.data['t' + k] == true
+            && lucha().get('tiempo', false) == true
+            && lucha().reloj.n == n
+            && request.time > lucha().reloj.desde + duration.value(60, 's')
+            && !(('e' + k) in antes));
+      }
+
+      // Si se me acabó el tiempo, ya no elijo yo
+      function sinTiempoMio(antes) {
+        return !(('t' + mio()) in antes);
+      }
 
       allow create: if puedoEscribir()
-        && request.resource.data.keys().hasOnly(['s' + mio(), 'e' + mio()]);
+        && request.resource.data.keys().hasOnly(['s' + mio(), 'e' + mio(), 't1', 't2'])
+        && seAcabo('1', {}) && seAcabo('2', {})
+        && (!(('e' + mio()) in request.resource.data) || !(('s' + mio()) in request.resource.data)
+          || ('t' + suyo()) in request.resource.data)
+        && (!(('t' + mio()) in request.resource.data)
+          || (!(('s' + mio()) in request.resource.data) && !(('e' + mio()) in request.resource.data)));
 
       allow update: if puedoEscribir()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['s' + mio(), 'e' + mio()])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['s' + mio(), 'e' + mio(), 't1', 't2'])
         && request.resource.data.diff(resource.data).changedKeys().size() == 0
+        && seAcabo('1', resource.data) && seAcabo('2', resource.data)
         && (
-          // Añadir lo mío. Si mi elección iba sellada, solo se destapa con el sello del otro ya puesto.
+          // Añadir lo mío. Si mi elección iba sellada, solo se destapa con el sello del otro ya puesto (o si a
+          // él se le ha acabado el tiempo).
           (request.resource.data.diff(resource.data).removedKeys().size() == 0
+            && (sinTiempoMio(resource.data) || !request.resource.data.diff(resource.data).addedKeys().hasAny(['s' + mio(), 'e' + mio()]))
             && (!(('e' + mio()) in request.resource.data.diff(resource.data).addedKeys())
               || !(('s' + mio()) in request.resource.data)
-              || (('s' + suyo()) in resource.data)))
+              || (('s' + suyo()) in resource.data)
+              || (('t' + suyo()) in request.resource.data)))
           // Cancelar: quitar mi sello mientras el otro no ha sellado (y sin haber destapado la mía)
           || (request.resource.data.diff(resource.data).removedKeys().hasOnly(['s' + mio()])
             && request.resource.data.diff(resource.data).addedKeys().size() == 0

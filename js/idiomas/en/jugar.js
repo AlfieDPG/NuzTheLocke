@@ -155,5 +155,14 @@ export default {
   "Derecha": "Right",
   "Locke randomizado": "Randomized locke",
   "Hueco libre": "Empty slot",
-  "Normal": "Normal"
+  "Normal": "Normal",
+
+  // ---------- Partidas en la cuenta (js/jugar/nube-partidas.js) ----------
+  "Falta la ROM": "ROM missing",
+  "Llegó de tu cuenta: al jugarla, elige la ROM otra vez": "It came from your account: pick the ROM again when you play it",
+  "Elegir la ROM": "Choose the ROM",
+  "Esa ROM no es de esta consola.": "That ROM isn't for this console.",
+  "Esta partida no tiene su ROM en este navegador. Elige la ROM ORIGINAL (sin randomizar) de {juego}: se randomiza igual que la primera vez.": "This game doesn't have its ROM in this browser. Choose the ORIGINAL (not randomized) {juego} ROM: it will be randomized exactly like the first time.",
+  "Esta partida no tiene su ROM en este navegador. Elige la ROM randomizada con la que la empezaste.": "This game doesn't have its ROM in this browser. Choose the randomized ROM you started it with.",
+  "Esta partida no tiene su ROM en este navegador. Elige la ROM de {juego}.": "This game doesn't have its ROM in this browser. Choose the {juego} ROM."
 };
