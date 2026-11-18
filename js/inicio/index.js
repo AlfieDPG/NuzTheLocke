@@ -111,7 +111,7 @@ const NOVEDADES = [
       other, their full profile with your head to head and the lockes you play together.`
   },
   {
-    fecha: "2026-11-17", vista: "lucha", icono: "lucha", color: "222, 112, 52",
+    fecha: "2026-11-17", vista: "lucha", icono: "lucha", color: "196, 88, 34",
     es: `<b>Combates</b> con más opciones: apuesta Pokédólares, juega con tiempo por turno y mira los
       combates de tus amigos. En un randomlocke, cada Pokémon lucha con los tipos y estadísticas de tu ROM.`,
     en: `<b>Battles</b> get more options: bet Pokédollars, play with a turn timer and watch your friends'
@@ -212,7 +212,7 @@ const NOVEDADES = [
       500 to the winner, 300 to second, 150 to third and 50 to everyone else (also the ones you already finished).`
   },
   {
-    fecha: "2026-11-02", vista: "lucha", icono: "lucha", color: "222, 112, 52",
+    fecha: "2026-11-02", vista: "lucha", icono: "lucha", color: "196, 88, 34",
     es: `Nueva sección <b>Combates</b>: reta a un amigo y combatid sin salir de la web,
       también en los combates de tus lockes.`,
     en: `New <b>Battles</b> section: challenge a friend and battle without leaving the
@@ -384,7 +384,7 @@ const SECCIONES = [
     texto: "Las estadísticas base de todos los Pokémon, para ordenar a tu gusto." },
   { vista: "calculadora", icono: "calculadora", color: "155, 110, 230", nombre: "Calculadora",
     texto: "Cuánto daño hace cada ataque y en cuántos golpes cae." },
-  { vista: "lucha", icono: "lucha", color: "222, 112, 52", nombre: "Combates",
+  { vista: "lucha", icono: "lucha", color: "196, 88, 34", nombre: "Combates",
     texto: "Reta a un amigo con tus equipos y combatid por turnos sin salir de la web." },
   { vista: "foro", icono: "mensaje", color: "196, 128, 214", nombre: "Foro",
     texto: "Busca compañeros para tu próximo locke, pide ayuda o charla." },

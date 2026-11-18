@@ -151,7 +151,7 @@ main {
 .menu-lateral [data-vista="juegos"]      { --color-boton: 76, 182, 92; }
 .menu-lateral [data-vista="tienda"]      { --color-boton: 200, 118, 74; }
 .menu-lateral [data-vista="jugar"]       { --color-boton: 186, 62, 102; }
-.menu-lateral [data-vista="lucha"]       { --color-boton: 222, 112, 52; }
+.menu-lateral [data-vista="lucha"]       { --color-boton: 196, 88, 34; }
 
 .menu-lateral :is(button, summary) .icono {
   color: color-mix(in srgb, rgb(var(--color-boton, var(--t-texto-rgb))) var(--t-vivo), black);
@@ -371,7 +371,7 @@ main {
 
 /* Retos y turnos de «Lucha»: el color de la sección */
 .aviso-icono.lucha {
-  color: rgb(222, 112, 52);
+  color: rgb(196, 88, 34);
 }
 
 .aviso-ir {
@@ -1313,7 +1313,7 @@ button.avatar-muestra:hover:not(:disabled) .avatar-cara {
 :root:has(#vista-juegos:not([hidden])) { --color-vista: 76, 182, 92; }
 :root:has(#vista-tienda:not([hidden])) { --color-vista: 200, 118, 74; }
 :root:has(#vista-jugar:not([hidden])) { --color-vista: 186, 62, 102; }
-:root:has(#vista-lucha:not([hidden])) { --color-vista: 222, 112, 52; }
+:root:has(#vista-lucha:not([hidden])) { --color-vista: 196, 88, 34; }
 
 /* Grupos desplegables del menú */
 

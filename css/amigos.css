@@ -3408,7 +3408,7 @@ button.cara-equipo.mvp:hover img {
   color: #1c1a19;
 }
 
-.amigo-portada .perfil-retar:hover {
+.amigo-portada .perfil-retar:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--color-vista)) 82%, #fff);
 }
 
@@ -3960,7 +3960,7 @@ button.cara-equipo.mvp:hover img {
   color: #1c1a19;
 }
 
-.amigo-botones .perfil-retar:hover {
+.amigo-botones .perfil-retar:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--color-vista)) 82%, #fff);
 }
 

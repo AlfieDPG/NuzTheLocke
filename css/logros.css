@@ -216,21 +216,34 @@
   gap: 0.6rem;
 }
 
+/* Tres filas, y lo de la derecha a la altura de lo de su fila: nombre y nivel; descripción y el
+   fondo o marco que da; la barra (o la fecha) y los Pokédólares. La insignia, a la izquierda de
+   las tres. .logro-texto y .logro-lado solo agrupan en el HTML (display: contents). */
 .logro {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "insignia nombre nivel"
+    "insignia descripcion premios"
+    "insignia pie fichas";
   align-items: center;
-  gap: 0.8rem;
+  column-gap: 0.8rem;
+  row-gap: 0.15rem;
   background: var(--t-panel);
 }
 
-.logro-texto {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  flex: 1;
-  min-width: 0;
-}
+.logro > .logro-insignia { grid-area: insignia; }
+.logro-texto, .logro-lado { display: contents; }
+.logro-texto strong { grid-area: nombre; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logro-descripcion { grid-area: descripcion; min-width: 0; }
+.logro-pie { grid-area: pie; display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.logro-pie:empty { display: none; }
+.logro-pie .logro-barra { flex: 1; min-width: 0; }
+.logro-lado .logro-nivel { grid-area: nivel; justify-self: end; }
+.logro-premios { grid-area: premios; justify-self: end; display: flex; gap: 0.3rem; }
+.logro-premios:empty { display: none; }
+.logro-lado .logro-fichas { grid-area: fichas; justify-self: end; }
 
 .logro-descripcion {
   font-size: 0.82rem;
@@ -263,28 +276,11 @@
   text-transform: uppercase;
 }
 
-/* A la derecha, en columna: el nivel arriba, justo debajo la muestra del fondo que da (si da
-   alguno) y los Pokédólares abajo del todo, en la esquina */
-.logro-lado {
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.3rem;
-  flex: none;
-  margin-right: -0.25rem; /* toda la columna, un pelín hacia el borde: así los tres acaban igual */
-}
-
 .logro-lado .logro-nivel {
   position: static;
-  margin-top: -0.3rem;
   /* El espaciado entre letras deja un hueco después de la última: fuera, para que acabe donde
      acaban la muestra del fondo y los Pokédólares */
   margin-right: -0.08em;
-}
-
-.logro-lado .logro-fichas {
-  margin-top: auto;
 }
 
 .logro-premio {
@@ -512,7 +508,7 @@ button.perfil-titulo:hover:not(:disabled) {
 /* Cada logro, con la capa del color de su nivel; los que faltan, apagados y con borde de puntos */
 .logro {
   --color-nivel: #cd7f32;
-  padding: 0.8rem 0.9rem 0.8rem 1rem;
+  padding: 0.6rem 0.9rem 0.6rem 1rem;
   border: 1px dashed rgba(var(--t-tinte), 0.28);
   border-left: 0.3rem solid rgba(var(--t-tinte), 0.2);
   border-radius: 0.8rem;

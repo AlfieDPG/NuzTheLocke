@@ -46,7 +46,7 @@
 
 .jugar-barra .jugar-nueva-boton {
   background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  color: #fff;
 }
 
 .jugar-barra .jugar-nueva-boton:hover {
@@ -503,7 +503,7 @@
 
 .jugar-controles button.activo {
   background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  color: #fff;
 }
 
 .jugar-controles button.jugar-directo-boton.activo {
@@ -743,7 +743,7 @@
 
 .jugar-partidas .jugar-jugar {
   background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  color: #fff;
 }
 
 .jugar-partidas .jugar-jugar:hover {
@@ -891,7 +891,7 @@
 .jugar-vacio .jugar-nueva-boton {
   padding: 0.6rem 1.1rem;
   background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  color: #fff;
 }
 
 /* ---------- Ventana «Cambiar teclas» (js/jugar/ajustes.js) ---------- */
@@ -1091,7 +1091,7 @@
 .mando-a {
   margin-bottom: 1.6rem;
   background: rgb(var(--color-vista));
-  color: var(--t-tinta);
+  color: #fff;
 }
 
 .mando-a.pulsado {
