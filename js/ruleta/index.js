@@ -200,7 +200,9 @@ function dibujoDeObjeto(en) {
 
 // Un Pokémon (su retrato de la hoja de la Pokédex, recortado en círculo) o un objeto (su icono),
 // dibujado dentro de la rueda. Siempre derecho: el dibujo gira al revés que la rueda (también
-// mientras gira, con la misma animación; ver girar), como las cabinas de una noria.
+// mientras gira: enderezarDibujos), como las cabinas de una noria. El giro va en el atributo
+// transform, sobre el 0 0 del grupo (el centro del dibujo). Con transform de CSS y «fill-box» se
+// medía la hoja entera de retratos (la imagen de dentro, sin recortar) y los dibujos se salían.
 function iconoEnRueda(icono, tramo, i) {
   const radio = RADIO * 0.64;
   const cuerda = 2 * Math.PI * radio * (tramo.tamano / 360);
@@ -227,7 +229,7 @@ function iconoEnRueda(icono, tramo, i) {
   const rad = (tramo.medio * Math.PI) / 180;
   const x = (radio * Math.sin(rad)).toFixed(2);
   const y = (-radio * Math.cos(rad)).toFixed(2);
-  return `<g transform="translate(${x} ${y})"><g class="ruleta-ico-giro" style="transform: rotate(${-rotacion}deg)">${dibujo}</g></g>`;
+  return `<g transform="translate(${x} ${y})"><g class="ruleta-ico-giro" transform="rotate(${(-rotacion % 360).toFixed(2)})">${dibujo}</g></g>`;
 }
 
 function pintarRueda() {
@@ -350,6 +352,22 @@ function sonarGiro(total) {
 
 // ---------- Girar ----------
 
+// Los dibujos, al revés que la rueda en cada fotograma: se quedan derechos mientras gira
+function enderezarDibujos() {
+  const dibujos = [...rueda.querySelectorAll(".ruleta-ico-giro")];
+  if (!dibujos.length) return;
+  const paso = () => {
+    if (!girando) return;
+    const matriz = getComputedStyle(rueda).transform.match(/matrix\(([^,]+),([^,]+)/);
+    if (matriz) {
+      const grados = (Math.atan2(Number(matriz[2]), Number(matriz[1])) * 180) / Math.PI;
+      for (const dibujo of dibujos) dibujo.setAttribute("transform", `rotate(${(-grados).toFixed(2)})`);
+    }
+    requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+
 function duracion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1200 : 5500;
 }
@@ -376,15 +394,17 @@ function girar() {
   // Un punto al azar dentro del trozo, sin pegarse a los bordes
   const angulo = trozo.desde + (0.12 + azar() * 0.76) * trozo.tamano;
 
-  // Para que ese punto quede arriba hay que girar hasta -angulo; más unas cuantas vueltas
-  const ahora = ((rotacion % 360) + 360) % 360;
-  const destino = (360 - angulo) % 360;
-  rotacion += (5 + Math.floor(azar() * 3)) * 360 + ((destino - ahora + 360) % 360);
-
+  // Se repinta sin la ganadora de antes ANTES de cambiar «rotacion»: los dibujos salen derechos
+  // para donde está la rueda ahora (luego los endereza enderezarDibujos)
   girando = true;
   ganadora = null;
   const elegida = opciones[casilla];
   pintarRueda();
+
+  // Para que ese punto quede arriba hay que girar hasta -angulo; más unas cuantas vueltas
+  const ahora = ((rotacion % 360) + 360) % 360;
+  const destino = (360 - angulo) % 360;
+  rotacion += (5 + Math.floor(azar() * 3)) * 360 + ((destino - ahora + 360) % 360);
   resultado.classList.add("oculto");
   vista.classList.add("girando");
   botonGirar.disabled = true;
@@ -393,12 +413,7 @@ function girar() {
   const tiempo = duracion();
   rueda.style.transition = `transform ${tiempo}ms cubic-bezier(0.12, 0.8, 0.18, 1)`;
   rueda.style.transform = `rotate(${rotacion}deg)`;
-  // Los dibujos, al revés y a la vez: se quedan derechos mientras gira
-  void rueda.getBoundingClientRect();
-  for (const dibujo of rueda.querySelectorAll(".ruleta-ico-giro")) {
-    dibujo.style.transition = rueda.style.transition;
-    dibujo.style.transform = `rotate(${-rotacion}deg)`;
-  }
+  enderezarDibujos();
   contextoAudio(); // en la misma pulsación, para que el navegador deje sonar
   sonarGiro(partes.length);
   setTimeout(() => terminar(casilla, elegida), tiempo + 80);
@@ -413,7 +428,7 @@ function terminar(casilla, elegida) {
   botonGirar.disabled = false;
   for (const campo of vista.querySelectorAll(".ruleta-panel input, .ruleta-panel button")) campo.disabled = false;
 
-  historial.unshift({ texto, ruleta: actual().nombre });
+  historial.unshift({ texto, ruleta: actual().nombre, color: colorDe(actual().opciones, casilla) });
   historial.splice(MAX_HISTORIAL);
   tilin();
   sumarContador("ruleta"); // para los logros
@@ -421,11 +436,12 @@ function terminar(casilla, elegida) {
   pintarRueda();
   pintarHistorial();
   resultado.innerHTML = `
+    <button class="ruleta-cerrar-resultado" title="${t("Cerrar")}" aria-label="${t("Cerrar")}">${icono("aspa")}</button>
     <span class="ruleta-resultado-etiqueta">${t("Ha salido")}</span>
     <strong class="ruleta-resultado-texto">${iconoDeOpcion(elegida, "ruleta-ico-grande")}${escaparHTML(texto)}</strong>
     <div class="ruleta-resultado-botones">
       <button class="ruleta-otra">${icono("ruleta")} ${t("Otra vez")}</button>
-      <button class="ruleta-quitar-ganadora" data-casilla="${casilla}">${icono("aspa")} ${t("Quitarla de la ruleta")}</button>
+      <button class="ruleta-quitar-ganadora" data-casilla="${casilla}">${icono("papelera")} ${t("Quitarla de la ruleta")}</button>
     </div>`;
   resultado.classList.remove("oculto");
   // Oculto no desaparece (guarda su hueco, ver ruleta.css): la animación de salir, a mano
@@ -515,7 +531,7 @@ function pintarLista() {
 function pintarHistorial() {
   cajaHistorial.hidden = !historial.length;
   historialLista.innerHTML = historial
-    .map((tirada) => `<li><strong>${escaparHTML(tirada.texto)}</strong> <small>${escaparHTML(tirada.ruleta)}</small></li>`)
+    .map((tirada) => `<li><span class="ruleta-historial-punto" style="background: ${escaparHTML(tirada.color || "transparent")}"></span><strong>${escaparHTML(tirada.texto)}</strong> <small>${escaparHTML(tirada.ruleta)}</small></li>`)
     .join("");
 }
 
@@ -753,6 +769,11 @@ export function iniciar() {
 
   resultado.addEventListener("click", (e) => {
     if (e.target.closest(".ruleta-otra")) girar();
+    // Cerrar: la ruleta como antes de tirar (sin la ganadora resaltada), sin tirar ni quitar nada
+    if (e.target.closest(".ruleta-cerrar-resultado")) {
+      olvidarResultado();
+      pintarRueda();
+    }
     const quitar = e.target.closest(".ruleta-quitar-ganadora");
     if (quitar) quitarOpcion(Number(quitar.dataset.casilla));
   });

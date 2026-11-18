@@ -136,6 +136,36 @@
   background: var(--t-panel);
   text-align: center;
   animation: ruleta-sale 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  position: relative;
+}
+
+/* La aspa de la esquina: cierra el resultado y deja la ruleta como estaba */
+.ruleta-cerrar-resultado {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--t-texto);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.ruleta-cerrar-resultado:hover {
+  opacity: 1;
+  background: var(--t-control);
+}
+
+.ruleta-cerrar-resultado .icono {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .ruleta-resultado.oculto {
@@ -431,12 +461,30 @@
   flex-direction: column;
   gap: 0.25rem;
   margin: 0;
-  padding-left: 1.3rem;
+  /* Sin números ni sangría: el punto de color, alineado con el título «Últimas tiradas» */
+  padding-left: 0;
+  list-style: none;
   font-size: 0.88rem;
 }
 
 .ruleta-historial small {
   opacity: 0.55;
+}
+
+/* Cada tirada en una línea (lo largo, cortado) y, delante, un punto del color de su casilla */
+.ruleta-historial li {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ruleta-historial-punto {
+  display: inline-block;
+  width: 0.62rem;
+  height: 0.62rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  vertical-align: 0.02em;
 }
 
 /* Mientras gira no se toca nada */
@@ -675,12 +723,6 @@
 
 .ruleta-buscar .sugerencias {
   z-index: 20;
-}
-
-/* Los dibujos de la rueda giran al revés que ella, sobre su propio centro (se quedan derechos) */
-.ruleta-ico-giro {
-  transform-box: fill-box;
-  transform-origin: center;
 }
 
 /* El retrato, en círculo y sin fondo; el objeto, solo su icono */
