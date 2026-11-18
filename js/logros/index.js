@@ -14,7 +14,6 @@ import { t, LOCALE } from "../comun/idioma.js";
 
 const vista = document.getElementById("vista-logros");
 const cabecera = vista.querySelector(".logros-cabecera");
-const filtro = vista.querySelector(".logros-filtro");
 const lista = vista.querySelector(".logros-lista");
 
 const FILTROS = [
@@ -23,6 +22,7 @@ const FILTROS = [
   { id: "pendientes", nombre: t("Por conseguir") }
 ];
 let filtroActual = "todos";
+let categoriaActual = "todas"; // la categoría que se ve a la derecha, o "todas"
 let filas = [];
 let vuelta = 0; // para quedarse solo con el último cálculo si se piden varios seguidos
 
@@ -98,25 +98,73 @@ function pintar() {
         .join("")}
     </div>`;
 
-  filtro.innerHTML = FILTROS.map(
-    (cada) => `<button data-filtro="${cada.id}" class="${cada.id === filtroActual ? "activa" : ""}">${cada.nombre}</button>`
-  ).join("");
+  // Todos, conseguidos o por conseguir: tres botoncitos en la cabeza de la página
+  const filtros = `
+    <div class="logros-filtros" role="group" aria-label="${t("Qué logros ver")}">
+      ${FILTROS.map(
+        (cada) => `<button data-filtro="${cada.id}" class="${cada.id === filtroActual ? "activa" : ""}" aria-pressed="${cada.id === filtroActual}">${cada.nombre}</button>`
+      ).join("")}
+    </div>`;
 
   const pasa = (cada) =>
     filtroActual === "todos" || (filtroActual === "conseguidos" ? Boolean(cada.conseguido) : !cada.conseguido);
 
-  const grupos = CATEGORIAS.map((categoria) => {
+  const hechosDe = (suyas) => suyas.filter((cada) => cada.conseguido).length;
+  const porcentaje = (hechos, total) => Math.round((hechos / Math.max(1, total)) * 100);
+
+  // El índice del álbum: cada categoría con lo que llevas
+  const indice = [{ id: "todas", nombre: t("Todos los logros") }, ...CATEGORIAS]
+    .map((categoria) => {
+      const suyas = categoria.id === "todas" ? filas : filas.filter((cada) => cada.logro.categoria === categoria.id);
+      const hechos = hechosDe(suyas);
+      return `
+        <button class="logros-cat ${categoria.id === categoriaActual ? "activa" : ""}" data-categoria="${escaparHTML(categoria.id)}">
+          <b>${escaparHTML(categoria.nombre)}</b>
+          <span class="logros-cat-cuenta ${hechos === suyas.length ? "lleno" : ""}">${hechos}/${suyas.length}</span>
+          <span class="logro-barra"><span style="width:${porcentaje(hechos, suyas.length)}%"></span></span>
+        </button>`;
+    })
+    .join("");
+
+  const vacio = `<p class="logros-vacio">${filtroActual === "conseguidos" ? t("Todavía ninguno.") : t("¡Los tienes todos!")}</p>`;
+  let pagina;
+  if (categoriaActual === "todas") {
+    // Todas, una categoría debajo de otra
+    pagina = `
+      <div class="logros-pagina-cabeza">
+        <h2>${t("Todos los logros")}</h2>
+        <span class="logros-chip">${t("{hechos} de {total}", { hechos: conseguidos, total: filas.length })}</span>
+        ${filtros}
+      </div>` +
+      (CATEGORIAS.map((categoria) => {
+        const suyas = filas.filter((cada) => cada.logro.categoria === categoria.id);
+        const visibles = suyas.filter(pasa);
+        if (!visibles.length) return "";
+        return `
+          <section class="logros-grupo">
+            <h2>${escaparHTML(categoria.nombre)} <small>${hechosDe(suyas)}/${suyas.length}</small></h2>
+            <div class="logros-rejilla">${visibles.map(plantillaLogro).join("")}</div>
+          </section>`;
+      }).join("") || vacio);
+  } else {
+    // Una sola: su nombre, lo que llevas y lo que te falta, y sus logros
+    const categoria = CATEGORIAS.find((cada) => cada.id === categoriaActual) || CATEGORIAS[0];
     const suyas = filas.filter((cada) => cada.logro.categoria === categoria.id);
     const visibles = suyas.filter(pasa);
-    if (!visibles.length) return "";
-    return `
-      <section class="logros-grupo">
-        <h2>${escaparHTML(categoria.nombre)} <small>${suyas.filter((cada) => cada.conseguido).length}/${suyas.length}</small></h2>
-        <div class="logros-rejilla">${visibles.map(plantillaLogro).join("")}</div>
-      </section>`;
-  }).join("");
+    pagina = `
+      <div class="logros-pagina-cabeza">
+        <h2>${escaparHTML(categoria.nombre)}</h2>
+        <span class="logros-chip">${t("{hechos} de {total}", { hechos: hechosDe(suyas), total: suyas.length })}</span>
+        ${filtros}
+      </div>
+      ${visibles.length ? `<div class="logros-rejilla">${visibles.map(plantillaLogro).join("")}</div>` : vacio}`;
+  }
 
-  lista.innerHTML = grupos || `<p class="logros-vacio">${filtroActual === "conseguidos" ? t("Todavía ninguno.") : t("¡Los tienes todos!")}</p>`;
+  lista.innerHTML = `
+    <div class="logros-cuerpo">
+      <nav class="logros-indice" aria-label="${t("Categorías de logros")}">${indice}</nav>
+      <section class="logros-pagina">${pagina}</section>
+    </div>`;
 }
 
 async function calcular() {
@@ -133,10 +181,17 @@ function recalcular() {
 }
 
 export function iniciar() {
-  filtro.addEventListener("click", (e) => {
+  // Una categoría del índice, o todos / conseguidos / por conseguir
+  lista.addEventListener("click", (e) => {
     const boton = e.target.closest("[data-filtro]");
-    if (!boton) return;
-    filtroActual = boton.dataset.filtro;
+    if (boton) {
+      filtroActual = boton.dataset.filtro;
+      pintar();
+      return;
+    }
+    const categoria = e.target.closest("[data-categoria]");
+    if (!categoria) return;
+    categoriaActual = categoria.dataset.categoria;
     pintar();
   });
 

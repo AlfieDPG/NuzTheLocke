@@ -18,7 +18,7 @@ import { escaparHTML } from "../comun/utilidades.js";
 import { marcoDe, claseMarco } from "../comun/fichas.js";
 import { t, segunIdioma, LOCALE } from "../comun/idioma.js";
 import { hayNube, usuarioActual, alCambiarSesion, seSabeLaSesion } from "../comun/nube.js";
-import { nombreJuego } from "../comun/campo-juego.js";
+import { nombreJuegoJugado } from "../comun/campo-juego.js";
 import { carasDeEquipo, caraDePokemon } from "../comun/elegir-equipo.js";
 import { leerGuardados } from "../equipos/estado.js";
 import {
@@ -480,7 +480,7 @@ function plantillaCabecera() {
 function plantillaLocke(locke) {
   const uid = usuarioActual().uid;
   const tipo = locke.tipo || { nombre: "Locke", color: "#3498db" };
-  const juego = nombreJuego(locke);
+  const juego = nombreJuegoJugado(locke, uid);
   const jugadores = (locke.jugadores || []).filter((cada) => estadoDe(locke, cada) === "aceptado");
   // El tuyo, el primero
   jugadores.sort((uno, otro) => (otro === uid) - (uno === uid));

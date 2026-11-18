@@ -1328,6 +1328,11 @@ export async function retarA(uid) {
   }
 }
 
+// Abrir un locke concreto (desde «Amigos»: los que jugáis juntos)
+export function abrirElLocke(id) {
+  abrirLocke(id);
+}
+
 async function guardar() {
   const mio = miPerfilOProvisional();
   const usuario = usuarioActual();

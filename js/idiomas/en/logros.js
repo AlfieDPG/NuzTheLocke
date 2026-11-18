@@ -394,5 +394,10 @@ export default {
   "Leyenda viva": "Living legend",
   "Consigue un Pokémon legendario en tu colección.": "Get a legendary Pokémon in your collection.",
   "Encuentro singular": "Mythical encounter",
-  "Consigue un Pokémon singular en tu colección.": "Get a mythical Pokémon in your collection."
+  "Consigue un Pokémon singular en tu colección.": "Get a mythical Pokémon in your collection.",
+
+  // Álbum de logros: índice y página
+  "Categorías de logros": "Achievement categories",
+  "{hechos} de {total}": "{hechos} of {total}",
+  "Qué logros ver": "Which achievements to show"
 };

@@ -551,3 +551,162 @@ button.perfil-titulo:hover:not(:disabled) {
   color: color-mix(in srgb, var(--color-nivel) var(--t-vivo), black);
   opacity: 1;
 }
+
+/* ---------- Álbum (2026-11-17): índice de categorías a la izquierda y la página a la derecha ---------- */
+
+.logros-cuerpo {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.logros-indice {
+  position: sticky;
+  top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 0.6rem;
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.logros-cat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  padding: 0.45rem 0.7rem 0.55rem 0.8rem;
+  border: none;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--t-texto);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.logros-cat:hover {
+  background: var(--t-panel-2);
+}
+
+.logros-cat.activa {
+  background: rgba(var(--color-vista), 0.14);
+  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
+}
+
+.logros-cat b {
+  font-size: 0.9rem;
+}
+
+.logros-cat-cuenta {
+  color: var(--t-gris-2);
+  font-family: var(--letra-titulos);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.logros-cat-cuenta.lleno {
+  color: color-mix(in srgb, #f1c40f var(--t-vivo), black);
+}
+
+.logros-cat .logro-barra {
+  grid-column: 1 / -1;
+  height: 0.28rem;
+}
+
+.logros-pagina {
+  min-width: 0;
+  padding: 1rem 1.2rem 1.2rem;
+  border-radius: 0.9rem;
+  background: var(--t-panel);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.logros-pagina .logros-grupo:first-child h2 {
+  margin-top: 0;
+}
+
+.logros-pagina-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.logros-pagina-cabeza h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.logros-chip {
+  padding: 0.1rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(var(--t-tinte), 0.1);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.logros-pendientes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  color: var(--t-gris-2);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .logros-cuerpo {
+    grid-template-columns: 1fr;
+  }
+
+  .logros-indice {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: none;
+  }
+}
+
+/* Todos / Conseguidos / Por conseguir: tres botoncitos a la derecha de la cabeza de la página
+   (antes eran pestañas encima; así el índice y la página empiezan más arriba) */
+.logros-filtros {
+  display: flex;
+  gap: 0.2rem;
+  margin-left: auto;
+  padding: 0.2rem;
+  border-radius: 0.6rem;
+  background: var(--t-fondo-2);
+}
+
+.logros-filtros button {
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--t-gris-2);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logros-filtros button:hover {
+  color: var(--t-texto);
+}
+
+.logros-filtros button.activa {
+  background: rgb(var(--color-vista));
+  color: var(--t-tinta-2);
+}
+
+.logros-pagina-cabeza + .logros-grupo h2 {
+  margin-top: 0;
+}

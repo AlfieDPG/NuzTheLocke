@@ -127,5 +127,17 @@ export default {
   "Mezclar": "Shuffle",
   "Ruleta {n}": "Wheel {n}",
   "¿Borrar la ruleta «{nombre}»?": "Delete the wheel “{nombre}”?",
-  "¿Quitar todas las opciones de esta ruleta?": "Remove every option from this wheel?"
+  "¿Quitar todas las opciones de esta ruleta?": "Remove every option from this wheel?",
+
+  // Ruleta: casillas por opción y opciones con dibujo
+  "Texto": "Text",
+  "Buscar objeto...": "Search item...",
+  "Opción": "Option",
+  "Casillas": "Slots",
+  "Prob.": "Odds",
+  "Cuántas casillas ocupa en la rueda: más casillas, más probabilidad": "How many slots it takes on the wheel: more slots, better odds",
+  "Una casilla menos": "One slot fewer",
+  "Una casilla más": "One slot more",
+  "Separadas: varias casillas iguales. Pulsa para juntarlas en una": "Split: several equal slots. Click to merge them into one",
+  "Juntas: una casilla más grande. Pulsa para separarlas en varias iguales": "Merged: one bigger slot. Click to split it into several equal ones"
 };

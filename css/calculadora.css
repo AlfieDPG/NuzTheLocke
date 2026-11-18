@@ -1145,3 +1145,180 @@
   background: linear-gradient(0deg, rgba(var(--color-vista), 0.1), transparent 60%), var(--t-panel);
   box-shadow: inset 0 -5px 0 rgb(var(--color-vista)), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
+
+/* ---------- Diseño A (2026-11-17) ----------
+   Arriba los dos buscadores con «Intercambiar» en medio. Cada lado: una cabecera de su color (retrato,
+   «Atacante»/«Defensor» con su icono, nombre y tipos), el nivel y la naturaleza, las estadísticas y,
+   de dos en dos, habilidad, objeto, estado y PS. En el centro, primero el resultado, luego los
+   ataques y el campo. Cada tarjeta, de su alto (nada se estira hasta abajo). */
+
+.calc-arriba {
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) minmax(19rem, 1.35fr) minmax(15rem, 1fr);
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.calc-arriba-centro {
+  display: flex;
+  justify-content: center;
+}
+
+/* El buscador con «De mis equipos» pegado, en una sola tarjetita */
+.calc-elegir-lado .calc-elegir {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.calc-elegir-lado .calc-buscar {
+  flex: 1;
+  min-width: 0;
+}
+
+.calc-elegir-lado .calc-buscar input {
+  border: none;
+  background: transparent;
+}
+
+.calc-elegir-lado .calc-buscar input:focus {
+  outline: none;
+}
+
+.calc-elegir-lado .calc-equipos {
+  flex: none;
+}
+
+.calc-elegir-lado .calc-equipos-boton {
+  width: auto;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border: none;
+  background: var(--t-control);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.calc-elegir-lado .calc-equipos-panel {
+  left: auto;
+  right: 0;
+  width: min(22rem, 85vw);
+}
+
+/* Cada lado: sin la raya del costado; el color va en la cabecera */
+.calc-lado,
+.calc-lado[data-lado="defensor"] {
+  padding: 0 0 0.95rem;
+  background: var(--t-panel);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.calc-lado .calc-ficha > :not(.calc-poke) {
+  margin-inline: 0.95rem;
+}
+
+.calc-lado .calc-poke {
+  padding: 0.8rem 0.95rem;
+  border-bottom: 1px dashed rgba(var(--t-tinte), 0.14);
+  border-radius: 0.9rem 0.9rem 0 0;
+  background: linear-gradient(180deg, rgba(var(--color-rol), 0.28), rgba(var(--color-rol), 0.07));
+}
+
+.calc-lado .calc-retrato {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.85rem;
+  background: rgba(var(--t-oscurecer), 0.22);
+  box-shadow: 0 0 0 2px rgba(var(--color-rol), 0.55);
+}
+
+.calc-retrato-vacio {
+  display: inline-block;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 2px dashed rgba(var(--t-tinte), 0.22);
+  box-sizing: border-box;
+}
+
+.calc-lado .calc-rol {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+.calc-lado .calc-rol .icono {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.calc-poke-vacio .calc-vacio {
+  margin: 0.2rem 0 0;
+  text-align: left;
+}
+
+/* Habilidad, objeto, estado y PS: dos por fila */
+.calc-lado .calc-opciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed rgba(var(--t-tinte), 0.12);
+}
+
+.calc-opcion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.calc-opcion select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--t-fondo);
+  color: var(--t-texto);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calc-opcion .calc-ps {
+  margin-top: 0.35rem;
+}
+
+.calc-opcion .calc-habilidad-buscar input {
+  width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* «Intercambiar», arriba, entre los dos buscadores */
+.calc-arriba .calc-intercambiar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 1100px) {
+  .calc-arriba {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .calc-arriba-centro {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+@media (max-width: 700px) {
+  .calc-arriba {
+    grid-template-columns: 1fr;
+  }
+}

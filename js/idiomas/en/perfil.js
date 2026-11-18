@@ -102,5 +102,10 @@ export default {
   "Morado": "Purple",
   "Lila": "Lilac",
   "Rosa": "Pink",
-  "Granate": "Maroon"
+  "Granate": "Maroon",
+
+  // Editar perfil → Tipos de locke
+  "Los que eliges al apuntar un locke. En «Amigos» se ve cuántos has jugado y ganado de cada uno.":
+    "The ones you pick when logging a locke. «Friends» shows how many of each you've played and won.",
+  "Tus datos": "Your details"
 };

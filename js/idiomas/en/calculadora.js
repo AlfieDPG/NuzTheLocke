@@ -147,5 +147,7 @@ export default {
   "Recibe especiales ×½": "Takes special ×½",
   "Recibe contacto ×½ y Fuego ×2": "Takes contact ×½ and Fire ×2",
   "Con estado: Defensa ×1,5": "With a status: Defense ×1.5",
-  "Mismo género ×1,25; contrario ×0,75": "Same gender ×1.25; opposite ×0.75"
+  "Mismo género ×1,25; contrario ×0,75": "Same gender ×1.25; opposite ×0.75",
+  "Sin habilidad": "No ability",
+  "Otra...": "Other..."
 };

@@ -37,6 +37,19 @@ export function nombreJuego(datos) {
   return datos.juegoOtro || "";
 }
 
+// Solo la versión que se juega («Pokémon Espada», no «Pokémon Espada / Escudo») si se sabe: la que
+// apunta la partida vinculada de alguno de sus jugadores en el locke (locke.medallas[uid].version).
+// Primero la de «preferido» (tú) y, si no la tiene, la de cualquier otro. Si no, el nombre entero.
+export function nombreJuegoJugado(locke, preferido = "") {
+  const completo = nombreJuego(locke);
+  const medallas = (locke && locke.medallas) || {};
+  const versiones = [preferido && medallas[preferido], ...Object.values(medallas)]
+    .map((cada) => cada && cada.version)
+    .filter((version) => typeof version === "string" && version);
+  const version = versiones.find((cada) => completo.includes(cada));
+  return version ? `Pokémon ${version}` : completo;
+}
+
 function opcion(id, nombre, elegido) {
   return `<option value="${escaparHTML(id)}" ${id === elegido ? "selected" : ""}>${escaparHTML(nombre)}</option>`;
 }

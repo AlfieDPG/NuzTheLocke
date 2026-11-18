@@ -39,6 +39,12 @@ const columnas = {
   defensor: vista.querySelector('.calc-lado[data-lado="defensor"]')
 };
 const centro = vista.querySelector(".calc-centro");
+// Arriba, a todo lo ancho: el buscador del atacante, «Intercambiar» y el buscador del defensor
+const elegires = {
+  atacante: vista.querySelector('.calc-elegir-lado[data-lado="atacante"]'),
+  defensor: vista.querySelector('.calc-elegir-lado[data-lado="defensor"]')
+};
+const arribaCentro = vista.querySelector(".calc-arriba-centro");
 
 const HUECOS = 4;
 
@@ -315,11 +321,23 @@ function plantillaObjeto(c) {
     </div>`;
 }
 
+// «Atacante» con sus espadas o «Defensor» con su escudo, encima del nombre
+function plantillaRol(lado) {
+  return `<span class="calc-rol">${icono(lado === "atacante" ? "espadas" : "escudo")} ${lado === "atacante" ? t("Atacante") : t("Defensor")}</span>`;
+}
+
 function pintarLado(lado) {
   const c = lados[lado];
   const ficha = columnas[lado].querySelector(".calc-ficha");
   if (!c) {
-    ficha.innerHTML = `<p class="calc-vacio">${lado === "atacante" ? t("¿Quién ataca?") : t("¿Quién recibe el golpe?")}</p>`;
+    ficha.innerHTML = `
+      <div class="calc-poke calc-poke-vacio">
+        <span class="calc-retrato calc-retrato-vacio"></span>
+        <div class="calc-poke-datos">
+          ${plantillaRol(lado)}
+          <p class="calc-vacio">${lado === "atacante" ? t("¿Quién ataca?") : t("¿Quién recibe el golpe?")}</p>
+        </div>
+      </div>`;
     return;
   }
 
@@ -339,6 +357,7 @@ function pintarLado(lado) {
     <div class="calc-poke">
       ${retrato(c, "calc-retrato")}
       <div class="calc-poke-datos">
+        ${plantillaRol(lado)}
         <div class="calc-nombre-fila">
           <strong class="calc-nombre">${escaparHTML(nombreDe(c))}</strong>
           ${plantillaGenero(c)}
@@ -382,15 +401,22 @@ function pintarLado(lado) {
       }).join("")}
     </div>
     <div class="calc-opciones">
-      ${plantillaHabilidad(c)}
-      <span class="calc-opciones-titulo">${t("Objeto")}</span>
-      ${plantillaObjeto(c)}
-      <span class="calc-opciones-titulo">${t("Estado")}</span>
-      <div class="calc-chips">
-        ${ESTADOS.map(([id, texto]) => `<button class="calc-chip ${c.estado === id ? "activa" : ""}" data-estado="${id}">${texto}</button>`).join("")}
+      <div class="calc-opcion">${plantillaHabilidad(c)}</div>
+      <div class="calc-opcion">
+        <span class="calc-opciones-titulo">${t("Objeto")}</span>
+        ${plantillaObjeto(c)}
       </div>
-      <span class="calc-opciones-titulo">${t("PS ahora")} <strong class="calc-ps-valor">${c.psActual}%</strong></span>
-      <input class="calc-ps" type="range" min="1" max="100" value="${c.psActual}" aria-label="${t("PS que le quedan")}">
+      <div class="calc-opcion">
+        <span class="calc-opciones-titulo">${t("Estado")}</span>
+        <select class="calc-estado" aria-label="${t("Estado")}">
+          <option value="">${t("Ninguno")}</option>
+          ${ESTADOS.map(([id, texto]) => `<option value="${id}" ${c.estado === id ? "selected" : ""}>${texto}</option>`).join("")}
+        </select>
+      </div>
+      <div class="calc-opcion">
+        <span class="calc-opciones-titulo">${t("PS ahora")} <strong class="calc-ps-valor">${c.psActual}%</strong></span>
+        <input class="calc-ps" type="range" min="1" max="100" value="${c.psActual}" aria-label="${t("PS que le quedan")}">
+      </div>
     </div>`;
 
   const campoObjeto = ficha.querySelector(".calc-objeto-campo");
@@ -427,14 +453,17 @@ function plantillaHabilidad(c) {
   const posibles = c.habilidades || [];
   const lista = c.habilidad && !posibles.some((h) => h.id === c.habilidad.id) ? [...posibles, c.habilidad] : posibles;
   const efecto = textoHabilidad(c.habilidad);
+  const titulo = `<span class="calc-opciones-titulo">${t("Habilidad")} ${efecto ? `<span class="calc-efecto">${efecto}</span>` : ""}</span>`;
+  if (buscandoHabilidad === c) {
+    return `${titulo}<span class="calc-buscar calc-habilidad-buscar"><input class="calc-habilidad-campo" type="search" placeholder="${t("Habilidad...")}" autocomplete="off"></span>`;
+  }
   return `
-    <span class="calc-opciones-titulo">${t("Habilidad")} ${efecto ? `<span class="calc-efecto">${efecto}</span>` : ""}</span>
-    <div class="calc-chips">
-      ${lista.map((h) => `<button class="calc-chip ${c.habilidad && c.habilidad.id === h.id ? "activa" : ""}" data-habilidad="${h.id}">${escaparHTML(nombre(h))}</button>`).join("")}
-      ${buscandoHabilidad === c
-        ? `<span class="calc-buscar calc-habilidad-buscar"><input class="calc-habilidad-campo" type="search" placeholder="${t("Habilidad...")}" autocomplete="off"></span>`
-        : `<button class="calc-chip calc-otra">${icono("mas")} ${t("Otra")}</button>`}
-    </div>`;
+    ${titulo}
+    <select class="calc-habilidad" aria-label="${t("Habilidad")}">
+      <option value="">${t("Sin habilidad")}</option>
+      ${lista.map((h) => `<option value="${h.id}" ${c.habilidad && c.habilidad.id === h.id ? "selected" : ""}>${escaparHTML(nombre(h))}</option>`).join("")}
+      <option value="otra">${t("Otra...")}</option>
+    </select>`;
 }
 
 // ---------- Pintar: el centro ----------
@@ -615,7 +644,7 @@ function iconoPokemon(p) {
 function pintarEquipos() {
   const equipos = equiposDisponibles();
   for (const lado of ["atacante", "defensor"]) {
-    const caja = columnas[lado].querySelector(".calc-equipos");
+    const caja = elegires[lado].querySelector(".calc-equipos");
     const abiertos = new Set([...caja.querySelectorAll(".calc-equipo.abierto")].map((el) => el.dataset.clave));
     caja.querySelector(".calc-equipos-boton").disabled = !equipos.length;
     caja.querySelector(".calc-equipos-panel").innerHTML = equipos
@@ -654,7 +683,7 @@ function cerrarEquipos(menos = null) {
 }
 
 function prepararEquipos(lado) {
-  const caja = columnas[lado].querySelector(".calc-equipos");
+  const caja = elegires[lado].querySelector(".calc-equipos");
   caja.addEventListener("click", (e) => {
     const boton = e.target.closest("button");
     if (!boton) return;
@@ -746,8 +775,8 @@ export function ponerDesdePokedex(clave) {
 
 function prepararColumna(lado) {
   const columna = columnas[lado];
-  columna.innerHTML = `
-    <div class="calc-rol">${icono(lado === "atacante" ? "espadas" : "escudo")} ${lado === "atacante" ? t("Atacante") : t("Defensor")}</div>
+  columna.innerHTML = `<div class="calc-ficha"></div>`;
+  elegires[lado].innerHTML = `
     <div class="calc-elegir">
       <div class="calc-buscar"><input class="calc-buscar-campo" type="search" placeholder="${t("Buscar Pokémon...")}" autocomplete="off"></div>
       <div class="calc-equipos">
@@ -756,10 +785,9 @@ function prepararColumna(lado) {
         </button>
         <div class="calc-equipos-panel"></div>
       </div>
-    </div>
-    <div class="calc-ficha"></div>`;
+    </div>`;
 
-  const buscar = columna.querySelector(".calc-buscar-campo");
+  const buscar = elegires[lado].querySelector(".calc-buscar-campo");
   activarAutocompletado(buscar, listaPokemon, (entrada) => {
     buscar.value = "";
     elegirDePokedex(lado, entrada);
@@ -805,6 +833,21 @@ function prepararColumna(lado) {
   // Los PS de ahora: al arrastrar solo cambia el resultado (para no perder la barra)
   columna.addEventListener("change", (e) => {
     if (e.target.matches(".calc-forma") && lados[lado]) cambiarDeForma(lados[lado], e.target.value);
+    if (e.target.matches(".calc-estado") && lados[lado]) {
+      lados[lado].estado = e.target.value;
+      pintarTodo();
+    }
+    if (e.target.matches(".calc-habilidad") && lados[lado]) {
+      const c = lados[lado];
+      if (e.target.value === "otra") {
+        buscandoHabilidad = c;
+        pintarLado(lado);
+        columna.querySelector(".calc-habilidad-campo").focus();
+        return;
+      }
+      c.habilidad = e.target.value ? [...(c.habilidades || []), c.habilidad].find((h) => h && String(h.id) === e.target.value) || null : null;
+      pintarTodo();
+    }
     if (e.target.matches(".calc-naturaleza") && lados[lado]) {
       cambiarEntreno(lados[lado], (entreno) => (entreno.naturaleza = e.target.value));
       pintarTodo();
@@ -891,10 +934,19 @@ export async function iniciar() {
   prepararColumna("defensor");
 
   centro.innerHTML = `
-    <div class="calc-ataques"></div>
-    <div class="calc-campo"></div>
     <div class="calc-resultado"></div>
-    <button class="calc-intercambiar" title="${t("Que ataque el otro")}">${icono("intercambiar")} ${t("Intercambiar")}</button>`;
+    <div class="calc-ataques"></div>
+    <div class="calc-campo"></div>`;
+
+  arribaCentro.innerHTML = `<button class="calc-intercambiar" title="${t("Que ataque el otro")}">${icono("intercambiar")} ${t("Intercambiar")}</button>`;
+  arribaCentro.addEventListener("click", (e) => {
+    if (!e.target.closest(".calc-intercambiar")) return;
+    const defensor = lados.defensor;
+    cambiarConAnimacion(["atacante", "defensor"], () => {
+      lados.defensor = lados.atacante;
+      ponerAtacante(defensor);
+    });
+  });
 
   centro.addEventListener("click", (e) => {
     const boton = e.target.closest("button");
@@ -928,5 +980,5 @@ export async function iniciar() {
 
 export function mostrar() {
   // Los equipos pueden haber cambiado desde la última vez
-  if (columnas.atacante.querySelector(".calc-equipos")) pintarEquipos();
+  if (elegires.atacante.querySelector(".calc-equipos")) pintarEquipos();
 }

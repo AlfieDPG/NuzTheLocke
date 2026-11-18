@@ -275,6 +275,12 @@
         </section>
 
         <section id="vista-calculadora" hidden>
+          <!-- Arriba: buscar al atacante, «Intercambiar» y buscar al defensor -->
+          <div class="calc-arriba">
+            <div class="calc-elegir-lado" data-lado="atacante"></div>
+            <div class="calc-arriba-centro"></div>
+            <div class="calc-elegir-lado" data-lado="defensor"></div>
+          </div>
           <div class="calc">
             <div class="calc-lado" data-lado="atacante"></div>
             <div class="calc-centro"></div>
@@ -353,9 +359,19 @@
                 <button class="ruleta-borrar" title="Borrar esta ruleta"></button>
               </div>
               <div class="ruleta-opciones"></div>
-              <div class="ruleta-anadir">
-                <input class="ruleta-nueva" type="text" maxlength="40" autocomplete="off" placeholder="Añadir opción...">
-                <button class="ruleta-anadir-boton">Añadir</button>
+              <!-- Añadir: texto, un Pokémon (su retrato) o un objeto (su icono) -->
+              <div class="ruleta-anadir-todo">
+                <div class="ruleta-anadir-tipos" role="group" aria-label="Qué se añade">
+                  <button type="button" data-tipo="texto" class="elegido"></button>
+                  <button type="button" data-tipo="poke"></button>
+                  <button type="button" data-tipo="objeto"></button>
+                </div>
+                <div class="ruleta-anadir">
+                  <input class="ruleta-nueva" type="text" maxlength="40" autocomplete="off" placeholder="Añadir opción...">
+                  <button class="ruleta-anadir-boton">Añadir</button>
+                </div>
+                <div class="ruleta-buscar" data-buscar="poke" hidden><input type="search" autocomplete="off"></div>
+                <div class="ruleta-buscar" data-buscar="objeto" hidden><input type="search" autocomplete="off"></div>
               </div>
               <div class="ruleta-acciones">
                 <button class="ruleta-mezclar"></button>
@@ -371,7 +387,6 @@
 
         <section id="vista-logros" hidden>
           <div class="logros-cabecera"></div>
-          <div class="selector-regiones logros-filtro"></div>
           <div class="logros-lista"></div>
         </section>
 
@@ -437,21 +452,30 @@
         </section>
 
         <section id="vista-amigos" hidden>
-          <!-- La casilla con «Agregar» pegado (como el buscador de «Crear equipo») y, a la derecha,
-               ver en tarjetas o en lista (como en «Mis equipos») -->
-          <div class="barra-amigos">
-            <div class="amigos-buscador">
-              <input class="amigos-correo" type="text" placeholder="Mote de tu amigo...">
-              <button class="amigos-agregar">Agregar</button>
-            </div>
-            <span class="amigos-aviso"></span>
-            <div class="amigos-vista" role="group" aria-label="Cómo ver a tus amigos">
-              <button data-modo="tarjetas" title="En tarjetas" aria-label="En tarjetas"></button>
-              <button data-modo="lista" title="En lista" aria-label="En lista"></button>
-            </div>
+          <!-- A la izquierda: arriba las solicitudes (botón con el número y una ventana) y el
+               interruptor de «Conectados» (encima, agregar por mote) y la lista. A la derecha, el
+               amigo elegido. Los dos van de arriba abajo de la ventana. -->
+          <div class="amigos-cuerpo">
+            <aside class="amigos-columna">
+              <div class="amigos-agregar-caja">
+                <!-- Buscar entre tus amigos y, al lado, «Agregar amigos» (una ventana con el buscador) -->
+                <div class="amigos-buscador">
+                  <input class="amigos-filtrar" type="search" autocomplete="off" placeholder="Buscar entre tus amigos...">
+                  <button class="amigos-agregar" type="button"></button>
+                </div>
+                <span class="amigos-aviso"></span>
+              </div>
+              <div class="amigos-columna-arriba">
+                <div class="amigos-solicitudes-caja">
+                  <button class="amigos-solicitudes-boton" type="button" aria-expanded="false"></button>
+                  <div class="amigos-pop" hidden></div>
+                </div>
+                <button class="amigos-solo-conectados" type="button" aria-pressed="false"></button>
+              </div>
+              <div class="amigos-lista"></div>
+            </aside>
+            <section class="amigos-ficha"></section>
           </div>
-          <div class="amigos-solicitudes" hidden></div>
-          <div class="jugadores"></div>
         </section>
       </main>
     </div>
@@ -1164,6 +1188,26 @@
     <div class="estadisticas-cuerpo"></div>
     <div class="dialogo-botones">
       <button class="estadisticas-cerrar">Cerrar</button>
+    </div>
+  </dialog>
+
+  <!-- «Agregar amigos»: se busca por el nombre de usuario exacto (no salen listas de gente) -->
+  <dialog id="dialogo-agregar-amigo">
+    <h2 class="agregar-titulo"></h2>
+    <p class="agregar-nota"></p>
+    <input class="agregar-campo" type="search" autocomplete="off" maxlength="20">
+    <div class="agregar-resultado" aria-live="polite"></div>
+    <div class="dialogo-botones">
+      <button class="agregar-cerrar"></button>
+    </div>
+  </dialog>
+
+  <!-- «Ver todos» de las tarjetas del amigo elegido en «Amigos» (sus lockes, su colección...) -->
+  <dialog id="dialogo-amigo-todo">
+    <h2 class="amigo-todo-titulo"></h2>
+    <div class="amigo-todo-cuerpo"></div>
+    <div class="dialogo-botones">
+      <button class="amigo-todo-cerrar">Cerrar</button>
     </div>
   </dialog>
 

@@ -45,7 +45,7 @@ export const CLAVES_SINCRONIZADAS = [
   "poketeams-jugar-v1",                   // la partida elegida en «Jugar»
   "poketeams-jugar-ajustes-v1",           // controles y ajustes de «Jugar»
   "poketeams-juegos-v1",                  // el reto del día a medias (juegos/comun.js)
-  "poketeams-amigos-vista-v1",            // cómo se ve la lista de Amigos
+  "poketeams-amigos-vista-v1",            // el orden de tus amigos en Amigos (antes, cómo se veía la lista)
   "poketeams-buscar-ajustes-v1",          // ajustes de «Buscar equipo»
   "poketeams-buscar-locke-v1",            // último locke elegido en «Buscar equipo»
   "poketeams-lockes-plegados-v1",         // lockes plegados

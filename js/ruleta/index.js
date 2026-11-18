@@ -21,11 +21,23 @@ import { sumarContador } from "../comun/contadores.js";
 import { confirmar } from "../comun/ventanas.js";
 import { t } from "../comun/idioma.js";
 import { activarMenuMas } from "../comun/menu-mas.js";
+import { cargarPokedex, nombreDeFila, archivoHoja, RETRATOS } from "../pokedex/datos.js";
+import { cargarDatos, datos } from "../comun/datos.js";
+import { activarAutocompletado, iconoPokemon, iconoObjeto } from "../comun/autocompletado.js";
+import { imagenConRespaldo, urlsIconoObjeto } from "../comun/imagenes.js";
+import { quitarAcentos } from "../comun/utilidades.js";
+import { nombre as nombreEn } from "../comun/idioma.js";
 
 const CLAVE = "poketeams-ruletas-v1";
 const MAX_RULETAS = 20;
 const MAX_OPCIONES = 60;
 const MAX_HISTORIAL = 8;
+const MAX_CASILLAS = 20;
+
+// Las casillas que ocupa una opción en la rueda (1 si no se ha tocado)
+function casillasDe(opcion) {
+  return Math.max(1, Math.min(MAX_CASILLAS, Math.floor(opcion.casillas) || 1));
+}
 
 // Con la que se empieza: recompensas típicas de un locke por ganar un combate importante
 const DE_EJEMPLO = {
@@ -57,6 +69,8 @@ const campoNombre = vista.querySelector(".ruleta-nombre");
 const listaOpciones = vista.querySelector(".ruleta-opciones");
 const campoNueva = vista.querySelector(".ruleta-nueva");
 const cajaNueva = vista.querySelector(".ruleta-anadir");
+const anadirTodo = vista.querySelector(".ruleta-anadir-todo");
+let modoAnadir = "texto"; // "texto", "poke" u "objeto": lo que se añade
 const cajaHistorial = vista.querySelector(".ruleta-historial-caja");
 const historialLista = vista.querySelector(".ruleta-historial");
 
@@ -135,6 +149,87 @@ function recortar(texto, caben) {
   return texto.length > caben ? `${texto.slice(0, Math.max(1, caben - 1))}…` : texto;
 }
 
+// Cada opción ocupa tantas casillas como diga (1 por defecto): más casillas, más probabilidad. Juntas,
+// son un solo trozo más grande; separadas (opcion.separadas), son varios trozos del tamaño de una
+// casilla, repartidos por la rueda (la probabilidad es la misma: es solo cómo se ve).
+// Devuelve los trozos en orden, cada uno con su opción (i), cuántas casillas mide y sus ángulos.
+function tramos(opciones) {
+  const total = opciones.reduce((suma, opcion) => suma + casillasDe(opcion), 0);
+  const trozos = [];
+  opciones.forEach((opcion, i) => {
+    const n = casillasDe(opcion);
+    // Dónde cae cada trozo en la vuelta (de 0 a 1): las opciones en su orden y, las separadas,
+    // con sus trozos a la misma distancia unos de otros
+    const base = (i + 0.5) / opciones.length;
+    if (opcion.separadas && n > 1) for (let j = 0; j < n; j++) trozos.push({ i, casillas: 1, orden: (j + base) / n });
+    else trozos.push({ i, casillas: n, orden: base });
+  });
+  trozos.sort((uno, otro) => uno.orden - otro.orden || uno.i - otro.i);
+  let desde = 0;
+  return trozos.map((trozo) => {
+    const tamano = (trozo.casillas / total) * 360;
+    const tramo = { i: trozo.i, casillas: trozo.casillas, desde, hasta: desde + tamano, tamano, medio: desde + tamano / 2 };
+    desde += tamano;
+    return tramo;
+  });
+}
+
+// El dibujo de un objeto en la rueda, el mismo que en la lista (el de alta resolución): un <image>
+// de SVG no prueba otra dirección si falla, así que se prueban aquí y se guarda la que carga
+const urlDeObjeto = new Map(); // nombre en inglés -> la dirección que carga
+let repintarAlParar = false;
+
+function dibujoDeObjeto(en) {
+  if (urlDeObjeto.has(en)) return urlDeObjeto.get(en);
+  const urls = urlsIconoObjeto(en);
+  urlDeObjeto.set(en, urls[0]);
+  const probar = (n) => {
+    const imagen = new Image();
+    imagen.onerror = () => {
+      if (n + 1 >= urls.length) return;
+      urlDeObjeto.set(en, urls[n + 1]);
+      if (girando) repintarAlParar = true;
+      else pintarRueda();
+      probar(n + 1);
+    };
+    imagen.src = urls[n];
+  };
+  probar(0);
+  return urls[0];
+}
+
+// Un Pokémon (su retrato de la hoja de la Pokédex, recortado en círculo) o un objeto (su icono),
+// dibujado dentro de la rueda. Siempre derecho: el dibujo gira al revés que la rueda (también
+// mientras gira, con la misma animación; ver girar), como las cabinas de una noria.
+function iconoEnRueda(icono, tramo, i) {
+  const radio = RADIO * 0.64;
+  const cuerda = 2 * Math.PI * radio * (tramo.tamano / 360);
+  const lado = Math.max(10, Math.min(30, cuerda * 0.85));
+  const mitad = (lado / 2).toFixed(1);
+  let dibujo = "";
+  if (icono.tipo === "poke" && icono.retrato >= 0) {
+    const porHoja = RETRATOS.columnas * RETRATOS.filasPorHoja;
+    const dentro = icono.retrato % porHoja;
+    const columna = dentro % RETRATOS.columnas;
+    const fila = Math.floor(dentro / RETRATOS.columnas);
+    dibujo = `<clipPath id="ruleta-recorte-${i}"><circle r="${mitad}"/></clipPath>
+              <g clip-path="url(#ruleta-recorte-${i})">
+                <svg x="-${mitad}" y="-${mitad}" width="${lado.toFixed(1)}" height="${lado.toFixed(1)}"
+                     viewBox="${columna * RETRATOS.lado} ${fila * RETRATOS.lado} ${RETRATOS.lado} ${RETRATOS.lado}">
+                  <image href="${archivoHoja(Math.floor(icono.retrato / porHoja))}" width="${RETRATOS.columnas * RETRATOS.lado}"
+                         height="${RETRATOS.filasPorHoja * RETRATOS.lado}" style="image-rendering: pixelated"/>
+                </svg>
+              </g>`;
+  } else if (icono.tipo === "objeto" && icono.en) {
+    dibujo = `<image href="${escaparHTML(dibujoDeObjeto(icono.en))}" x="-${mitad}" y="-${mitad}"
+                     width="${lado.toFixed(1)}" height="${lado.toFixed(1)}"/>`;
+  } else return "";
+  const rad = (tramo.medio * Math.PI) / 180;
+  const x = (radio * Math.sin(rad)).toFixed(2);
+  const y = (-radio * Math.cos(rad)).toFixed(2);
+  return `<g transform="translate(${x} ${y})"><g class="ruleta-ico-giro" style="transform: rotate(${-rotacion}deg)">${dibujo}</g></g>`;
+}
+
 function pintarRueda() {
   const opciones = actual().opciones;
   const total = opciones.length;
@@ -149,31 +244,36 @@ function pintarRueda() {
     return;
   }
 
-  const paso = 360 / total;
+  const partes = tramos(opciones);
   // Cada texto va del borde hacia el centro, hasta el botón. La letra, lo más grande que deje
   // el ancho de la casilla y, si el texto es largo, más pequeña para que quepa entero (hasta
   // un mínimo: de ahí para abajo, se corta).
   const largo = RADIO - 8 - RADIO * 0.27;
-  const tamanoMaximo = Math.min(10, ((2 * Math.PI * RADIO * 0.6) / total) * 0.7);
-  const medidas = (texto) => {
+  const medidas = (texto, tramo) => {
+    const tamanoMaximo = Math.min(10, ((2 * Math.PI * RADIO * 0.6 * (tramo.tamano / 360))) * 0.7);
     const tamano = Math.max(Math.min(4.5, tamanoMaximo), Math.min(tamanoMaximo, largo / (texto.length * 0.58)));
     return { tamano, caben: Math.floor(largo / (tamano * 0.58) + 0.01) }; // +0.01: que 12,9999 no se quede en 12
   };
 
-  rueda.innerHTML = opciones
-    .map(({ texto }, i) => {
-      const { tamano, caben } = medidas(texto);
+  rueda.innerHTML = partes
+    .map((tramo, k) => {
+      const i = tramo.i;
+      const { texto, icono: dibujo } = opciones[i];
+      const { tamano, caben } = medidas(texto, tramo);
       const color = colorDe(opciones, i);
-      const forma = total === 1
+      const forma = partes.length === 1
         ? `<circle r="${RADIO}" fill="${color}"/>`
-        : `<path d="M0 0 L${punto(i * paso, RADIO)} A${RADIO} ${RADIO} 0 ${paso > 180 ? 1 : 0} 1 ${punto((i + 1) * paso, RADIO)}Z" fill="${color}"/>`;
-      const medio = i * paso + paso / 2;
+        : `<path d="M0 0 L${punto(tramo.desde, RADIO)} A${RADIO} ${RADIO} 0 ${tramo.tamano > 180 ? 1 : 0} 1 ${punto(tramo.hasta, RADIO)}Z" fill="${color}"/>`;
+      // Con icono (un Pokémon o un objeto), solo el dibujo; si no, el texto
+      const dentro = dibujo
+        ? iconoEnRueda(dibujo, tramo, k)
+        : `<text transform="rotate(${(tramo.medio - 90).toFixed(2)})" x="${RADIO - 8}" y="0" text-anchor="end"
+                dominant-baseline="central" font-size="${tamano.toFixed(1)}"
+                fill="${textoSobre(color)}">${escaparHTML(recortar(texto, caben))}</text>`;
       return `
         <g class="ruleta-casilla ${ganadora === null ? "" : ganadora === i ? "ganadora" : "apagada"}">
           ${forma}
-          <text transform="rotate(${(medio - 90).toFixed(2)})" x="${RADIO - 8}" y="0" text-anchor="end"
-                dominant-baseline="central" font-size="${tamano.toFixed(1)}"
-                fill="${textoSobre(color)}">${escaparHTML(recortar(texto, caben))}</text>
+          ${dentro}
         </g>`;
     })
     .join("") + `<circle r="${RADIO}" class="ruleta-borde"/>`;
@@ -259,10 +359,22 @@ function girar() {
   if (girando || !opciones.length) return;
 
   const total = opciones.length;
-  const paso = 360 / total;
-  const casilla = Math.floor(azar() * total);
-  // Un punto al azar dentro de la casilla, sin pegarse a los bordes
-  const angulo = (casilla + 0.12 + azar() * 0.76) * paso;
+  const partes = tramos(opciones);
+  // Cada casilla de la rueda tiene la misma probabilidad: se sortea entre todas (una opción con
+  // más casillas tiene más posibilidades) y luego un punto dentro de esa opción
+  const sorteo = azar() * partes.reduce((suma, tramo) => suma + tramo.casillas, 0);
+  let acumulado = 0;
+  let trozo = partes[partes.length - 1];
+  for (const tramo of partes) {
+    acumulado += tramo.casillas;
+    if (sorteo < acumulado) {
+      trozo = tramo;
+      break;
+    }
+  }
+  const casilla = trozo.i;
+  // Un punto al azar dentro del trozo, sin pegarse a los bordes
+  const angulo = trozo.desde + (0.12 + azar() * 0.76) * trozo.tamano;
 
   // Para que ese punto quede arriba hay que girar hasta -angulo; más unas cuantas vueltas
   const ahora = ((rotacion % 360) + 360) % 360;
@@ -271,7 +383,7 @@ function girar() {
 
   girando = true;
   ganadora = null;
-  const texto = opciones[casilla].texto;
+  const elegida = opciones[casilla];
   pintarRueda();
   resultado.classList.add("oculto");
   vista.classList.add("girando");
@@ -281,13 +393,21 @@ function girar() {
   const tiempo = duracion();
   rueda.style.transition = `transform ${tiempo}ms cubic-bezier(0.12, 0.8, 0.18, 1)`;
   rueda.style.transform = `rotate(${rotacion}deg)`;
+  // Los dibujos, al revés y a la vez: se quedan derechos mientras gira
+  void rueda.getBoundingClientRect();
+  for (const dibujo of rueda.querySelectorAll(".ruleta-ico-giro")) {
+    dibujo.style.transition = rueda.style.transition;
+    dibujo.style.transform = `rotate(${-rotacion}deg)`;
+  }
   contextoAudio(); // en la misma pulsación, para que el navegador deje sonar
-  sonarGiro(total);
-  setTimeout(() => terminar(casilla, texto), tiempo + 80);
+  sonarGiro(partes.length);
+  setTimeout(() => terminar(casilla, elegida), tiempo + 80);
 }
 
-function terminar(casilla, texto) {
+function terminar(casilla, elegida) {
+  const texto = elegida.texto;
   girando = false;
+  repintarAlParar = false;
   ganadora = casilla;
   vista.classList.remove("girando");
   botonGirar.disabled = false;
@@ -302,7 +422,7 @@ function terminar(casilla, texto) {
   pintarHistorial();
   resultado.innerHTML = `
     <span class="ruleta-resultado-etiqueta">${t("Ha salido")}</span>
-    <strong class="ruleta-resultado-texto">${escaparHTML(texto)}</strong>
+    <strong class="ruleta-resultado-texto">${iconoDeOpcion(elegida, "ruleta-ico-grande")}${escaparHTML(texto)}</strong>
     <div class="ruleta-resultado-botones">
       <button class="ruleta-otra">${icono("ruleta")} ${t("Otra vez")}</button>
       <button class="ruleta-quitar-ganadora" data-casilla="${casilla}">${icono("aspa")} ${t("Quitarla de la ruleta")}</button>
@@ -316,21 +436,63 @@ function terminar(casilla, texto) {
 
 // ---------- Opciones ----------
 
+// El dibujo de una opción en la lista y en el resultado: el retrato del Pokémon o el icono del objeto
+function iconoDeOpcion(opcion, clase = "") {
+  const dibujo = opcion.icono;
+  if (!dibujo) return "";
+  if (dibujo.tipo === "poke" && dibujo.retrato >= 0) {
+    const porHoja = RETRATOS.columnas * RETRATOS.filasPorHoja;
+    const dentro = dibujo.retrato % porHoja;
+    const columna = dentro % RETRATOS.columnas;
+    const fila = Math.floor(dentro / RETRATOS.columnas);
+    return `<span class="ruleta-ico ${clase}" style="background-image: url(${archivoHoja(Math.floor(dibujo.retrato / porHoja))});
+      background-position: ${((columna / (RETRATOS.columnas - 1)) * 100).toFixed(3)}% ${((fila / (RETRATOS.filasPorHoja - 1)) * 100).toFixed(3)}%"></span>`;
+  }
+  if (dibujo.tipo === "objeto" && dibujo.en) {
+    return `<span class="ruleta-ico ruleta-ico-objeto ${clase}">${imagenConRespaldo(urlsIconoObjeto(dibujo.en), `alt="" draggable="false"`)}</span>`;
+  }
+  return "";
+}
+
+// Juntas (un trozo grande) o separadas (varios del tamaño de una): solo cambia cómo se ve
+function botonSeparar(opcion) {
+  const separadas = Boolean(opcion.separadas);
+  const titulo = separadas ? t("Separadas: varias casillas iguales. Pulsa para juntarlas en una") : t("Juntas: una casilla más grande. Pulsa para separarlas en varias iguales");
+  const dibujo = separadas
+    ? `<svg viewBox="0 0 16 10" aria-hidden="true"><rect x="0.5" y="1" width="6.5" height="8" rx="1.2"/><rect x="9" y="1" width="6.5" height="8" rx="1.2"/></svg>`
+    : `<svg viewBox="0 0 16 10" aria-hidden="true"><rect x="0.5" y="1" width="15" height="8" rx="1.2"/></svg>`;
+  return `<button class="ruleta-separar ${separadas ? "separadas" : ""}" title="${titulo}" aria-label="${titulo}" aria-pressed="${separadas}" ${casillasDe(opcion) <= 1 ? "disabled" : ""}>${dibujo}</button>`;
+}
+
 function pintarOpciones() {
   const opciones = actual().opciones;
-  listaOpciones.innerHTML = opciones
-    .map(
-      ({ texto }, i) => `
+  const total = opciones.reduce((suma, opcion) => suma + casillasDe(opcion), 0);
+  const cabecera = opciones.length
+    ? `<div class="ruleta-cabecera-lista"><span>${t("Opción")}</span><span title="${t("Cuántas casillas ocupa en la rueda: más casillas, más probabilidad")}">${t("Casillas")}</span><span>${t("Prob.")}</span></div>`
+    : "";
+  listaOpciones.innerHTML =
+    cabecera +
+    opciones
+      .map(
+        (opcion, i) => `
         <div class="ruleta-opcion" data-indice="${i}">
           <label class="ruleta-color" title="${t("Cambiar el color")}" style="background:${colorDe(opciones, i)}">
             <input type="color" class="ruleta-elegir-color" value="${colorDe(opciones, i)}">
           </label>
-          <input type="text" class="ruleta-texto" maxlength="40" autocomplete="off" value="${escaparHTML(texto)}">
+          ${iconoDeOpcion(opcion)}
+          <input type="text" class="ruleta-texto" maxlength="40" autocomplete="off" value="${escaparHTML(opcion.texto)}">
+          <span class="ruleta-casillas" title="${t("Cuántas casillas ocupa en la rueda: más casillas, más probabilidad")}">
+            <button class="ruleta-menos" aria-label="${t("Una casilla menos")}" ${casillasDe(opcion) <= 1 ? "disabled" : ""}>−</button>
+            <b>${casillasDe(opcion)}</b>
+            <button class="ruleta-mas" aria-label="${t("Una casilla más")}" ${casillasDe(opcion) >= MAX_CASILLAS ? "disabled" : ""}>+</button>
+            ${botonSeparar(opcion)}
+          </span>
+          <span class="ruleta-prob">${Math.round((casillasDe(opcion) / total) * 100)}%</span>
           <button class="ruleta-quitar" title="${t("Quitar")}">${icono("aspa")}</button>
         </div>`
-    )
-    .join("");
-  cajaNueva.hidden = opciones.length >= MAX_OPCIONES;
+      )
+      .join("");
+  anadirTodo.hidden = opciones.length >= MAX_OPCIONES;
 }
 
 // La lista de la flecha: tus ruletas (la de ahora, marcada) y, debajo, «Nueva ruleta»
@@ -370,17 +532,23 @@ function pintarTodo() {
   pintarRueda();
 }
 
-function anadirOpcion() {
-  const texto = campoNueva.value.trim();
+// Añade una opción: de texto (lo escrito) o con dibujo (un Pokémon o un objeto elegidos en el buscador)
+function anadirOpcion(nueva = null) {
   const opciones = actual().opciones;
-  if (!texto || opciones.length >= MAX_OPCIONES) return;
-  opciones.push({ texto });
-  campoNueva.value = "";
+  if (opciones.length >= MAX_OPCIONES) return;
+  if (nueva && nueva.texto) {
+    opciones.push(nueva);
+  } else {
+    const texto = campoNueva.value.trim();
+    if (!texto) return;
+    opciones.push({ texto });
+    campoNueva.value = "";
+  }
   guardar();
   olvidarResultado();
   pintarOpciones();
   pintarRueda();
-  if (!cajaNueva.hidden) campoNueva.focus();
+  if (!nueva && modoAnadir === "texto") campoNueva.focus();
 }
 
 function quitarOpcion(indice) {
@@ -389,6 +557,61 @@ function quitarOpcion(indice) {
   olvidarResultado();
   pintarOpciones();
   pintarRueda();
+}
+
+// ---------- Añadir un Pokémon o un objeto ----------
+//
+// Con dibujo: el retrato de Mundo Misterioso del Pokémon o el icono del objeto, en la rueda y en la
+// lista. Los buscadores se preparan la primera vez que se usan (cargan la Pokédex y los objetos).
+
+const buscadoresListos = new Set();
+
+async function prepararBuscador(modo) {
+  if (buscadoresListos.has(modo)) return;
+  buscadoresListos.add(modo);
+  const campo = vista.querySelector(`.ruleta-buscar[data-buscar="${modo}"] input`);
+  campo.placeholder = modo === "poke" ? t("Buscar Pokémon...") : t("Buscar objeto...");
+
+  if (modo === "poke") {
+    const pokedex = await cargarPokedex();
+    const lista = pokedex
+      .filter((fila) => fila.retrato >= 0)
+      .map((fila) => {
+        const en = nombreDeFila(fila, "en");
+        return { es: fila.nombre, en, buscar: quitarAcentos(`${fila.nombre} ${en} ${fila.numero}`), fila };
+      });
+    activarAutocompletado(campo, lista, (entrada) => {
+      campo.value = "";
+      anadirOpcion({ texto: nombreEn(entrada), icono: { tipo: "poke", retrato: entrada.fila.retrato } });
+    }, { icono: iconoPokemon });
+  } else {
+    await cargarDatos();
+    activarAutocompletado(campo, datos.objetos, (entrada) => {
+      campo.value = "";
+      anadirOpcion({ texto: nombreEn(entrada), icono: { tipo: "objeto", en: entrada.en } });
+    }, { icono: iconoObjeto });
+  }
+}
+
+async function cambiarModo(modo) {
+  modoAnadir = modo;
+  for (const boton of vista.querySelectorAll(".ruleta-anadir-tipos button")) {
+    boton.classList.toggle("elegido", boton.dataset.tipo === modo);
+  }
+  cajaNueva.hidden = modo !== "texto";
+  for (const caja of vista.querySelectorAll(".ruleta-buscar")) caja.hidden = caja.dataset.buscar !== modo;
+  if (modo === "texto") {
+    campoNueva.focus();
+    return;
+  }
+  try {
+    await prepararBuscador(modo);
+  } catch (error) {
+    console.error(error);
+    buscadoresListos.delete(modo);
+    return;
+  }
+  vista.querySelector(`.ruleta-buscar[data-buscar="${modo}"] input`).focus();
 }
 
 // ---------- Arranque ----------
@@ -466,8 +689,38 @@ export function iniciar() {
 
   listaOpciones.addEventListener("click", (e) => {
     const boton = e.target.closest(".ruleta-quitar");
-    if (boton) quitarOpcion(Number(boton.closest(".ruleta-opcion").dataset.indice));
+    if (boton) {
+      quitarOpcion(Number(boton.closest(".ruleta-opcion").dataset.indice));
+      return;
+    }
+    // Juntar o separar sus casillas
+    const separar = e.target.closest(".ruleta-separar");
+    if (separar) {
+      const opcion = actual().opciones[Number(separar.closest(".ruleta-opcion").dataset.indice)];
+      opcion.separadas = !opcion.separadas;
+      guardar();
+      olvidarResultado();
+      pintarOpciones();
+      pintarRueda();
+      return;
+    }
+    // Más o menos casillas: cambia el trozo de la rueda y la probabilidad de todas
+    const cambio = e.target.closest(".ruleta-menos, .ruleta-mas");
+    if (!cambio) return;
+    const opcion = actual().opciones[Number(cambio.closest(".ruleta-opcion").dataset.indice)];
+    opcion.casillas = Math.max(1, Math.min(MAX_CASILLAS, casillasDe(opcion) + (cambio.classList.contains("ruleta-mas") ? 1 : -1)));
+    guardar();
+    olvidarResultado();
+    pintarOpciones();
+    pintarRueda();
   });
+
+  // Lo que se añade: texto, un Pokémon (su retrato) o un objeto (su icono)
+  const botonesTipo = vista.querySelectorAll(".ruleta-anadir-tipos button");
+  botonesTipo[0].textContent = t("Texto");
+  botonesTipo[1].textContent = t("Pokémon");
+  botonesTipo[2].textContent = t("Objeto");
+  for (const boton of botonesTipo) boton.addEventListener("click", () => cambiarModo(boton.dataset.tipo));
 
   campoNueva.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;

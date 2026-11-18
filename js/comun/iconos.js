@@ -103,6 +103,8 @@ const DIBUJOS = {
   mezclar: `<path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.97a4 4 0 0 0 3.3-1.7l5.46-8.6a4 4 0 0 1 3.3-1.7H22"/>
             <path d="M2 6h1.97a4 4 0 0 1 3.3 1.7l.53.8"/><path d="M22 18h-6.04a4 4 0 0 1-3.3-1.8l-.36-.45"/>`,
   persona: `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+  // Dos personas y un «+» (agregar amigos)
+  agregarAmigos: `<circle cx="7.5" cy="9" r="3"/><path d="M2 20v-1a4 4 0 0 1 4-4h3a4 4 0 0 1 4 4v1"/><path d="M13 6.3a3 3 0 0 1 0 5.4"/><path d="M15.5 15.3A4 4 0 0 1 17.5 18.8V20"/><path d="M20 3v6"/><path d="M17 6h6"/>`,
   calavera: `<path d="m12.5 17-.5-1-.5 1h1z"/>
              <path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/>
              <circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>`,

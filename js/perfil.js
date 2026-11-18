@@ -30,13 +30,13 @@ import { usuarioActual } from "./comun/nube.js";
 import {
   miPerfil, alCambiarMiPerfil, cambiarMote, guardarMiPerfil, amigosAceptados, perfilesDeAmigos,
   alCambiarPerfilesAmigos, perfilesDe, colorDeTipo, relacionCon, pedirAmistad, aceptarAmistad,
-  amistades, alCambiarAmistades, lockesJugados
+  amistades, alCambiarAmistades, lockesJugados, tiposDe, nuevoId
 } from "./comun/perfiles.js";
 import { estaBloqueado, alCambiarChats } from "./comun/chat.js";
 import { alCambiarLockes } from "./comun/lockes.js";
 import { caraACara } from "./comun/cara-a-cara.js";
 import { estaConectado, alCambiarPresencia } from "./comun/presencia.js";
-import { irA } from "./navegacion.js";
+import { irA, prepararSeccion } from "./navegacion.js";
 import { leerGuardados } from "./equipos/estado.js";
 import { pokemonParaCopia } from "./comun/pokemon.js";
 import { pasteDelEquipo, copiarAlPortapapeles } from "./equipos/exportar.js";
@@ -47,7 +47,7 @@ import { cargarDatos, datos } from "./comun/datos.js";
 import { activarAutocompletado, iconoPokemon } from "./comun/autocompletado.js";
 import { obtenerVariedades } from "./comun/formas.js";
 import { elegirForma, datosDeForma } from "./comun/elegir-forma.js";
-import { LOGROS, insignia } from "./comun/logros.js";
+import { LOGROS, CATEGORIAS, insignia } from "./comun/logros.js";
 import {
   FONDOS, FONDOS_METAL, FONDOS_TIPO, FONDOS_EEVEE, FONDOS_TIENDA, FONDOS_REGION, fondoDe, logrosDe, desbloqueado,
   requisito, requisitoCorto, claseFondo, estiloFondo
@@ -81,6 +81,23 @@ let apartado = "foto";
 let borrador = null;         // ver empezarAEditar
 let errorEditar = "";
 let guardando = false;
+
+// Tu perfil se ve con el diseño de un amigo en «Amigos» (su portada y sus tarjetas de tamaño fijo):
+// lo pinta js/amigos/index.js (plantillaMiPerfil) con las piezas de aquí. Se carga al abrirlo; si
+// no se puede, se ve el de siempre.
+let modAmigos = null;
+let amigosPedido = false;
+
+function pedirAmigos() {
+  if (modAmigos || amigosPedido) return;
+  amigosPedido = true;
+  prepararSeccion("amigos")
+    .then((modulo) => {
+      modAmigos = modulo;
+      if (dialogo.open && !viendo && !editando) pintar();
+    })
+    .catch((error) => console.error("No se ha podido cargar Amigos para tu perfil", error));
+}
 
 // ---------- Piezas ----------
 
@@ -170,7 +187,7 @@ function plantillaAccion(perfil) {
 
 // mio: es el tuyo. vistaPrevia: la del modo editar (sin botones). La capa de color de la izquierda
 // dice quién es, como en «Amigos»: el color de la sección si eres tú, verde si está conectado.
-function plantillaFicha(perfil, { mio = false, vistaPrevia = false } = {}) {
+function plantillaFicha(perfil, { mio = false, vistaPrevia = false, extra = "" } = {}) {
   const sabeTodo = mio || conocido();
   const conectado = !mio && estaConectado(perfil.uid);
   const fondo = fondoVisual(perfil);
@@ -215,6 +232,7 @@ function plantillaFicha(perfil, { mio = false, vistaPrevia = false } = {}) {
       ${horario ? `<span class="perfil-ficha-horario">${icono("calendario")} ${escaparHTML(horario)}</span>` : ""}
       <div class="perfil-ficha-cifras">${cifras}</div>
       ${abajo}
+      ${extra}
     </aside>`;
 }
 
@@ -300,7 +318,7 @@ function plantillaLocke(locke) {
     </article>`;
 }
 
-function plantillaHistorial(perfil) {
+function plantillaHistorial(perfil, encima = "") {
   const historial = historialDe(perfil);
   const ganados = historial.filter((locke) => locke.gano).length;
   const visibles = historialEntero ? historial : historial.slice(0, VER_LOCKES);
@@ -310,6 +328,7 @@ function plantillaHistorial(perfil) {
   return `
     <section class="perfil-caja perfil-historial">
       ${cabeza(t("Lockes"), historial.length ? t("{n} jugados · {g} ganados", { n: historial.length, g: ganados }) : "", boton)}
+      ${encima}
       ${historial.length
         ? `<div class="perfil-historial-lista">${visibles.map(plantillaLocke).join("")}</div>`
         : `<p class="perfil-vacio">${t("Ninguno todavía.")}</p>`}
@@ -335,6 +354,7 @@ function coleccionPara(perfil, mio) {
     .then((coleccion) => {
       coleccionesVistas.set(perfil.uid, coleccion);
       if (dialogo.open && viendo === perfil.uid) pintar();
+      if (incrustado.uid === perfil.uid && incrustado.alCambiar) incrustado.alCambiar();
     })
     .catch((error) => console.error("No se ha podido leer su colección", error));
   return undefined; // aún no ha llegado
@@ -470,6 +490,7 @@ function pedirAmigosDe(perfil) {
     .then((mapa) => {
       amigosDeOtros.set(clave, [...mapa.values()].filter((amigo) => amigo && amigo.nombre));
       if (dialogo.open && viendo === perfil.uid) pintar();
+      if (incrustado.uid === perfil.uid && incrustado.alCambiar) incrustado.alCambiar();
     })
     .catch((error) => console.error("No se han podido leer sus amigos", error));
   return null;
@@ -508,16 +529,17 @@ function plantillaAmigosDe(perfil) {
 
 // ---------- Ver un perfil ----------
 
-function plantillaDerecha(perfil, mio) {
+function plantillaDerecha(perfil, mio, { arriba = "", enLockes = "" } = {}) {
   if (!mio && !conocido()) {
     return `<div class="perfil-derecha"><p class="perfil-vacio perfil-solo-amigos">${t("Hazte su amigo para ver sus equipos, sus lockes y su colección.")}</p></div>`;
   }
   if (!mio && verLogros) return `<div class="perfil-derecha">${plantillaLogrosDe(perfil)}</div>`;
   return `
     <div class="perfil-derecha">
+      ${arriba}
       ${plantillaEquipos(perfil, mio)}
       <div class="perfil-abajo">
-        ${plantillaHistorial(perfil)}
+        ${plantillaHistorial(perfil, enLockes)}
         <div class="perfil-pila">
           ${plantillaColeccion(perfil, mio)}
           ${plantillaLogrosResumen(perfil)}
@@ -528,6 +550,7 @@ function plantillaDerecha(perfil, mio) {
 }
 
 function pintar() {
+  dialogo.classList.remove("con-rejilla"); // la de tu perfil con el diseño de Amigos (abajo)
   if (editando && !viendo) {
     pintarEditar();
     return;
@@ -540,11 +563,140 @@ function pintar() {
     return;
   }
   teñir(perfil);
+  // El tuyo, con el diseño de Amigos (mientras carga, el de siempre)
+  dialogo.classList.toggle("con-rejilla", Boolean(mio && modAmigos && !verLogros));
+  if (mio && !verLogros) {
+    pedirAmigos();
+    if (modAmigos) {
+      cuerpo.innerHTML = modAmigos.plantillaMiPerfil(piezasDelPerfil(null));
+      return;
+    }
+  }
   cuerpo.innerHTML = `
     <div class="perfil-vista">
       ${plantillaFicha(perfil, { mio })}
       ${plantillaDerecha(perfil, mio)}
     </div>`;
+}
+
+// ---------- El perfil dentro de «Amigos» ----------
+//
+// «Amigos» enseña el perfil entero del amigo elegido, sin abrir la ventana: la misma ficha y la
+// misma columna derecha que aquí, con lo que le añade Amigos (arriba de todo, el cara a cara y los
+// lockes en marcha; en «Lockes», cuántos de cada tipo). Lleva su propio «Ver todos» de lockes y de
+// logros, aparte de los de la ventana.
+
+const incrustado = { uid: null, historialEntero: false, verLogros: false, alCambiar: null };
+
+// Pinta con el estado del de Amigos y deja el de la ventana como estaba
+function conIncrustado(funcion) {
+  const antes = { viendo, desdeMiPerfil, historialEntero, verLogros };
+  viendo = incrustado.uid;
+  desdeMiPerfil = false;
+  historialEntero = incrustado.historialEntero;
+  verLogros = incrustado.verLogros;
+  try {
+    return funcion();
+  } finally {
+    ({ viendo, desdeMiPerfil, historialEntero, verLogros } = antes);
+  }
+}
+
+// Las piezas de su perfil, ya pintadas, para que Amigos las coloque en su rejilla de tamaño fijo:
+// la foto, los equipos destacados, el historial de lockes, la colección, los logros y sus amigos.
+// null si su perfil aún no ha llegado. La colección y los amigos se piden la primera vez (cargando).
+export function piezasDelPerfil(uid) {
+  // Sin uid, las tuyas (tu perfil con el diseño de Amigos)
+  if (!uid) {
+    const perfil = miPerfil();
+    return perfil ? piezasDe(perfil, true) : null;
+  }
+  if (incrustado.uid !== uid) Object.assign(incrustado, { uid, historialEntero: false, verLogros: false });
+  return conIncrustado(() => {
+    const perfil = perfilQueSeVe();
+    return perfil ? piezasDe(perfil, false) : null;
+  });
+}
+
+function piezasDe(perfil, mio) {
+  const coleccion = coleccionPara(perfil, mio);
+  const especies = coleccion ? new Set([...Object.keys(coleccion.especies), ...Object.keys(coleccion.shiny)]).size : 0;
+  const shiny = coleccion ? Object.keys(coleccion.shiny).length : 0;
+  const nombreDeEspecie = (id) => {
+    const especie = datos && datos.pokemon.find((cada) => cada.id === id);
+    return especie ? nombreDe(especie) : `#${id}`;
+  };
+  // Toda: primero los que destaca, luego los últimos que le han salido y el resto por número
+  const ordenados = coleccion
+    ? [...new Set([
+        ...escaparate(coleccion).map(({ id }) => Number(id)),
+        ...(coleccion.recientes || []).map((cada) => Number(cada.id)),
+        ...[...Object.keys(coleccion.especies), ...Object.keys(coleccion.shiny)].map(Number).sort((a, b) => a - b)
+      ])]
+    : [];
+  const caras = coleccion
+    ? ordenados.map((id) => {
+        const { cara, shiny: enShiny } = aspectoDe(coleccion, id);
+        return `<span class="perfil-coleccion-poke ${enShiny ? "shiny" : ""}" title="${escaparHTML(nombreDeEspecie(id))}">
+                  ${imagenConRespaldo(urlsPMDEmocion({ id, shiny: enShiny }, cara), `alt="" loading="lazy" data-quitar-si-falla`)}
+                </span>`;
+      })
+    : [];
+
+  // Los tuyos están siempre al día; los de otro se piden la primera vez
+  const uids = mio ? amigosAceptados().map((amistad) => amistad.otro) : perfil.amigos || [];
+  const llegados = mio
+    ? uids.map((uid) => perfilesDeAmigos().get(uid)).filter((amigo) => amigo && amigo.nombre)
+    : uids.length ? pedirAmigosDe(perfil) : [];
+  const yo = (usuarioActual() || {}).uid;
+  // Sus amigos (los perfiles: Amigos los pinta con su marco), tú el primero
+  const amigos = (llegados || [])
+    .slice()
+    .sort((uno, otro) => Number(otro.uid === yo) - Number(uno.uid === yo) || uno.nombre.localeCompare(otro.nombre, LOCALE));
+
+  const historial = historialDe(perfil);
+  const logros = logrosConseguidos(perfil);
+  return {
+    perfil,
+    foto: plantillaFoto(perfil, "perfil-foto"),
+    equipos: (perfil.escaparate || []).slice(0, MAX_DESTACADOS).map((equipo, indice) => ({
+      nombre: equipo.nombre,
+      indice,
+      caras: (equipo.pokemon || []).slice(0, 6).map(caraDe)
+    })),
+    historial: { lockes: historial.map(plantillaLocke), ganados: historial.filter((locke) => locke.gano).length },
+    coleccion: { cargando: coleccion === undefined, especies, shiny, caras },
+    logros: {
+      hechos: logros.length,
+      total: LOGROS.length,
+      // Cuántos lleva de cada categoría (Lockes, Cementerio, Equipos...)
+      categorias: CATEGORIAS.map((categoria) => ({
+        nombre: categoria.nombre,
+        hechos: logros.filter((logro) => logro.categoria === categoria.id).length,
+        total: LOGROS.filter((logro) => logro.categoria === categoria.id).length
+      }))
+    },
+    amigos: { cargando: llegados === null, total: uids.length, perfiles: amigos }
+  };
+}
+
+// Para repintar Amigos cuando llega algo que se había pedido (su colección, sus amigos)
+export function alCambiarPerfilIncrustado(funcion) {
+  incrustado.alCambiar = funcion;
+}
+
+// Lo que se pulsa dentro del perfil de Amigos y es cosa del perfil. Devuelve true si lo ha atendido.
+export function pulsarEnPerfilIncrustado(boton) {
+  if (boton.classList.contains("perfil-copiar")) {
+    conIncrustado(() => copiarEquipo(boton)).catch((error) => console.error(error));
+    return true;
+  }
+  if (boton.classList.contains("perfil-ver-lockes")) incrustado.historialEntero = !incrustado.historialEntero;
+  else if (boton.classList.contains("perfil-ver-logros")) incrustado.verLogros = true;
+  else if (boton.classList.contains("perfil-cerrar-logros")) incrustado.verLogros = false;
+  else return false;
+  if (incrustado.alCambiar) incrustado.alCambiar();
+  return true;
 }
 
 // ---------- Editar perfil ----------
@@ -553,15 +705,26 @@ function pintar() {
 // null mientras no se cambie y, si se cambia, lo que se guardará: { avatar, fotoGoogle, foto }.
 
 const APARTADOS = [
-  { id: "foto", icono: "persona", nombre: () => t("Foto y nombre") },
-  { id: "sobre", icono: "mensaje", nombre: () => t("Sobre mí") },
+  { id: "foto", icono: "persona", nombre: () => t("Tus datos") },
   { id: "titulo", icono: "etiqueta", nombre: () => t("Título") },
   { id: "marco", icono: "estrella", nombre: () => t("Marco") },
   { id: "fondo", icono: "imagen", nombre: () => t("Fondo") },
   { id: "color", icono: "atardecer", nombre: () => t("Color") },
   { id: "equipos", icono: "pokeball", nombre: () => t("Equipos destacados") },
-  { id: "lockes", icono: "trofeo", nombre: () => t("Lockes jugados") }
+  { id: "lockes", icono: "trofeo", nombre: () => t("Lockes jugados") },
+  { id: "tipos", icono: "etiqueta", nombre: () => t("Tipos de locke") }
 ];
+
+// Los tipos de locke del borrador, limpios para guardar: con nombre y un color #rrggbb
+function tiposLimpios(tipos) {
+  return tipos
+    .map((tipo) => ({
+      id: tipo.id,
+      nombre: String(tipo.nombre || "").trim().slice(0, 30),
+      color: /^#[0-9a-f]{6}$/i.test(String(tipo.color || "")) ? tipo.color : "#3498db"
+    }))
+    .filter((tipo) => tipo.nombre);
+}
 
 function empezarAEditar(cual = "foto") {
   const perfil = miPerfil() || {};
@@ -575,6 +738,7 @@ function empezarAEditar(cual = "foto") {
     fondo: fondoDe(perfil) || null,
     color: colorElegido(perfil),
     escaparate: [...(perfil.escaparate || [])].slice(0, MAX_DESTACADOS),
+    tipos: tiposDe(perfil).map((tipo) => ({ ...tipo })),
     foto: null
   };
   editando = true;
@@ -618,6 +782,8 @@ function cambiosDelBorrador() {
   if (borrador.color !== colorElegido(perfil)) cambios.color = borrador.color || null;
   const ids = (lista) => lista.map((equipo) => equipo.id).join("|");
   if (ids(borrador.escaparate) !== ids((perfil.escaparate || []).slice(0, MAX_DESTACADOS))) cambios.escaparate = borrador.escaparate;
+  const tipos = tiposLimpios(borrador.tipos);
+  if (JSON.stringify(tipos) !== JSON.stringify(tiposLimpios(tiposDe(perfil)))) cambios.tipos = tipos;
   if (borrador.foto) Object.assign(cambios, borrador.foto);
   return cambios;
 }
@@ -669,10 +835,12 @@ async function dejarDeEditar() {
 
 // --- Los apartados ---
 
+// Tus datos principales: la foto, el nombre y lo que cuentas de ti (antes eran dos apartados, y
+// los dos quedaban medio vacíos)
 function panelFoto() {
   const perfil = perfilEditado();
   return `
-    <h3>${t("Foto y nombre")}</h3>
+    <h3>${t("Tus datos")}</h3>
     <div class="editar-foto">
       <span class="perfil-ficha-foto ${claseMarco(marcoDe(perfil))}">${plantillaFoto(perfil, "perfil-foto")}</span>
       <div class="editar-foto-texto">
@@ -684,7 +852,8 @@ function panelFoto() {
       <span>${t("Nombre de usuario")}</span>
       <input class="editar-nombre" type="text" maxlength="20" autocomplete="off" value="${escaparHTML(borrador.mote)}">
       <small>${t("Es único: con él te encuentran tus amigos.")}</small>
-    </label>`;
+    </label>
+    ${panelSobreMi().replace(`<h3>${t("Sobre mí")}</h3>`, "")}`;
 }
 
 function panelSobreMi() {
@@ -842,6 +1011,29 @@ function panelLockes() {
       : `<p class="perfil-vacio">${t("Ninguno todavía.")}</p>`}`;
 }
 
+// Los tipos de locke que usas (Locke, Randomlocke...): su nombre y su color. Salen al apuntar un
+// locke y en «Amigos», con cuántos has jugado y ganado de cada uno.
+function panelTipos() {
+  return `
+    <h3>${t("Tipos de locke")}</h3>
+    <p>${t("Los que eliges al apuntar un locke. En «Amigos» se ve cuántos has jugado y ganado de cada uno.")}</p>
+    <div class="editar-tipos">
+      ${borrador.tipos
+        .map(
+          (tipo, i) => `
+            <div class="editar-tipo" data-indice="${i}">
+              <label class="editar-tipo-circulo" style="background: ${escaparHTML(tipo.color || "#3498db")}" title="${t("Cambiar el color")}">
+                <input class="editar-tipo-color" type="color" value="${escaparHTML(tipo.color || "#3498db")}" aria-label="${t("Cambiar el color")}">
+              </label>
+              <input class="editar-tipo-nombre" type="text" maxlength="30" autocomplete="off" value="${escaparHTML(tipo.nombre)}" placeholder="${t("Nombre del tipo")}">
+              <button class="editar-tipo-quitar" data-indice="${i}" title="${t("Quitar")}" aria-label="${t("Quitar")}">${icono("aspa")}</button>
+            </div>`
+        )
+        .join("")}
+    </div>
+    <button class="perfil-boton editar-tipo-anadir">${icono("mas")} ${t("Añadir tipo")}</button>`;
+}
+
 function panelCuenta() {
   return `
     <h3>${t("Borrar mi cuenta")}</h3>
@@ -851,7 +1043,7 @@ function panelCuenta() {
 
 const PANELES = {
   foto: panelFoto, sobre: panelSobreMi, titulo: panelTitulo, marco: panelMarco, fondo: panelFondo,
-  color: panelColor, equipos: panelEquipos, lockes: panelLockes, cuenta: panelCuenta
+  color: panelColor, equipos: panelEquipos, lockes: panelLockes, tipos: panelTipos, cuenta: panelCuenta
 };
 
 // La ventana entera, del color de la persona (en el modo editar, del que estás eligiendo)
@@ -870,15 +1062,12 @@ function pintarEditar() {
   cuerpo.classList.add("editando");
   teñir(perfilEditado());
   const cambia = hayCambios();
+  // Tres columnas, cada una en su caja: los apartados, lo del apartado elegido y, a la derecha,
+  // «Guardar cambios» (arriba, a la altura de la aspa) y cómo te ven. Sin «Cancelar»: ya está la aspa.
   cuerpo.innerHTML = `
-    <header class="editar-barra">
-      <h2>${t("Editar perfil")}</h2>
-      <span class="editar-nota">${errorEditar ? `<span class="perfil-error">${escaparHTML(errorEditar)}</span>` : cambia ? t("Hay cambios sin guardar") : ""}</span>
-      <button class="editar-cancelar" ${guardando ? "disabled" : ""}>${t("Cancelar")}</button>
-      <button class="editar-guardar" ${guardando || !cambia ? "disabled" : ""}>${icono("visto")} ${guardando ? t("Guardando...") : t("Guardar cambios")}</button>
-    </header>
     <div class="editar-cuerpo">
       <nav class="editar-menu" aria-label="${t("Apartados")}">
+        <h2>${t("Editar perfil")}</h2>
         ${APARTADOS.map(
           (cada) => `<button class="${cada.id === apartado ? "activo" : ""}" data-apartado="${cada.id}">${icono(cada.icono)} ${cada.nombre()}</button>`
         ).join("")}
@@ -886,10 +1075,16 @@ function pintarEditar() {
         <button class="peligro ${apartado === "cuenta" ? "activo" : ""}" data-apartado="cuenta">${icono("papelera")} ${t("Borrar mi cuenta")}</button>
       </nav>
       <div class="editar-panel" data-apartado="${apartado}">${PANELES[apartado]()}</div>
-      <div class="editar-vista">
-        <span class="editar-asi">${t("Así te ven")}</span>
-        ${plantillaFicha(perfilEditado(), { mio: true, vistaPrevia: true })}
-      </div>
+      <aside class="editar-lado">
+        <div class="editar-acciones">
+          <button class="editar-guardar" ${guardando || !cambia ? "disabled" : ""}>${icono("visto")} ${guardando ? t("Guardando...") : t("Guardar cambios")}</button>
+        </div>
+        <span class="editar-nota">${errorEditar ? `<span class="perfil-error">${escaparHTML(errorEditar)}</span>` : cambia ? t("Hay cambios sin guardar") : ""}</span>
+        <div class="editar-vista">
+          <span class="editar-asi">${t("Resumen")}</span>
+          ${plantillaFicha(perfilEditado(), { mio: true, vistaPrevia: true })}
+        </div>
+      </aside>
     </div>`;
   cuerpo.querySelector(".editar-panel").scrollTop = bajadoPanel;
   dialogo.scrollTop = bajadoVentana;
@@ -899,7 +1094,7 @@ function pintarEditar() {
 function refrescarVistaPrevia() {
   const vista = cuerpo.querySelector(".editar-vista");
   if (!vista || !borrador) return;
-  vista.innerHTML = `<span class="editar-asi">${t("Así te ven")}</span>${plantillaFicha(perfilEditado(), { mio: true, vistaPrevia: true })}`;
+  vista.innerHTML = `<span class="editar-asi">${t("Resumen")}</span>${plantillaFicha(perfilEditado(), { mio: true, vistaPrevia: true })}`;
   const cambia = hayCambios();
   const nota = cuerpo.querySelector(".editar-nota");
   if (nota && !errorEditar) nota.textContent = cambia ? t("Hay cambios sin guardar") : "";
@@ -1253,6 +1448,10 @@ function alPulsarEditando(boton) {
     moverDestacado(Number(boton.dataset.indice), 1);
   } else if (boton.classList.contains("editar-quitar")) {
     borrador.escaparate.splice(Number(boton.dataset.indice), 1);
+  } else if (boton.classList.contains("editar-tipo-quitar")) {
+    borrador.tipos.splice(Number(boton.dataset.indice), 1);
+  } else if (boton.classList.contains("editar-tipo-anadir")) {
+    borrador.tipos.push({ id: nuevoId(), nombre: "", color: "#9b59b6" });
   } else if (boton.classList.contains("editar-palmares")) {
     gestionarPalmares().catch(siFalla);
     return true;
@@ -1270,6 +1469,13 @@ cuerpo.addEventListener("click", (e) => {
   if (editando && !viendo) {
     alPulsarEditando(boton);
     return;
+  }
+
+  // Lo de tu perfil con el diseño de Amigos: «Ver todos» o «+n», abrir un locke, ir a un amigo
+  if (modAmigos && boton.closest(".amigo-p-mio")) {
+    if (boton.classList.contains("amigo-ver-mas")) return modAmigos.abrirTodo(boton.dataset.ver, true);
+    if (boton.classList.contains("junto-abrir")) return void modAmigos.abrirElLocke(boton.dataset.locke).catch(siFalla);
+    if (boton.classList.contains("amigo-su-amigo")) return modAmigos.abrirSuAmigo(boton.dataset.uid);
   }
 
   if (boton.classList.contains("perfil-editar")) empezarAEditar();
@@ -1319,6 +1525,11 @@ cuerpo.addEventListener("input", (e) => {
   else if (campo.classList.contains("editar-sobre-mi")) borrador.sobreMi = campo.value;
   else if (campo.classList.contains("editar-horario")) borrador.horario = campo.value;
   else if (campo.classList.contains("editar-busca")) borrador.busca = campo.checked;
+  else if (campo.classList.contains("editar-tipo-nombre")) borrador.tipos[Number(campo.closest(".editar-tipo").dataset.indice)].nombre = campo.value;
+  else if (campo.classList.contains("editar-tipo-color")) {
+    borrador.tipos[Number(campo.closest(".editar-tipo").dataset.indice)].color = campo.value;
+    campo.parentElement.style.background = campo.value;
+  }
   else return;
   if (campo.classList.contains("editar-nombre") && errorEditar) {
     errorEditar = "";

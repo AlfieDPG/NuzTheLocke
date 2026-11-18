@@ -7,15 +7,14 @@
 // tu palmarés. Lo que ganes en «Lockes» se apunta solo.
 
 import { imagenConRespaldo } from "../comun/imagenes.js";
-import { activarArrastre } from "../comun/arrastrar.js";
 import { elegirEquipo, caraDePokemon, carasDeEquipo } from "../comun/elegir-equipo.js";
 import { fondoDe, claseFondo, estiloFondo } from "../comun/fondos.js";
-import { marcoDe, claseMarco, fondoVisual, plantillaTituloDe } from "../comun/fichas.js";
+import { marcoDe, claseMarco, claseMarcoDe, fondoVisual, plantillaTituloDe, rgbDePerfil } from "../comun/fichas.js";
 import { icono } from "../comun/iconos.js";
 import { campoNumero } from "../comun/numero.js";
 import { escaparHTML, fechaLarga } from "../comun/utilidades.js";
 import {
-  plantillaCampoJuego, activarCamposJuego, leerCampoJuego, nombreJuego
+  plantillaCampoJuego, activarCamposJuego, leerCampoJuego, nombreJuego, nombreJuegoJugado
 } from "../comun/campo-juego.js";
 import { hayNube, usuarioActual } from "../comun/nube.js";
 import { estaConectado, alCambiarPresencia, directoDe } from "../comun/presencia.js";
@@ -26,18 +25,18 @@ import {
   TIPOS_POR_DEFECTO, alCambiarMiPerfil, alCambiarAmistades, miPerfil, fallaElPerfil, tiposDe, tiposParaFicha,
   amigosAceptados, solicitudesRecibidas, solicitudesEnviadas, fallaLasAmistades,
   perfilesDeAmigos, alCambiarPerfilesAmigos, buscarAmigo, pedirAmistad, aceptarAmistad, borrarAmistad,
-  guardarMiPerfil, nuevoId, colorDeTipo, lockesJugados
+  guardarMiPerfil, nuevoId, colorDeTipo, lockesJugados, relacionCon
 } from "../comun/perfiles.js";
-import { haySinLeer, alCambiarChats } from "../comun/chat.js";
+import { haySinLeer, alCambiarChats, estaBloqueado, bloquear, desbloquear } from "../comun/chat.js";
+import { misLockes, estadoDe as estadoEnLocke, puestosDe, puestoFinal, alCambiarLockes } from "../comun/lockes.js";
 import { confirmar } from "../comun/ventanas.js";
 import { leer, escribir } from "../comun/almacen.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
 let seccion = null;
 let lista = null;
-let solicitudes = null;
 let aviso = null;
-let campoCorreo = null;
+let textoFiltro = ""; // lo escrito en «Buscar entre tus amigos»
 let dialogoTipos = null;
 let dialogoPalmares = null;
 
@@ -51,20 +50,6 @@ function colorSeguro(color) {
 
 // ---------- Plantillas ----------
 
-function etiquetaTipo(nombre, total) {
-  if (total === 1 || /s$/i.test(nombre)) return nombre;
-  return `${nombre}s`;
-}
-
-// Los jugados de ese tipo en grande y, debajo, cuántos de ellos ganó
-function plantillaContador(tipo, total, ganados) {
-  return `
-    <div class="contador-locke" style="--color-locke: ${colorDeTipo(tipo)}">
-      <span class="contador-numero">${total}</span>
-      <span class="contador-tipo">${escaparHTML(etiquetaTipo(tipo.nombre, total))}</span>
-      <span class="contador-ganados">${icono("corona")}${t(ganados === 1 ? "{n} ganado" : "{n} ganados", { n: ganados })}</span>
-    </div>`;
-}
 
 // Lockes que se ven de entrada en una lista; el resto, detrás de «Ver todos»
 const MOSTRAR_DE_ENTRADA = 5;
@@ -112,42 +97,6 @@ function plantillaListaGanados(jugados) {
   );
 }
 
-// Pulsando una ficha se abre o se cierra su lista de lockes, bajando o subiendo poco a poco (lo
-// de debajo también). Sin lockes no hay nada que enseñar: se queda como está.
-const sinAnimaciones = matchMedia("(prefers-reduced-motion: reduce)");
-
-function desplegarFicha(ficha) {
-  const lockes = ficha.querySelector(".lockes-ganados");
-  if (!lockes || !lockes.children.length) return;
-  // Mientras se cierra aún no lleva «plegada»: pulsar otra vez la vuelve a abrir
-  const abrir = ficha.classList.contains("plegada") || ficha.classList.contains("cerrando");
-  for (const animacion of lockes.getAnimations()) animacion.cancel();
-  ficha.classList.remove("cerrando");
-  if (sinAnimaciones.matches) {
-    ficha.classList.toggle("plegada", !abrir);
-    return;
-  }
-
-  ficha.classList.remove("plegada");
-  // El hueco entre la lista y lo de arriba (el gap de la ficha) también crece y se encoge
-  const hueco = parseFloat(getComputedStyle(ficha).rowGap) || 0;
-  const abierta = { height: `${lockes.offsetHeight}px`, marginTop: "0px", opacity: 1 };
-  const cerrada = { height: "0px", marginTop: `${-hueco}px`, opacity: 0 };
-  lockes.style.overflow = "hidden";
-  if (!abrir) ficha.classList.add("cerrando");
-  const animacion = lockes.animate(abrir ? [cerrada, abierta] : [abierta, cerrada], {
-    duration: 220,
-    easing: "ease-in-out",
-    fill: abrir ? "none" : "forwards" // al cerrar, cerrada hasta que se esconda de verdad
-  });
-  animacion.onfinish = () => {
-    lockes.style.overflow = "";
-    if (abrir) return;
-    ficha.classList.remove("cerrando");
-    ficha.classList.add("plegada");
-    animacion.cancel();
-  };
-}
 
 // Abre o cierra el resto de una lista
 function alternarVerTodos(boton) {
@@ -330,24 +279,6 @@ function abrirFlotante(elemento, ganado, ficha) {
   flotante.style.top = `${Math.round(Math.max(margen, arriba))}px`;
 }
 
-// Botones de la esquina. No plegan la ficha: lo para el oyente del click.
-function plantillaAcciones(ficha) {
-  if (ficha.mia) {
-    return `
-      <div class="ficha-acciones">
-        <button class="accion-estadisticas" title="${t("Estadísticas")}">${icono("estadisticas")}</button>
-        <button class="accion-tipos" title="${t("Tipos de locke")}">${icono("etiqueta")}</button>
-        <button class="accion-palmares" title="${t("Editar mis lockes")}">${icono("lapiz")}</button>
-      </div>`;
-  }
-
-  return `
-    <div class="ficha-acciones">
-      <button class="accion-chat ${haySinLeer(ficha.clave) ? "sin-leer" : ""}" title="${t("Chat")}">${icono("mensaje")}</button>
-      <button class="accion-estadisticas" title="${t("Estadísticas y cara a cara")}">${icono("estadisticas")}</button>
-      <button class="accion-quitar" title="${t("Quitar de amigos")}">${icono("aspa")}</button>
-    </div>`;
-}
 
 // ---------- Cara a cara ----------
 //
@@ -402,13 +333,7 @@ function htmlComparacion(uid) {
   const claseMia = mias > suyas ? "gana" : mias < suyas ? "pierde" : "";
   const claseSuya = suyas > mias ? "gana" : suyas < mias ? "pierde" : "";
 
-  let resumen = t("Todavía no habéis jugado ningún locke juntos.");
-  if (juntos) {
-    resumen = t(juntos === 1 ? "{n} locke jugado juntos" : "{n} lockes jugados juntos", { n: juntos });
-    if (enMarcha) resumen += ` · ${t("{n} en marcha", { n: enMarcha })}`;
-    const otros = juntos - enMarcha - mias - suyas;
-    if (otros > 0) resumen += ` · ${t("{n} los ganó otra persona", { n: otros })}`;
-  }
+  const resumen = textoResumen({ juntos, enMarcha, mias, suyas });
 
   return `
     <div class="cara-a-cara">
@@ -421,55 +346,6 @@ function htmlComparacion(uid) {
     ${jugados.length ? plantillaListaCaraACara(jugados, mio, suyo) : ""}`;
 }
 
-function plantillaFicha(ficha) {
-  const alt = escaparHTML(ficha.nombre);
-
-  // La dirección de la foto se escapa igual que el resto: viene del perfil de otra
-  // persona y acaba dentro de un atributo. Las entidades (&amp;) las deshace el navegador.
-  const urls = ficha.urls.map(escaparHTML);
-  const imagen = urls.length
-    ? imagenConRespaldo(urls, `alt="${alt}" draggable="false" referrerpolicy="no-referrer" data-quitar-si-falla`)
-    : "";
-
-  const tipos = ficha.tipos
-    .map((tipo) => {
-      const delTipo = ficha.jugados.filter((jugado) => jugado.tipo && jugado.tipo.id === tipo.id);
-      return plantillaContador(tipo, delTipo.length, delTipo.filter((jugado) => jugado.gano).length);
-    })
-    .join("");
-
-  const conectado = !ficha.mia && estaConectado(ficha.clave);
-
-  return `
-    <article class="ficha-jugador plegada ${ficha.mia ? "mia" : ""} ${conectado ? "conectado" : ""} ${claseFondo(ficha.fondo)}"
-             style="${estiloFondo(ficha.fondo)}"
-             draggable="true" data-clave="${escaparHTML(ficha.clave)}"
-             ${ficha.jugados.length ? `title="${t("Pulsa para ver los lockes")}"` : ""}>
-      ${plantillaAcciones(ficha)}
-      <header class="ficha-cabeza">
-        <div class="jugador-foto ${claseMarco(ficha.marco)}" data-inicial="${escaparHTML(ficha.nombre[0] || "?")}" data-perfil="${escaparHTML(ficha.clave)}" title="${t("Ver perfil")}">${imagen}</div>
-        <div class="ficha-quien">
-          <h2 class="jugador-nombre">${alt}</h2>
-          ${ficha.titulo || ""}
-          ${!ficha.mia && conectado
-              ? `<span class="jugador-estado" title="${t("Tiene la web abierta")}"><span class="punto-conectado"></span>${t("Conectado")}</span>`
-              : ""}
-          ${ficha.mia ? "" : plantillaDirecto(ficha.clave)}
-        </div>
-      </header>
-
-      <div class="contadores-locke">${tipos}</div>
-
-      <ul class="lockes-ganados lista-plegable">${plantillaListaGanados(ficha.jugados)}</ul>
-    </article>`;
-}
-
-// Si está jugando en directo desde «Jugar» (js/jugar/directo.js): el botón para verlo
-function plantillaDirecto(uid) {
-  const juego = directoDe(uid);
-  return `<button class="ver-directo" ${juego ? "" : "hidden"} title="${escaparHTML(t("Ver su partida en directo: {juego}", { juego }))}">
-            <span class="directo-punto"></span>${t("En directo")}</button>`;
-}
 
 // ---------- Armar la lista de fichas ----------
 
@@ -488,127 +364,845 @@ function fichaDePerfil(perfil, mia) {
   };
 }
 
+// ---------- La lista y el amigo elegido ----------
+//
+// A la izquierda, tus amigos ordenados solos: en directo, conectados y el resto. A la derecha, el que
+// has pulsado: lo que tenéis en común (el cara a cara y los lockes en marcha) y sus lockes. Su perfil
+// entero se abre con su foto o con «Ver perfil»; aquí no se repite.
+
+let elegido = "";            // uid del amigo que se ve a la derecha
+let filtroLista = "todos";   // "todos" | "conectados"
+let columna = null;          // la lista de amigos
+let panel = null;            // el amigo elegido
+let botonSolicitudes = null;
+let ventanaSolicitudes = null;
+let pestanaSolicitudes = "recibidas";
+const conTodosAbierto = new Set(); // amigos con «Ver todos» desplegado en sus lockes
+
+const ORDEN_SITUACION = { vivo: 0, on: 1, off: 2 };
+
+// En directo (jugando desde «Jugar»), conectado (con la web abierta) o desconectado
+function situacionDe(uid) {
+  return directoDe(uid) ? "vivo" : estaConectado(uid) ? "on" : "off";
+}
+
+function textoSituacion(uid, situacion) {
+  if (situacion === "vivo") return t("Jugando: {juego}", { juego: directoDe(uid) });
+  return situacion === "on" ? t("Conectado") : t("Desconectado");
+}
+
+// La foto con su marco; con «perfilar», pulsarla abre su perfil entero
+function plantillaFoto(ficha, tamano, perfilar = false) {
+  const urls = ficha.urls.map(escaparHTML);
+  const imagen = urls.length
+    ? imagenConRespaldo(urls, `alt="${escaparHTML(ficha.nombre)}" draggable="false" referrerpolicy="no-referrer" data-quitar-si-falla`)
+    : "";
+  const perfil = perfilar ? `data-perfil="${escaparHTML(ficha.clave)}" title="${t("Ver perfil")}"` : "";
+  return `<span class="jugador-foto ${claseMarco(ficha.marco)}" style="--foto: ${tamano}rem" data-inicial="${escaparHTML(ficha.nombre[0] || "?")}" ${perfil}>${imagen}</span>`;
+}
+
+// «3–1»: lo que habéis ganado tú y él en los lockes que habéis jugado juntos
+function marcadorCon(perfil) {
+  const mio = miPerfil();
+  if (!mio) return "0 – 0";
+  // Siempre los dos números (0 – 0 si aún no habéis jugado ninguno), con aire alrededor de la raya
+  const { mias, suyas } = caraACara(mio, perfil);
+  return `${mias} – ${suyas}`;
+}
+
+function plantillaFila(ficha, perfil) {
+  const situacion = situacionDe(ficha.clave);
+  // Su fondo, en la tarjeta misma (como en la portada de su perfil)
+  const fondo = fondoVisual(perfil);
+  return `
+    <button class="amigo-fila ${fondo.clase} ${situacion} ${ficha.clave === elegido ? "elegida" : ""} ${haySinLeer(ficha.clave) ? "sin-leer" : ""}" data-clave="${escaparHTML(ficha.clave)}" data-situacion="${situacion}" draggable="true" style="--color-vista: ${rgbDePerfil(perfil)}; ${fondo.estilo}">
+      ${plantillaFoto(ficha, 2.7)}
+      <span class="amigo-fila-quien">
+        <b class="amigo-fila-nombre">${escaparHTML(ficha.nombre)}</b>
+        <span class="amigo-fila-estado"><span class="amigo-punto"></span>${escaparHTML(textoSituacion(ficha.clave, situacion))}</span>
+      </span>
+      <span class="amigo-fila-marcador" title="${t("Victorias: tú – {nombre}", { nombre: escaparHTML(ficha.nombre) })}">
+        <b>${marcadorCon(perfil)}</b><small>${t("contigo")}</small>
+      </span>
+    </button>`;
+}
+
+// Los lockes de «Lockes» que habéis jugado los dos: primero los que están en marcha y luego los
+// terminados, del más reciente al más antiguo
+function lockesJugadosJuntos(uid) {
+  const cuando = (locke) => (locke.fechaFin ? Date.parse(locke.fechaFin) : Number(new Date(locke.creado || 0))) || 0;
+  return misLockes()
+    .filter((locke) => (locke.jugadores || []).includes(uid) && estadoEnLocke(locke, uid) === "aceptado")
+    .sort((uno, otro) => Number(uno.estado === "cerrado") - Number(otro.estado === "cerrado") || cuando(otro) - cuando(uno));
+}
+
+// Un locke jugado juntos, siempre del mismo alto: arriba su nombre y «Abrir»; debajo, el tipo y el
+// juego (y si está en marcha); y debajo, quiénes jugáis, pegados a la izquierda y por puesto, con la
+// medalla de oro, plata o bronce en la foto (la de Lockes). Como mucho cuatro: con más, tres y «+n».
+const JUNTOS_CARAS = 4;
+
+function medallaDePuesto(puesto) {
+  if (!puesto || puesto > 3) return "";
+  return `<span class="locke-resumen-galardon puesto-${puesto}" data-puesto="${puesto}" aria-hidden="true"></span>`;
+}
+
+function plantillaLockeJunto(locke) {
+  const tipo = locke.tipo || TIPOS_POR_DEFECTO[0];
+  const juego = nombreJuegoJugado(locke, (usuarioActual() || {}).uid);
+  const enMarcha = locke.estado !== "cerrado";
+  const ranking = enMarcha ? puestosDe(locke) : null;
+  const puesto = (uid) => (enMarcha ? (ranking && ranking.puestos[uid]) || 0 : puestoFinal(locke, uid));
+  const jugadores = (locke.jugadores || []).filter((uid) => estadoEnLocke(locke, uid) === "aceptado");
+  const ordenados = [...jugadores].sort((a, b) => (puesto(a) || 99) - (puesto(b) || 99));
+  const caben = ordenados.length > JUNTOS_CARAS ? JUNTOS_CARAS - 1 : JUNTOS_CARAS;
+  const yo = (usuarioActual() || {}).uid;
+
+  const personas = ordenados.slice(0, caben).map((uid) => {
+    const nombre = (locke.nombres || {})[uid] || t("Jugador");
+    // La foto de ahora (la tuya o la de tu amigo) y, si no, la que se guardó en el locke
+    const perfil = uid === yo ? miPerfil() : perfilesDeAmigos().get(uid);
+    const foto = (perfil && perfil.foto) || (locke.fotos || {})[uid] || "";
+    const n = puesto(uid);
+    const titulo = n && n <= 3 ? `${nombre} · ${t("Puesto {n}", { n })}` : nombre;
+    return `
+      <span class="junto-persona" title="${escaparHTML(titulo)}">
+        <span class="junto-cara ${claseMarcoDe(uid)}">${foto
+          ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer" data-quitar-si-falla>`
+          : escaparHTML((nombre[0] || "?").toUpperCase())}${medallaDePuesto(n)}</span>
+        <span class="junto-nombre">${escaparHTML(nombre)}</span>
+      </span>`;
+  });
+  const mas = ordenados.length - caben;
+
+  return `
+    <article class="junto-locke ${enMarcha ? "en-marcha" : "terminado"}" style="--color-locke: ${colorDeTipo(tipo)}">
+      <h4>${escaparHTML(locke.nombre)}</h4>
+      <button class="junto-abrir" data-locke="${escaparHTML(locke.id)}">${t("Abrir")}</button>
+      <span class="junto-tipo">${escaparHTML(tipo.nombre)}${juego ? ` · ${escaparHTML(juego)}` : ""}${enMarcha ? ` · <b class="junto-en-marcha">${t("En marcha")}</b>` : ""}</span>
+      <div class="junto-personas">
+        ${personas.join("")}
+        ${mas > 0 ? `<span class="junto-mas" title="${t("y {n} más", { n: mas })}">+${mas}</span>` : ""}
+      </div>
+    </article>`;
+}
+
+// Las frases de arriba del cara a cara («5 lockes jugados juntos · 1 en marcha...»)
+function textoResumen({ juntos, enMarcha, mias, suyas }) {
+  let resumen = t("Todavía no habéis jugado ningún locke juntos.");
+  if (juntos) {
+    resumen = t(juntos === 1 ? "{n} locke jugado juntos" : "{n} lockes jugados juntos", { n: juntos });
+    if (enMarcha) resumen += ` · ${t("{n} en marcha", { n: enMarcha })}`;
+    const otros = juntos - enMarcha - mias - suyas;
+    if (otros > 0) resumen += ` · ${t("{n} los ganó otra persona", { n: otros })}`;
+  }
+  return resumen;
+}
+
+// El amigo elegido: su perfil entero (el mismo que en la ventana, ver plantillaPerfilIncrustado en
+// js/perfil.js) y, de lo de Amigos, arriba de su columna derecha el cara a cara y los lockes que
+// jugáis, en «Lockes» cuántos de cada tipo y en la ficha ver su partida y «⋯».
+let modPerfil = null; // js/perfil.js, cuando ha cargado
+
+// Los huecos de cada tarjeta: siempre los mismos, tenga lo que tenga. Lo que falta, con borde de
+// puntos; lo que no cabe, con «Ver todos» (una ventana con todo).
+const HUECOS_EQUIPOS = 3;
+const HUECOS_CARAS = 6;
+const HUECOS_JUNTOS = 3;      // jugados juntos / en marcha (debajo de los equipos): tres líneas cada uno
+const HUECOS_LOCKES_MIO = 8;  // en tu perfil, los lockes ocupan la columna entera
+const HUECOS_LOCKES = 7;      // los lockes del amigo, finitos, debajo del cara a cara
+const HUECOS_EN_MARCHA = 2;   // en tu perfil, tus lockes en marcha (con sitio para el tipo y el juego)
+const HUECOS_TIPOS = 6;   // en la portada, dos columnas de tres; con más, cinco y «+n»
+const HUECOS_COLECCION = 21; // 3 filas de 7
+const HUECOS_AMIGOS = 5;     // el quinto, si tiene más, es «+n»
+
+function cabezaCaja(titulo, cuenta = "", boton = "") {
+  return `<header class="amigo-tarjeta-cabeza"><h3>${titulo}</h3>${cuenta ? `<small>${cuenta}</small>` : ""}${boton}</header>`;
+}
+
+// n huecos: los que hay y, hasta completar, vacíos con borde de puntos
+function huecos(llenos, total, clase) {
+  return [...llenos.slice(0, total), ...Array.from({ length: Math.max(0, total - llenos.length) }, () => `<span class="${clase} hueco-vacio"></span>`)].join("");
+}
+
+// Igual, pero si hay más de los que caben, el último hueco es «+n» y abre «Ver todos»
+function huecosConMas(llenos, total, clase, ver) {
+  if (llenos.length <= total) return huecos(llenos, total, clase);
+  const sobran = llenos.length - (total - 1);
+  return `${llenos.slice(0, total - 1).join("")}<button class="${clase} amigo-ver-mas amigo-mas-hueco" data-ver="${ver}" title="${t("Ver todos ({n})", { n: llenos.length })}">+${sobran}</button>`;
+}
+
+// «Ver todos (n)» en la cabeza de una tarjeta con lista, si no caben
+function botonVerTodosCaja(cuantos, caben, ver) {
+  return cuantos > caben ? `<button class="perfil-mini amigo-ver-mas" data-ver="${ver}">${t("Ver todos ({n})", { n: cuantos })}</button>` : "";
+}
+
+// Una lista de altura fija: n huecos del mismo alto. Sin nada, el primero dice por qué.
+function listaFija(llenos, total, vacio) {
+  const vacios = Array.from({ length: Math.max(0, total - llenos.length) }, (_, i) =>
+    `<div class="amigo-fila-hueco hueco-vacio">${!llenos.length && i === 0 ? vacio : ""}</div>`
+  );
+  return `<div class="amigo-lista-fija" style="--huecos: ${total}">${[...llenos.slice(0, total), ...vacios].join("")}</div>`;
+}
+
+// Cuántos lockes ha jugado de cada tipo (Locke, Randomlocke...) y cuántos ganó: una tarjetita de
+// su color por tipo, todas del mismo ancho (el nombre, cortado si es largo). Van en la portada.
+function plaquitasDeTipos(ficha) {
+  return ficha.tipos
+    .map((tipo) => {
+      const delTipo = ficha.jugados.filter((jugado) => jugado.tipo && jugado.tipo.id === tipo.id);
+      if (!delTipo.length) return "";
+      const ganados = delTipo.filter((jugado) => jugado.gano).length;
+      return `
+        <span class="amigo-portada-tipo" style="--color-locke: ${colorDeTipo(tipo)}" title="${escaparHTML(`${tipo.nombre}: ${delTipo.length}`)}">
+          <b>${delTipo.length}</b>
+          <span class="amigo-portada-tipo-nombre">${escaparHTML(tipo.nombre)}</span>
+          <small>${icono("corona")}${ganados}</small>
+        </span>`;
+    })
+    .filter(Boolean);
+}
+
+// Uno de sus amigos, con su foto y su marco
+function caraDeSuAmigo(amigo) {
+  const yo = (usuarioActual() || {}).uid;
+  const soyYo = amigo.uid === yo;
+  const fichaAmigo = fichaDePerfil(soyYo ? miPerfil() || amigo : amigo, soyYo);
+  return `
+    <button class="amigo-su-amigo" data-uid="${escaparHTML(amigo.uid)}" title="${escaparHTML(fichaAmigo.nombre)}">
+      ${plantillaFoto(fichaAmigo, 2.5)}
+      <span class="amigo-su-amigo-nombre">${escaparHTML(soyYo ? t("Tú") : fichaAmigo.nombre)}</span>
+    </button>`;
+}
+
+// Lo que enseña «Ver todos» de cada tarjeta (se pinta al abrirla): la del amigo elegido y la de tu
+// perfil (la ventana del perfil, js/perfil.js), que pueden estar pintadas a la vez
+const verTodo = { amigo: {}, mio: {} };
+let dialogoTodo = null;
+
+export function abrirTodo(clave, mio = false) {
+  const que = verTodo[mio ? "mio" : "amigo"][clave];
+  if (!que || !dialogoTodo) return;
+  dialogoTodo.querySelector(".amigo-todo-titulo").textContent = que.titulo;
+  const cuerpo = dialogoTodo.querySelector(".amigo-todo-cuerpo");
+  cuerpo.className = `amigo-todo-cuerpo ${que.clase}`;
+  cuerpo.innerHTML = que.html();
+  const color = mio ? rgbDePerfil(miPerfil()) : panel.style.getPropertyValue("--color-vista");
+  dialogoTodo.style.setProperty("--color-vista", color);
+  if (!dialogoTodo.open) dialogoTodo.showModal();
+  cuerpo.scrollTop = 0;
+}
+
+// Los tipos en la portada: recuadros como las cifras, en una rejilla de 3 × 2 que se llena desde
+// el lado de las cifras (el sexto, si aún hay más, es «+n» y abre todos). La rejilla guarda su
+// sitio aunque esté vacía: así lo demás no se mueve de un amigo a otro.
+function plantillaTiposPortada(tipos) {
+  const vistos = tipos.length > HUECOS_TIPOS
+    ? [...tipos.slice(0, HUECOS_TIPOS - 1), `<button class="amigo-portada-tipo amigo-ver-mas amigo-portada-tipo-mas" data-ver="tipos" title="${t("Ver todos ({n})", { n: tipos.length })}">+${tipos.length - (HUECOS_TIPOS - 1)}</button>`]
+    : tipos;
+  return `<div class="amigo-portada-tipos">${vistos.join("")}</div>`;
+}
+
+function plantillaPanel(ficha, perfil) {
+  if (!modPerfil) return `<p class="perfil-vacio amigo-cargando">${t("Cargando...")}</p>`;
+  const piezas = modPerfil.piezasDelPerfil(ficha.clave);
+  if (!piezas) return `<p class="perfil-vacio amigo-cargando">${t("Cargando...")}</p>`;
+  return plantillaRejilla(ficha, perfil, piezas, false);
+}
+
+// Tu perfil (la ventana de «Mi perfil», js/perfil.js), con el mismo diseño que el de un amigo en
+// «Amigos»: la misma portada y las mismas tarjetas, salvo la primera columna (en vez del cara a cara
+// y los jugados juntos, «Tu perfil» con «Editar perfil» y tus lockes en marcha), sin Chat ni Retar.
+export function plantillaMiPerfil(piezas) {
+  const perfil = miPerfil();
+  if (!perfil || !piezas) return `<p class="perfil-vacio amigo-cargando">${t("Cargando...")}</p>`;
+  return plantillaRejilla(fichaDePerfil(perfil, true), perfil, piezas, true);
+}
+
+// Tus lockes en marcha (en los que estás dentro)
+function misLockesEnMarcha() {
+  const yo = (usuarioActual() || {}).uid;
+  return misLockes().filter((locke) => locke.estado !== "cerrado" && estadoEnLocke(locke, yo) === "aceptado");
+}
+
+function plantillaRejilla(ficha, perfil, piezas, esMio) {
+  const mio = miPerfil();
+  const cara = esMio ? null : caraACara(mio, perfil);
+  const juego = directoDe(ficha.clave);
+  const situacion = situacionDe(ficha.clave);
+  const fichaMia = fichaDePerfil(mio, true);
+  const fondo = fondoVisual(perfil);
+  const texto = (perfil.sobreMi || "").trim();
+  const horario = (perfil.horario || "").trim();
+  const juntos = (esMio ? misLockesEnMarcha() : lockesJugadosJuntos(ficha.clave)).map(plantillaLockeJunto);
+  const lockes = piezas.historial.lockes;
+  const tipos = plaquitasDeTipos(ficha);
+  const nombre = escaparHTML(ficha.nombre);
+  // Solo se pintan los que caben (los demás cuentan para el «+n»)
+  const susAmigos = [...piezas.amigos.perfiles.slice(0, HUECOS_AMIGOS).map(caraDeSuAmigo), ...Array(Math.max(0, piezas.amigos.perfiles.length - HUECOS_AMIGOS)).fill("")];
+
+  verTodo[esMio ? "mio" : "amigo"] = {
+    juntos: { titulo: esMio ? t("Tus lockes en marcha") : t("Jugados juntos"), clase: "en-lista", html: () => juntos.join("") },
+    lockes: { titulo: t("Lockes de {nombre}", { nombre: ficha.nombre }), clase: "en-lista", html: () => lockes.join("") },
+    tipos: { titulo: t("Tipos de locke de {nombre}", { nombre: ficha.nombre }), clase: "en-tipos", html: () => tipos.join("") },
+    coleccion: { titulo: t("Colección de {nombre}", { nombre: ficha.nombre }), clase: "en-coleccion", html: () => piezas.coleccion.caras.join("") },
+    amigos: { titulo: t("Amigos de {nombre}", { nombre: ficha.nombre }), clase: "en-amigos", html: () => piezas.amigos.perfiles.map(caraDeSuAmigo).join("") }
+  };
+
+  const cifra = (numero, etiqueta) => `<span><b>${numero ?? "–"}</b><small>${etiqueta}</small></span>`;
+  const cifras = [
+    cifra(ficha.jugados.length, t("lockes")),
+    cifra((perfil.ganados || []).length, t("ganados")),
+    cifra(piezas.logros.hechos, t("logros")),
+    cifra(piezas.coleccion.cargando ? null : piezas.coleccion.especies, t("especies")),
+    cifra(piezas.amigos.total, t("amigos")),
+    esMio ? cifra(juntos.length, t("en marcha")) : cifra(cara.juntos, t("juntos"))
+  ].join("");
+
+  // Lo que está haciendo: si juega en directo, la etiqueta misma lleva a su partida
+  const estado = esMio
+    ? ""
+    : juego
+    ? `<button class="amigo-chip vivo ver-directo" title="${escaparHTML(t("Ver su partida en directo: {juego}", { juego }))}"><span class="amigo-punto"></span>${escaparHTML(textoSituacion(ficha.clave, situacion))} · ${t("Ver")}</button>`
+    : `<span class="amigo-chip ${situacion}"><span class="amigo-punto"></span>${escaparHTML(textoSituacion(ficha.clave, situacion))}</span>`;
+
+  // En una línea: el nombre, su título y cómo está (y si busca compañeros, y su horario)
+  const portada = `
+    <header class="amigo-portada ${fondo.clase}" style="${fondo.estilo}">
+      <span class="perfil-ficha-foto amigo-portada-foto ${claseMarco(marcoDe(perfil))}">${piezas.foto}</span>
+      <div class="amigo-portada-quien">
+        <h2 class="amigo-portada-nombre-solo">${nombre}</h2>
+        <div class="amigo-portada-nombre">
+          ${plantillaTituloDe(perfil)}
+          ${estado}
+          ${perfil.busca ? `<span class="amigo-chip busca">${icono("persona")} ${t("Busca compañeros")}</span>` : ""}
+          ${horario ? `<span class="amigo-chip amigo-chip-horario" title="${escaparHTML(horario)}">${icono("calendario")} <span>${escaparHTML(horario)}</span></span>` : ""}
+        </div>
+        <p class="amigo-portada-frase" ${texto ? `title="${escaparHTML(texto)}"` : ""}>${texto ? `«${escaparHTML(texto)}»` : ""}</p>
+      </div>
+      ${plantillaTiposPortada(tipos)}
+      <div class="amigo-portada-cifras">${cifras}</div>
+    </header>`;
+
+  const equipos = piezas.equipos.map(
+    (equipo) => `
+      <article class="amigo-equipo">
+        <b class="amigo-equipo-nombre">${escaparHTML(equipo.nombre)}</b>
+        <div class="amigo-equipo-tira">
+          ${huecos(equipo.caras.map((cara) => `<span class="amigo-equipo-cara">${cara}</span>`), HUECOS_CARAS, "amigo-equipo-cara")}
+          <button class="perfil-copiar" data-indice="${equipo.indice}" title="${t("Copiar como paste")}" aria-label="${t("Copiar como paste")}">${icono("copiar")}</button>
+        </div>
+      </article>`
+  );
+  const equiposVacios = Array.from(
+    { length: HUECOS_EQUIPOS - equipos.length },
+    () => `<div class="amigo-equipo hueco-vacio"><span>${t("Sin equipo destacado")}</span></div>`
+  );
+
+  const tarjetas = `
+    <div class="amigo-rejilla">
+      <div class="amigo-columna-1">
+      ${esMio ? "" : `
+      <section class="amigo-tarjeta a-cara">
+        <header class="amigo-tarjeta-cabeza">
+          <h3>${t("Cara a cara")}</h3>
+          <div class="menu-mas amigo-mas">
+            <button class="menu-mas-boton amigo-mas-boton" aria-haspopup="true" aria-expanded="false" title="${t("Más opciones")}" aria-label="${t("Más opciones")}">${icono("puntos")}</button>
+            <div class="menu-mas-lista" hidden>
+              <button class="accion-estadisticas">${icono("estadisticas")} ${t("Estadísticas y cara a cara")}</button>
+              <button class="accion-quitar">${icono("aspa")} ${t("Quitar de amigos")}</button>
+            </div>
+          </div>
+        </header>
+        <div class="amigo-vs">
+          <span class="amigo-vs-lado">${plantillaFoto(fichaMia, 2.4)}<span>${t("Tú")}</span></span>
+          <span class="amigo-tanteo"><b class="${cara.mias > cara.suyas ? "gana" : ""}">${cara.mias}</b><i>–</i><b class="${cara.suyas > cara.mias ? "gana" : ""}">${cara.suyas}</b></span>
+          <span class="amigo-vs-lado">${plantillaFoto(ficha, 2.4)}<span>${nombre}</span></span>
+        </div>
+        <div class="amigo-cara-cifras">
+          <span><b>${cara.juntos}</b><small>${t("jugados")}</small></span>
+          <span><b>${cara.enMarcha}</b><small>${t("en marcha")}</small></span>
+          <span title="${t("Los ganó otra persona")}"><b>${Math.max(0, cara.juntos - cara.enMarcha - cara.mias - cara.suyas)}</b><small>${t("otro ganó")}</small></span>
+        </div>
+        <div class="amigo-botones">
+          <button class="perfil-boton perfil-chat">${icono("mensaje")} ${t("Chat")}</button>
+          <button class="perfil-boton perfil-retar">${icono("espadas")} ${t("Retar a un locke")}</button>
+        </div>
+      </section>`}
+
+      <!-- (Las clases a-juntos y a-lockes dicen el sitio: debajo del cara a cara y debajo de los equipos) -->
+      <section class="amigo-tarjeta a-juntos">
+        ${cabezaCaja(t("Lockes"), "", botonVerTodosCaja(lockes.length, esMio ? HUECOS_LOCKES_MIO : HUECOS_LOCKES, "lockes"))}
+        ${listaFija(lockes, esMio ? HUECOS_LOCKES_MIO : HUECOS_LOCKES, esMio ? t("Todavía no has terminado ningún locke.") : t("Todavía no ha jugado ningún locke."))}
+      </section>
+      </div>
+
+      <section class="amigo-tarjeta a-equipos">
+        ${cabezaCaja(t("Equipos destacados"), `${piezas.equipos.length}/${HUECOS_EQUIPOS}`)}
+        <div class="amigo-equipos">${[...equipos, ...equiposVacios].join("")}</div>
+      </section>
+
+      <section class="amigo-tarjeta a-lockes">
+        ${cabezaCaja(esMio ? t("En marcha") : t("Jugados juntos"), String(juntos.length), botonVerTodosCaja(juntos.length, esMio ? HUECOS_EN_MARCHA : HUECOS_JUNTOS, "juntos"))}
+        ${listaFija(juntos, esMio ? HUECOS_EN_MARCHA : HUECOS_JUNTOS, esMio ? t("No estás jugando ningún locke ahora mismo.") : t("Todavía no habéis jugado ningún locke juntos."))}
+      </section>
+
+      <div class="amigo-columna-3">
+        <section class="amigo-tarjeta a-coleccion">
+          ${cabezaCaja(t("Colección"), piezas.coleccion.cargando ? "" : `${t("{n} especies", { n: piezas.coleccion.especies })}${piezas.coleccion.shiny ? ` · ${icono("estrella")} ${piezas.coleccion.shiny}` : ""}`, esMio ? `<button class="perfil-mini" data-ir-coleccion>${t("Ver colección")}</button>` : "")}
+          <div class="amigo-coleccion">${huecosConMas(piezas.coleccion.caras, HUECOS_COLECCION, "amigo-coleccion-hueco", "coleccion")}</div>
+        </section>
+
+        <section class="amigo-tarjeta a-logros">
+          ${cabezaCaja(t("Logros"), t("{n} de {total}", { n: piezas.logros.hechos, total: piezas.logros.total }), esMio ? `<button class="perfil-mini perfil-ver-logros">${t("Ver todos")}</button>` : "")}
+          <div class="perfil-logros-barra"><span style="width: ${Math.round((piezas.logros.hechos / Math.max(1, piezas.logros.total)) * 100)}%"></span></div>
+          <div class="amigo-logros-cats">
+            ${piezas.logros.categorias
+              .map(
+                (categoria) => `
+                  <span class="amigo-logros-cat ${categoria.hechos === categoria.total ? "lleno" : ""}">
+                    <span class="amigo-logros-cat-texto"><span>${escaparHTML(categoria.nombre)}</span><b>${categoria.hechos}/${categoria.total}</b></span>
+                    <span class="logro-barra"><span style="width: ${Math.round((categoria.hechos / Math.max(1, categoria.total)) * 100)}%"></span></span>
+                  </span>`
+              )
+              .join("")}
+          </div>
+        </section>
+
+        <section class="amigo-tarjeta a-amigos">
+          ${cabezaCaja(t("Amigos"), String(piezas.amigos.total))}
+          <div class="amigo-amigos">${huecosConMas(susAmigos, HUECOS_AMIGOS, "amigo-amigo-hueco", "amigos")}</div>
+        </section>
+      </div>
+    </div>`;
+
+  const editar = esMio ? `<button class="perfil-boton perfil-editar amigo-editar-abajo">${icono("lapiz")} ${t("Editar perfil")}</button>` : "";
+  return `<div class="amigo-p ${esMio ? "amigo-p-mio" : ""}">${portada}${tarjetas}${editar}</div>`;
+}
+
+
+const TITULOS_GRUPO = { vivo: "En directo", on: "Conectados", off: "Desconectados" };
+
+// Pinta la lista y el amigo elegido. Conserva el que estaba elegido y hasta dónde habías bajado.
+function pintarAmigos() {
+  const perfiles = perfilesDeAmigos();
+  const fichas = amigosAceptados()
+    .map((amistad) => perfiles.get(amistad.otro))
+    .filter(Boolean)
+    .map((perfil) => fichaDePerfil(perfil, false));
+  // Por situación (en directo, conectados, el resto) y, dentro de cada una, en el orden que hayas
+  // dejado arrastrando (los que no has movido, al final y por nombre)
+  const orden = ordenDeAmigos();
+  const puesto = (clave) => (orden.includes(clave) ? orden.indexOf(clave) : orden.length);
+  fichas.sort(
+    (una, otra) =>
+      ORDEN_SITUACION[situacionDe(una.clave)] - ORDEN_SITUACION[situacionDe(otra.clave)] ||
+      puesto(una.clave) - puesto(otra.clave) ||
+      una.nombre.localeCompare(otra.nombre, LOCALE)
+  );
+  fichasEnOrden = fichas.map((ficha) => ficha.clave);
+
+  const conectados = fichas.filter((ficha) => situacionDe(ficha.clave) !== "off").length;
+  const soloConectados = seccion.querySelector(".amigos-solo-conectados");
+  soloConectados.innerHTML = `<span class="amigos-interruptor"></span>${t("Conectados")}`;
+  soloConectados.setAttribute("aria-pressed", String(filtroLista === "conectados"));
+  soloConectados.title = filtroLista === "conectados" ? t("Ver todos ({n})", { n: fichas.length }) : t("Ver solo los conectados ({n})", { n: conectados });
+
+  if (!fichas.some((ficha) => ficha.clave === elegido)) elegido = fichas.length ? fichas[0].clave : "";
+  const busca = textoFiltro.trim().toLocaleLowerCase(LOCALE);
+  const visibles = fichas.filter(
+    (ficha) =>
+      (filtroLista !== "conectados" || situacionDe(ficha.clave) !== "off") &&
+      (!busca || ficha.nombre.toLocaleLowerCase(LOCALE).includes(busca))
+  );
+
+  // Solo se repinta lo que ha cambiado: la presencia avisa a menudo y repintar sin motivo hacía
+  // parpadear la barra de desplazamiento (y volvía a pedir las fotos)
+  const htmlLista = ["vivo", "on", "off"]
+    .map((situacion) => {
+      const delGrupo = visibles.filter((ficha) => situacionDe(ficha.clave) === situacion);
+      if (!delGrupo.length) return "";
+      return `
+        <span class="amigo-grupo">${t(TITULOS_GRUPO[situacion])} · ${delGrupo.length}</span>
+        ${delGrupo.map((ficha) => plantillaFila(ficha, perfiles.get(ficha.clave))).join("")}`;
+    })
+    .join("") || `<p class="amigo-nota amigo-nota-lista">${!fichas.length ? "" : busca ? t("Ningún amigo se llama así.") : t("Ninguno conectado ahora.")}</p>`;
+  if (htmlLista !== ultimaLista && !arrastrando) {
+    const bajado = columna.scrollTop;
+    columna.innerHTML = htmlLista;
+    columna.scrollTop = bajado;
+    ultimaLista = htmlLista;
+  }
+
+  const ficha = fichas.find((cada) => cada.clave === elegido);
+  fichasPintadas = new Map(ficha ? [[ficha.clave, ficha]] : []);
+  const htmlPanel = ficha
+    ? plantillaPanel(ficha, perfiles.get(ficha.clave))
+    : `
+      <div class="amigos-vacio">
+        ${icono("amigos")}
+        <p>${t("Todavía no tienes amigos aquí.")}</p>
+        <p class="amigo-nota">${t("Agrega a alguien por su mote, o busca compañeros en el Foro.")}</p>
+      </div>`;
+  if (htmlPanel === ultimoPanel) return;
+  cerrarFlotante();
+  const mismoAmigo = panel.dataset.clave === (ficha ? ficha.clave : "");
+  const bajadoPanel = panel.scrollTop;
+  panel.innerHTML = htmlPanel;
+  panel.dataset.clave = ficha ? ficha.clave : "";
+  // Del color que haya elegido (como en su ventana) y con el aviso de chat sin leer
+  if (ficha) panel.style.setProperty("--color-vista", rgbDePerfil(perfiles.get(ficha.clave)));
+  else panel.style.removeProperty("--color-vista");
+  const chat = panel.querySelector(".perfil-chat");
+  if (chat) chat.classList.toggle("sin-leer", haySinLeer(ficha.clave));
+  panel.scrollTop = mismoAmigo ? bajadoPanel : 0;
+  ultimoPanel = htmlPanel;
+  if (ficha && conTodosAbierto.has(ficha.clave)) {
+    const verTodos = panel.querySelector(".amigo-lockes-suyos .ver-todos");
+    if (verTodos) alternarVerTodos(verTodos);
+  }
+}
+
+// ---------- Ordenar la lista arrastrando ----------
+//
+// Cada uno ordena a sus amigos como quiera, dentro de su grupo (en directo, conectados, el resto):
+// se arrastra uno encima de otro del mismo grupo. Se guarda con tu cuenta. (La clave es la de
+// antes de cómo se veía la lista, que ya no se usa: así no hace falta tocar las reglas de la nube.)
+const CLAVE_ORDEN = "poketeams-amigos-vista-v1";
+let fichasEnOrden = [];   // los uid tal como salen en la lista ahora
+let arrastrando = null;   // { clave, situacion } mientras se arrastra uno
+
+function ordenDeAmigos() {
+  const guardado = leer(CLAVE_ORDEN, null);
+  return guardado && Array.isArray(guardado.orden) ? guardado.orden : [];
+}
+
+function moverAmigo(clave, junto, detras) {
+  const lista = fichasEnOrden.filter((cada) => cada !== clave);
+  const donde = lista.indexOf(junto);
+  if (donde < 0) return;
+  lista.splice(detras ? donde + 1 : donde, 0, clave);
+  escribir(CLAVE_ORDEN, { orden: lista });
+}
+
+function activarArrastre() {
+  const limpiar = () => {
+    for (const fila of columna.querySelectorAll(".arrastrando, .soltar-antes, .soltar-despues")) {
+      fila.classList.remove("arrastrando", "soltar-antes", "soltar-despues");
+    }
+  };
+  columna.addEventListener("dragstart", (e) => {
+    const fila = e.target.closest(".amigo-fila");
+    if (!fila) return;
+    arrastrando = { clave: fila.dataset.clave, situacion: fila.dataset.situacion };
+    fila.classList.add("arrastrando");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", fila.dataset.clave);
+  });
+  columna.addEventListener("dragover", (e) => {
+    const fila = e.target.closest(".amigo-fila");
+    if (!arrastrando || !fila || fila.dataset.situacion !== arrastrando.situacion || fila.dataset.clave === arrastrando.clave) return;
+    e.preventDefault();
+    const caja = fila.getBoundingClientRect();
+    const detras = e.clientY > caja.top + caja.height / 2;
+    for (const otra of columna.querySelectorAll(".soltar-antes, .soltar-despues")) {
+      if (otra !== fila) otra.classList.remove("soltar-antes", "soltar-despues");
+    }
+    fila.classList.toggle("soltar-antes", !detras);
+    fila.classList.toggle("soltar-despues", detras);
+  });
+  columna.addEventListener("drop", (e) => {
+    const fila = e.target.closest(".amigo-fila");
+    if (!arrastrando || !fila || fila.dataset.situacion !== arrastrando.situacion) return;
+    e.preventDefault();
+    moverAmigo(arrastrando.clave, fila.dataset.clave, fila.classList.contains("soltar-despues"));
+  });
+  columna.addEventListener("dragend", () => {
+    arrastrando = null;
+    limpiar();
+    pintarAmigos();
+  });
+}
+
+// Lo último pintado en la lista y en el amigo (para no repintar si no ha cambiado nada)
+let ultimaLista = null;
+let ultimoPanel = null;
+
+// En ordenador, la lista y el amigo llegan justo hasta abajo de la ventana, cada uno con su propio
+// desplazamiento (como el Foro). En pantallas estrechas, la página se desplaza normal.
+function ajustarAlto() {
+  if (!lista || seccion.hidden) return;
+  if (!matchMedia("(min-width: 901px)").matches) {
+    lista.style.height = "";
+    return;
+  }
+  const arriba = lista.getBoundingClientRect().top + window.scrollY;
+  // Con menos alto, la página baja en vez de aplastar las tarjetas
+  lista.style.height = `${Math.max(46 * 16, innerHeight - arriba - 16)}px`;
+}
+
+function elegirAmigo(uid) {
+  if (uid === elegido) return;
+  elegido = uid;
+  pintarAmigos();
+  if (matchMedia("(max-width: 900px)").matches) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function recargar() {
   const mio = hayNube() && usuarioActual() ? miPerfil() : null;
 
   // Sin sesión (o mientras el perfil llega) no hay nada que enseñar. Si no llega porque
   // Firestore no deja leerlo, eso sí se dice.
   if (!mio) {
-    lista.innerHTML = "";
-    solicitudes.hidden = true;
+    columna.innerHTML = "";
+    panel.innerHTML = "";
+    ultimaLista = ultimoPanel = null;
+    botonSolicitudes.hidden = true;
     aviso.textContent = hayNube() && usuarioActual() ? fallaElPerfil() : "";
     return;
   }
 
+  botonSolicitudes.hidden = false;
   aviso.textContent = fallaLasAmistades();
-
-  const aceptados = amigosAceptados();
-  const pendientes = [...solicitudesRecibidas(), ...solicitudesEnviadas()];
-  // Escuchados en vivo (perfiles.js): los que aún no han llegado salen cuando lleguen
-  const perfiles = perfilesDeAmigos();
-
-  const fichas = [fichaDePerfil(mio, true)];
-  for (const amistad of aceptados) {
-    const perfil = perfiles.get(amistad.otro);
-    if (perfil) fichas.push(fichaDePerfil(perfil, false));
-  }
-
-  // Ahora se repinta solo cada vez que un amigo cambia algo: lo que tuvieras desplegado y el
-  // orden en que hubieras arrastrado las fichas se quedan como estaban
-  const ordenAnterior = [...lista.querySelectorAll(".ficha-jugador")].map((ficha) => ficha.dataset.clave);
-  const desplegadas = new Set(
-    [...lista.querySelectorAll(".ficha-jugador:not(.plegada)")].map((ficha) => ficha.dataset.clave)
-  );
-  const conTodos = new Set(
-    [...lista.querySelectorAll(".ficha-jugador:has(.lista-plegable.todos)")].map((ficha) => ficha.dataset.clave)
-  );
-  const posicion = (ficha) => {
-    const donde = ordenAnterior.indexOf(ficha.clave);
-    return donde < 0 ? Infinity : donde;
-  };
-  fichas.sort((una, otra) => posicion(una) - posicion(otra));
-
-  cerrarFlotante();
-  fichasPintadas = new Map(fichas.map((ficha) => [ficha.clave, ficha]));
-  lista.innerHTML = fichas.map(plantillaFicha).join("");
-  for (const ficha of lista.querySelectorAll(".ficha-jugador")) {
-    if (desplegadas.has(ficha.dataset.clave)) ficha.classList.remove("plegada");
-    const verTodos = ficha.querySelector(".ver-todos");
-    if (conTodos.has(ficha.dataset.clave) && verTodos) alternarVerTodos(verTodos);
-  }
-  pintarSolicitudes(pendientes, perfiles);
+  pintarSolicitudes();
+  pintarAmigos();
 }
 
-// La misma tira que el buzón del panel lateral, pero aquí al lado del buscador: lo que
-// estás mirando cuando agregas a alguien es justo esto.
-function pintarSolicitudes(pendientes, perfiles) {
+// ---------- Las solicitudes: un botón con el número y una ventana ----------
+//
+// Con muchas, la ventana se desplaza (no ocupa la sección). Además, aceptarlas o rechazarlas todas.
+
+function plantillaSolicitud(amistad, perfiles, usuario) {
+  const perfil = perfiles.get(amistad.otro);
+  const nombre = escaparHTML((perfil && perfil.nombre) || t("Alguien"));
+  const ganados = perfil ? (perfil.ganados || []).length : 0;
+  const nota = perfil
+    ? `${t(ganados === 1 ? "{n} locke ganado" : "{n} lockes ganados", { n: ganados })}${perfil.busca ? ` · ${t("Busca compañeros")}` : ""}`
+    : "";
+  const foto = perfil ? plantillaFoto(fichaDePerfil(perfil, false), 2.4) : "";
+  const botones =
+    amistad.pidio === usuario.uid
+      ? `<button class="solicitud-cancelar" title="${t("Cancelar")}" aria-label="${t("Cancelar")}">${icono("aspa")}</button>`
+      : `<button class="solicitud-rechazar" title="${t("Rechazar")}" aria-label="${t("Rechazar")}">${icono("aspa")}</button>
+         <button class="solicitud-aceptar" title="${t("Aceptar")}" aria-label="${t("Aceptar")}">${icono("visto")}</button>`;
+  return `
+    <div class="solicitud" data-amistad="${escaparHTML(amistad.id)}">
+      ${foto}
+      <p><b>${nombre}</b>${nota ? `<small>${escaparHTML(nota)}</small>` : ""}</p>
+      ${botones}
+    </div>`;
+}
+
+function pintarSolicitudes() {
   const usuario = usuarioActual();
+  if (!usuario) return;
+  const perfiles = perfilesDeAmigos();
+  const recibidas = solicitudesRecibidas();
+  const enviadas = solicitudesEnviadas();
+  const enPestana = pestanaSolicitudes === "recibidas" ? recibidas : enviadas;
 
-  solicitudes.innerHTML = pendientes
-    .map((amistad) => {
-      const perfil = perfiles.get(amistad.otro);
-      const nombre = escaparHTML((perfil && perfil.nombre) || t("Alguien"));
+  const insignia = botonSolicitudes.querySelector(".amigos-badge");
+  insignia.textContent = recibidas.length > 99 ? "99+" : recibidas.length;
+  // Siempre a la vista, también a 0
+  insignia.hidden = false;
+  insignia.classList.toggle("cero", recibidas.length === 0);
 
-      if (amistad.pidio === usuario.uid) {
-        return `
-          <div class="solicitud" data-amistad="${escaparHTML(amistad.id)}">
-            <span>${t("Esperando a {nombre}", { nombre: `<b>${nombre}</b>` })}</span>
-            <button class="solicitud-cancelar" title="${t("Cancelar")}">${icono("aspa")}</button>
-          </div>`;
-      }
-
-      return `
-        <div class="solicitud entrante" data-amistad="${escaparHTML(amistad.id)}">
-          <span>${t("{nombre} quiere ser tu amigo", { nombre: `<b>${nombre}</b>` })}</span>
-          <button class="solicitud-aceptar" title="${t("Aceptar")}">${icono("visto")}</button>
-          <button class="solicitud-rechazar" title="${t("Rechazar")}">${icono("aspa")}</button>
-        </div>`;
-    })
-    .join("");
-
-  solicitudes.hidden = pendientes.length === 0;
+  ventanaSolicitudes.innerHTML = `
+    <div class="amigos-pop-cabeza">
+      <strong>${t("Solicitudes")}</strong>
+      <div class="amigos-pop-pestanas">
+        <button data-pestana="recibidas" class="${pestanaSolicitudes === "recibidas" ? "elegida" : ""}">${t("Recibidas")} <small>${recibidas.length}</small></button>
+        <button data-pestana="enviadas" class="${pestanaSolicitudes === "enviadas" ? "elegida" : ""}">${t("Enviadas")} <small>${enviadas.length}</small></button>
+      </div>
+    </div>
+    <div class="amigos-pop-lista">
+      ${enPestana.map((amistad) => plantillaSolicitud(amistad, perfiles, usuario)).join("") ||
+        `<p class="amigo-nota">${pestanaSolicitudes === "recibidas" ? t("No tienes solicitudes.") : t("No has enviado ninguna.")}</p>`}
+    </div>
+    ${pestanaSolicitudes === "recibidas" && recibidas.length > 1
+      ? `<div class="amigos-pop-pie">
+           <button data-todas="rechazar">${t("Rechazar todas")}</button>
+           <button data-todas="aceptar" class="principal">${t("Aceptar todas")}</button>
+         </div>`
+      : ""}`;
 }
+
+function cerrarSolicitudes() {
+  ventanaSolicitudes.hidden = true;
+  botonSolicitudes.setAttribute("aria-expanded", "false");
+}
+
+async function responderSolicitudes(e) {
+  const pestana = e.target.closest("[data-pestana]");
+  if (pestana) {
+    pestanaSolicitudes = pestana.dataset.pestana;
+    pintarSolicitudes();
+    return;
+  }
+
+  const todas = e.target.closest("[data-todas]");
+  if (todas) {
+    const aceptar = todas.dataset.todas === "aceptar";
+    for (const cada of ventanaSolicitudes.querySelectorAll("button")) cada.disabled = true;
+    try {
+      for (const amistad of solicitudesRecibidas()) {
+        if (aceptar) await aceptarAmistad(amistad.id);
+        else await borrarAmistad(amistad.id);
+      }
+    } catch (error) {
+      console.error(error);
+      pintarSolicitudes();
+    }
+    return;
+  }
+
+  const fila = e.target.closest(".solicitud");
+  const boton = e.target.closest("button");
+  if (!fila || !boton) return;
+  for (const cada of fila.querySelectorAll("button")) cada.disabled = true;
+  try {
+    if (boton.classList.contains("solicitud-aceptar")) await aceptarAmistad(fila.dataset.amistad);
+    else await borrarAmistad(fila.dataset.amistad);
+    // No hace falta repintar: el oyente de amistades lo hace al llegar el cambio
+  } catch (error) {
+    console.error(error);
+    for (const cada of fila.querySelectorAll("button")) cada.disabled = false;
+  }
+}
+
 
 // ---------- Agregar un amigo ----------
 
 // Solo por mote (por correo ya no se puede buscar a nadie)
-async function agregar() {
-  const texto = campoCorreo.value.trim();
-  if (!texto) return;
+// ---------- Agregar amigos: una ventana con el buscador ----------
+//
+// Como en otros juegos: hay que escribir su nombre de usuario EXACTO (da igual mayúsculas o
+// minúsculas) y entonces sale su tarjetita (foto, nombre, título y fondo), con «Agregar» y
+// «Bloquear». No hay listas de gente que empiece por lo que escribes: así nadie puede sacar la
+// lista de todos los usuarios (las reglas de la nube solo dejan preguntar por un nombre concreto).
 
-  const usuario = usuarioActual();
-  if (!usuario) {
-    aviso.textContent = t("Primero inicia sesión.");
+let dialogoAgregar = null;
+let encontrado = null;   // el perfil que ha salido
+let vueltaBusqueda = 0;  // para quedarse solo con la última búsqueda
+let esperaBusqueda = null;
+
+function abrirAgregar() {
+  if (!usuarioActual()) return;
+  const campo = dialogoAgregar.querySelector(".agregar-campo");
+  campo.value = "";
+  encontrado = null;
+  pintarAgregar("");
+  dialogoAgregar.showModal();
+  campo.focus();
+}
+
+// Lo que sale debajo del campo: su tarjetita con lo que se puede hacer, o por qué no sale nadie
+function pintarAgregar(mensaje) {
+  const caja = dialogoAgregar.querySelector(".agregar-resultado");
+  if (!encontrado) {
+    caja.innerHTML = mensaje ? `<p class="agregar-mensaje">${escaparHTML(mensaje)}</p>` : "";
     return;
   }
+  const perfil = encontrado;
+  const yo = (usuarioActual() || {}).uid;
+  const ficha = fichaDePerfil(perfil, perfil.uid === yo);
+  const fondo = fondoVisual(perfil);
+  const relacion = relacionCon(perfil.uid);
+  const bloqueado = estaBloqueado(perfil.uid);
+  let botones;
+  if (perfil.uid === yo) botones = `<span class="agregar-estado">${t("Eres tú")}</span>`;
+  else if (bloqueado) botones = `<button class="agregar-desbloquear">${t("Desbloquear")}</button>`;
+  else {
+    const principal =
+      relacion === "ok" ? `<span class="agregar-estado">${icono("visto")} ${t("Ya es tu amigo")}</span>`
+      : relacion === "enviada" ? `<span class="agregar-estado">${t("Solicitud enviada")}</span>`
+      : relacion === "recibida" ? `<button class="agregar-aceptar principal">${icono("visto")} ${t("Aceptar")}</button>`
+      : `<button class="agregar-pedir principal">${icono("mas")} ${t("Agregar")}</button>`;
+    botones = `${principal}<button class="agregar-bloquear" title="${t("No podrá pedirte amistad ni escribirte")}">${icono("aspa")} ${t("Bloquear")}</button>`;
+  }
+  caja.innerHTML = `
+    <div class="agregar-tarjeta ${fondo.clase}" style="--color-vista: ${rgbDePerfil(perfil)}; ${fondo.estilo}">
+      ${plantillaFoto(ficha, 3)}
+      <span class="agregar-quien">
+        <b>${escaparHTML(ficha.nombre)}</b>
+        ${ficha.titulo || ""}
+      </span>
+      <span class="agregar-botones">${botones}</span>
+    </div>
+    ${mensaje ? `<p class="agregar-mensaje">${escaparHTML(mensaje)}</p>` : ""}`;
+}
 
-  aviso.textContent = t("Buscando...");
-
+async function buscarExacto(texto) {
+  const esta = ++vueltaBusqueda;
+  encontrado = null;
+  if (texto.length < 3) {
+    pintarAgregar(texto ? t("Escribe su nombre de usuario entero.") : "");
+    return;
+  }
+  pintarAgregar(t("Buscando..."));
   try {
     const perfil = await buscarAmigo(texto);
-    if (!perfil) {
-      aviso.textContent = texto.includes("@")
-        ? t("Se busca por mote, no por correo.")
-        : t("Nadie con ese mote.");
-      return;
-    }
-    if (perfil.uid === usuario.uid) {
-      aviso.textContent = t("Ese eres tú.");
-      return;
-    }
-    if (amigosAceptados().some((amistad) => amistad.otro === perfil.uid)) {
-      aviso.textContent = t("{nombre} ya es tu amigo.", { nombre: perfil.nombre });
-      return;
-    }
-
-    await pedirAmistad(perfil.uid);
-    campoCorreo.value = "";
-    aviso.textContent = t("Solicitud enviada a {nombre}.", { nombre: perfil.nombre });
-    await recargar();
+    if (esta !== vueltaBusqueda) return;
+    encontrado = perfil;
+    pintarAgregar(perfil ? "" : texto.includes("@") ? t("Se busca por nombre de usuario, no por correo.") : t("Nadie se llama así. Tiene que ser su nombre exacto."));
   } catch (error) {
+    if (esta !== vueltaBusqueda) return;
     console.error(error);
-    aviso.textContent = t("No se ha podido. Inténtalo otra vez.");
+    pintarAgregar(t("No se ha podido buscar. Inténtalo otra vez."));
   }
+}
+
+function activarAgregar() {
+  dialogoAgregar = document.querySelector("#dialogo-agregar-amigo");
+  dialogoAgregar.querySelector(".agregar-titulo").textContent = t("Agregar amigos");
+  dialogoAgregar.querySelector(".agregar-nota").textContent = t("Escribe su nombre de usuario exacto (da igual si es con mayúsculas o minúsculas).");
+  const campo = dialogoAgregar.querySelector(".agregar-campo");
+  campo.placeholder = t("Nombre de usuario");
+  const cerrar = dialogoAgregar.querySelector(".agregar-cerrar");
+  cerrar.textContent = t("Cerrar");
+  cerrar.addEventListener("click", () => dialogoAgregar.close());
+
+  // Busca al dejar de escribir (o al pulsar Intro)
+  campo.addEventListener("input", () => {
+    clearTimeout(esperaBusqueda);
+    esperaBusqueda = setTimeout(() => buscarExacto(campo.value.trim()), 450);
+  });
+  campo.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    clearTimeout(esperaBusqueda);
+    buscarExacto(campo.value.trim());
+  });
+
+  dialogoAgregar.querySelector(".agregar-resultado").addEventListener("click", async (e) => {
+    const boton = e.target.closest("button");
+    if (!boton || !encontrado) return;
+    const perfil = encontrado;
+    boton.disabled = true;
+    try {
+      if (boton.classList.contains("agregar-pedir")) {
+        await pedirAmistad(perfil.uid);
+        pintarAgregar(t("Solicitud enviada a {nombre}.", { nombre: perfil.nombre }));
+      } else if (boton.classList.contains("agregar-aceptar")) {
+        const amistad = solicitudesRecibidas().find((cada) => cada.otro === perfil.uid);
+        if (amistad) await aceptarAmistad(amistad.id);
+        pintarAgregar(t("{nombre} ya es tu amigo.", { nombre: perfil.nombre }));
+      } else if (boton.classList.contains("agregar-bloquear")) {
+        if (!(await confirmar(t("¿Bloquear a {nombre}? No podrá pedirte amistad ni escribirte.", { nombre: perfil.nombre })))) {
+          boton.disabled = false;
+          return;
+        }
+        await bloquear(perfil.uid);
+        pintarAgregar(t("Has bloqueado a {nombre}.", { nombre: perfil.nombre }));
+      } else if (boton.classList.contains("agregar-desbloquear")) {
+        await desbloquear(perfil.uid);
+        pintarAgregar(t("Has desbloqueado a {nombre}.", { nombre: perfil.nombre }));
+      }
+      await recargar();
+    } catch (error) {
+      console.error(error);
+      pintarAgregar(t("No se ha podido. Inténtalo otra vez."));
+    }
+  });
 }
 
 // ---------- Diálogo de tipos de locke ----------
@@ -630,7 +1224,7 @@ function pintarTipos() {
     .join("");
 }
 
-function abrirTipos() {
+export function abrirTipos() {
   const mio = miPerfil();
   tiposEnEdicion = tiposDe(mio).map((tipo) => ({ ...tipo }));
   pintarTipos();
@@ -1025,63 +1619,75 @@ async function elegirEquipoPalmares(boton) {
   pintarPalmares();
 }
 
-// ---------- Mover las fichas de sitio ----------
-//
-// Solo cambia el orden en pantalla y no se guarda: al recargar vuelven en el mismo orden.
+// ---------- Clicks en la lista y en el amigo elegido ----------
 
-let seAcabaDeArrastrar = false;
-
-// La línea que marca dónde cae, en js/comun/arrastrar.js
-function activarArrastreFichas() {
-  activarArrastre(lista, {
-    elementos: ".ficha-jugador",
-    alTerminar: () => {
-      seAcabaDeArrastrar = true; // el navegador puede soltar un click justo después
-      setTimeout(() => (seAcabaDeArrastrar = false), 0);
-    }
-  });
-}
-
-// ---------- Clicks en las fichas ----------
-
-function activarFichas() {
+function activarCuerpo() {
   lista.addEventListener("click", async (e) => {
-    if (seAcabaDeArrastrar) return;
-
-    const ficha = e.target.closest(".ficha-jugador");
-    if (!ficha) return;
-
-    // Un locke de la lista: abre sus datos sin plegar la ficha
+    // Un locke de «Sus lockes»: abre sus datos
     const locke = e.target.closest(".locke-ganado");
     if (locke) {
-      const datos = fichasPintadas.get(ficha.dataset.clave);
+      const datos = fichasPintadas.get(elegido);
       const ganado = datos && datos.jugados[Number(locke.dataset.posicion)];
       if (ganado) abrirFlotante(locke, ganado, datos);
       return;
     }
 
-    const boton = e.target.closest("button");
-    if (!boton) {
-      cerrarFlotante();
-      desplegarFicha(ficha);
+    // Otro amigo de la lista
+    const fila = e.target.closest(".amigo-fila");
+    if (fila) {
+      elegirAmigo(fila.dataset.clave);
       return;
     }
 
+    const boton = e.target.closest("button");
+    if (!boton || !panel.contains(boton)) {
+      cerrarFlotante();
+      return;
+    }
+
+    // «⋯» de la ficha: abre o cierra sus opciones
+    if (boton.classList.contains("amigo-mas-boton")) {
+      const opciones = boton.parentElement.querySelector(".menu-mas-lista");
+      opciones.hidden = !opciones.hidden;
+      boton.setAttribute("aria-expanded", String(!opciones.hidden));
+      return;
+    }
+    const menu = boton.closest(".amigo-mas .menu-mas-lista");
+    if (menu) menu.hidden = true;
+
+    // «Ver todos» o «+n» de una tarjeta: una ventana con todo
+    if (boton.classList.contains("amigo-ver-mas")) {
+      abrirTodo(boton.dataset.ver);
+      return;
+    }
+
+    // Lo que es del perfil (copiar un equipo, ver todos sus lockes o sus logros)
+    if (modPerfil && modPerfil.pulsarEnPerfilIncrustado(boton)) return;
+
+    if (boton.matches(".perfil-amigo, .amigo-su-amigo")) {
+      abrirSuAmigo(boton.dataset.uid);
+      return;
+    }
+
+    const datos = fichasPintadas.get(elegido);
     try {
       if (boton.classList.contains("ver-todos")) {
         cerrarFlotante();
-        alternarVerTodos(boton);
+        const abierta = alternarVerTodos(boton);
+        if (boton.closest(".amigo-lockes-suyos")) {
+          if (abierta) conTodosAbierto.add(elegido);
+          else conTodosAbierto.delete(elegido);
+        }
       } else if (boton.classList.contains("ver-directo")) {
-        const datos = fichasPintadas.get(ficha.dataset.clave);
         const { verDirecto } = await import("../jugar/directo.js");
-        verDirecto(ficha.dataset.clave, datos ? datos.nombre : "", directoDe(ficha.dataset.clave));
-      } else if (boton.classList.contains("accion-chat")) {
+        verDirecto(elegido, datos ? datos.nombre : "", directoDe(elegido));
+      } else if (boton.classList.contains("accion-chat") || boton.classList.contains("perfil-chat")) {
         const { abrirChat } = await import("../chat.js");
-        abrirChat(ficha.dataset.clave);
-      } else if (boton.classList.contains("accion-tipos")) abrirTipos();
-      else if (boton.classList.contains("accion-palmares")) abrirPalmares();
-      else if (boton.classList.contains("accion-estadisticas")) abrirEstadisticas(ficha.dataset.clave, htmlComparacion(ficha.dataset.clave));
-      else if (boton.classList.contains("accion-quitar")) await quitarAmigo(ficha);
+        abrirChat(elegido);
+      } else if (boton.classList.contains("accion-invitar") || boton.classList.contains("perfil-retar")) await invitarAUnLocke(elegido);
+      else if (boton.classList.contains("accion-estadisticas")) abrirEstadisticas(elegido, htmlComparacion(elegido));
+      else if (boton.classList.contains("accion-quitar")) await quitarAmigo(datos);
+      else if (boton.classList.contains("junto-abrir")) await abrirElLocke(boton.dataset.locke);
     } catch (error) {
       console.error(error);
       aviso.textContent = t("No se ha podido. Inténtalo otra vez.");
@@ -1089,31 +1695,68 @@ function activarFichas() {
   });
 }
 
-async function quitarAmigo(ficha) {
-  const nombre = ficha.querySelector(".jugador-nombre").textContent;
-  if (!(await confirmar(t("¿Quitar a {nombre} de tus amigos?", { nombre })))) return;
+// Uno de sus amigos: si también es tuyo, se elige aquí; si eres tú o no lo es, su ventana
+export function abrirSuAmigo(uid) {
+  if (uid === (usuarioActual() || {}).uid) modPerfil.abrirMiPerfil();
+  else if (amigosAceptados().some((amistad) => amistad.otro === uid)) verAmigo(uid).catch((error) => console.error(error));
+  else modPerfil.abrirPerfilDe(uid);
+}
 
-  const amistad = amigosAceptados().find((cada) => cada.otro === ficha.dataset.clave);
+// Ir a «Amigos» con él elegido (desde tu perfil, se cierra su ventana)
+async function verAmigo(uid) {
+  const ventana = document.querySelector("#dialogo-perfil");
+  if (ventana && ventana.open) ventana.close();
+  if (seccion.hidden) {
+    const { irA } = await import("../navegacion.js");
+    await irA("amigos");
+  }
+  elegirAmigo(uid);
+}
+
+// La ventana de «Ver todos»: cerrar, y desde ella abrir un amigo o un locke
+function activarVentanaTodo() {
+  dialogoTodo = document.querySelector("#dialogo-amigo-todo");
+  const cerrar = dialogoTodo.querySelector(".amigo-todo-cerrar");
+  cerrar.textContent = t("Cerrar");
+  dialogoTodo.addEventListener("click", (e) => {
+    const boton = e.target.closest("button");
+    if (!boton) return;
+    if (boton === cerrar) dialogoTodo.close();
+    else if (boton.matches(".perfil-amigo, .amigo-su-amigo")) {
+      dialogoTodo.close();
+      abrirSuAmigo(boton.dataset.uid);
+    } else if (boton.classList.contains("junto-abrir")) {
+      dialogoTodo.close();
+      abrirElLocke(boton.dataset.locke).catch((error) => console.error(error));
+    }
+  });
+}
+
+async function quitarAmigo(ficha) {
+  if (!ficha) return;
+  if (!(await confirmar(t("¿Quitar a {nombre} de tus amigos?", { nombre: ficha.nombre })))) return;
+
+  const amistad = amigosAceptados().find((cada) => cada.otro === ficha.clave);
   if (amistad) await borrarAmistad(amistad.id);
 }
 
-// ---------- Tarjetas o lista ----------
-//
-// Como en «Mis equipos»: dos iconos a la derecha de la barra, con la sombra del elegido que se
-// desliza (css/equipos.css, .vista-equipos::before). Se queda en este navegador (no va a la nube).
-
-const CLAVE_VISTA = "poketeams-amigos-vista-v1";
-
-function aplicarVista(enLista) {
-  lista.classList.toggle("modo-lista", enLista);
-  const interruptor = seccion.querySelector(".amigos-vista");
-  interruptor.classList.toggle("en-lista", enLista);
-  for (const boton of interruptor.querySelectorAll("[data-modo]")) {
-    const elegido = (boton.dataset.modo === "lista") === enLista;
-    boton.classList.toggle("elegido", elegido);
-    boton.setAttribute("aria-pressed", elegido);
-  }
+// «Invitar a un locke»: la ventana de «Nuevo locke» con él ya puesto (como «Retar a un locke» del perfil)
+async function invitarAUnLocke(uid) {
+  const { irA, prepararSeccion } = await import("../navegacion.js");
+  await irA("lockes");
+  const lockes = await prepararSeccion("versus");
+  await lockes.retarA(uid);
 }
+
+export async function abrirElLocke(id) {
+  const ventana = document.querySelector("#dialogo-perfil");
+  if (ventana && ventana.open) ventana.close();
+  const { irA, prepararSeccion } = await import("../navegacion.js");
+  await irA("lockes");
+  const lockes = await prepararSeccion("versus");
+  lockes.abrirElLocke(id);
+}
+
 
 // ---------- Arranque ----------
 
@@ -1122,31 +1765,74 @@ export function iniciar() {
   dialogoTipos = document.querySelector("#dialogo-tipos");
   dialogoPalmares = document.querySelector("#dialogo-palmares");
   iniciarEstadisticas(alternarVerTodos);
-  lista = seccion.querySelector(".jugadores");
-  solicitudes = seccion.querySelector(".amigos-solicitudes");
+  activarVentanaTodo();
+  lista = seccion.querySelector(".amigos-cuerpo");
+  columna = seccion.querySelector(".amigos-lista");
+  panel = seccion.querySelector(".amigos-ficha");
+  activarArrastre();
+  botonSolicitudes = seccion.querySelector(".amigos-solicitudes-boton");
+  ventanaSolicitudes = seccion.querySelector(".amigos-pop");
   aviso = seccion.querySelector(".amigos-aviso");
-  campoCorreo = seccion.querySelector(".amigos-correo");
 
-  seccion.querySelector(".barra-amigos").hidden = !hayNube();
+  seccion.querySelector(".amigos-agregar-caja").hidden = !hayNube();
+  // Buscar entre tus amigos: la lista se filtra según escribes
+  const filtrar = seccion.querySelector(".amigos-filtrar");
+  filtrar.placeholder = t("Buscar entre tus amigos...");
+  filtrar.addEventListener("input", () => {
+    textoFiltro = filtrar.value;
+    pintarAmigos();
+  });
   const botonAgregar = seccion.querySelector(".amigos-agregar");
-  botonAgregar.insertAdjacentHTML("afterbegin", `${icono("mas")} `);
-  botonAgregar.addEventListener("click", agregar);
-  campoCorreo.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") agregar();
+  botonAgregar.innerHTML = icono("agregarAmigos");
+  botonAgregar.title = t("Agregar amigos");
+  botonAgregar.setAttribute("aria-label", t("Agregar amigos"));
+  botonAgregar.addEventListener("click", abrirAgregar);
+  activarAgregar();
+
+  // Todos o solo los conectados: un interruptor al lado de las solicitudes
+  seccion.querySelector(".amigos-solo-conectados").addEventListener("click", () => {
+    filtroLista = filtroLista === "conectados" ? "todos" : "conectados";
+    pintarAmigos();
   });
 
-  for (const boton of seccion.querySelectorAll(".amigos-vista [data-modo]")) {
-    boton.innerHTML = icono(boton.dataset.modo === "lista" ? "lista" : "cuadricula");
-    boton.addEventListener("click", () => {
-      const enLista = boton.dataset.modo === "lista";
-      escribir(CLAVE_VISTA, enLista);
-      aplicarVista(enLista);
-    });
-  }
-  aplicarVista(leer(CLAVE_VISTA, false));
+  // Hasta abajo de la ventana (tus tipos de locke y tus lockes apuntados se editan en el perfil)
+  window.addEventListener("resize", ajustarAlto);
 
-  activarArrastreFichas();
-  activarFichas();
+  // Solicitudes: un botón con el número y una ventana que se abre debajo
+  botonSolicitudes.innerHTML = `${icono("amigos")} <span>${t("Solicitudes")}</span><span class="amigos-badge" hidden></span>`;
+  botonSolicitudes.addEventListener("click", () => {
+    ventanaSolicitudes.hidden = !ventanaSolicitudes.hidden;
+    botonSolicitudes.setAttribute("aria-expanded", String(!ventanaSolicitudes.hidden));
+  });
+  ventanaSolicitudes.addEventListener("click", responderSolicitudes);
+  document.addEventListener("click", (e) => {
+    if (ventanaSolicitudes.hidden || ventanaSolicitudes.contains(e.target) || botonSolicitudes.contains(e.target)) return;
+    cerrarSolicitudes();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !ventanaSolicitudes.hidden) cerrarSolicitudes();
+  });
+
+  activarCuerpo();
+
+  // El «⋯» de la ficha se cierra al pulsar fuera
+  document.addEventListener("click", (e) => {
+    for (const opciones of panel.querySelectorAll(".amigo-mas .menu-mas-lista:not([hidden])")) {
+      if (!opciones.parentElement.contains(e.target)) opciones.hidden = true;
+    }
+  });
+
+  // El perfil del amigo elegido se pinta con js/perfil.js (el mismo que su ventana)
+  const puedePintar = () => !seccion.hidden && hayNube() && usuarioActual() && miPerfil();
+  import("../perfil.js")
+    .then((modulo) => {
+      modPerfil = modulo;
+      modulo.alCambiarPerfilIncrustado(() => {
+        if (puedePintar()) pintarAmigos();
+      });
+      if (puedePintar()) pintarAmigos();
+    })
+    .catch((error) => console.error("No se ha podido cargar el perfil", error));
 
   // El recuadro de datos de un locke se cierra al pulsar fuera, con Escape o al moverse
   document.addEventListener("click", (e) => {
@@ -1158,24 +1844,6 @@ export function iniciar() {
   });
   window.addEventListener("scroll", cerrarFlotante, true);
   window.addEventListener("resize", cerrarFlotante);
-  lista.addEventListener("dragstart", cerrarFlotante);
-
-  solicitudes.addEventListener("click", async (e) => {
-    const fila = e.target.closest(".solicitud");
-    const boton = e.target.closest("button");
-    if (!fila || !boton) return;
-
-    for (const cada of fila.querySelectorAll("button")) cada.disabled = true;
-
-    try {
-      if (boton.classList.contains("solicitud-aceptar")) await aceptarAmistad(fila.dataset.amistad);
-      else await borrarAmistad(fila.dataset.amistad);
-      // No hace falta repintar: el oyente de amistades lo hace al llegar el cambio
-    } catch (error) {
-      console.error(error);
-      for (const cada of fila.querySelectorAll("button")) cada.disabled = false;
-    }
-  });
 
   // Diálogo de tipos
   dialogoTipos.querySelector(".tipos-anadir").addEventListener("click", () => {
@@ -1297,20 +1965,19 @@ export function iniciar() {
   // Y cuando cambia el perfil de un amigo (ha ganado un locke, se ha cambiado el mote...)
   alCambiarPerfilesAmigos(repintar);
 
-  // Lo mismo con quién te ha escrito sin que lo hayas leído: solo se toca la clase del botón
+  // Lo mismo con quién te ha escrito sin que lo hayas leído: solo se tocan las clases
   alCambiarChats(() => {
-    for (const boton of lista.querySelectorAll(".ficha-jugador:not(.mia) .accion-chat")) {
-      boton.classList.toggle("sin-leer", haySinLeer(boton.closest(".ficha-jugador").dataset.clave));
-    }
+    for (const fila of lista.querySelectorAll(".amigo-fila")) fila.classList.toggle("sin-leer", haySinLeer(fila.dataset.clave));
+    const chat = panel.querySelector(".perfil-chat");
+    if (chat) chat.classList.toggle("sin-leer", haySinLeer(elegido));
   });
 
-  // Quién está conectado cambia a menudo: solo se toca la clase, sin repintar las fichas
+  // Quién está conectado o en directo cambia a menudo, y también los lockes de los dos
   alCambiarPresencia(() => {
-    for (const ficha of lista.querySelectorAll(".ficha-jugador:not(.mia)")) {
-      ficha.classList.toggle("conectado", estaConectado(ficha.dataset.clave));
-      const directo = ficha.querySelector(".ver-directo");
-      if (directo) directo.outerHTML = plantillaDirecto(ficha.dataset.clave);
-    }
+    if (!seccion.hidden && hayNube() && usuarioActual() && miPerfil()) pintarAmigos();
+  });
+  alCambiarLockes(() => {
+    if (!seccion.hidden && hayNube() && usuarioActual() && miPerfil()) pintarAmigos();
   });
 }
 
@@ -1332,6 +1999,7 @@ function leerPalmaresDelDialogo() {
 
 export function mostrar() {
   aviso.textContent = "";
+  ajustarAlto();
   recargar().catch((error) => {
     console.error(error);
     aviso.textContent = t("No se han podido cargar los amigos.");
