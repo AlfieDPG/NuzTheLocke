@@ -15,7 +15,7 @@
 
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
-import { marcoDe, claseMarco } from "../comun/fichas.js";
+import { marcoDe, claseMarco, claseMarcoDe } from "../comun/fichas.js";
 import { t, segunIdioma, LOCALE } from "../comun/idioma.js";
 import { hayNube, usuarioActual, alCambiarSesion, seSabeLaSesion } from "../comun/nube.js";
 import { nombreJuegoJugado } from "../comun/campo-juego.js";
@@ -39,6 +39,7 @@ import { listaDePartidas } from "../jugar/partidas.js";
 let seccion = null;
 
 const MAX_LOCKES = 12; // los que se pintan; a la vista, los que caben (ajustarListas; el resto, en «Ver todos»)
+const MAX_CARAS = 3; // las caras de jugadores en cada locke en marcha (si son más, «+n» en la última)
 const NOVEDADES_MIN_FILAS = 2; // las filas de novedades que se respetan al dar sitio a más lockes
 const MAX_EQUIPOS = 10;
 const AMIGOS_A_LA_VISTA = 5; // los conectados que salen; si hay más, un «+N»
@@ -95,12 +96,46 @@ const avisosLeidos = () => leer(CLAVE_AVISOS_LEIDOS, "") === firmaAvisos();
 
 // ---------- Novedades ----------
 //
-// Lo último que ha salido, en el orden en que se enseña (lo más importante, primero: no tiene por
-// qué ir por fechas). En Inicio salen las que caben (ajustarListas) y todas en «Ver todas».
+// Lo último que ha salido. Se enseñan de la más nueva a la más vieja (se ordenan solas por fecha,
+// abajo); las del mismo día, en el orden en que están aquí. Se lee de izquierda a derecha y fila a
+// fila. En Inicio salen las que caben (ajustarListas) y todas en «Ver todas».
 // Cada una lleva a su sección (vista) al pulsarla, con su icono y el color de esa sección. Mismo
 // formato de textos que los avisos.
 
 const NOVEDADES = [
+  {
+    fecha: "2026-11-18", vista: "amigos", icono: "amigos", color: "80, 190, 215",
+    es: `<b>Amigos</b> renovado: tu lista a un lado (quién está conectado y a qué juega) y, al otro, su
+      perfil entero con vuestro cara a cara y los lockes que jugáis juntos.`,
+    en: `Revamped <b>Friends</b>: your list on one side (who's online and what they're playing) and, on the
+      other, their full profile with your head to head and the lockes you play together.`
+  },
+  {
+    fecha: "2026-11-17", vista: "lucha", icono: "lucha", color: "222, 112, 52",
+    es: `<b>Combates</b> con más opciones: apuesta Pokédólares, juega con tiempo por turno y mira los
+      combates de tus amigos. En un randomlocke, cada Pokémon lucha con los tipos y estadísticas de tu ROM.`,
+    en: `<b>Battles</b> get more options: bet Pokédollars, play with a turn timer and watch your friends'
+      battles. In a randomlocke, each Pokémon fights with the types and stats from your ROM.`
+  },
+  {
+    fecha: "2026-11-17", vista: "jugar", icono: "consola", color: "186, 62, 102",
+    es: `Tus partidas de <b>Jugar</b> se guardan en tu cuenta: sigue en otro dispositivo eligiendo
+      la ROM otra vez.`,
+    en: `Your <b>Play</b> games are saved to your account: carry on on another device by choosing the
+      ROM again.`
+  },
+  {
+    fecha: "2026-11-18", vista: "ruleta", icono: "ruleta", color: "240, 150, 60",
+    es: `<b>Ruleta</b>: añade Pokémon u objetos con su dibujo y dale a cada opción más casillas para
+      que salga más.`,
+    en: `<b>Wheel</b>: add Pokémon or items with their picture and give each option more slots so it
+      comes up more often.`
+  },
+  {
+    fecha: "2026-11-18", vista: "logros", icono: "trofeo", color: "241, 196, 15",
+    es: `<b>Logros</b> en forma de álbum: un índice con lo que llevas de cada categoría.`,
+    en: `<b>Achievements</b> as an album: an index with your progress in each category.`
+  },
   {
     fecha: "2026-11-17", vista: "lockes", icono: "bandera", color: "214, 88, 76",
     es: `Editar la partida, con pestaña nueva de <b>Eventos</b>: cambia el dinero, los PB, las fichas o los vatios,
@@ -238,6 +273,8 @@ const NOVEDADES = [
       right away.`
   }
 ];
+// De la más nueva a la más vieja (sort es estable: las del mismo día quedan como están arriba)
+NOVEDADES.sort((una, otra) => otra.fecha.localeCompare(una.fecha));
 
 function fechaNovedad(fecha) {
   const [anio, mes, dia] = fecha.split("-").map(Number);
@@ -477,6 +514,15 @@ function plantillaCabecera() {
     </header>`;
 }
 
+// Las caras de los jugadores de un locke, con su marco. Caben MAX_CARAS: si son más, salen las
+// primeras (tú, la primera) y un «+n» en el último hueco. El hueco mide siempre lo mismo (css/inicio.css).
+function carasDelLocke(locke, jugadores) {
+  const sobran = jugadores.length > MAX_CARAS ? jugadores.length - (MAX_CARAS - 1) : 0;
+  const vistas = sobran ? jugadores.slice(0, MAX_CARAS - 1) : jugadores;
+  return vistas.map((cada) => cara((locke.nombres || {})[cada], (locke.fotos || {})[cada], `inicio-cara ${claseMarcoDe(cada)}`)).join("")
+    + (sobran ? `<span class="inicio-cara inicio-cara-mas" title="${escaparHTML(jugadores.slice(MAX_CARAS - 1).map((cada) => (locke.nombres || {})[cada] || "?").join(", "))}">+${sobran}</span>` : "");
+}
+
 function plantillaLocke(locke) {
   const uid = usuarioActual().uid;
   const tipo = locke.tipo || { nombre: "Locke", color: "#3498db" };
@@ -499,7 +545,7 @@ function plantillaLocke(locke) {
         ${juego ? `<span class="inicio-locke-juego">${escaparHTML(juego)}</span>` : ""}
       </span>
       <span class="inicio-locke-caras">
-        ${jugadores.map((cada) => cara((locke.nombres || {})[cada], (locke.fotos || {})[cada])).join("")}
+        ${carasDelLocke(locke, jugadores)}
       </span>
       <span class="inicio-locke-cifras">
         <span class="inicio-cifra victorias"><b>${victoriasDe(locke, uid)}</b><small>${t("Victorias")}</small></span>

@@ -366,14 +366,30 @@
   opacity: 0.65;
 }
 
-/* Las caras, montadas un poco unas encima de otras */
+/* Las caras de los jugadores, con su marco (js/comun/fichas.js) y un hueco entre ellas: montadas
+   unas encima de otras, la de al lado tapaba el marco */
+/* Ancho fijo, el de MAX_CARAS (js/inicio/index.js): mida lo mismo con 1 jugador que con 6, y
+   los lockes quedan alineados. Pegadas a la derecha, junto a las cifras */
 .inicio-locke-caras {
   display: flex;
+  justify-content: flex-end;
   flex: none;
+  gap: 0.4rem;
+  width: calc(3 * 2.4rem + 2 * 0.4rem + 0.4rem);
+  padding: 0.2rem;
+  box-sizing: border-box;
 }
 
-.inicio-locke-caras .inicio-cara + .inicio-cara {
-  margin-left: -0.45rem;
+.inicio-locke-caras .inicio-cara {
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 0.95rem;
+}
+
+/* «+n»: los que no caben */
+.inicio-cara-mas {
+  font-size: 0.8rem;
+  opacity: 0.8;
 }
 
 .inicio-cara {
