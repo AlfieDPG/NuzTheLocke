@@ -17,6 +17,11 @@ export default {
   "Ya los tenéis en vuestro saldo: gastadlos en la Tienda o en huevos de la Colección, dentro de «Juegos».\n\nY una cosa más: si os gusta la web, pasádsela a vuestros amigos, a vuestro grupo de lockes o a quien sepáis que está jugando uno. Cuantos más seamos, más cosas podré ir añadiendo. ¡A por los 200!":
     "They're already in your balance: spend them in the Shop or on Collection eggs, under “Games”.\n\nAnd one more thing: if you like the site, share it with your friends, your locke group or anyone you know who's playing one. The more of us there are, the more I'll be able to add. On to 200!",
   "¡Gracias!": "Thanks!",
+  "¡La web vuelve a funcionar!": "The site is back!",
+  "¡Hola! Durante las últimas 24 horas NuzTheLocke ha tenido problemas y no se podía entrar. Ya está todo arreglado y la web funciona como siempre: no os preocupéis, no se ha perdido nada.\n\nPor las molestias, os dejo un regalo a todos:":
+    "Hi! For the last 24 hours NuzTheLocke had problems and you couldn't get in. Everything's fixed now and the site works as usual: don't worry, nothing was lost.\n\nTo make up for the trouble, here's a gift for everyone:",
+  "Ya los tenéis en vuestro saldo: gastadlos en la Tienda o en huevos de la Colección, dentro de «Juegos».\n\n¡Gracias por la paciencia!":
+    "They're already in your balance: spend them in the Shop or on Collection eggs, under “Games”.\n\nThanks for your patience!",
 
   "{n} día seguido": "{n}-day streak",
   "{n} días seguidos": "{n}-day streak",

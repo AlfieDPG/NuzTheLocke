@@ -27,6 +27,15 @@ export const REGALOS = [
     // Después de la cantidad
     despues: "Ya los tenéis en vuestro saldo: gastadlos en la Tienda o en huevos de la Colección, dentro de «Juegos».\n\nY una cosa más: si os gusta la web, pasádsela a vuestros amigos, a vuestro grupo de lockes o a quien sepáis que está jugando uno. Cuantos más seamos, más cosas podré ir añadiendo. ¡A por los 200!",
     firma: "Alfie"
+  },
+  {
+    // 2026-11: la web estuvo caída 24 horas
+    id: "web-caida-2026-11",
+    pokedolares: 1000,
+    titulo: "¡La web vuelve a funcionar!",
+    texto: "¡Hola! Durante las últimas 24 horas NuzTheLocke ha tenido problemas y no se podía entrar. Ya está todo arreglado y la web funciona como siempre: no os preocupéis, no se ha perdido nada.\n\nPor las molestias, os dejo un regalo a todos:",
+    despues: "Ya los tenéis en vuestro saldo: gastadlos en la Tienda o en huevos de la Colección, dentro de «Juegos».\n\n¡Gracias por la paciencia!",
+    firma: "Alfie"
   }
 ];
 
