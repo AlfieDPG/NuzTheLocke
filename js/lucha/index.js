@@ -429,8 +429,13 @@ async function pintarRetar() {
     </div>
     <span class="etiqueta-campo">${t("Apuesta")} <small class="lucha-retar-saldo">${t("tienes")} ${moneda(miSaldo())}</small></span>
     <div class="lucha-retar-nivel lucha-retar-apuesta">
-      ${APUESTAS.map((n) => `<button type="button" data-apuesta="${n}" class="${retando.apuesta === n ? "elegido" : ""}" ${n > miSaldo() ? "disabled" : ""}>${n ? moneda(n) : t("Sin apuesta")}</button>`).join("")}
+      ${APUESTAS.map((n) => `<button type="button" data-apuesta="${n}" class="${!retando.apuestaLibre && retando.apuesta === n ? "elegido" : ""}" ${n > miSaldo() ? "disabled" : ""}>${n ? moneda(n) : t("Sin apuesta")}</button>`).join("")}
+      <button type="button" data-apuesta="otra" class="${retando.apuestaLibre ? "elegido" : ""}" ${miSaldo() < 1 ? "disabled" : ""}>${t("Otra cantidad")}</button>
     </div>
+    ${retando.apuestaLibre ? `
+      <label class="lucha-retar-otra">${t("¿Cuánto? (hasta {n})", { n: moneda(miSaldo()) })}
+        <input class="lucha-apuesta-otra" type="number" min="1" max="${miSaldo()}" step="1" value="${retando.apuesta || ""}">
+      </label>` : ""}
     ${retando.apuesta ? `<p class="lucha-retar-ayuda">${t("Cada uno pone {n}. Quien gana se lleva los dos; en empate, cada uno recupera lo suyo.", { n: moneda(retando.apuesta) })}</p>` : ""}
     ${!genFija && retando.gen === 9 ? `
       <span class="etiqueta-campo">${t("Teracristalización")}</span>
@@ -2572,8 +2577,11 @@ function alPulsarRetar(e) {
   }
   const apuesta = e.target.closest("[data-apuesta]");
   if (apuesta && !apuesta.disabled) {
-    retando.apuesta = Number(apuesta.dataset.apuesta) || 0;
-    return pintarRetar();
+    retando.apuestaLibre = apuesta.dataset.apuesta === "otra";
+    retando.apuesta = retando.apuestaLibre ? Math.min(retando.apuesta || 0, miSaldo()) : Number(apuesta.dataset.apuesta) || 0;
+    pintarRetar();
+    if (retando.apuestaLibre) dialogoRetar.querySelector(".lucha-apuesta-otra")?.focus();
+    return;
   }
   const mirar = e.target.closest("[data-mirar]");
   if (mirar) {
@@ -2607,6 +2615,9 @@ function alCambiarRetar(e) {
     retando.locke = id ? { id, combate } : null;
   } else if (e.target.matches(".lucha-retar-gen")) {
     retando.gen = Number(e.target.value) || 9;
+  } else if (e.target.matches(".lucha-apuesta-otra")) {
+    // Lo que quieras, entero, hasta lo que tienes
+    retando.apuesta = Math.max(0, Math.min(miSaldo(), Math.floor(Number(e.target.value) || 0)));
   } else return;
   pintarRetar();
 }

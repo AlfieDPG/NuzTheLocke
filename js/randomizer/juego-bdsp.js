@@ -133,6 +133,37 @@ export function nombresPokemon() {
   return [];
 }
 
+export const RUTA_PERSONAL = RUTAS.personal;
+
+// De un personal_masterdatas (el del mod que ya tienes puesto, sin volver a randomizar: js/versus/leer-mod.js), lo
+// mismo que apunta el randomizer en el locke (js/comun/randomizados.js): qué enseña cada MT y quién la aprende, y
+// los tipos y estadísticas de cada especie
+//   -> { mt: { objetos, ataques, compat }, especies: { id: "tipo/tipo|ps,...,vel" } }
+export function datosDeMod(bytes) {
+  const b = abrirBundle(bytes);
+  const personal = leerPorNombre(b, "PersonalTable").Personal;
+  const items = leerPorNombre(b, "ItemTable");
+  const maquinas = items.WazaMachine.filter((m) => m.machineNo >= 1 && m.machineNo <= 100).sort((a, c) => a.machineNo - c.machineNo);
+  const ancho = Math.ceil(maquinas.length / 8);
+  const bits = new Uint8Array(ULTIMA_ESPECIE * ancho);
+  const especies = {};
+  for (let id = 1; id <= ULTIMA_ESPECIE; id++) {
+    const p = personal[id];
+    if (!p || !p.valid_flag) continue;
+    [p.machine1, p.machine2, p.machine3, p.machine4].forEach((m, k) => {
+      for (let b2 = 0; b2 < 32 && k * 32 + b2 < maquinas.length; b2++) {
+        const i = k * 32 + b2;
+        if ((m >>> b2) & 1) bits[(id - 1) * ancho + (i >> 3)] |= 1 << (i & 7);
+      }
+    });
+    const tipos = [...new Set([TIPOS[p.type1], TIPOS[p.type2]])].filter(Boolean);
+    especies[id] = `${tipos.join("/")}|${[p.basic_hp, p.basic_atk, p.basic_def, p.basic_spatk, p.basic_spdef, p.basic_agi].join(",")}`;
+  }
+  let texto = "";
+  for (let i = 0; i < bits.length; i += 0x8000) texto += String.fromCharCode(...bits.subarray(i, i + 0x8000));
+  return { mt: { objetos: maquinas.map((m) => m.itemNo), ataques: maquinas.map((m) => m.wazaNo), compat: btoa(texto) }, especies };
+}
+
 // ---------- Leer ----------
 
 function leerEspecies(personal, evoluciones) {

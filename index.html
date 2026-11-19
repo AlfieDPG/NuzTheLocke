@@ -771,7 +771,16 @@
             <span>Combates</span>
             <span class="numero"><input id="locke-combates" type="number" min="0" max="12" value="0"><span class="numero-pasos" aria-hidden="true"><button type="button" class="numero-mas" tabindex="-1"></button><button type="button" class="numero-menos" tabindex="-1"></button></span></span>
           </label>
+          <label class="campo-apuesta">
+            <span data-t>Apuesta</span>
+            <select id="locke-apuesta"></select>
+          </label>
+          <label class="campo-apuesta-otra" hidden>
+            <span data-t>¿Cuánto?</span>
+            <span class="numero"><input id="locke-apuesta-otra" type="number" min="1" step="1" value=""><span class="numero-pasos" aria-hidden="true"><button type="button" class="numero-mas" tabindex="-1"></button><button type="button" class="numero-menos" tabindex="-1"></button></span></span>
+          </label>
         </div>
+        <p class="locke-ayuda locke-ayuda-apuesta" data-t>Con apuesta, cada uno pone esos Pokédólares al entrar (sale en la invitación) y el ganador se lo lleva todo. Si los demás se rinden, se lo lleva el que queda. Solo al crear el locke.</p>
         <div class="locke-combates-nombres"></div>
         <p class="locke-ayuda" data-t>Las vidas son las de cada jugador al empezar. Los combates son los enfrentamientos entre vosotros: el que gana cada uno suma una victoria.</p>
       </section>

@@ -62,6 +62,10 @@ export default {
   "Vidas y combates": "Lives and battles",
   "Las vidas son las de cada jugador al empezar. Los combates son los enfrentamientos entre vosotros: el que gana cada uno suma una victoria.":
     "Lives are what each player starts with. Battles are the matches between you: whoever wins each one earns a win.",
+  "Apuesta": "Bet",
+  "¿Cuánto?": "How much?",
+  "Con apuesta, cada uno pone esos Pokédólares al entrar (sale en la invitación) y el ganador se lo lleva todo. Si los demás se rinden, se lo lleva el que queda. Solo al crear el locke.":
+    "With a bet, everyone puts in those Pokédollars when joining (it shows in the invite) and the winner takes it all. If the others give up, the one left takes it. Only when creating the locke.",
   "Tú ya estás dentro. Pulsa «+» para invitar a tus amigos; hasta que acepten salen como «sin contestar».":
     "You're already in. Press “+” to invite your friends; until they accept they show as “unanswered”.",
   "Por ejemplo: sin objetos en combate y solo Pokémon de Sinnoh": "For example: no items in battle and only Sinnoh Pokémon",

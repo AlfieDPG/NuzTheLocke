@@ -339,9 +339,29 @@ export function bolsilloDe(objetoId, juego = "xy") {
   return (gen === 4 && BOLSILLO_GEN4[dePokeAPI]) || BOLSILLO_POKEAPI[dePokeAPI] || "objetos";
 }
 
+// Las MT de la ROM randomizada de la partida abierta (js/comun/randomizados.js, mtDelLocke), o
+// null: las del juego original
+let mtDeLaRom = null;
+let mtFalta = false; // el locke tiene randomizer, pero no se apuntaron las MT de la ROM
+
+export function usarMTDeLaRom(tabla, falta = false) {
+  mtDeLaRom = tabla || null;
+  mtFalta = !tabla && falta;
+}
+
+// "rom": las de la ROM randomizada; "falta": debería, pero no están apuntadas; "": las del juego
+export function estadoMTDeLaRom() {
+  return mtDeLaRom ? "rom" : mtFalta ? "falta" : "";
+}
+
+// Lo que enseña una MT o MO (0: no es una)
+export function ataqueDeMaquina(id, juego) {
+  return (mtDeLaRom && mtDeLaRom.ataqueDe(id)) || (((delEditor && delEditor.maquinas) || {})[juego] || {})[id] || 0;
+}
+
 // El nombre, y en las MT y MO el ataque que enseñan: «MT26 Terremoto»
 export function nombreObjeto(id, juego) {
-  const enseña = (((delEditor && delEditor.maquinas) || {})[juego] || {})[id];
+  const enseña = ataqueDeMaquina(id, juego);
   const o = objeto(id, juego);
   return enseña ? `${nombreDe(o)} ${nombreDe(ataque(enseña))}` : nombreDe(o);
 }
@@ -352,7 +372,7 @@ const URL_DISCOS = "https://raw.githubusercontent.com/PokeAPI/sprites/master/spr
 
 export function urlsIconoDe(id, juego) {
   const o = objeto(id, juego);
-  const enseña = (((delEditor && delEditor.maquinas) || {})[juego] || {})[id];
+  const enseña = ataqueDeMaquina(id, juego);
   const tipo = enseña && delEditor.ataques[enseña] && delEditor.ataques[enseña][0];
   if (tipo) return [`${URL_DISCOS}${/^HM/i.test((o && o.en) || "") ? "hm" : "tm"}-${tipo}.png`];
   return o && o.en ? urlsIconoObjeto(o.en) : [];
@@ -376,7 +396,8 @@ function resumenMochila(antes, despues, juego) {
   for (const id of new Set([...a.keys(), ...d.keys()])) {
     const [x, y] = [a.get(id) || 0, d.get(id) || 0];
     if (x === y) continue;
-    const nombre = nombreObjeto(id, juego);
+    // Las MT, solo con su número («MT10»): lo que enseñan en una ROM randomizada no se destripa a los demás
+    const nombre = ataqueDeMaquina(id, juego) ? nombreDe(objeto(id, juego)) : nombreObjeto(id, juego);
     partes.push(!x ? `+${nombre} ×${y}` : !y ? `−${nombre}` : `${nombre} ${x} → ${y}`);
   }
   return partes.length ? `${t("bolsa")}: ${partes.join(", ")}` : "";

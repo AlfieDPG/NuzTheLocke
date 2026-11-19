@@ -273,6 +273,10 @@ export default {
   "Un ataque {clase} de tipo {tipo} en lugar de {ataque}": "A {clase} {tipo}-type move instead of {ataque}",
   "Un ataque {clase} de tipo {tipo} en un hueco libre": "A {clase} {tipo}-type move in a free slot",
   "equipo +{n}": "team +{n}",
+  "Los ataques, de las MT que tienes y puede aprender en tu ROM.": "Moves from the TMs you have that it can learn in your ROM.",
+  "Enséñale {mt} ({ataque}) en lugar de {quita}": "Teach it {mt} ({ataque}) instead of {quita}",
+  "Enséñale {mt} ({ataque}) en un hueco libre": "Teach it {mt} ({ataque}) in a free slot",
+  "la MT": "the TM",
 
   // Buscar equipo (index.html y js/equipos/buscar.js)
   "Buscar equipo": "Find a team",

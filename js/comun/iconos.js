@@ -74,6 +74,7 @@ const DIBUJOS = {
   pokedex: `<rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="9" cy="7" r="2"/><path d="M8 13h8"/><path d="M8 17h5"/>`,
   amigos: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
            <path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>`,
+  dados: `<rect width="18" height="18" x="3" y="3" rx="3"/><circle cx="8.5" cy="8.5" r="1.2"/><circle cx="15.5" cy="15.5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="15.5" cy="8.5" r="1.2"/><circle cx="8.5" cy="15.5" r="1.2"/>`,
   cuadricula: `<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/>`,
   // «Lockes»: todos detallados (una tarjeta alta con su franja) o todos resumidos (tres franjas)
   detallados: `<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M7 13h10"/><path d="M7 17h6"/>`,

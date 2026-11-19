@@ -1036,12 +1036,15 @@ const MINIMO_MEJORA = 0.2;
 //   · un ataque: uno de potencia 80 de cada tipo (físico o especial, según su mejor estadística)
 //     en cada hueco, en lugar del que haya (los de estado que valen no se tocan). En un
 //     randomlocke no se sabe qué puede aprender: se dice el tipo que le falta.
+//     Con «maquinas» (las MT de la mochila, sabiendo qué enseñan en su ROM y quién las aprende:
+//     js/comun/randomizados.js), en vez del tipo: la MT que tienes y puede aprender.
 //   miembros: lo que da analizarPokemon de cada uno; contexto: el mismo; clausulaObjetos: no
-//   sugerir uno que ya lleva otro del equipo, ni el mismo a dos
-//   -> [{ poke, que: "objeto" | "ataque", objeto?, mochila?, tipo?, clase?, quita? (el ataque que
-//        sale; null: va a un hueco libre), sube (la nota del equipo), subeEl (la suya) }], de lo
-//        que más sube a lo que menos
-export function sugerirMejoras(miembros, contexto, objetos, { clausulaObjetos = false } = {}) {
+//   sugerir uno que ya lleva otro del equipo, ni el mismo a dos; maquinas: [{ objeto (su nº),
+//   ataque: { id, es, en, tipo, categoria }, aprende(especie) }] o null
+//   -> [{ poke, que: "objeto" | "ataque" | "mt", objeto?, mochila?, tipo?, clase?, maquina?, quita? (el
+//        ataque que sale; null: va a un hueco libre), sube (la nota del equipo), subeEl (la suya) }],
+//        de lo que más sube a lo que menos
+export function sugerirMejoras(miembros, contexto, objetos, { clausulaObjetos = false, maquinas = null } = {}) {
   const base = cuentasEquipo(miembros).nota;
   const sube = (i, poke) => {
     const otro = analizarPokemon(poke, contexto);
@@ -1080,6 +1083,24 @@ export function sugerirMejoras(miembros, contexto, objetos, { clausulaObjetos = 
     const poke = m.poke;
     const suyos = poke.ataques || [];
     if (!suyos.some(Boolean)) return;
+    if (maquinas) {
+      // Las MT de la mochila que puede aprender y no sabe ya
+      const sabe = new Set(suyos.filter(Boolean).map((a) => a.id));
+      const suyas = maquinas.filter((m) => m.ataque && !sabe.has(m.ataque.id) && m.aprende(poke.id));
+      let mejor = null;
+      for (let hueco = 0; hueco < 4; hueco++) {
+        const actual = suyos[hueco] || null;
+        if (actual && ESTADO[clave(actual.en)]) continue;
+        for (const m of suyas) {
+          const cuanto = sube(i, { ...poke, ataques: [0, 1, 2, 3].map((j) => (j === hueco ? m.ataque : suyos[j] || null)) });
+          if (cuanto.equipo >= MINIMO_MEJORA && (!mejor || cuanto.equipo > mejor.sube)) {
+            mejor = { poke, que: "mt", maquina: m, quita: actual, sube: cuanto.equipo, subeEl: cuanto.el };
+          }
+        }
+      }
+      if (mejor) sugerencias.push(mejor);
+      return;
+    }
     const yo = combatienteDe(poke, contexto.familias);
     const clase = statEnCombate(yo, 1).valor >= statEnCombate(yo, 3).valor ? "fisico" : "especial";
     let mejor = null;

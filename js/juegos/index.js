@@ -35,6 +35,12 @@ import { montarGrito } from "./grito.js";
 import { montarEvolucion } from "./evolucion.js";
 import { montarTipos } from "./tipos.js";
 import { montarIntruso } from "./intruso.js";
+import { JUEGOS_AMIGOS, montarAmigos, activarAmigos, pendientesDe } from "./amigos.js";
+import { alCambiarJuntos, partidaJuntos, nombreJuegoJuntos, PREMIO_DIA } from "../comun/juntos.js";
+
+// Los juegos con amigos van en la cartilla como «amigos:quien»...
+const esDeAmigos = (id) => String(id || "").startsWith("amigos:");
+const juegoDeAmigos = (id) => String(id).slice(7);
 
 const vista = document.getElementById("vista-juegos");
 const cuerpo = vista.querySelector(".juegos-cuerpo");
@@ -103,6 +109,20 @@ function plantillaReto(juego) {
     </button>`;
 }
 
+// Un juego con amigos en la cartilla: con cuántas cosas te esperan (invitaciones y partidas en las que te toca)
+function plantillaRetoAmigos(juego) {
+  const id = `amigos:${juego.id}`;
+  const pendientes = usuarioActual() ? pendientesDe(juego.id) : 0;
+  return `
+    <button class="reto-fila ${id === reto ? "activo" : ""}" data-reto="${id}" ${id === reto ? 'aria-current="true"' : ""}>
+      <span class="reto-marca">${icono(juego.icono)}</span>
+      <span class="reto-texto"><strong>${escaparHTML(nombreJuegoJuntos(juego.id))}</strong><small>${pendientes
+        ? t(pendientes === 1 ? "{n} te espera" : "{n} te esperan", { n: pendientes })
+        : id === reto ? t("Jugando") : t("Para dos")}</small></span>
+      ${pendientes ? `<span class="reto-aviso">${pendientes}</span>` : ""}
+    </button>`;
+}
+
 function pintarCartilla() {
   const caja = cuerpo.querySelector(".retos-cartilla");
   if (!caja) return;
@@ -123,6 +143,8 @@ function pintarCartilla() {
            : t("Juega hoy y mañana: la racha da Pokédólares extra")}</span></p>`
       : ""}
     <div class="cartilla-retos">${JUEGOS.map(plantillaReto).join("")}</div>
+    <h3 class="cartilla-sub">${icono("dados")} ${t("Con amigos")}</h3>
+    <div class="cartilla-retos cartilla-amigos">${JUEGOS_AMIGOS.map(plantillaRetoAmigos).join("")}</div>
     <div class="cartilla-pie">
       <button class="juegos-compartir-enlace">${icono("copiar")} ${t("Copiar mis resultados de hoy")}</button>
       <span class="juegos-copiado" hidden>${t("¡Copiado! Pégalo donde quieras.")}</span>
@@ -131,9 +153,24 @@ function pintarCartilla() {
 
 // ---------- El reto ----------
 
+let partidaPedida = ""; // la partida con amigos que hay que abrir (desde la campana)
+
 async function pintarReto() {
-  const juego = JUEGOS.find((cada) => cada.id === reto);
   const caja = cuerpo.querySelector(".retos-juego");
+  if (esDeAmigos(reto)) {
+    caja.innerHTML = `<article class="juego juego-amigos"></article>`;
+    const pedida = partidaPedida;
+    partidaPedida = "";
+    try {
+      await montarAmigos(caja.querySelector(".juego"), juegoDeAmigos(reto), pedida);
+    } catch (error) {
+      console.error(error);
+      caja.querySelector(".juego").innerHTML = `<p class="juego-cargando">${t("No se han podido cargar los juegos. Comprueba la conexión y vuelve a entrar.")}</p>`;
+    }
+    pintarAmigosHoy();
+    return;
+  }
+  const juego = JUEGOS.find((cada) => cada.id === reto);
   caja.innerHTML = `<article class="juego juego-${juego.id}"></article>`;
   try {
     await juego.montar(caja.querySelector(".juego"));
@@ -327,8 +364,17 @@ async function pintarAmigosHoy() {
     if (caja) caja.innerHTML = "";
     return;
   }
-  const juego = JUEGOS.find((cada) => cada.id === reto);
   const esta = ++lecturaHoy;
+  // Con un juego con amigos: el premio del día, en vez de lo de los retos
+  if (esDeAmigos(reto)) {
+    caja.innerHTML = `
+      <section class="retos-caja retos-caja-hoy">
+        <h3>${t("Premio del día")}</h3>
+        <p class="juegos-nota">${t("La primera partida que ganes cada día con un amigo, en cualquiera de estos juegos: +{n} Pokédólares (más lo de la racha).", { n: PREMIO_DIA })}</p>
+      </section>`;
+    return;
+  }
+  const juego = JUEGOS.find((cada) => cada.id === reto);
   caja.innerHTML = plantillaAmigosHoy(juego);
   if (!amigosConPerfil().length) return;
   await leerJugadas(juego.id);
@@ -350,8 +396,7 @@ function pintarArriba() {
 }
 
 function pintarTodo() {
-  if (!reto) reto = (JUEGOS.find((juego) => !estadoDe(juego.id).fin) || JUEGOS[0]).id;
-  cuerpo.innerHTML = `
+  if (!reto) reto = (JUEGOS.find((juego) => !estadoDe(juego.id).fin) || JUEGOS[0]).id;  cuerpo.innerHTML = `
     <div class="retos-cuerpo">
       <aside class="retos-cartilla" aria-label="${t("Los retos de hoy")}"></aside>
       <div class="retos-juego"></div>
@@ -362,7 +407,21 @@ function pintarTodo() {
   pintarReto();
 }
 
+// Desde la campana: abre esa partida con amigos
+export function abrirPartidaJuntos(id) {
+  const partida = partidaJuntos(id);
+  if (!partida) return;
+  reto = `amigos:${partida.juego}`;
+  partidaPedida = partida.estado === "reto" ? "" : id;
+  pintarTodo();
+}
+
 export function iniciar() {
+  activarAmigos(cuerpo);
+  // Las invitaciones y los «te toca», en la cartilla
+  alCambiarJuntos(() => {
+    if (!vista.hidden) pintarCartilla();
+  });
   cuerpo.addEventListener("click", (e) => {
     if (e.target.closest(".juegos-compartir-enlace")) {
       compartir().catch((error) => console.error(error));

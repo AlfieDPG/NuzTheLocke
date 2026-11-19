@@ -481,6 +481,53 @@ export default {
   "Abrir {nombre}": "Open {nombre}",
   "{quien} te invita a {locke}": "{quien} invites you to {locke}",
   "Unirme": "Join",
+  "Unirme y apostar": "Join and bet",
+  "de apuesta: el ganador se lo lleva todo": "bet: the winner takes it all",
+  "no tienes bastantes Pokédólares": "you don't have enough Pokédollars",
+  "{n} Pokédólares": "{n} Pokédollars",
+  "Sin apuesta": "No bet",
+  "Otra cantidad": "Other amount",
+  "Pon cuántos Pokédólares quieres apostar.": "Enter how many Pokédollars you want to bet.",
+  "¿Cuánto? (hasta {n})": "How much? (up to {n})",
+  "La ROM está randomizada, pero no se han podido guardar sus MT, tipos y estadísticas en el locke (¿sin conexión o con las reglas de Firestore sin publicar?). Vuelve a randomizar más tarde: con la misma semilla sale la misma ROM.":
+    "The ROM is randomized, but its TMs, types and stats couldn't be saved to the locke (offline, or Firestore rules not published?). Randomize again later: the same seed gives the same ROM.",
+  "Estas MT son las del juego original. Para ver las de tu ROM randomizada, vuelve a randomizarla desde el locke (con la misma semilla sale la misma ROM: no hace falta empezar de nuevo).":
+    "These TMs are the original game's. To see your randomized ROM's, randomize it again from the locke (the same seed gives the same ROM: no need to start over).",
+  "Las MT de tu ROM randomizada.": "Your randomized ROM's TMs.",
+  "Estas MT son las del juego original. Para ver las de tu ROM randomizada, vuelve a randomizarla desde el locke.":
+    "These TMs are the original game's. To see your randomized ROM's, randomize it again from the locke.",
+  "Si tu ROM es randomizada, estas MT pueden ser las del juego original. Para ver las tuyas, elige el mod que tienes puesto (el .zip del randomizer o el archivo personal_masterdatas).":
+    "If your ROM is randomized, these TMs may be the original game's. To see yours, pick the mod you have installed (the randomizer's .zip or the personal_masterdatas file).",
+  "Leer las MT de mi mod": "Read the TMs from my mod",
+  "Las MT de tu ROM randomizada (la primera: {mt}).": "Your randomized ROM's TMs (the first one: {mt}).",
+  "Volver a leer": "Read again",
+  "{n} MT leídas de tu mod: ya salen en la bolsa y el analizador, pero solo en este navegador. No se han podido guardar en el locke (¿reglas de Firestore sin publicar?): vuelve a leerlas cuando estén publicadas.":
+    "{n} TMs read from your mod: they now show in the bag and the analyzer, but only in this browser. They couldn't be saved to the locke (Firestore rules not published?): read them again once they are.",
+  "Leyendo...": "Reading...",
+  "Listo: {n} MT leídas de tu mod. La bolsa y el analizador ya usan las de tu ROM (y los combates del locke, sus tipos y estadísticas).":
+    "Done: {n} TMs read from your mod. The bag and the analyzer now use your ROM's (and the locke's battles, its types and stats).",
+  "No he podido leer las MT de ese archivo.": "I couldn't read the TMs from that file.",
+  "Ese archivo no es un .zip válido.": "That file isn't a valid .zip.",
+  "El .zip está comprimido de una forma que no sé leer. Elige el archivo personal_masterdatas de la carpeta del mod.":
+    "The .zip is compressed in a way I can't read. Pick the personal_masterdatas file from the mod folder.",
+  "En ese .zip no está personal_masterdatas: ¿es el del randomizer?": "personal_masterdatas isn't in that .zip: is it the randomizer's?",
+  "No he podido leer las MT de ese archivo. Elige el .zip del randomizer o el archivo personal_masterdatas (en romfs/Data/StreamingAssets/AssetAssistant/Pml).":
+    "I couldn't read the TMs from that file. Pick the randomizer's .zip or the personal_masterdatas file (in romfs/Data/StreamingAssets/AssetAssistant/Pml).",
+  "Con este juego todavía no se pueden leer las MT del mod.": "TMs can't be read from the mod for this game yet.",
+  "De los ataques solo se dice el tipo: para que te diga qué MT de tu mochila usar, vuelve a randomizar tu ROM desde el locke (con la misma semilla sale la misma).":
+    "For moves only the type is given: to be told which TM in your bag to use, randomize your ROM again from the locke (the same seed gives the same one).",
+  "La apuesta solo se elige al crear el locke.": "The bet can only be chosen when creating the locke.",
+  "Tienes {n} Pokédólares.": "You have {n} Pokédollars.",
+  "No tienes tantos Pokédólares para apostar.": "You don't have that many Pokédollars to bet.",
+  "Cada uno pone {n} al entrar; el ganador se lo lleva todo": "Everyone puts in {n} when joining; the winner takes it all",
+  "Bote": "Pot",
+  "para {quien}": "for {quien}",
+  "Rendirse: quedas fuera del locke": "Give up: you're out of the locke",
+  "¿Rendirte en «{nombre}»?": "Give up in “{nombre}”?",
+  "Quedas fuera del locke y no se puede deshacer.": "You'll be out of the locke and it can't be undone.",
+  "Pierdes lo apostado. Si solo queda uno de los que apostaron, se lo lleva todo.": "You lose your bet. If only one of those who bet is left, they take it all.",
+  "{quien} se ha rendido": "{quien} gave up",
+  "Este locke tiene una apuesta por cobrar: no se puede borrar.": "This locke has a bet to be collected: it can't be deleted.",
   "Terminados ({n})": "Finished ({n})",
   "En marcha ({n})": "Ongoing ({n})",
   "Vinculada": "Linked",

@@ -10,9 +10,12 @@ import { imagenConRespaldo } from "../comun/imagenes.js";
 import { campoNumero } from "../comun/numero.js";
 import { formatoDeSeguro, CARAMELO_RARO } from "../partida/formato.js";
 import {
-  prepararDatos, partidaDeTrabajo, cambiarPartida, objetosDe, nombreObjeto, bolsilloDe, urlsIconoDe, iconoDe, LIMITES
+  prepararDatos, partidaDeTrabajo, cambiarPartida, objetosDe, nombreObjeto, bolsilloDe, urlsIconoDe, iconoDe, LIMITES, estadoMTDeLaRom
 } from "./editor-comun.js";
 import { avisar } from "../comun/ventanas.js";
+import { usarMTDeLaRom } from "./editor-comun.js";
+import { lockeDeLaPartida } from "../partida/vinculo.js";
+import { JUEGOS_CON_MOD, leerMTDelMod } from "./leer-mod.js";
 import { t } from "../comun/idioma.js";
 
 const NOMBRES = {
@@ -44,6 +47,53 @@ function fila(e, bolsillo, juego) {
     </div>`;
 }
 
+// Arriba del bolsillo de MT: si son las de tu ROM randomizada o las del juego, y cómo conseguir las tuyas sin volver
+// a randomizar (leyéndolas del mod que ya tienes puesto: ./leer-mod.js)
+function avisoMT(juego, idPartida) {
+  const estado = estadoMTDeLaRom();
+  const conMod = JUEGOS_CON_MOD.has(juego) && Boolean(lockeDeLaPartida(idPartida));
+  if (estado === "rom") {
+    // Con lo que dice la MT01, para ver de un vistazo si es la de tu ROM; y por si se leyó otro archivo, volver a leer
+    const primera = nombreObjeto(328, juego);
+    return `
+      <div class="bolsa-aviso-mt ok">
+        ${icono("disco")}
+        <span>${t("Las MT de tu ROM randomizada (la primera: {mt}).", { mt: escaparHTML(primera) })}</span>
+        ${conMod ? `<button class="bolsa-leer-mod">${t("Volver a leer")}</button><input class="bolsa-mod" type="file" hidden>` : ""}
+      </div>`;
+  }
+  if (!conMod && estado !== "falta") return "";
+  return `
+    <div class="bolsa-aviso-mt">
+      ${icono("disco")}
+      <span>${conMod
+        ? t("Si tu ROM es randomizada, estas MT pueden ser las del juego original. Para ver las tuyas, elige el mod que tienes puesto (el .zip del randomizer o el archivo personal_masterdatas).")
+        : t("Estas MT son las del juego original. Para ver las de tu ROM randomizada, vuelve a randomizarla desde el locke.")}</span>
+      ${conMod ? `<button class="bolsa-leer-mod">${t("Leer las MT de mi mod")}</button><input class="bolsa-mod" type="file" hidden>` : ""}
+    </div>`;
+}
+
+async function leerMod(contenedor, idPartida, archivo) {
+  const boton = contenedor.querySelector(".bolsa-leer-mod");
+  if (boton) {
+    boton.disabled = true;
+    boton.textContent = t("Leyendo...");
+  }
+  try {
+    const idLocke = lockeDeLaPartida(idPartida);
+    const juego = formatoDeSeguro(await partidaDeTrabajo(idPartida)).id;
+    const { cuantas, tabla, guardado } = await leerMTDelMod(idLocke, juego, archivo);
+    usarMTDeLaRom(tabla);
+    avisar(guardado
+      ? t("Listo: {n} MT leídas de tu mod. La bolsa y el analizador ya usan las de tu ROM (y los combates del locke, sus tipos y estadísticas).", { n: cuantas })
+      : t("{n} MT leídas de tu mod: ya salen en la bolsa y el analizador, pero solo en este navegador. No se han podido guardar en el locke (¿reglas de Firestore sin publicar?): vuelve a leerlas cuando estén publicadas.", { n: cuantas }));
+  } catch (error) {
+    console.error(error);
+    avisar(t(error.message || "No he podido leer las MT de ese archivo."));
+  }
+  pintarBolsa(contenedor, idPartida).catch((error) => console.error(error));
+}
+
 // Pinta la bolsa (la de la copia en memoria, con los cambios) en «contenedor»
 export async function pintarBolsa(contenedor, idLocke) {
   await prepararDatos();
@@ -69,6 +119,7 @@ export async function pintarBolsa(contenedor, idLocke) {
           : `<span class="editor-buscar bolsa-anadir"><input class="bolsa-buscar" type="search" placeholder="${t("Meter un objeto...")}" autocomplete="off"></span>`}
         <button class="bolsa-caramelos" title="${t("Llevar 999 Caramelos Raros")}">${icono("caramelo")} ${t("Caramelos raros")}</button>
       </div>
+      ${elegido === "mt" ? avisoMT(juego, idLocke) : ""}
       <div class="bolsa-lista">
         ${lista.length ? lista.map((e) => fila(e, bolsillo, juego)).join("") : `<p class="bolsa-vacio">${t("No hay nada.")}</p>`}
       </div>
@@ -136,6 +187,10 @@ export function activarBolsa(contenedor, idDe) {
       caramelos(contenedor, idDe()).catch((error) => console.error(error));
       return;
     }
+    if (e.target.closest(".bolsa-leer-mod")) {
+      contenedor.querySelector(".bolsa-mod").click();
+      return;
+    }
     const quitar = e.target.closest(".bolsa-quitar");
     if (quitar) {
       const id = Number(quitar.closest(".bolsa-fila").dataset.objeto);
@@ -143,6 +198,10 @@ export function activarBolsa(contenedor, idDe) {
     }
   });
   contenedor.addEventListener("change", (e) => {
+    if (e.target.matches(".bolsa-mod")) {
+      if (e.target.files[0]) leerMod(contenedor, idDe(), e.target.files[0]);
+      return;
+    }
     if (!e.target.matches(".bolsa-cantidad")) return;
     const id = Number(e.target.closest(".bolsa-fila").dataset.objeto);
     const cantidad = Math.max(0, Math.floor(Number(e.target.value) || 0));

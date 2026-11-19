@@ -868,10 +868,14 @@ function semillaPara() {
 // Desde un locke: los tipos y estadísticas que han quedado, para sus combates (js/comun/randomizados.js).
 // Si falla (sin sesión, sin reglas publicadas), los combates usan los del juego y ya está.
 function apuntarParaLuchas(resultado) {
-  if (!idLocke || !resultado || !resultado.especies) return;
+  if (!idLocke || !resultado || (!resultado.especies && !resultado.mt)) return;
   import("../comun/randomizados.js")
-    .then(({ guardarRandomizados }) => guardarRandomizados(idLocke, rom && rom.juego, resultado.especies))
-    .catch((error) => console.error("No se han podido apuntar los datos del randomizer para los combates", error));
+    .then(({ guardarRandomizados }) => guardarRandomizados(idLocke, rom && rom.juego, resultado.especies, resultado.mt))
+    .catch((error) => {
+      console.error("No se han podido apuntar los datos del randomizer para los combates", error);
+      // Que se sepa: sin esto, la bolsa y el analizador del locke no conocen las MT de tu ROM
+      avisar(t("La ROM está randomizada, pero no se han podido guardar sus MT, tipos y estadísticas en el locke (¿sin conexión o con las reglas de Firestore sin publicar?). Vuelve a randomizar más tarde: con la misma semilla sale la misma ROM."));
+    });
 }
 
 // jugar: las de GBA, a una partida nueva de «Jugar» en lugar de descargarla

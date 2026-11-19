@@ -45,6 +45,8 @@ export function textoSuceso(suceso, locke) {
       return t("{quien} ha creado el locke", datos);
     case "entra":
       return t("{quien} se ha unido al locke", datos);
+    case "rendido":
+      return t("{quien} se ha rendido", datos);
     case "vida":
       if (suceso.delta > 0) return t("{quien} ha recuperado una vida", datos);
       return muerto ? t("{quien} ha perdido una vida: {muerto}{contra}", datos) : t("{quien} ha perdido una vida", datos);
@@ -87,6 +89,7 @@ export function iconoSuceso(suceso) {
   const nombre = {
     creado: "mas",
     entra: "personaMas",
+    rendido: "calavera",
     vida: "corazon",
     eliminado: "calavera",
     victoria: "espadas",

@@ -109,6 +109,7 @@ async function cargarLocke(locke, lockes, pedir = false) {
     conDetalle: caja.conDetalle,
     hayArchivo: !caja.conDetalle && (await hayVinculo(locke.id)),
     mochila: caja.mochila,
+    maquinas: caja.maquinas,
     contexto: { ...contexto, gen: generacionDeJuego(locke.juego) },
     estados: new Map(),
     elegido: null,
@@ -481,7 +482,7 @@ async function usar(r, boton) {
     await prepararConversion();
     const { pokemon, problemas } = await pokemonDePaste(pasteDeEquipo(r.miembros.map((m) => m.poke.partida)));
     reemplazarEquipo(pokemon, actual.locke.nombre, null);
-    if (actual.mochila) recordarMochila(actual.mochila, actual.locke.nombre);
+    if (actual.mochila) recordarMochila(actual.mochila, actual.locke.nombre, actual.maquinas, !actual.maquinas && Boolean(actual.locke.randomizer));
     dialogo.close();
     alUsar(problemas);
     alUsarFuera();
@@ -527,7 +528,10 @@ export function iniciarBuscar(alAlUsar) {
       });
     } else if (boton.dataset.ver !== undefined) {
       const r = actual.resultados[Number(boton.dataset.ver)];
-      mostrarAnalisis(r.miembros, actual.mochila ? { objetos: actual.mochila, nombre: actual.locke.nombre } : null, {
+      mostrarAnalisis(r.miembros, actual.mochila ? {
+        objetos: actual.mochila, nombre: actual.locke.nombre, maquinas: actual.maquinas,
+        sinTablaMT: !actual.maquinas && Boolean(actual.locke.randomizer)
+      } : null, {
         clausulaObjetos: Boolean(actual.ajustes.clausulaObjetos)
       });
     } else if (boton.dataset.usar !== undefined) usar(actual.resultados[Number(boton.dataset.usar)], boton);

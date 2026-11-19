@@ -3751,6 +3751,25 @@ button.partida-hueco .icono {
   opacity: 0.6;
 }
 
+/* Si las MT son las de tu ROM randomizada o las del juego original */
+.bolsa-aviso-mt {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.5rem;
+  background: rgba(var(--t-texto-rgb), 0.07);
+  font-size: 0.85rem;
+}
+
+.bolsa-aviso-mt .icono { flex: none; width: 1rem; height: 1rem; }
+.bolsa-aviso-mt span { flex: 1; min-width: 12rem; }
+.bolsa-aviso-mt { flex-wrap: wrap; }
+.bolsa-leer-mod { flex: none; padding: 0.35rem 0.7rem; border: none; border-radius: 0.5rem; background: var(--t-control); font-weight: bold; cursor: pointer; }
+.bolsa-leer-mod:hover { background: var(--t-control-2); }
+.bolsa-aviso-mt.ok { opacity: 0.75; }
+
 /* Arrastrando uno a otro hueco: el arrastrado, en tenue; donde caería, enmarcado */
 button.partida-ficha.arrastrando {
   opacity: 0.35;
@@ -5255,6 +5274,14 @@ button.locke-caidos:hover .locke-caidos-caras img {
 .locke-invitacion button:hover { background: var(--t-control-2); }
 .locke-invitacion .locke-invitacion-si { background: color-mix(in srgb, rgb(186, 62, 102) 78%, black); color: #fff; }
 .locke-invitacion .locke-invitacion-si:hover { background: color-mix(in srgb, rgb(186, 62, 102) 78%, black); filter: brightness(1.12); }
+.locke-invitacion button:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+.locke-invitacion p .locke-invitacion-apuesta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-top: 0.15rem; }
+.locke-invitacion p .locke-invitacion-apuesta span { color: inherit; font-size: inherit; }
+
+/* El bote de la apuesta (js/comun/lockes.js, «Apuestas») */
+.locke-bote { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: bold; }
+.locke-bote .ficha-cifra { font-size: inherit; }
+.campo-apuesta { display: flex; flex-direction: column; gap: 0.25rem; }
 
 /* Las tarjetas */
 .lockes-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(19.5rem, 1fr)); gap: 0.9rem; }

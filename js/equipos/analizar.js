@@ -27,8 +27,9 @@ let mostrado = null;
 // { objetos, nombre (del locke) }. Sin ella, se sugieren los objetos habituales.
 let mochilaRecordada = null;
 
-export function recordarMochila(objetos, nombreLocke) {
-  mochilaRecordada = { objetos, nombre: nombreLocke };
+// maquinas: las MT de la mochila con lo que enseñan en su ROM randomizada (js/equipos/caja.js) o null
+export function recordarMochila(objetos, nombreLocke, maquinas = null, sinTablaMT = false) {
+  mochilaRecordada = { objetos, nombre: nombreLocke, maquinas, sinTablaMT };
 }
 
 const URL_NOTAS = new URL("../../datos/habilidades.json", import.meta.url);
@@ -106,6 +107,17 @@ function filaMejora(s) {
     const icono = imagenConRespaldo(urlsIconoObjeto(s.objeto.en), `class="mejora-icono" alt="" data-quitar-si-falla`);
     const datosObjeto = { objeto: `<b>${icono}${escaparHTML(nombre(s.objeto))}</b>` };
     texto = s.mochila ? t("Ponle {objeto} (lo tienes en la mochila)", datosObjeto) : t("Ponle {objeto}, si lo tienes", datosObjeto);
+  } else if (s.que === "mt") {
+    const { ataque, nombre: mt } = s.maquina;
+    const disco = ataque.tipo ? `<img class="mejora-icono" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tm-${ataque.tipo}.png" data-quitar-si-falla>` : "";
+    const datosMT = {
+      mt: `<b>${disco}${escaparHTML(mt ? nombre(mt) : t("la MT"))}</b>`,
+      ataque: `<b class="mejora-tipo" style="--color-tipo:${coloresTipo[ataque.tipo] || "#888"}">${escaparHTML(nombre(ataque))}</b>`,
+      quita: s.quita ? `<b>${escaparHTML(nombre(s.quita))}</b>` : ""
+    };
+    texto = s.quita
+      ? t("Enséñale {mt} ({ataque}) en lugar de {quita}", datosMT)
+      : t("Enséñale {mt} ({ataque}) en un hueco libre", datosMT);
   } else {
     const datosAtaque = {
       clase: s.clase === "fisico" ? t("ataque|físico") : t("ataque|especial"),
@@ -134,14 +146,20 @@ async function pintarMejoras(miembros, mochila, opciones = {}) {
   const caja = cuerpo.querySelector(".analisis-mejoras");
   if (!caja || !mostrado || mostrado.miembros !== miembros) return;
   try {
-    const lista = sugerirMejoras(miembros, await cargarContexto(), mochila ? mochila.objetos : objetosHabituales(), opciones).slice(0, MAX_MEJORAS);
+    const maquinas = (mochila && mochila.maquinas) || null;
+    const lista = sugerirMejoras(miembros, await cargarContexto(), mochila ? mochila.objetos : objetosHabituales(), { ...opciones, maquinas }).slice(0, MAX_MEJORAS);
     if (!mostrado || mostrado.miembros !== miembros) return; // mientras, se ha abierto otro
     const deDonde = mochila
       ? t("Los objetos, de la mochila de «{locke}».", { locke: escaparHTML(mochila.nombre) })
       : t("Sin la mochila de la partida, los objetos habituales.");
+    const deAtaques = maquinas
+      ? t("Los ataques, de las MT que tienes y puede aprender en tu ROM.")
+      : mochila && mochila.sinTablaMT
+        ? t("De los ataques solo se dice el tipo: para que te diga qué MT de tu mochila usar, vuelve a randomizar tu ROM desde el locke (con la misma semilla sale la misma).")
+        : t("De los ataques solo se dice el tipo: en un randomlocke, mira cuál de ese tipo puede aprender.");
     caja.innerHTML = lista.length
       ? `<ul class="analisis-mejoras-lista">${lista.map(filaMejora).join("")}</ul>
-         <p class="analisis-explica">${deDonde} ${t("De los ataques solo se dice el tipo: en un randomlocke, mira cuál de ese tipo puede aprender.")}</p>`
+         <p class="analisis-explica">${deDonde} ${deAtaques}</p>`
       : `<p class="analisis-bien">${t("No veo ningún cambio sencillo que lo mejore.")}</p>`;
   } catch (error) {
     console.error(error);

@@ -64,7 +64,14 @@ import { miPerfil, perfilesDeAmigos, amigosAceptados, alCambiarMiPerfil } from "
 export const MAX_PASTE = 8000;
 export const SEGUNDOS_TURNO = 60;
 export const MAX_MIRONES = 400;
-export const APUESTAS = [0, 50, 100, 250, 500];
+export const APUESTAS = [0, 50, 100, 250, 500]; // las de un clic; también vale otra cantidad (apuestaValida)
+export const APUESTA_MAXIMA = 1000000; // el tope de las reglas (firestore.rules); el de verdad es tu saldo
+
+// Una cantidad entera entre 0 y APUESTA_MAXIMA (lo demás, sin apuesta)
+export function apuestaValida(n) {
+  const numero = Number(n);
+  return Number.isInteger(numero) && numero > 0 && numero <= APUESTA_MAXIMA ? numero : 0;
+}
 export const DIAS_ABANDONO = 1; // también en firestore.rules (abandonoBien)
 export const MAX_SIN_TIEMPO = 3;
 
@@ -289,7 +296,7 @@ export async function retar({ rival, nombreRival, fotoRival, equipo, formato, ni
   const yo = miNombreYFoto();
   const ahora = Date.now();
   const referencia = fn.doc(fn.collection(bd, "luchas"));
-  apuesta = APUESTAS.includes(apuesta) ? apuesta : 0;
+  apuesta = apuestaValida(apuesta);
   const lote = fn.writeBatch(bd);
   if (apuesta) lote.update(fn.doc(bd, "perfiles", usuario.uid), { [`apuestas.${referencia.id}`]: -apuesta, ultimaApuesta: referencia.id });
   lote.set(referencia, {

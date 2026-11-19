@@ -2339,3 +2339,8 @@
 .lucha-retar-apostado.error {
   color: var(--t-mal);
 }
+
+/* Apuesta con otra cantidad (js/lucha/index.js) */
+.lucha-retar-otra { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9rem; }
+.lucha-retar-otra input { width: 8rem; }
+

@@ -70,8 +70,15 @@ export function lockes() {
 // haber perdido el locke. Con el «+» se vuelve a 0 (por si fue sin querer).
 export const ELIMINADO = -1;
 
+// Fuera del locke: sin vidas (la vida cero perdida) o rendido
 export function estaEliminado(locke, uid) {
-  return Boolean(locke) && !locke.vidasIlimitadas && ((locke.vidas || {})[uid] || 0) <= ELIMINADO;
+  if (!locke) return false;
+  if ((locke.rendidos || []).includes(uid)) return true;
+  return !locke.vidasIlimitadas && ((locke.vidas || {})[uid] || 0) <= ELIMINADO;
+}
+
+export function seHaRendido(locke, uid) {
+  return Boolean(locke) && (locke.rendidos || []).includes(uid);
 }
 
 // Los que ya has aceptado: los que se enseñan en «Lockes»
@@ -130,6 +137,7 @@ export function iniciarLockes() {
   });
 
   alCambiarMiPerfil(ponerMiNombre);
+  alCambiarMiPerfil(() => liquidarApuestasLockes());
 }
 
 // Cada locke guarda una copia del nombre y la foto de cada jugador. Si en alguno los míos no
@@ -353,6 +361,7 @@ function escuchar(usuario) {
       delServidor = !instantanea.metadata.fromCache;
       todos = instantanea.docs.map((documento) => ({ id: documento.id, ...documento.data() }));
       avisar();
+      liquidarApuestasLockes();
 
       // Si alguien ha cerrado un locke en el que juego, lo apunto yo en mi perfil (ganado o
       // perdido). Se mira aquí antes de llamar para no lanzar una consulta en cada clic del marcador.
@@ -401,10 +410,12 @@ function combatesNuevos(nombres, anteriores = []) {
 export async function crearLocke({
   nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
   arbitro, publico, cadena, combates, invitados, nombres, fotos, kanto = false,
-  vidasPorJugador, aceptados = []
+  vidasPorJugador, aceptados = [], apuesta = 0
 }) {
   const usuario = usuarioActual();
   const { bd, fn } = baseDeDatos();
+  // Con apuesta no hay invitados que entren sin aceptar (los de una cadena): cada uno paga al aceptar
+  apuesta = Number.isInteger(apuesta) && apuesta > 0 && apuesta <= APUESTA_MAXIMA_LOCKE && !aceptados.length ? apuesta : 0;
 
   const jugadores = [usuario.uid, ...invitados];
   const estados = { [usuario.uid]: "aceptado" };
@@ -418,7 +429,13 @@ export async function crearLocke({
     porJugador.marcador[uid] = 0;
   }
 
-  const nuevo = await fn.addDoc(fn.collection(bd, "lockes"), {
+  const nuevo = fn.doc(fn.collection(bd, "lockes"));
+  const lote = fn.writeBatch(bd);
+  if (apuesta) lote.update(fn.doc(bd, "perfiles", usuario.uid), { [`apuestas.${claveApuesta(nuevo.id)}`]: -apuesta, ultimaApuesta: claveApuesta(nuevo.id) });
+  lote.set(nuevo, {
+    apuesta,
+    apostados: apuesta ? [usuario.uid] : [],
+    rendidos: [],
     nombre,
     descripcion: descripcion || "",
     tipo,
@@ -452,6 +469,7 @@ export async function crearLocke({
     creado: Date.now(),
     actualizado: Date.now()
   });
+  await lote.commit();
   await apuntarSuceso(nuevo.id, "creado");
 }
 
@@ -1172,6 +1190,8 @@ export async function invitarALocke(id, perfiles, vidasDePartida) {
 // Firestore no borra solo lo que cuelga de un documento: la actividad se borra antes, a mano
 // (mientras el locke existe, que es lo que miran las reglas para dejar)
 export async function borrarLocke(id) {
+  const locke = lockePorId(id);
+  if (locke && !sePuedeBorrarLocke(locke)) throw new Error("Este locke tiene una apuesta por cobrar: no se puede borrar.");
   const { fn, ref } = referencia(id);
   const { bd } = baseDeDatos();
   try {
@@ -1202,8 +1222,90 @@ export async function aceptarLocke(id) {
   };
   if (locke) cambios[`vidas.${usuario.uid}`] = locke.vidasIlimitadas ? 0 : locke.vidasIniciales || 0;
 
-  await fn.updateDoc(ref, cambios);
+  // Con apuesta, al entrar se paga (en el mismo lote: lo exigen las reglas)
+  const apuesta = (locke && locke.apuesta) || 0;
+  if (apuesta && !(locke.apostados || []).includes(usuario.uid)) {
+    const { bd } = baseDeDatos();
+    const lote = fn.writeBatch(bd);
+    cambios.apostados = fn.arrayUnion(usuario.uid);
+    lote.update(ref, cambios);
+    lote.update(fn.doc(bd, "perfiles", usuario.uid), { [`apuestas.${claveApuesta(id)}`]: -apuesta, ultimaApuesta: claveApuesta(id) });
+    await lote.commit();
+  } else {
+    await fn.updateDoc(ref, cambios);
+  }
   await apuntarSuceso(id, "entra");
+}
+
+// ---------- Apuestas ----------
+//
+// Al crear un locke se puede poner una apuesta (APUESTAS_LOCKE): cada uno paga lo mismo, el creador al crearlo
+// y los demás al aceptar la invitación (sale en ella). Se apunta en el perfil como las de los combates
+// (perfil.apuestas[«l_{id}»] = -n; ver js/comun/luchas.js) y en el locke, quién ha pagado (apostados).
+// Se lo lleva todo (n × los que pagaron) el ganador del locke o, si todos los demás que pagaron se han
+// rendido (rendidos), el que queda. Cerrado sin ganador de los que pagaron, cada uno recupera lo suyo. Con
+// alguien que puede cobrar, el locke no se puede borrar. Todo lo comprueban las reglas (firestore.rules).
+
+export const APUESTAS_LOCKE = [0, 50, 100, 250, 500]; // las de la lista; también otra cantidad entera
+export const APUESTA_MAXIMA_LOCKE = 1000000; // el tope de las reglas; el de verdad es tu saldo
+
+export const claveApuesta = (idLocke) => `l_${idLocke}`;
+
+// El bote: lo que se lleva quien gane
+export function boteDe(locke) {
+  return ((locke && locke.apuesta) || 0) * ((locke && locke.apostados) || []).length;
+}
+
+// Quién puede cobrar ya: el ganador (si pagó) o el único de los que pagaron que no se ha rendido
+export function cobraLaApuesta(locke) {
+  if (!locke || !locke.apuesta) return "";
+  const apostados = locke.apostados || [];
+  if (locke.ganador && apostados.includes(locke.ganador)) return locke.ganador;
+  const quedan = apostados.filter((uid) => !(locke.rendidos || []).includes(uid));
+  return apostados.length > 1 && quedan.length === 1 ? quedan[0] : "";
+}
+
+// Si quien lo creó puede borrarlo (con alguien que puede cobrar, no)
+export function sePuedeBorrarLocke(locke) {
+  return !cobraLaApuesta(locke);
+}
+
+// Rendirse: fuera del locke para siempre (no se deshace). Si con eso solo queda uno de los que apostaron, cobra él.
+export async function rendirseEnLocke(id) {
+  const usuario = usuarioActual();
+  const locke = lockePorId(id);
+  if (!usuario || !locke || locke.estado === "cerrado" || seHaRendido(locke, usuario.uid)) return;
+  const { fn, ref } = referencia(id);
+  await fn.updateDoc(ref, { rendidos: fn.arrayUnion(usuario.uid), actualizado: Date.now() });
+  await apuntarSuceso(id, "rendido");
+}
+
+// Cada vez que cambian mis lockes o mi perfil: cobrar si gano, recuperar lo mío si se cerró sin ganador o si
+// el locke ya no existe. Una vez por locke y estado.
+const liquidando = new Set();
+
+function liquidarApuestasLockes() {
+  const usuario = usuarioActual();
+  const perfil = miPerfil();
+  if (!usuario || !perfil || !delServidor) return;
+  const acceso = baseDeDatos();
+  if (!acceso) return;
+  const { bd, fn } = acceso;
+  for (const [clave, valor] of Object.entries(perfil.apuestas || {})) {
+    if (!clave.startsWith("l_") || !(valor < 0)) continue;
+    const id = clave.slice(2);
+    const locke = todos.find((cada) => cada.id === id);
+    let nuevo = null;
+    if (!locke) nuevo = 0; // borrado (o ya no estoy dentro: entonces las reglas no dejan y no pasa nada)
+    else if (cobraLaApuesta(locke) === usuario.uid) nuevo = -valor * ((locke.apostados || []).length - 1);
+    else if (locke.estado === "cerrado" && !(locke.apostados || []).includes(locke.ganador)) nuevo = 0;
+    if (nuevo === null) continue;
+    const marca = `${clave}/${nuevo}`;
+    if (liquidando.has(marca)) continue;
+    liquidando.add(marca);
+    fn.updateDoc(fn.doc(bd, "perfiles", usuario.uid), { [`apuestas.${clave}`]: nuevo, ultimaApuesta: clave })
+      .catch((error) => console.warn("No se ha podido cobrar o devolver la apuesta del locke", error));
+  }
 }
 
 // Las vidas de partida solo se pueden cambiar mientras nadie más haya aceptado: después ya
@@ -1293,7 +1395,7 @@ export async function salirDeTodosMisLockes() {
       const quedanOtros = (locke.jugadores || []).some(
         (uid) => uid !== usuario.uid && estadoDe(locke, uid) === "aceptado"
       );
-      if (locke.creador === usuario.uid && !quedanOtros) return borrarLocke(locke.id);
+      if (locke.creador === usuario.uid && !quedanOtros && sePuedeBorrarLocke(locke)) return borrarLocke(locke.id);
 
       const { fn, ref } = referencia(locke.id);
       // Mis mensajes del chat del locke, antes de salir (si falla, que no impida borrar la cuenta)

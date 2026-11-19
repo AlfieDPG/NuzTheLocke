@@ -15,6 +15,7 @@ import { formatoDeSeguro } from "../partida/formato.js";
 import { todoConDetalle } from "../partida/convertir.js";
 import { OBJETOS_EN } from "../partida/datos-3ds.js";
 import { NATURALEZAS } from "./entreno.js";
+import { mtDelLocke } from "../comun/randomizados.js";
 
 const CATEGORIAS = { fisico: "Físico", especial: "Especial" };
 
@@ -94,9 +95,35 @@ function objetosDeLaMochila(mochila) {
   return [...juntos.values()];
 }
 
+// Las MT de la mochila con lo que enseñan en la ROM randomizada del locke (si se apuntó al
+// randomizar: js/comun/randomizados.js), como las quiere sugerirMejoras, o null si no se sabe
+async function maquinasDeLaMochila(idLocke, mochila) {
+  const tabla = await mtDelLocke(idLocke).catch(() => null);
+  if (!tabla) return null;
+  const vistos = new Set();
+  const maquinas = [];
+  for (const lista of Object.values(mochila)) {
+    for (const { objeto } of lista) {
+      const id = tabla.ataqueDe(objeto);
+      if (!id || vistos.has(objeto)) continue;
+      vistos.add(objeto);
+      const nombres = tablas.nombresAtaques.get(id) || { es: `#${id}`, en: "" };
+      const suyo = tablas.ataques.get(id);
+      maquinas.push({
+        objeto,
+        nombre: objetoDe(objeto), // { id, es, en }: «MT10»
+        ataque: { id, es: nombres.es, en: nombres.en, tipo: suyo ? suyo.tipo : "", categoria: suyo ? CATEGORIAS[suyo.clase] || "" : "" },
+        aprende: (especie) => tabla.aprende(especie, objeto)
+      });
+    }
+  }
+  return maquinas;
+}
+
 // Los Pokémon vivos de la partida de un locke (el equipo y las cajas, menos las de los muertos y
 // los huevos) y su mochila. bytes: el archivo de la partida (null: lo guardado de ella).
-//   -> { pokemon, conDetalle (si salen con todo), mochila: [{ objeto, cantidad, mochila }] | null }
+//   -> { pokemon, conDetalle (si salen con todo), mochila: [{ objeto, cantidad, mochila }] | null,
+//        maquinas: las MT de la mochila en su ROM randomizada (maquinasDeLaMochila) | null }
 export async function cajaDeLaPartida(idLocke, bytes) {
   await prepararTablas();
   const guardada = partidaDe(idLocke);
@@ -104,12 +131,15 @@ export async function cajaDeLaPartida(idLocke, bytes) {
   let equipo;
   let cajas;
   let mochila = null;
+  let maquinas = null;
   if (bytes) {
     const formato = formatoDeSeguro(bytes);
     if (formato.preparar) await formato.preparar();
     ({ equipo, cajas } = await todoConDetalle(formato.leer(bytes)));
     try {
-      mochila = objetosDeLaMochila(formato.mochila.leerMochila(bytes));
+      const bolsa = formato.mochila.leerMochila(bytes);
+      mochila = objetosDeLaMochila(bolsa);
+      maquinas = await maquinasDeLaMochila(idLocke, bolsa);
     } catch (error) {
       // un juego en el que todavía no se lee la mochila: se sugieren los objetos habituales
     }
@@ -118,5 +148,5 @@ export async function cajaDeLaPartida(idLocke, bytes) {
     cajas = guardada ? guardada.cajas.map((caja) => caja.pokemon) : [];
   }
   const vivos = [...equipo, ...cajas.filter((_, i) => !muertos.has(i)).flat()];
-  return { pokemon: vivos.map(pokemonDe).filter(Boolean), conDetalle: Boolean(bytes), mochila };
+  return { pokemon: vivos.map(pokemonDe).filter(Boolean), conDetalle: Boolean(bytes), mochila, maquinas };
 }

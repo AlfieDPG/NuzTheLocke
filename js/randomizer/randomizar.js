@@ -1122,7 +1122,39 @@ export async function randomizarROM(bytes, reglasEntrada, semilla) {
       if (e && e.tipos && e.tipos.length && e.stats && e.stats.length === 6) especies[id] = `${e.tipos.join("/")}|${e.stats.join(",")}`;
     }
   }
-  return { juego: rom.titulo, hecho, cambiados: rom.cambiados.size, especies };
+  return { juego: rom.titulo, hecho, cambiados: rom.cambiados.size, especies, mt: tablaMT(datos, M, rom, movimientos) };
+}
+
+// Qué enseña cada MT en esta ROM y quién puede aprenderla (para la bolsa de la web y el
+// analizador del locke: js/comun/randomizados.js). Sin las MO ni los DT.
+//   -> { objetos: [nº de objeto de cada MT], ataques: [lo que enseña], compat: base64 } | null
+//   compat: por especie (1..última), ceil(MT/8) bytes con un bit por MT, en el orden de «objetos»
+function tablaMT(datos, M, rom, movimientos) {
+  if (datos.perfil.sinMT) return null;
+  try {
+    const lista = movimientos ? movimientos.mt : M.leerMovimientos(rom).mt;
+    const objetos = objetosMT(datos).slice(0, lista.length);
+    if (!objetos.length) return null;
+    const { tm, hm } = bitsMT(datos);
+    const bitDe = (k) => (k < tm ? k : k + hm); // las MT de después de las MO van detrás de ellas
+    const ultima = datos.perfil.ultimaEspecie || 1025;
+    const ancho = Math.ceil(objetos.length / 8);
+    const bytes = new Uint8Array(ultima * ancho);
+    for (let id = 1; id <= ultima; id++) {
+      const e = datos.especies[id];
+      if (!e || !e.mt) continue;
+      for (let k = 0; k < objetos.length; k++) {
+        const i = bitDe(k);
+        if (e.mt[i >> 3] & (1 << (i & 7))) bytes[(id - 1) * ancho + (k >> 3)] |= 1 << (k & 7);
+      }
+    }
+    let texto = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) texto += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { objetos, ataques: objetos.map((_, k) => lista[k] || 0), compat: btoa(texto) };
+  } catch (error) {
+    console.warn("No se ha podido apuntar la tabla de las MT", error);
+    return null;
+  }
 }
 
 export { ULTIMA_ESPECIE, ULTIMO_ATAQUE };

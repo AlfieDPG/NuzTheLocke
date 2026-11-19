@@ -318,7 +318,13 @@ async function nuevaPartida(idLocke = "") {
           const reglas = como === "locke" ? lockePorId(idElegido).randomizer.reglas : misNormas;
           // Con las del locke, tu semilla de ese locke (la misma ROM que en «Randomizer»); con las tuyas, una nueva
           const semilla = await semillaDe(como === "locke" ? idElegido : "");
-          await randomizarROM(bytes, reglas, semilla);
+          const resultado = await randomizarROM(bytes, reglas, semilla);
+          // Con las normas del locke, sus tipos, estadísticas y MT (combates, bolsa y analizador)
+          if (como === "locke" && idElegido && resultado) {
+            import("../comun/randomizados.js")
+              .then(({ guardarRandomizados }) => guardarRandomizados(idElegido, tipo.juego, resultado.especies, resultado.mt))
+              .catch((fallo) => console.error("No se han podido apuntar los datos del randomizer", fallo));
+          }
           randomizada = true;
           random = { semilla, reglas };
         } catch (fallo) {

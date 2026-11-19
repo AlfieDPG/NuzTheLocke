@@ -39,8 +39,11 @@ import {
   crearLocke, editarLocke, invitarALocke, quitarDeLocke, sePuedenCambiarVidas,
   cambiarNumero, borrarLocke, enlaceParaSeguir, lockePorId, nuevoIdCadena, vidasDeLaSiguienteEtapa, pokemonQuePasan,
   hayEtapaSiguiente, crearSiguienteEtapa, siguenEnLaCadena, estaEliminado, combatesDe, victoriasDe, medallasDe, cambiarMedallas,
-  muertosDe, conKanto, puestosDe, elegirLockeDeProgreso, aceptarLocke, rechazarLocke
+  muertosDe, conKanto, puestosDe, elegirLockeDeProgreso, aceptarLocke, rechazarLocke,
+  APUESTAS_LOCKE, boteDe, cobraLaApuesta, sePuedeBorrarLocke, rendirseEnLocke, seHaRendido
 } from "../comun/lockes.js";
+import { saldo } from "../comun/fichas.js";
+import { miPerfil } from "../comun/perfiles.js";
 import { montarPanel, mostrarPanel, ocultarPanel, filtrarPanel } from "./panel.js";
 import { abrirCapa, cerrarCapa } from "../comun/atras.js";
 import { kantoEnCaps, cambiarKantoEnCaps } from "../levelcaps/datos.js";
@@ -315,15 +318,17 @@ function plantillaLocke(locke, resumido = false, combatesAparte = false) {
                 ${juego ? `<span class="locke-juego-nombre">${icono("mando")} ${escaparHTML(juego)}</span>` : ""}
                 ${locke.publico ? `<span class="locke-publico" title="${t("Cualquiera con el enlace puede verlo, sin cambiar nada")}">${icono("enlace")} ${t("Público")}</span>` : ""}
                 ${cerrado ? `<span class="locke-resultado ${locke.ganador ? "" : "sin-ganador"}">${resultado}${fecha}</span>` : ""}
+                ${plantillaBote(locke)}
               </div>`
-            : ""}
+            : plantillaBote(locke) ? `<div class="locke-meta">${plantillaBote(locke)}</div>` : ""}
           ${combatesAparte ? plantillaAtajos(locke, true) : ""}
         </div>
         ${plantillaResumen(locke)}
         <div class="locke-acciones">
           ${!cerrado && soyCreador(locke) ? `<button class="locke-terminar" title="${t("Terminar el locke")}">${icono("corona")} ${t("Terminar")}</button>` : ""}
+          ${puedoRendirme(locke) ? `<button class="locke-rendirse" title="${t("Rendirse: quedas fuera del locke")}">${icono("bandera")}</button>` : ""}
           ${puedeEditar ? `<button class="locke-editar" title="${t("Editar locke")}">${icono("lapiz")}</button>` : ""}
-          ${soyCreador(locke) ? `<button class="locke-borrar" title="${t("Borrar locke")}">${icono("papelera")}</button>` : ""}
+          ${soyCreador(locke) && sePuedeBorrarLocke(locke) ? `<button class="locke-borrar" title="${t("Borrar locke")}">${icono("papelera")}</button>` : ""}
         </div>
       </header>
 
@@ -664,6 +669,24 @@ function plantillaTarjeta(locke, cadena = null) {
     </article>`;
 }
 
+// El bote de la apuesta en la tarjeta: lo que hay y, si ya se sabe, quién se lo lleva
+function plantillaBote(locke) {
+  if (!locke.apuesta) return "";
+  const quien = cobraLaApuesta(locke);
+  const nombre = quien ? escaparHTML((locke.nombres || {})[quien] || t("Alguien")) : "";
+  const titulo = t("Cada uno pone {n} al entrar; el ganador se lo lleva todo", { n: locke.apuesta.toLocaleString(LOCALE) });
+  return `<span class="locke-bote" title="${titulo}">${t("Bote")} ${monedaLocke(boteDe(locke))}${quien ? ` · ${t("para {quien}", { quien: nombre })}` : ""}</span>`;
+}
+
+// Rendirse: los que juegan (ya dentro), con el locke abierto y sin haberse rendido ni estar fuera
+function puedoRendirme(locke) {
+  const usuario = usuarioActual();
+  return Boolean(usuario && locke.estado !== "cerrado" && estadoDe(locke, usuario.uid) === "aceptado"
+    && !seHaRendido(locke, usuario.uid) && !estaEliminado(locke, usuario.uid) && (locke.jugadores || []).length > 1);
+}
+
+const monedaLocke = (n) => `<span class="ficha-cifra"><span class="ficha-moneda"></span>${Number(n).toLocaleString(LOCALE)}</span>`;
+
 // Invitaciones sin contestar, arriba de todo, con sus botones
 function plantillaInvitaciones() {
   return invitacionesALockes()
@@ -672,12 +695,18 @@ function plantillaInvitaciones() {
       const nombre = escaparHTML((locke.nombres || {})[creador] || t("Alguien"));
       const juego = nombreJuego(locke);
       const datos = [escaparHTML((locke.tipo && locke.tipo.nombre) || "Locke"), juego ? escaparHTML(juego) : ""].filter(Boolean).join(" · ");
+      // Con apuesta: se paga al unirse (sin saldo suficiente, no se puede)
+      const apuesta = locke.apuesta || 0;
+      const noLlega = apuesta > saldo(miPerfil() || {});
+      const textoApuesta = apuesta
+        ? `<span class="locke-invitacion-apuesta">${monedaLocke(apuesta)} ${t("de apuesta: el ganador se lo lleva todo")}${noLlega ? ` · <b>${t("no tienes bastantes Pokédólares")}</b>` : ""}</span>`
+        : "";
       return `
         <div class="locke-invitacion" data-id="${escaparHTML(locke.id)}">
           ${caraJugador(locke, creador)}
-          <p>${t("{quien} te invita a {locke}", { quien: `<b>${nombre}</b>`, locke: `<b>«${escaparHTML(locke.nombre)}»</b>` })} <span>· ${datos}</span></p>
+          <p>${t("{quien} te invita a {locke}", { quien: `<b>${nombre}</b>`, locke: `<b>«${escaparHTML(locke.nombre)}»</b>` })} <span>· ${datos}</span>${textoApuesta}</p>
           <button class="locke-invitacion-no">${t("Rechazar")}</button>
-          <button class="locke-invitacion-si">${t("Unirme")}</button>
+          <button class="locke-invitacion-si" ${noLlega ? "disabled" : ""}>${apuesta ? t("Unirme y apostar") : t("Unirme")}</button>
         </div>`;
     })
     .join("");
@@ -1262,7 +1291,7 @@ async function abrirDialogo(locke = null) {
   campo(".locke-dialogo-titulo").textContent = locke ? t("Editar locke") : t("Nuevo locke");
   campo("#locke-crear").textContent = locke ? t("Guardar") : t("Crear locke");
   campo("#locke-crear").hidden = cerrado && !creador;
-  campo("#locke-borrar").hidden = !locke || !creador;
+  campo("#locke-borrar").hidden = !locke || !creador || !sePuedeBorrarLocke(locke);
 
   // Los tipos: los míos, más el del locke si ya no lo tengo (para no perderlo al guardar)
   const tipos = tiposDe(mio).slice();
@@ -1296,6 +1325,20 @@ async function abrirDialogo(locke = null) {
   campo("#locke-infinitas").disabled = !vidasLibres;
   campo("#locke-vidas").disabled = !vidasLibres || campo("#locke-infinitas").checked;
   campo(".campo-vidas").title = vidasLibres ? "" : t("Ya hay gente jugando: sus vidas solo las cambia cada uno.");
+
+  // La apuesta: solo al crear (luego se queda la que hay), y nunca más de lo que tienes
+  const tengo = saldo(miPerfil() || {});
+  const apuestaActual = locke ? locke.apuesta || 0 : 0;
+  const libre = !APUESTAS_LOCKE.includes(apuestaActual);
+  campo("#locke-apuesta").innerHTML = APUESTAS_LOCKE
+    .map((n) => `<option value="${n}" ${!libre && n === apuestaActual ? "selected" : ""} ${!locke && n > tengo ? "disabled" : ""}>${n ? t("{n} Pokédólares", { n: n.toLocaleString(LOCALE) }) : t("Sin apuesta")}</option>`)
+    .join("") + `<option value="otra" ${libre ? "selected" : ""} ${!locke && tengo < 1 ? "disabled" : ""}>${t("Otra cantidad")}</option>`;
+  campo("#locke-apuesta").disabled = Boolean(locke);
+  campo("#locke-apuesta-otra").value = libre ? apuestaActual : "";
+  campo("#locke-apuesta-otra").max = String(Math.max(1, tengo));
+  campo("#locke-apuesta-otra").disabled = Boolean(locke);
+  campo(".campo-apuesta-otra").hidden = !libre;
+  campo(".campo-apuesta").title = locke ? t("La apuesta solo se elige al crear el locke.") : t("Tienes {n} Pokédólares.", { n: tengo.toLocaleString(LOCALE) });
 
   const combates = locke ? combatesDe(locke) : [];
   const combatesLibres = creador && !cerrado;
@@ -1374,9 +1417,20 @@ async function guardar() {
       fotos[perfil.uid] = perfil.foto || "";
     }
 
+    const otra = campo("#locke-apuesta").value === "otra";
+    const apuesta = otra ? Math.floor(Number(campo("#locke-apuesta-otra").value) || 0) : Number(campo("#locke-apuesta").value) || 0;
+    if (otra && apuesta < 1) {
+      error.textContent = t("Pon cuántos Pokédólares quieres apostar.");
+      campo("#locke-apuesta-otra").focus();
+      return;
+    }
+    if (apuesta > saldo(miPerfil() || {})) {
+      error.textContent = t("No tienes tantos Pokédólares para apostar.");
+      return;
+    }
     await crearLocke({
       nombre, descripcion, tipo, juego, juegoOtro, vidas, vidasIlimitadas, normas, rutasPropias, capsPropios, randomizer,
-      arbitro, publico, cadena, combates, invitados: nuevos.map((perfil) => perfil.uid), nombres, fotos, kanto
+      arbitro, publico, cadena, combates, invitados: nuevos.map((perfil) => perfil.uid), nombres, fotos, kanto, apuesta
     });
     // «Level caps» de HGSS, con Kanto o sin él como este locke
     if (juego === "hgss") cambiarKantoEnCaps(kanto);
@@ -1569,6 +1623,12 @@ export function iniciar() {
     });
   });
 
+  // «Otra cantidad»: aparece la casilla para escribirla
+  dialogo.querySelector("#locke-apuesta").addEventListener("change", (e) => {
+    const otra = e.target.value === "otra";
+    dialogo.querySelector(".campo-apuesta-otra").hidden = !otra;
+    if (otra) dialogo.querySelector("#locke-apuesta-otra").focus();
+  });
   dialogo.querySelector("#locke-borrar").addEventListener("click", () => {
     borrarDesdeElDialogo().catch((error) => {
       console.error(error);
@@ -1710,6 +1770,9 @@ export function iniciar() {
       if (await confirmar(`${t("¿Borrar «{nombre}»?", { nombre: locke.nombre })}\n\n${t("Lo pierden todos los que juegan.")}`)) tarea = borrarLocke(id);
     } else if (boton.classList.contains("locke-terminar")) {
       abrirTerminar(id);
+    } else if (boton.classList.contains("locke-rendirse")) {
+      const conApuesta = locke.apuesta ? `\n\n${t("Pierdes lo apostado. Si solo queda uno de los que apostaron, se lo lleva todo.")}` : "";
+      if (await confirmar(`${t("¿Rendirte en «{nombre}»?", { nombre: locke.nombre })}\n\n${t("Quedas fuera del locke y no se puede deshacer.")}${conApuesta}`)) tarea = rendirseEnLocke(id);
     } else if (boton.classList.contains("locke-combate")) {
       abrirCombate(id, boton.dataset.combate);
     } else if (boton.classList.contains("locke-medalla")) {

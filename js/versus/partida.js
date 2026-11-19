@@ -40,8 +40,9 @@ import { iniciarEditor, abrirEditor, cerrarEditor, editorEnLado, sitioEditando, 
 import { iniciarMeter, abrirMeter } from "./meter-equipo.js";
 import {
   prepararDatos, cambiarHuecos, comprobarSitio, hayCambios, cuantosCambios, vistaConCambios, guardarCambios, descartarCambios, alCambiarBorrador,
-  bytesComoSeVen, leerPartidaSuelta, partidaGuardada
+  bytesComoSeVen, leerPartidaSuelta, partidaGuardada, usarMTDeLaRom
 } from "./editor-comun.js";
+import { mtDelLocke } from "../comun/randomizados.js";
 import {
   sePuedeLeer, partidaDe, procesarArchivo, olvidarPartida, cajasMuertosDe, alternarCajaMuertos, muertosSinApuntar,
   marcarMuertosVistos
@@ -452,10 +453,19 @@ function activarArrastre() {
 export function abrirPartida(id) {
   if (!dialogo.open) pestana = "cajas";
   idAbierto = id;
+  usarMTDeLaRom(null);
   pintarPartida();
   if (partidaGuardada(id) && !dialogo.open) dialogo.showModal();
   // Lo que necesita el editor, ya mientras se miran las cajas: así el primero abre al momento
   prepararDatos().catch((error) => console.error(error));
+  // Si la ROM es randomizada desde este locke, las MT son las suyas (la bolsa lo enseña así)
+  const idLocke = lockeDeLaPartida(id);
+  const conRandomizer = Boolean(idLocke && (lockePorId(idLocke) || {}).randomizer);
+  mtDelLocke(idLocke).then((tabla) => {
+    if (idAbierto !== id || (!tabla && !conRandomizer)) return;
+    usarMTDeLaRom(tabla, conRandomizer);
+    if (dialogo.open) pintarPartida();
+  });
 }
 
 // Una partida suelta (la del emulador de la web: js/jugar), ya registrada como fuente en js/partida/vinculo.js.
