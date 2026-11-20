@@ -57,9 +57,8 @@
     font-size: 1.25rem;
   }
 
-  .barra-lateral .logo svg {
-    width: 1.65rem;
-    height: 1.65rem;
+  .barra-lateral .logo a {
+    --alto-logo: 1.65rem;
   }
 
   /* La sesión, en fila a la derecha */

@@ -13,6 +13,7 @@ import "./comun/mudanza.js"; // «Nos mudamos», solo en la dirección vieja (al
 import "./comun/teclado.js"; // pulsar con el teclado las fotos, avisos y bloques que no son botones
 import { activarPestanasDeslizantes } from "./comun/pestanas-deslizantes.js";
 import { iniciarMovil } from "./movil.js";
+import { girarCruz } from "./comun/logo.js";
 
 activarRespaldoImagenes();
 activarPestanasDeslizantes(); // antes de pintar nada, para ver ya las primeras pestañas
@@ -20,17 +21,12 @@ iniciarNavegacion();
 iniciarMovil(); // la barra de abajo del móvil y la hoja de «Más»
 irA(vistaInicial(), { historial: "cambiar" }); // la que hubiera al recargar, o Inicio si se entra de nuevas
 
-// El logo: al pasar el ratón asoma uno de los marcapáginas del cuaderno, cada vez el otro
-const enlaceLogo = document.querySelector(".logo a");
-const marcasLogo = enlaceLogo.querySelectorAll(".marca");
-let turnoMarca = -1;
-enlaceLogo.addEventListener("mouseenter", () => {
-  turnoMarca = (turnoMarca + 1) % marcasLogo.length;
-  marcasLogo[turnoMarca].classList.add("fuera");
-});
-enlaceLogo.addEventListener("mouseleave", () => {
-  for (const marca of marcasLogo) marca.classList.remove("fuera");
-});
+// El logo: al pasar el ratón, la cruz del centro da un cuarto de vuelta. En Inicio, la del
+// símbolo grande gira sola cada 8 s (si se está viendo).
+document.querySelector(".logo a").addEventListener("mouseenter", (e) => girarCruz(e.currentTarget.querySelector(".cruz")));
+setInterval(() => {
+  if (!document.hidden) girarCruz(document.querySelector(".inicio-logo .cruz"));
+}, 8000);
 
 // El menú lateral siempre sin barra de scroll: el CSS lo encoge con el alto de la ventana y, si con
 // eso no basta (más secciones, letra del sistema más grande...), se aprieta por niveles hasta que

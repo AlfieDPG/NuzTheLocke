@@ -28,6 +28,17 @@
   src: url("../fuentes/baloo2.woff2") format("woff2");
 }
 
+/* Blrrpix Strict (Vít Čondák, fonty.condak.cz), la del logo: solo para algunos títulos
+   (--letra-marca: solo el saludo, la bienvenida y los títulos de los bloques de Inicio). Para
+   leer, las otras. */
+@font-face {
+  font-family: "Blrrpix";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fuentes/blrrpix.woff2") format("woff2");
+}
+
 /* ---------- Colores del tema ----------
    Tres temas (los pone js/comun/ajustes.js en <html data-tema>):
    · Atardecer, el de por defecto, en :root sin más: un negro carbón, un pelín cálido en lo
@@ -134,6 +145,12 @@
 :root {
   --letra: "Nunito", Arial, sans-serif;
   --letra-titulos: "Baloo 2", "Nunito", Arial, sans-serif;
+  --letra-marca: "Blrrpix", "Baloo 2", "Nunito", Arial, sans-serif;
+  /* Blrrpix es de píxeles: cada uno mide 100 de sus 2048 unidades, así que solo se ve nítida
+     a 20,48 px, 40,96 px... (un píxel de la letra = 1, 2... de pantalla). En px, no en rem, y
+     sin negrita (no la tiene: el navegador la engordaría a su manera y la emborronaría). */
+  --marca-1: 20.48px;
+  --marca-2: 40.96px;
   --t-bien: #2ecc71;
   --t-bien-rgb: 46, 204, 113;
   --t-bien-oscuro: #27ae60; /* botones de aceptar o guardar */

@@ -47,37 +47,33 @@ main {
   text-decoration: none;
 }
 
-.logo a:hover {
+/* El logo de la entrega de marca: símbolo + nombre. Entre los dos, un cuarto del alto del
+   símbolo, y el nombre mide el 57 % de ese alto (como en el logo original). */
+.logo a {
+  --alto-logo: 1.9rem;
+  gap: calc(var(--alto-logo) * 0.25);
   color: var(--t-texto-fuerte);
 }
 
-/* El cuaderno lleva aire arriba para que suban los marcapáginas: es más grande que la letra,
-   pero el margen negativo hace que la fila no crezca (el menú tiene que caber sin scroll).
-   Por ese aire, el dibujo queda por debajo del centro de su caja: se sube para que la tapa
-   quede a la altura del texto. */
 .logo svg {
   flex: none;
-  position: relative;
-  top: -0.2rem;
-  width: 1.9rem;
-  height: 1.9rem;
-  margin-block: -0.12rem;
+  width: var(--alto-logo);
+  height: var(--alto-logo);
+  overflow: visible;
 }
 
-/* Al pasar el ratón asoma un marcapáginas, cada vez el otro (js/main.js) */
-.logo .marca {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+/* El nombre, de la imagen del logo usada como máscara: toma el color de la letra del tema */
+.logo-texto {
+  display: block;
+  flex: none;
+  height: calc(var(--alto-logo) * 0.575);
+  aspect-ratio: 1200 / 167;
+  background: currentColor;
+  -webkit-mask: url("../img/logo-texto.png") center / contain no-repeat;
+  mask: url("../img/logo-texto.png") center / contain no-repeat;
 }
 
-.logo .marca.fuera {
-  transform: translateY(-44px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .logo .marca {
-    transition: none;
-  }
-}
+/* La cruz del centro (.cruz) gira con JS, no con CSS: js/comun/logo.js */
 
 /* flex: 1 hace que el menú se coma el hueco libre, y así el buzón y la sesión se quedan
    pegados abajo sin tener que ponerle a cada uno un margin-top: auto (si los dos lo
@@ -189,15 +185,6 @@ main {
 
 .menu-lateral .boton-destacado.activa .icono {
   color: #fff;
-}
-
-/* El «Locke» del nombre de la web, en rojo */
-.logo-locke {
-  color: #e74c3c;
-}
-
-:root[data-tema="claro"] .logo-locke {
-  color: #c0392b;
 }
 
 .menu-lateral .icono {

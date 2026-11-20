@@ -456,13 +456,14 @@ function cara(nombre, foto, clase = "inicio-cara") {
     : `<span class="${clase} sin-foto">${inicial}</span>`;
 }
 
-// El cuaderno del logo del menú (index.html), con los marcapáginas asomando por turnos. La fase
-// sigue el reloj para que la animación no vuelva a empezar cada vez que se repinta Inicio.
-function cuadernoDelSaludo() {
+// El símbolo del logo del menú (index.html), en grande
+function simboloDelSaludo() {
   const dibujo = document.querySelector(".logo svg").cloneNode(true);
   dibujo.setAttribute("class", "inicio-logo");
-  dibujo.style.setProperty("--fase", `-${(performance.now() % 8000) / 1000}s`);
-  for (const marca of dibujo.querySelectorAll(".fuera")) marca.classList.remove("fuera");
+  // Por si se copia a medio giro
+  const cruz = dibujo.querySelector(".cruz");
+  cruz.removeAttribute("transform");
+  delete cruz.dataset.girando;
   return dibujo.outerHTML;
 }
 
@@ -501,9 +502,9 @@ function plantillaCabecera() {
 
   return `
     <header class="inicio-cabecera">
-      ${cuadernoDelSaludo()}
+      ${simboloDelSaludo()}
       <div class="inicio-saludo">
-        <h1>${nombre ? t("Hola, {nombre}", { nombre: escaparHTML(nombre) }) : `NuzThe<span class="logo-locke">Locke</span>`}</h1>
+        <h1>${nombre ? t("Hola, {nombre}", { nombre: escaparHTML(nombre) }) : `<span class="logo-texto" role="img" aria-label="NuzTheLocke"></span>`}</h1>
         ${vistazo}
       </div>
       ${pendientes

@@ -31,36 +31,19 @@
   padding: 0.6rem 0.2rem 0;
 }
 
-/* El cuaderno del saludo: sus dos marcapáginas asoman por turnos, cada 4 s uno (la fase la pone
-   el JS para que no salte al repintar). Como en el logo del menú, el dibujo queda por debajo
-   del centro de su caja (lleva aire arriba para que suban los marcapáginas): se sube para que la
-   libreta quede a la altura del saludo. */
+/* El símbolo del saludo (el del menú, en grande). Blanco y negro según el tema, como el menú. */
 .inicio-logo {
   flex: none;
-  position: relative;
-  top: -0.5rem;
-  width: 4.6rem;
-  height: 4.6rem;
+  width: 4rem;
+  height: 4rem;
+  color: var(--t-texto-fuerte);
 }
 
-.inicio-logo .marca {
-  animation: inicio-marca 8s ease-in-out infinite;
-  animation-delay: var(--fase, 0s);
-}
-
-.inicio-logo .marca + .marca {
-  animation-delay: calc(var(--fase, 0s) - 4s);
-}
-
-@keyframes inicio-marca {
-  0%, 30%, 56%, 100% { transform: translateY(0); }
-  40%, 46% { transform: translateY(-40px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .inicio-logo .marca {
-    animation: none;
-  }
+/* Sin sesión, en vez del saludo, el nombre del logo (la máscara de css/layout.css) */
+.inicio-saludo h1 .logo-texto {
+  width: min(100%, 17rem);
+  height: auto;
+  color: var(--t-texto-fuerte);
 }
 
 .inicio-saludo {
@@ -73,8 +56,10 @@
 
 .inicio-saludo h1 {
   margin: 0;
+  font-family: var(--letra-marca);
+  font-weight: normal;
   overflow: hidden;
-  font-size: 2.7rem;
+  font-size: var(--marca-2);
   line-height: 1.05;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -256,13 +241,15 @@
 /* Títulos de bloque: en grande, con su icono suelto y una línea de puntos debajo */
 .inicio-bloque h2 {
   display: flex;
+  font-family: var(--letra-marca);
   align-items: center;
   gap: 0.55rem;
   /* Sale hasta los bordes del bloque para que la línea de puntos lo cruce entero */
   margin: 0 -1.1rem 0.2rem;
   padding: 0.1rem 1.1rem 0.65rem;
   border-bottom: 1px dashed rgba(var(--t-tinte), 0.25);
-  font-size: 1.3rem;
+  font-size: var(--marca-1);
+  font-weight: normal;
 }
 
 /* Bloques que llevan a su sección al pulsarlos: Lockes, Conectados y Últimos equipos */
@@ -622,9 +609,11 @@
 
 .inicio-bienvenida .inicio-bienvenida-texto h2 {
   margin: 0;
+  font-family: var(--letra-marca);
   padding: 0;
   border: none;
-  font-size: 1.9rem;
+  font-size: var(--marca-2);
+  font-weight: normal;
 }
 
 .inicio-bienvenida-texto p {
@@ -1034,7 +1023,7 @@
   }
 
   .inicio-invitado .inicio-bienvenida .inicio-bienvenida-texto h2 {
-    font-size: 2.6rem;
+    font-size: var(--marca-2);
     line-height: 1.05;
   }
 
@@ -1109,7 +1098,7 @@
   }
 
   .inicio-invitado .inicio-bienvenida .inicio-bienvenida-texto h2 {
-    font-size: 2.3rem;
+    font-size: var(--marca-2);
   }
 
   .inicio-invitado .inicio-bienvenida-texto p {
@@ -1180,7 +1169,7 @@
   }
 
   .inicio-saludo h1 {
-    font-size: 1.9rem;
+    font-size: var(--marca-1);
   }
 
   .inicio-bienvenida {
@@ -1189,7 +1178,7 @@
   }
 
   .inicio-bienvenida .inicio-bienvenida-texto h2 {
-    font-size: 1.45rem;
+    font-size: var(--marca-1);
   }
 }
 
@@ -1212,12 +1201,17 @@
   border-radius: 2rem;
   background: rgba(var(--color-bloque), 0.16);
   color: color-mix(in srgb, rgb(var(--color-bloque)) var(--t-vivo), black);
-  font-family: inherit;
   font-size: 0.82rem;
   font-weight: bold;
   white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s;
+}
+
+/* Con su letra, no la del título (Blrrpix: a este tamaño se emborrona). Con el #id delante para
+   ganarle a «#vista-inicio button { font-family: inherit }». */
+#vista-inicio .inicio-bloque h2 .inicio-ver-todo {
+  font-family: var(--letra-titulos);
 }
 
 .inicio-bloque h2 .inicio-ver-todo[hidden] {

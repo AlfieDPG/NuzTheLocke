@@ -46,6 +46,7 @@
   <!-- Las letras de la web, ya pedidas (si no, el texto parpadea al cambiar de letra) -->
   <link rel="preload" href="fuentes/nunito.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fuentes/baloo2.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fuentes/blrrpix.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/equipos.css">
@@ -68,18 +69,15 @@
 <body>
   <div class="app">
     <aside class="barra-lateral">
-      <!-- El cuaderno es el de img/icono.svg, dibujado aquí para poder mover los marcapáginas
-           (.marca): al pasar el ratón asoma uno (js/main.js). Inicio copia este mismo dibujo. -->
-      <h1 class="logo"><a href="#inicio" title="Inicio"><svg viewBox="0 0 512 512" aria-hidden="true">
-        <g class="marca"><rect x="146" y="80" width="74" height="120" rx="12" fill="#f0c43c"/></g>
-        <g class="marca"><rect x="238" y="106" width="56" height="94" rx="12" fill="#6a9fe0"/></g>
-        <rect x="88" y="140" width="336" height="352" rx="34" fill="#f4ead6"/>
-        <rect x="88" y="140" width="310" height="352" rx="34" fill="#e74c3c"/>
-        <path d="M122 140H130V492H122A34 34 0 0 1 88 458V174A34 34 0 0 1 122 140Z" fill="#c0392b"/>
-        <rect x="340" y="140" width="24" height="352" fill="#9b2c22"/>
-        <rect x="164" y="210" width="136" height="82" rx="14" fill="#f4ead6"/>
-        <path d="M188 241H276M188 263H246" stroke="#e3a196" stroke-width="10" stroke-linecap="round"/>
-      </svg><span>NuzThe<span class="logo-locke">Locke</span></span></a></h1>
+      <!-- El símbolo es el de img/icono.svg, dibujado aquí para que la parte de abajo y la cruz
+           tomen el color de la letra (blancas en los temas oscuros, negras en el claro). Inicio
+           copia este mismo dibujo. El nombre es la imagen
+           del logo (img/logo-texto.png) usada de máscara: también toma el color de la letra. -->
+      <h1 class="logo"><a href="#inicio" title="Inicio"><svg viewBox="0 0 304 306" aria-hidden="true">
+        <path fill="#d65745" d="M253.52,126.39c-8.45,0-15.32-6.87-15.32-15.32v-20.12c0-13.06-10.59-23.65-23.65-23.65h-20.12c-1.75,0-3.46-.29-5.07-.86-2.55-.9-5.22-1.35-7.89-1.35s-5.33.45-7.89,1.35c-1.62.57-3.32.86-5.07.86h-33.17c-1.75,0-3.46-.29-5.08-.86-2.55-.9-5.22-1.35-7.88-1.35s-5.33.45-7.88,1.35c-1.62.57-3.33.86-5.08.86h-20.12c-13.06,0-23.65,10.59-23.65,23.65v20.12c0,8.45-6.87,15.32-15.32,15.32H17.15c-8.45,0-15.32-6.87-15.32-15.32v-33.17c0-8.45,6.87-15.32,15.32-15.32h20.12c13.06,0,23.65-10.59,23.65-23.65v-20.12c0-8.45,6.87-15.32,15.32-15.32h33.17c1.75,0,3.46.29,5.08.86,2.55.9,5.22,1.35,7.88,1.35s5.33-.45,7.88-1.35c1.62-.57,3.33-.86,5.08-.86h33.17c1.75,0,3.46.29,5.07.86,2.55.9,5.22,1.35,7.89,1.35s5.33-.45,7.89-1.35c1.62-.57,3.32-.86,5.07-.86h33.17c8.45,0,15.32,6.87,15.32,15.32v20.13c0,13.06,10.59,23.65,23.65,23.65h20.12c8.45,0,15.32,6.87,15.32,15.32v33.17c0,8.45-6.87,15.32-15.32,15.32h-33.17Z"/>
+        <path fill="currentColor" d="M194.27,303.53c-1.75,0-3.45-.29-5.07-.86-2.55-.9-5.21-1.35-7.87-1.35s-5.32.45-7.87,1.35c-1.62.57-3.32.86-5.07.86h-33.13c-1.75,0-3.45-.29-5.07-.86-2.55-.9-5.21-1.35-7.87-1.35s-5.32.45-7.87,1.35c-1.61.57-3.32.86-5.07.86h-33.13c-8.44,0-15.3-6.86-15.3-15.3v-20.09c0-13.04-10.57-23.62-23.62-23.62h-20.09c-8.44,0-15.3-6.86-15.3-15.3v-33.13c0-8.44,6.86-15.3,15.3-15.3h33.13c8.44,0,15.3,6.86,15.3,15.3v20.09c0,13.04,10.57,23.62,23.62,23.62h20.09c1.75,0,3.45.29,5.07.86,2.55.9,5.21,1.35,7.87,1.35s5.32-.45,7.87-1.35c1.61-.57,3.32-.86,5.07-.86h33.13c1.75,0,3.46.29,5.07.86,2.55.9,5.21,1.35,7.87,1.35s5.32-.45,7.87-1.35c1.61-.57,3.32-.86,5.07-.86h20.09c13.04,0,23.62-10.57,23.62-23.62v-20.09c0-8.44,6.86-15.3,15.3-15.3h33.13c8.44,0,15.3,6.86,15.3,15.3v33.13c0,8.44-6.86,15.3-15.3,15.3h-20.09c-13.04,0-23.62,10.57-23.62,23.62v20.09c0,8.44-6.86,15.3-15.3,15.3h-33.13Z"/>
+        <path class="cruz" fill="currentColor" d="M87.77,197.5c-4.35-4.35-4.35-11.43,0-15.78l11.38-11.38c9.22-9.22,9.22-24.17,0-33.4l-11.38-11.38c-4.35-4.35-4.35-11.43,0-15.78l20.19-20.19c4.35-4.35,11.43-4.35,15.78,0l11.38,11.38c9.22,9.22,24.17,9.22,33.4,0l11.38-11.38c4.35-4.35,11.43-4.35,15.78,0l20.19,20.19c4.35,4.35,4.35,11.43,0,15.78l-11.38,11.38c-9.22,9.22-9.22,24.17,0,33.4l11.38,11.38c4.35,4.35,4.35,11.43,0,15.78l-20.19,20.19c-4.35,4.35-11.43,4.35-15.78,0l-11.38-11.38c-9.22-9.22-24.17-9.22-33.4,0l-11.38,11.38c-4.35,4.35-11.43,4.35-15.78,0l-20.19-20.19ZM168.52,134.36c-9.22-9.22-24.17-9.22-33.4,0l-2.57,2.57c-9.22,9.22-9.22,24.17,0,33.4l2.57,2.57c9.22,9.22,24.17,9.22,33.4,0l2.57-2.57c9.22-9.22,9.22-24.17,0-33.4l-2.57-2.57Z"/>
+      </svg><span class="logo-texto" role="img" aria-label="NuzTheLocke"></span></a></h1>
       <nav class="menu-lateral">
         <!-- data-icono: el icono que se le pone delante (js/navegacion.js) -->
         <button data-vista="lockes" data-icono="espadas" class="boton-destacado">Lockes</button>
