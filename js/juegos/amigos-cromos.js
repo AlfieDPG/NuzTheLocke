@@ -31,9 +31,13 @@ const STATS = [
   { nombre: () => t("Total"), valor: (e) => e.total }
 ];
 
+const REVELAR = 2600; // ms con las dos cartas boca arriba tras cada elección
+
 let caja = null;
 let actual = null;
 let ctxActual = null;
+let vistas = { id: "", n: -1 }; // cuántas rondas había la última vez (para saber cuándo revelar)
+let revelando = null; // { id, ronda } mientras se enseña cómo acabó una ronda
 const terminando = new Set();
 
 export function datosIniciales() {
@@ -42,6 +46,8 @@ export function datosIniciales() {
 
 export function soltar() {
   caja = null;
+  vistas = { id: "", n: -1 };
+  revelando = null;
 }
 
 // Las cartas de cada uno: [las de jugadores[0], las de jugadores[1]]
@@ -109,13 +115,13 @@ function cuentas(partida, ctx) {
   return { rondas, puntos, elige, siguiente: elecciones.length, cartas: { [uno]: a, [dos]: b } };
 }
 
-function carta(especie, { boca = "arriba", elegible = false, marcada = -1, rival = null } = {}) {
+function carta(especie, { boca = "arriba", elegible = false, marcada = -1, rival = null, clase: extra = "" } = {}) {
   if (boca === "abajo") {
     return `<div class="cromo boca-abajo"><span>${icono("dados")}</span><small>${t("Boca abajo")}</small></div>`;
   }
   const color = coloresTipo[especie.tipos[0]] || "#888";
   return `
-    <div class="cromo" style="--color-tipo:${color}">
+    <div class="cromo ${extra}" style="--color-tipo:${color}">
       <div class="cromo-cabeza"><strong>${escaparHTML(nombreDe(especie))}</strong><small>${especie.tipos.map((tipo) => tiposEs[tipo]).join(" / ")}</small></div>
       ${imagenConRespaldo(urlsRetrato({ id: especie.id }), `class="cromo-retrato" alt="" draggable="false"`)}
       <ul class="cromo-stats">
@@ -150,30 +156,52 @@ export function montar(contenedor, partida, ctx) {
     });
   }
 
-  const ultima = c.rondas[c.rondas.length - 1];
-  const meToca = partida.estado === "jugando" && !acabadas && c.elige === ctx.yo;
+  // Ha llegado una elección nueva (mía o suya): se enseñan las dos cartas un rato, con quién gana
+  if (vistas.id === partida.id && c.rondas.length > vistas.n && c.rondas.length > 0) {
+    revelando = { id: partida.id, ronda: c.rondas.length - 1 };
+    const esta = revelando;
+    setTimeout(() => {
+      if (revelando !== esta) return;
+      revelando = null;
+      if (caja && actual) montar(caja, actual, ctxActual);
+    }, REVELAR);
+  }
+  vistas = { id: partida.id, n: c.rondas.length };
+  const revela = revelando && revelando.id === partida.id ? c.rondas[revelando.ronda] : null;
+
+  const meToca = partida.estado === "jugando" && !acabadas && c.elige === ctx.yo && !revela;
   const r = Math.min(c.siguiente, RONDAS - 1);
   const mia = c.cartas[ctx.yo][r];
   const suya = c.cartas[ctx.otro][r];
 
-  const resultadoUltima = ultima
-    ? `<p class="cromos-ultima ${ultima.gana === ctx.yo ? "bien" : ultima.gana ? "mal" : ""}">
-        ${t("Ronda {n}: {stat}", { n: c.rondas.length, stat: `<b>${STATS[ultima.stat].nombre()}</b>` })} ·
-        ${escaparHTML(nombreDe(ultima.cartas[ctx.yo]))} <b>${STATS[ultima.stat].valor(ultima.cartas[ctx.yo])}</b>
-        ${t("contra")} ${escaparHTML(nombreDe(ultima.cartas[ctx.otro]))} <b>${STATS[ultima.stat].valor(ultima.cartas[ctx.otro])}</b> ·
-        ${ultima.gana === ctx.yo ? t("¡La ganas!") : ultima.gana ? t("La gana {quien}", { quien: escaparHTML(ctx.nombreDe(ctx.otro)) }) : t("Empate")}
-      </p>`
-    : "";
+  // La mesa: tu carta arriba, la suya abajo y el «VS» en medio (al revelar, con quién se lleva la ronda)
+  const mesa = (cartaMia, cartaSuya, ronda) => {
+    const gano = ronda && ronda.gana === ctx.yo;
+    const perdi = ronda && ronda.gana === ctx.otro;
+    return `
+      <div class="cromos-mesa ${ronda ? "revelando" : ""}">
+        <div class="cromos-lado"><span class="cromos-quien">${t("Tu carta")}</span>${ronda
+          ? carta(cartaMia, { marcada: ronda.stat, rival: cartaSuya })
+          : carta(cartaMia, { elegible: meToca })}</div>
+        <div class="cromos-vs ${gano ? "bien" : perdi ? "mal" : ronda ? "empate" : ""}">${ronda
+          ? `<b>${gano ? t("¡Ganas la ronda!") : perdi ? t("Pierdes la ronda") : t("Empate")}</b><small>${STATS[ronda.stat].nombre()}</small>`
+          : "<b>VS</b>"}</div>
+        <div class="cromos-lado"><span class="cromos-quien">${escaparHTML(ctx.nombreDe(ctx.otro))}</span>${ronda
+          ? carta(cartaSuya, { marcada: ronda.stat, rival: cartaMia, clase: "volteada" })
+          : carta(cartaSuya, { boca: "abajo" })}</div>
+      </div>`;
+  };
 
   caja.innerHTML = `
     <div class="cromos">
       <div class="cromos-marcador">
         <span><b>${c.puntos[ctx.yo]}</b> ${t("Tú")}</span>
-        <span class="cromos-ronda">${fin || acabadas ? t("Final") : t("Ronda {n} de {total}", { n: c.siguiente + 1, total: RONDAS })}</span>
+        <span class="cromos-ronda">${(fin || acabadas) && !revela ? t("Final") : t("Ronda {n} de {total}", { n: revela ? revelando.ronda + 1 : c.siguiente + 1, total: RONDAS })}</span>
         <span>${escaparHTML(ctx.nombreDe(ctx.otro))} <b>${c.puntos[ctx.otro]}</b></span>
       </div>
-      ${resultadoUltima}
-      ${fin || acabadas
+      ${revela
+        ? mesa(revela.cartas[ctx.yo], revela.cartas[ctx.otro], revela)
+        : fin || acabadas
         ? `<ol class="cromos-historial">${c.rondas.map((ronda, i) => {
             const mia = ronda.cartas[ctx.yo];
             const suya = ronda.cartas[ctx.otro];
@@ -193,11 +221,7 @@ export function montar(contenedor, partida, ctx) {
         : `<p class="quien-aviso ${meToca ? "destacado" : ""}">${meToca
             ? t("Te toca: elige la estadística de tu carta con la que crees que ganas.")
             : t("Elige {quien}. Tu carta, mientras:", { quien: escaparHTML(ctx.nombreDe(ctx.otro)) })}</p>
-          <div class="cromos-mesa">
-            <div class="cromos-lado"><span class="cromos-quien">${t("Tu carta")}</span>${carta(mia, { elegible: meToca })}</div>
-            <div class="cromos-lado"><span class="cromos-quien">${escaparHTML(ctx.nombreDe(ctx.otro))}</span>${carta(suya, { boca: "abajo" })}</div>
-          </div>
-          <p class="juegos-nota">${t("Te quedan {n} cartas.", { n: RONDAS - c.siguiente })}</p>`}
+          ${mesa(mia, suya, null)}`}
     </div>`;
 
   if (!caja.dataset.activo) {

@@ -1,8 +1,10 @@
 // «Duelo de siluetas» con un amigo (ver js/juegos/amigos.js): las mismas RONDAS siluetas para los dos (salen de
 // la semilla), cada una con cuatro nombres para elegir. Se juega a la vez, cada uno a su ritmo: gana quien más
 // acierte y, si empatan, quien haya tardado menos en total. Se ve cómo va el otro.
+// Para que nadie salga con desventaja, se empieza a la vez: cada uno, al entrar, se apunta en «listos»; cuando
+// están los dos, a cada uno le sale una cuenta atrás (3, 2, 1) y entonces empieza a contar su tiempo.
 //
-//   datos: { respuestas: { uid: [{ ok, ms }] } }
+//   datos: { respuestas: { uid: [{ ok, ms }] }, listos: { uid: true } }
 
 import { escaparHTML } from "../comun/utilidades.js";
 import { icono } from "../comun/iconos.js";
@@ -15,6 +17,7 @@ export const COMO = () => t("Las mismas 10 siluetas para los dos, con cuatro nom
 const RONDAS = 10;
 const OPCIONES = 4;
 const REVELAR = 1100; // ms con la silueta en color tras responder
+const CUENTA = 3; // segundos de la cuenta atrás
 
 let caja = null;
 let actual = null;
@@ -22,6 +25,9 @@ let ctxActual = null;
 let mostradaDesde = 0; // cuándo se enseñó la silueta que toca (para el tiempo)
 let mostradaRonda = -1;
 let revelando = null; // { ronda, elegida, ok }
+let cuenta = null; // { id, desde } la cuenta atrás de esta partida (null: aún no / ya acabó)
+const cuentaHecha = new Set(); // partidas en las que ya se ha hecho
+const apuntado = new Set(); // partidas en las que ya me he apuntado como listo
 const terminando = new Set();
 
 export function datosIniciales() {
@@ -37,6 +43,7 @@ export function soltar() {
   caja = null;
   mostradaRonda = -1;
   revelando = null;
+  cuenta = null;
 }
 
 function rondas(ctx) {
@@ -99,6 +106,47 @@ export function montar(contenedor, partida, ctx) {
       <span class="cromos-ronda">${fin ? t("Final") : yo.hechas < RONDAS ? t("Silueta {n} de {total}", { n: yo.hechas + 1, total: RONDAS }) : t("Esperando a {quien}", { quien: escaparHTML(ctx.nombreDe(ctx.otro)) })}</span>
       <span>${escaparHTML(ctx.nombreDe(ctx.otro))} <b>${el.aciertos}</b> <small>${el.hechas}/${RONDAS} · ${segundos(el.ms)} s</small></span>
     </div>`;
+
+  // Antes de la primera: los dos dentro y la cuenta atrás (si ya se ha empezado a jugar, no hace falta)
+  const listos = ((partida.datos || {}).listos) || {};
+  if (partida.estado === "jugando" && !listos[ctx.yo] && !apuntado.has(partida.id)) {
+    apuntado.add(partida.id);
+    ctx.cambiar({ [`datos.listos.${ctx.yo}`]: true }).catch((error) => {
+      console.error(error);
+      apuntado.delete(partida.id);
+    });
+  }
+  if (!fin && yo.hechas === 0 && !cuentaHecha.has(partida.id)) {
+    if (!(listos[ctx.yo] && listos[ctx.otro]) && !suyas.length) {
+      caja.innerHTML = `
+        <div class="siluetas">
+          ${marcador}
+          <div class="siluetas-espera">${icono("persona")}<b>${t("Esperando a que entre {quien}...", { quien: escaparHTML(ctx.nombreDe(ctx.otro)) })}</b><small>${t("Empezáis a la vez, con una cuenta atrás.")}</small></div>
+        </div>`;
+      return;
+    }
+    if (!cuenta || cuenta.id !== partida.id) {
+      cuenta = { id: partida.id, desde: performance.now() };
+      const tic = () => {
+        if (!cuenta || cuenta.id !== partida.id) return;
+        const quedan = CUENTA - Math.floor((performance.now() - cuenta.desde) / 1000);
+        if (quedan <= 0) {
+          cuentaHecha.add(partida.id);
+          cuenta = null;
+          mostradaRonda = -1; // el tiempo de la primera, desde ahora
+        } else setTimeout(tic, 1000 - ((performance.now() - cuenta.desde) % 1000));
+        if (caja && actual) montar(caja, actual, ctxActual);
+      };
+      setTimeout(tic, 1000);
+    }
+    const quedan = Math.max(1, CUENTA - Math.floor((performance.now() - cuenta.desde) / 1000));
+    caja.innerHTML = `
+      <div class="siluetas">
+        ${marcador}
+        <div class="siluetas-espera siluetas-cuenta"><span class="siluetas-numero" data-n="${quedan}">${quedan}</span><small>${t("¡Preparados!")}</small></div>
+      </div>`;
+    return;
+  }
 
   // Ya he acabado (o se ha terminado): cómo me ha ido en cada una
   if (fin || (yo.hechas >= RONDAS && !revelando)) {
