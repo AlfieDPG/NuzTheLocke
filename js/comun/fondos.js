@@ -1,7 +1,7 @@
 // ---------- Fondos de la tarjeta de jugador ----------
 //
 // La tarjeta de «Amigos» (la tuya y la de tus amigos) puede llevar un fondo con dibujo. Cada
-// uno elige el suyo en su perfil («Fondo de tu tarjeta»). Va en el perfil
+// uno elige el suyo en el probador de la Tienda (js/tienda/index.js). Va en el perfil
 // (perfiles/{uid}.fondo), que es lo que leen tus amigos; y al pintarlo se vuelve a mirar que de
 // verdad lo tenga desbloqueado.
 //
@@ -41,28 +41,34 @@ export const FONDOS_EEVEE = [
 
 // Los de la Tienda de «Juegos» (js/comun/fichas.js): se compran con Pokédólares en vez de con un
 // logro. El dibujo, en pixel art (ver FONDOS_REGION, abajo). El precio va por lo elaborado que es:
-// sencillos (un paisaje), detallados (varias capas) y animados.
+// sencillos (un diseño quieto para la tarjeta: estampado y esquinas), detallados (varias capas) y animados.
 const PRECIO_FONDO = { sencillo: 300, detallado: 450, animado: 700 };
 
 export const FONDOS_TIENDA = [
-  { id: "tienda-hierba", nombre: t("Hierba alta"), nivel: "sencillo" },
+  { id: "tienda-hierba", nombre: t("Otoño"), nivel: "sencillo" }, // el id es el de antes («Hierba alta»): lo guardan las compras
   { id: "tienda-olas", nombre: t("Surf"), nivel: "animado" },
   { id: "tienda-cueva", nombre: t("Cueva"), nivel: "sencillo" },
   { id: "tienda-nieve", nombre: t("Nevada"), nivel: "animado" },
   { id: "tienda-bosque", nombre: t("Bosque"), nivel: "sencillo" },
   { id: "tienda-atardecer", nombre: t("Atardecer"), nivel: "detallado" },
-  { id: "tienda-noche", nombre: t("Noche estrellada"), nivel: "animado" },
+  { id: "tienda-noche", nombre: t("Noche estrellada"), nivel: "sencillo" },
   { id: "tienda-casino", nombre: t("Casino"), nivel: "animado" },
   { id: "tienda-magma", nombre: t("Magma"), nivel: "detallado" },
   { id: "tienda-aurora", nombre: t("Aurora"), nivel: "animado" },
   { id: "tienda-desierto", nombre: t("Desierto"), nivel: "sencillo" },
   { id: "tienda-bayas", nombre: t("Huerto de bayas"), nivel: "sencillo" },
   { id: "tienda-eevee", nombre: t("Eeveelutions"), nivel: "animado" },
-  { id: "tienda-espacio", nombre: t("Espacio exterior"), nivel: "detallado" },
+  { id: "tienda-espacio", nombre: t("Espacio exterior"), nivel: "animado" },
   { id: "tienda-rocket", nombre: t("Guarida Rocket"), nivel: "animado" },
   { id: "tienda-cementerio", nombre: t("Cementerio"), nivel: "animado" },
   { id: "tienda-marino", nombre: t("Fondo marino"), nivel: "animado" },
-  { id: "tienda-tormenta", nombre: t("Tormenta"), nivel: "animado" }
+  { id: "tienda-tormenta", nombre: t("Feria"), nivel: "animado" }, // el id es el de antes («Tormenta»): lo guardan las compras
+  { id: "tienda-pompas", nombre: t("Pompas de jabón"), nivel: "animado" },
+  { id: "tienda-cerezos", nombre: t("Cerezos en flor"), nivel: "animado" },
+  { id: "tienda-girasoles", nombre: t("Girasoles"), nivel: "animado" },
+  { id: "tienda-playa", nombre: t("Playa tropical"), nivel: "animado" },
+  { id: "tienda-globos", nombre: t("Globos aerostáticos"), nivel: "animado" },
+  { id: "tienda-centro", nombre: t("Centro Pokémon"), nivel: "animado" }
 ].map((fondo) => ({ ...fondo, precio: PRECIO_FONDO[fondo.nivel] }));
 
 // Los de región: uno por generación, con el logro de completarla en la colección de huevos de

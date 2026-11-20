@@ -180,7 +180,8 @@
    elemento. */
 .perfil-fondo.fondo-tipo,
 .lleva-fondo.fondo-tipo,
-.logro-premio.fondo-tipo {
+.logro-premio.fondo-tipo,
+.tienda-muestra.fondo-tipo {
   isolation: isolate; /* el mosaico (z-index -1) queda encima del fondo y debajo del contenido */
   background-image:
     radial-gradient(ellipse at 50% 0%, color-mix(in srgb, color-mix(in srgb, var(--color-tipo) 60%, white) 40%, transparent), transparent 70%),
@@ -189,7 +190,8 @@
 
 .perfil-fondo.fondo-tipo::before,
 .lleva-fondo.fondo-tipo::before,
-.logro-premio.fondo-tipo::before {
+.logro-premio.fondo-tipo::before,
+.tienda-muestra.fondo-tipo::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -2336,9 +2338,12 @@ button.cara-equipo.mvp:hover img {
   background: linear-gradient(110deg, rgba(var(--color-vista), 0.45), rgba(var(--color-vista), 0.1) 70%), var(--t-panel-3);
 }
 
+/* Algo más pequeña que antes (7rem) y algo separada del borde: los marcos con adornos (cuernos,
+   ondas, alas...) salen del círculo y, si no, se cortaban contra el borde de la portada */
 .amigo-portada-foto {
-  width: 7rem;
-  height: 7rem;
+  width: 6.2rem;
+  height: 6.2rem;
+  margin-left: 0.5rem;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 

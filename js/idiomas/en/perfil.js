@@ -59,6 +59,8 @@ export default {
   "Destaca hasta tres de tus equipos desde «Editar perfil».": "Feature up to three of your teams from “Edit profile”.",
   "Hazte su amigo para ver sus equipos, sus lockes y su colección.": "Become friends to see their teams, lockes and collection.",
   "Apartados": "Sections",
+  "Fondo, marco, título y color": "Background, frame, title and colour",
+  "Se cambian en el probador de la Tienda: ahí te los pruebas antes de ponértelos.": "They're changed in the Shop's fitting room: you try them on there before putting them on.",
   "Así te ven": "How others see you",
   "Hay cambios sin guardar": "You have unsaved changes",
   "Guardar cambios": "Save changes",

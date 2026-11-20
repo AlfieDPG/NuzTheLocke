@@ -259,7 +259,7 @@ export default {
   "De estreno": "Brand new",
   "Ponle un fondo a tu tarjeta de «Amigos».": "Give your “Friends” card a background.",
   "Con título": "Titled",
-  "Ponte el título de un logro en tu perfil.": "Wear an achievement's title on your profile.",
+  "Ponte un título de la Tienda en tu perfil.": "Wear a title from the Shop on your profile.",
   "Memoria histórica": "Historical record",
   "Apunta a mano en tu palmarés un locke de antes.": "Add an older locke to your record by hand.",
   "Cronista": "Chronicler",

@@ -3,9 +3,13 @@
 //   · Dos pestañas: «Probador» y «Huevos». A la derecha, tu saldo, con la «i» que explica de dónde sale cada
 //     Pokédólar.
 //   · Probador: arriba, cómo te verían los demás en los sitios de verdad (la portada de tu perfil, tu fila en la
-//     lista de amigos y un mensaje del foro) y, al lado, el carrito (fondo, marco y título que te pruebas, lo que
-//     cuesta y «Comprar»). Abajo, lo que hay: «De oferta hoy» (4 cosas al azar cada día con un 25 % menos),
-//     fondos, marcos y títulos. Tocar algo lo mete en el carrito (o lo saca); comprar lo paga todo y te lo pone.
+//     lista de amigos y un mensaje del chat, y al lado de este, el color de tu perfil, que se elige ahí mismo y es
+//     gratis) y, a la derecha, el carrito (fondo, marco y título que te pruebas, lo que cuesta y «Comprar»).
+//     Abajo, lo que hay: «De oferta hoy» (4 cosas al azar cada día con un 25 % menos), fondos, marcos y títulos.
+//     Tocar algo lo mete en el carrito (o lo saca); comprar lo paga todo y te lo pone. Es el único sitio donde se
+//     cambia el aspecto (Editar perfil lleva aquí): por eso cada estante empieza por «Sin fondo»... y también
+//     están los fondos y marcos de logros. Los que no tienes llevan candado: te los pruebas, pero no te los pones.
+//     (Los títulos son solo los de la Tienda: los logros ya no dan título.)
 //   · «Huevos»: la colección de js/juegos/coleccion.js.
 //
 // Los Pokédólares (cómo se ganan, cómo se guardan, comprar, las ofertas) están en js/comun/fichas.js.
@@ -13,15 +17,18 @@
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { usuarioActual, alCambiarSesion, hayNube } from "../comun/nube.js";
-import { miPerfil, alCambiarMiPerfil } from "../comun/perfiles.js";
-import { FONDOS, FONDOS_TIENDA, claseFondo, estiloFondo, fondoDe } from "../comun/fondos.js";
+import { miPerfil, alCambiarMiPerfil, guardarMiPerfil } from "../comun/perfiles.js";
+import {
+  FONDOS, FONDOS_TIENDA, FONDOS_METAL, FONDOS_TIPO, FONDOS_EEVEE, FONDOS_REGION, claseFondo, estiloFondo, fondoDe, desbloqueado,
+  requisito, requisitoCorto
+} from "../comun/fondos.js";
 import {
   saldo, fichasDeLogros, fichasDeJuegos, fichasDeLockes, fichasDeApuestas, PREMIOS_LOCKE, BONO_MAX, FICHAS_POR_NIVEL, MARCOS, TITULOS,
-  loTiene, porPrecio, marcoDe, claseMarco, claseTitulo, tituloDe, comprarYPoner, ofertasDeHoy, precioDeHoy, DESCUENTO,
-  rgbDePerfil
+  loTiene, porPrecio, marcoDe, tieneMarco, claseMarco, claseTitulo, tituloDe, comprarYPoner, ofertasDeHoy, precioDeHoy, DESCUENTO,
+  COLORES_PERFIL, COLOR_PERFIL_DEFECTO, colorElegido, rgbDePerfil
 } from "../comun/fichas.js";
 import { fichasDeRegalos } from "../comun/regalos.js";
-import { NIVELES } from "../comun/logros.js";
+import { NIVELES, LOGROS } from "../comun/logros.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
@@ -36,7 +43,7 @@ const PESTANAS = [
 ];
 // Dentro del probador
 const ESTANTES = ["ofertas", "fondos", "marcos", "titulos"];
-const POR_PAGINA = 12; // 6 x 2; con más, por páginas
+const POR_PAGINA = 18; // 6 x 3 (bajos y alargados, como se ven luego en la portada); con más, por páginas
 const ORDENES = [
   { id: "barato", nombre: () => t("Más baratos primero") },
   { id: "caro", nombre: () => t("Más caros primero") },
@@ -100,23 +107,59 @@ function pintarSaldo() {
 
 // ---------- Artículos ----------
 
-const TIPOS = {
-  fondo: { campo: "fondo", nada: "", lista: () => porPrecio(FONDOS_TIENDA), nombre: () => t("Fondo") },
-  marco: { campo: "marco", nada: "", lista: () => porPrecio(MARCOS.filter((marco) => marco.precio)), nombre: () => t("Marco") },
-  titulo: { campo: "titulo", nada: null, lista: () => porPrecio(TITULOS), nombre: () => t("Título") }
+// Quitarse lo que llevas: «Sin fondo», «Sin marco», «Sin título»
+const SIN = {
+  fondo: { id: "sin-fondo", sin: "fondo", nombre: t("Sin fondo") },
+  marco: { id: "sin-marco", sin: "marco", nombre: t("Sin marco") },
+  titulo: { id: "sin-titulo", sin: "titulo", nombre: t("Sin título") }
 };
+// Los de logros (no se compran: vienen con su logro)
+const FONDOS_DE_LOGROS = [...FONDOS_METAL, ...FONDOS_REGION, ...FONDOS_EEVEE, ...FONDOS_TIPO];
+const MARCOS_DE_LOGROS = MARCOS.filter((marco) => marco.logro);
 
-const tipoDe = (id) => (FONDOS.some((cada) => cada.id === id) ? "fondo" : MARCOS.some((cada) => cada.id === id) ? "marco" : "titulo");
-// También los fondos y marcos de logros (los puedes llevar puestos aunque no se vendan)
-const articuloDe = (id) => [...FONDOS, ...MARCOS, ...TITULOS].find((cada) => cada.id === id) || null;
+// Cada estante: el campo del perfil, lo que se guarda para «nada» y lo que hay
+const TIPOS = {
+  fondo: { campo: "fondo", nada: null, lista: () => [SIN.fondo, ...porPrecio(FONDOS_TIENDA), ...FONDOS_DE_LOGROS], nombre: () => t("Fondo") },
+  marco: { campo: "marco", nada: "", lista: () => [SIN.marco, ...porPrecio(MARCOS.filter((marco) => marco.precio)), ...MARCOS_DE_LOGROS], nombre: () => t("Marco") },
+  titulo: { campo: "titulo", nada: null, lista: () => [SIN.titulo, ...porPrecio(TITULOS)], nombre: () => t("Título") }
+};
+const TIPO_DEL_ESTANTE = { fondos: "fondo", marcos: "marco", titulos: "titulo" };
 
-// Lo que llevas puesto de cada tipo ("" si nada)
+const ARTICULOS_TODOS = [...Object.values(SIN), ...FONDOS, ...MARCOS, ...TITULOS];
+const articuloDe = (id) => ARTICULOS_TODOS.find((cada) => cada.id === id) || null;
+
+function tipoDe(id) {
+  const articulo = articuloDe(id);
+  if (articulo && articulo.sin) return articulo.sin;
+  if (FONDOS.some((cada) => cada.id === id)) return "fondo";
+  return MARCOS.some((cada) => cada.id === id) ? "marco" : "titulo";
+}
+
+// Si lo tienes: comprado o, los de logro, con su logro («Sin...», siempre)
+function esTuyo(perfil, articulo) {
+  if (articulo.sin) return true;
+  const tipo = tipoDe(articulo.id);
+  if (tipo === "fondo") return desbloqueado(articulo, perfil);
+  if (tipo === "marco") return tieneMarco(perfil, articulo);
+  return loTiene(perfil, articulo.id);
+}
+
+// Con candado: no es tuyo y no se compra (es de un logro que no tienes). Te lo pruebas, no te lo pones.
+const conCandado = (perfil, articulo) => !esTuyo(perfil, articulo) && !articulo.precio;
+
+// Lo que pide uno con candado: [entero, en corto]
+function loQuePide(articulo) {
+  if (tipoDe(articulo.id) === "fondo") return [requisito(articulo), requisitoCorto(articulo) || t("Con un logro")];
+  const logro = LOGROS.find((cada) => cada.id === articulo.logro);
+  return [logro ? t("Logro «{nombre}»: {descripcion}", { nombre: logro.nombre, descripcion: logro.descripcion }) : "", t("Con un logro")];
+}
+
+// Lo que llevas puesto de cada tipo (si nada, el «Sin...»)
 function puestoDe(perfil, tipo) {
-  if (!perfil) return "";
-  if (tipo === "fondo") return fondoDe(perfil);
-  if (tipo === "marco") return marcoDe(perfil);
-  const titulo = tituloDe(perfil);
-  return titulo ? titulo.id : "";
+  if (tipo === "fondo") return (perfil && fondoDe(perfil)) || SIN.fondo.id;
+  if (tipo === "marco") return (perfil && marcoDe(perfil)) || SIN.marco.id;
+  const titulo = perfil && tituloDe(perfil);
+  return titulo ? titulo.id : SIN.titulo.id;
 }
 
 // Lo que se ve con el carrito: lo elegido o, si no hay nada elegido de ese tipo, lo de ahora
@@ -131,6 +174,7 @@ export function fotoDeMuestra(perfil, clase = "") {
 }
 
 function muestraDe(articulo, tipo, perfil) {
+  if (articulo.sin) return `<span class="tienda-muestra tienda-muestra-sin">${icono("aspa")}</span>`;
   if (tipo === "fondo") return `<span class="tienda-muestra ${claseFondo(articulo.id)}" style="${estiloFondo(articulo.id)}"></span>`;
   if (tipo === "marco") return `<span class="tienda-muestra tienda-muestra-marco"><span class="tienda-foto ${claseMarco(articulo.id)}">${fotoDeMuestra(perfil)}</span></span>`;
   return `<span class="tienda-muestra tienda-muestra-titulo"><span class="perfil-titulo ${claseTitulo(articulo)}">${escaparHTML(articulo.nombre)}</span></span>`;
@@ -138,30 +182,36 @@ function muestraDe(articulo, tipo, perfil) {
 
 function plantillaArticulo(articulo, perfil, ofertas) {
   const tipo = tipoDe(articulo.id);
-  const tuyo = loTiene(perfil, articulo.id);
+  const tuyo = esTuyo(perfil, articulo);
+  const candado = conCandado(perfil, articulo);
   const puesto = puestoDe(perfil, tipo) === articulo.id;
   const elegido = tipo in carrito && carrito[tipo] === articulo.id;
   const oferta = ofertas.includes(articulo.id);
   const precio = precioDeHoy(articulo);
-  const pie = tuyo
-    ? `<span class="tp-tuyo">${puesto ? t("Puesto") : t("Tuyo")}</span>`
-    : `<span class="tp-precio ${perfil && saldo(perfil) < precio ? "no-llega" : ""}">${oferta ? `<s>${numero(articulo.precio)}</s>` : ""}${moneda(precio)}</span>`;
+  const [pide, pideCorto] = candado ? loQuePide(articulo) : ["", ""];
+  let pie;
+  if (puesto) pie = `<span class="tp-tuyo">${t("Puesto")}</span>`;
+  else if (articulo.sin) pie = "";
+  else if (tuyo) pie = `<span class="tp-tuyo">${t("Tuyo")}</span>`;
+  else if (candado) pie = `<span class="tp-candado">${icono("candado")}${escaparHTML(pideCorto)}</span>`;
+  else pie = `<span class="tp-precio ${perfil && saldo(perfil) < precio ? "no-llega" : ""}">${oferta ? `<s>${numero(articulo.precio)}</s>` : ""}${moneda(precio)}</span>`;
   return `
-    <button class="tp-articulo ${elegido ? "elegido" : ""} ${puesto ? "puesto" : ""}" data-elegir="${escaparHTML(articulo.id)}" title="${escaparHTML(articulo.nombre)}">
+    <button class="tp-articulo ${elegido ? "elegido" : ""} ${puesto ? "puesto" : ""} ${candado ? "con-candado" : ""}" data-elegir="${escaparHTML(articulo.id)}"
+            title="${escaparHTML(candado ? `${articulo.nombre} · ${pide}` : articulo.nombre)}">
       ${muestraDe(articulo, tipo, perfil)}
+      ${candado ? `<span class="tp-candado-sobre">${icono("candado")}</span>` : ""}
       ${oferta && !tuyo ? `<span class="tp-descuento">−${Math.round(DESCUENTO * 100)} %</span>` : ""}
       <span class="tp-pie"><b>${escaparHTML(articulo.nombre)}</b>${pie}</span>
     </button>`;
 }
 
+// Primero «Sin...», luego lo que se compra (del más barato al más caro, o al revés) y al final los de logros
 function articulosDelEstante(perfil) {
-  const lista = estante === "ofertas"
-    ? ofertasDeHoy().map(articuloDe).filter(Boolean)
-    : TIPOS[estante === "fondos" ? "fondo" : estante === "marcos" ? "marco" : "titulo"].lista();
+  const lista = estante === "ofertas" ? ofertasDeHoy().map(articuloDe).filter(Boolean) : TIPOS[TIPO_DEL_ESTANTE[estante]].lista(perfil);
+  const grupo = (articulo) => (articulo.sin ? 0 : articulo.precio ? 1 : 2);
   const precio = (articulo) => precioDeHoy(articulo);
-  const tuyo = (articulo) => (loTiene(perfil, articulo.id) ? 1 : 0);
-  const ordenada = lista.slice().sort((uno, otro) => precio(uno) - precio(otro));
-  if (orden === "caro") ordenada.reverse();
+  const tuyo = (articulo) => (esTuyo(perfil, articulo) ? 1 : 0);
+  const ordenada = lista.slice().sort((uno, otro) => grupo(uno) - grupo(otro) || (orden === "caro" ? precio(otro) - precio(uno) : precio(uno) - precio(otro)));
   if (orden === "faltan") ordenada.sort((uno, otro) => tuyo(uno) - tuyo(otro));
   if (orden === "tuyos") ordenada.sort((uno, otro) => tuyo(otro) - tuyo(uno));
   return ordenada;
@@ -170,10 +220,10 @@ function articulosDelEstante(perfil) {
 // ---------- Cómo te verían ----------
 
 function plantillaAsiTeVerian(perfil) {
-  const fondo = seVe(perfil, "fondo");
-  const marco = seVe(perfil, "marco");
-  const idTitulo = seVe(perfil, "titulo");
-  const titulo = TITULOS.find((cada) => cada.id === idTitulo) || null;
+  const fondo = articuloDe(seVe(perfil, "fondo")).sin ? "" : seVe(perfil, "fondo");
+  const marco = articuloDe(seVe(perfil, "marco")).sin ? "" : seVe(perfil, "marco");
+  const elegido = articuloDe(seVe(perfil, "titulo"));
+  const titulo = elegido && !elegido.sin ? elegido : null;
   const placa = titulo ? `<span class="perfil-titulo ${claseTitulo(titulo)}">${escaparHTML(titulo.nombre)}</span>` : "";
   const placaChica = titulo ? `<span class="perfil-titulo ${claseTitulo(titulo)} pequeno">${escaparHTML(titulo.nombre)}</span>` : "";
   const visual = fondo ? { clase: `lleva-fondo ${claseFondo(fondo)}`, estilo: estiloFondo(fondo) } : { clase: "", estilo: "" };
@@ -202,35 +252,54 @@ function plantillaAsiTeVerian(perfil) {
         </div>
       </div>
       <div>
-        <span class="tp-donde">${t("En el foro y el chat")}</span>
+        <span class="tp-donde">${t("En el chat")}</span>
         <div class="tp-mensaje">
           <span class="tienda-foto ${claseMarco(marco)}">${fotoDeMuestra(perfil)}</span>
           <span class="tp-mensaje-texto"><span><b>${nombre}</b>${placaChica}</span><p>${t("¿Alguien se apunta a un Soul Link este finde?")}</p></span>
         </div>
       </div>
+      <div>
+        <span class="tp-donde">${t("Color")}</span>
+        ${plantillaColores(perfil)}
+      </div>
+    </div>`;
+}
+
+// El color de tu perfil (gratis): se elige aquí y se pone al momento, sin pasar por el carrito
+function plantillaColores(perfil) {
+  const tuyo = colorElegido(perfil) || COLOR_PERFIL_DEFECTO;
+  return `
+    <div class="tp-colores" role="radiogroup" aria-label="${t("Color")}">
+      ${COLORES_PERFIL.map((color) => `
+        <button class="tp-color ${color.id === tuyo ? "elegido" : ""}" data-color="${color.id}" style="--c: ${color.rgb}"
+                role="radio" aria-checked="${color.id === tuyo}" title="${escaparHTML(color.nombre)}" aria-label="${escaparHTML(color.nombre)}"></button>`).join("")}
     </div>`;
 }
 
 // ---------- El carrito ----------
 
 // Lo que hay en el carrito, por orden (fondo, marco, título)
-const enCarrito = () => ["fondo", "marco", "titulo"].filter((tipo) => carrito[tipo]).map((tipo) => articuloDe(carrito[tipo])).filter(Boolean);
+const ORDEN_CARRITO = ["fondo", "marco", "titulo"];
+const enCarrito = () => ORDEN_CARRITO.filter((tipo) => carrito[tipo]).map((tipo) => articuloDe(carrito[tipo])).filter(Boolean);
 
-// Lo que hay que comprar del carrito (lo que no es tuyo)
+// Lo que hay que comprar del carrito (lo que no es tuyo y se vende)
 function porComprar(perfil) {
-  return enCarrito().filter((articulo) => !loTiene(perfil, articulo.id));
+  return enCarrito().filter((articulo) => !esTuyo(perfil, articulo) && articulo.precio);
 }
 
 function plantillaRanura(perfil, articulo, ofertas) {
   const tipo = tipoDe(articulo.id);
   const id = articulo.id;
   let muestra;
-  if (tipo === "fondo") muestra = `<span class="tp-mini tienda-muestra ${claseFondo(id)}" style="${estiloFondo(id)}"></span>`;
+  if (articulo.sin) muestra = `<span class="tp-mini tienda-muestra tienda-muestra-sin">${icono("aspa")}</span>`;
+  else if (tipo === "fondo") muestra = `<span class="tp-mini tienda-muestra ${claseFondo(id)}" style="${estiloFondo(id)}"></span>`;
   else if (tipo === "marco") muestra = `<span class="tp-mini"><span class="tienda-foto ${claseMarco(id)}">${fotoDeMuestra(perfil)}</span></span>`;
   else muestra = `<span class="tp-mini"><span class="perfil-titulo ${claseTitulo(articulo)} pequeno">${escaparHTML(articulo.nombre)}</span></span>`;
-  const derecha = loTiene(perfil, id)
-    ? `<span class="tp-tuyo">${t("Tuyo")}</span>`
-    : `<span class="tp-precio">${ofertas.includes(id) ? `<s>${numero(articulo.precio)}</s>` : ""}${moneda(precioDeHoy(articulo))}</span>`;
+  let derecha;
+  if (conCandado(perfil, articulo)) derecha = `<span class="tp-candado" title="${escaparHTML(loQuePide(articulo)[0])}">${icono("candado")}${t("No lo tienes")}</span>`;
+  else if (articulo.sin) derecha = "";
+  else if (esTuyo(perfil, articulo)) derecha = `<span class="tp-tuyo">${t("Tuyo")}</span>`;
+  else derecha = `<span class="tp-precio">${ofertas.includes(id) ? `<s>${numero(articulo.precio)}</s>` : ""}${moneda(precioDeHoy(articulo))}</span>`;
   return `
     <div class="tp-ranura">
       ${muestra}
@@ -240,17 +309,20 @@ function plantillaRanura(perfil, articulo, ofertas) {
     </div>`;
 }
 
+// «Comprar» si hay algo que pagar; si no, «Ponérmelo». Lo que lleva candado se queda probándose: no se pone.
 function plantillaCarrito(perfil, ofertas) {
   const dentro = enCarrito();
   const comprar = porComprar(perfil);
+  const ponibles = dentro.filter((articulo) => !conCandado(perfil, articulo));
   const total = comprar.reduce((suma, articulo) => suma + precioDeHoy(articulo), 0);
   const faltan = total - saldo(perfil);
   let boton = `<button class="tp-comprar" disabled>${t("Comprar")}</button>`;
   if (comprar.length) {
     boton = `<button class="tp-comprar" data-accion="comprar" ${faltan > 0 ? "disabled" : ""}>${
       comprar.length === 1 ? t("Comprar") : t("Comprar los {n}", { n: comprar.length })}</button>`;
-  } else if (dentro.length) boton = `<button class="tp-comprar" data-accion="poner">${t("Ponérmelo")}</button>`;
-  const huecos = Array.from({ length: 3 - dentro.length }, () => `<div class="tp-ranura tp-ranura-hueco"></div>`).join("");
+  } else if (ponibles.length) boton = `<button class="tp-comprar" data-accion="poner">${t("Ponérmelo")}</button>`;
+  else if (dentro.length) boton = `<button class="tp-comprar" disabled>${t("Aún no lo tienes")}</button>`;
+  const huecos = Array.from({ length: ORDEN_CARRITO.length - dentro.length }, () => `<div class="tp-ranura tp-ranura-hueco"></div>`).join("");
   return `
     <h3>${icono("tienda")} ${t("Carrito")}</h3>
     ${dentro.map((articulo) => plantillaRanura(perfil, articulo, ofertas)).join("")}${huecos}
@@ -274,7 +346,8 @@ function pintarPestanas() {
 
 function plantillaContenidoEstante(perfil, ofertas) {
   const lista = articulosDelEstante(perfil);
-  const tuyos = lista.filter((articulo) => loTiene(perfil, articulo.id)).length;
+  const cuentan = lista.filter((articulo) => !articulo.sin);
+  const tuyos = cuentan.filter((articulo) => esTuyo(perfil, articulo)).length;
   const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
   pagina = Math.min(pagina, paginas - 1);
   const vistos = lista.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
@@ -295,9 +368,9 @@ function plantillaContenidoEstante(perfil, ofertas) {
           <b>${pagina + 1}/${paginas}</b>
           <button data-pagina="1" ${pagina === paginas - 1 ? "disabled" : ""} aria-label="${t("Siguiente")}">${icono("derecha")}</button>
         </span>` : ""}
-      <span class="tp-progreso"><small>${t("Tienes {n} de {total}", { n: tuyos, total: lista.length })}</small><span class="tp-barrita"><i style="width: ${lista.length ? Math.round((100 * tuyos) / lista.length) : 0}%"></i></span></span>
+      <span class="tp-progreso"><small>${t("Tienes {n} de {total}", { n: tuyos, total: cuentan.length })}</small><span class="tp-barrita"><i style="width: ${cuentan.length ? Math.round((100 * tuyos) / cuentan.length) : 0}%"></i></span></span>
     </div>
-    <div class="tp-rejilla">
+    <div class="tp-rejilla ${estante === "marcos" ? "tp-rejilla-marcos" : ""}">
       ${vistos.map((articulo) => plantillaArticulo(articulo, perfil, ofertas)).join("")}${huecos}
     </div>`;
 }
@@ -415,19 +488,41 @@ async function comprarCarrito(soloPoner) {
     const vale = await confirmar(t("¿Comprar {lista} por {n} Pokédólares? Te lo pones al momento.", { lista, n: numero(total) }), { aceptar: t("Comprar") });
     if (!vale) return;
   }
+  // Lo que lleva candado no se pone: se queda en el carrito, probándotelo
   const ponerse = {};
-  for (const tipo of Object.keys(carrito)) if (carrito[tipo]) ponerse[TIPOS[tipo].campo] = carrito[tipo];
+  const seQuedan = {};
+  for (const tipo of Object.keys(carrito)) {
+    const articulo = articuloDe(carrito[tipo]);
+    if (!articulo) continue;
+    if (conCandado(perfil, articulo)) seQuedan[tipo] = carrito[tipo];
+    else ponerse[TIPOS[tipo].campo] = articulo.sin ? TIPOS[tipo].nada : articulo.id;
+  }
   ocupado = true;
   try {
     const fallo = await comprarYPoner(comprar.map((articulo) => articulo.id), ponerse);
     if (fallo) await avisar(fallo);
-    else carrito = {};
+    else carrito = seQuedan;
   } catch (error) {
     console.error(error);
     await avisar(t("No se ha podido guardar. Prueba otra vez."));
   } finally {
     ocupado = false;
     pintarCuerpo();
+  }
+}
+
+// El color se pone al momento (es gratis); la vista de arriba se repinta sola al cambiar tu perfil
+async function ponerColor(id) {
+  const perfil = miPerfil();
+  if (!perfil || ocupado || (colorElegido(perfil) || COLOR_PERFIL_DEFECTO) === id) return;
+  ocupado = true;
+  try {
+    await guardarMiPerfil({ color: id });
+  } catch (error) {
+    console.error(error);
+    await avisar(t("No se ha podido guardar. Prueba otra vez."));
+  } finally {
+    ocupado = false;
   }
 }
 
@@ -464,7 +559,8 @@ function alPulsar(e) {
   } else if (boton.dataset.pagina) {
     pagina += Number(boton.dataset.pagina);
     pintarEstante();
-  } else if (boton.dataset.elegir) elegir(boton.dataset.elegir);
+  } else if (boton.dataset.color) ponerColor(boton.dataset.color);
+  else if (boton.dataset.elegir) elegir(boton.dataset.elegir);
   else if (boton.dataset.sacar) sacar(boton.dataset.sacar);
   else if (boton.dataset.accion === "vaciar") {
     carrito = {};

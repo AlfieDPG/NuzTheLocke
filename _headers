@@ -1,0 +1,9 @@
+# Caché del navegador en Cloudflare Pages (el resto, como siempre: se pregunta en cada visita).
+# Imágenes: 1 día. Si se retoca una sin cambiarle el nombre, quien ya la tenía la ve vieja hasta un día.
+# Fuentes: 1 año (no cambian nunca). Los datos (datos/*.json) no van aquí: cambian junto con el código.
+
+/img/*
+  Cache-Control: public, max-age=86400
+
+/fuentes/*
+  Cache-Control: public, max-age=31536000, immutable

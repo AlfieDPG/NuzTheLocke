@@ -1474,3 +1474,31 @@
     width: 100%;
   }
 }
+
+/* ---------- Editar perfil sin el aspecto (2026-11-20) ----------
+   El fondo, el marco, el título y el color se cambian en el probador de la Tienda: aquí, a la
+   derecha, cómo te ven (tu fila de la lista de amigos, en horizontal, como de verdad) y el botón
+   que lleva allí; en el menú, lo mismo, con una flecha (sale de la ventana). */
+.editar-vista .editar-fila {
+  height: 4.2rem;
+  cursor: default;
+}
+
+.editar-ir-aspecto {
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.editar-ir-nota {
+  color: var(--t-gris);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.editar-menu .editar-menu-tienda .icono:last-child {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-left: auto;
+  opacity: 0.6;
+}

@@ -320,13 +320,12 @@ export function claseTitulo(titulo) {
   return `nivel-${titulo.nivel} ${tienda ? `placa-tienda ${titulo.id}` : ""} ${titulo.acabado === "adornado" ? "placa-adornada" : ""}`;
 }
 
-// El título que lleva alguien (perfil.titulo): uno de sus logros o uno comprado en la Tienda,
-// solo si de verdad lo tiene. null si ninguno.
+// El título que lleva alguien (perfil.titulo): uno comprado en la Tienda, solo si de verdad lo
+// tiene. null si ninguno. (Antes los logros también daban título: quien llevaba uno se queda sin
+// título; en su perfil sigue el id del logro, pero ya no vale.)
 export function tituloDe(perfil) {
   const id = perfil && perfil.titulo;
   if (!id) return null;
-  const logro = LOGROS.find((cada) => cada.id === id);
-  if (logro) return (perfil.logros || {})[id] ? logro : null;
   const comprado = TITULOS.find((cada) => cada.id === id);
   return comprado && loTiene(perfil, id) ? comprado : null;
 }
@@ -340,7 +339,7 @@ export function plantillaTituloDe(perfil, clase = "") {
   return `<span class="perfil-titulo ${claseTitulo(titulo)} ${clase}" title="${nombre}">${nombre}</span>`;
 }
 
-// El color de cada perfil (perfil.color; se elige en «Editar perfil», js/perfil.js): el de su
+// El color de cada perfil (perfil.color; se elige en el probador de la Tienda, js/tienda/index.js): el de su
 // ficha, sus botones y sus apartados, se abra desde donde se abra. Son los colores de las
 // secciones de la web; quien no elige ninguno, el de «Amigos». Gratis, como el «Sobre mí».
 export const COLORES_PERFIL = [

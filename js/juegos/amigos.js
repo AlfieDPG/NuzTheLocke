@@ -243,13 +243,15 @@ async function retar(boton) {
   if (!perfil) return;
   boton.disabled = true;
   try {
-    const id = await retarJuntos(juego, uid, perfil.nombre, perfil.foto || "", modulo.datosIniciales());
+    const id = await retarJuntos(juego, perfil.uid, perfil.nombre, perfil.foto || "", modulo.datosIniciales());
     abierta = "";
     avisar(t("Invitación mandada a {quien}. La partida empieza cuando acepte.", { quien: perfil.nombre }));
     return id;
   } catch (error) {
     console.error(error);
-    avisar(t("No se ha podido mandar la invitación. ¿Están publicadas las reglas de Firestore?"));
+    avisar(error && error.code === "permission-denied"
+      ? t("No se ha podido mandar la invitación. ¿Están publicadas las reglas de Firestore?")
+      : t("No se ha podido mandar la invitación. Prueba otra vez en un rato."));
   } finally {
     boton.disabled = false;
   }

@@ -88,7 +88,7 @@
 
 /* ---------- El probador (rediseño del 2026-11-20, js/tienda/index.js) ----------
    Arriba, cómo te verían (la portada y la fila de «Amigos» de verdad, y un mensaje del foro) y el carrito;
-   abajo, el estante (ofertas de hoy, fondos, marcos, títulos), de 6 × 2 con «+n». Hasta abajo. */
+   abajo, el estante (ofertas de hoy, fondos, marcos, títulos), de 6 × 3 con «+n». Hasta abajo. */
 
 .tp-probador .icono {
   flex: none;
@@ -166,9 +166,10 @@
   text-transform: uppercase;
 }
 
+/* Tu fila de la lista de amigos, un mensaje del chat (estrecho: no le hace falta más) y el color */
 .tp-dos {
   display: grid;
-  grid-template-columns: 20rem minmax(0, 1fr);
+  grid-template-columns: 20rem 17rem minmax(0, 1fr);
   gap: 0.8rem;
 }
 
@@ -494,7 +495,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 0.7rem;
 }
 
@@ -525,7 +526,7 @@
 
 .tp-articulo .tienda-muestra {
   flex: 1;
-  min-height: 3rem;
+  min-height: 2.6rem;
   height: auto;
 }
 
@@ -586,7 +587,36 @@
   .tp-rejilla {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-rows: none;
-    grid-auto-rows: 8.5rem;
+    grid-auto-rows: 6.5rem;
+  }
+}
+
+/* Los marcos, en vertical: 9 × 2 en vez de 6 × 3 (con casillas bajas, los adornos que salen del
+   círculo, como las ondas psíquicas o los cuernos de dragón, se cortaban); el nombre y el precio,
+   uno debajo del otro */
+.tp-rejilla.tp-rejilla-marcos {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.tp-rejilla-marcos .tp-pie {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  height: 2.4rem;
+}
+
+.tp-rejilla-marcos .tp-pie b {
+  flex: none;
+  width: 100%;
+}
+
+@media (max-width: 1000px) {
+  .tp-rejilla.tp-rejilla-marcos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: 9rem;
   }
 }
 
@@ -877,4 +907,93 @@
 .tp-orden-lista button.elegido {
   color: color-mix(in srgb, rgb(var(--color-vista)) 70%, var(--t-texto));
   font-weight: 900;
+}
+
+/* ---------- El probador, 3.ª tanda (2026-11-20): todo el aspecto, aquí ----------
+   «Sin fondo», «Sin marco» y «Sin título» (para quitarte lo que llevas), los colores del perfil
+   (gratis) y los fondos y marcos de logros: los que no tienes llevan candado (te los pruebas, pero
+   no te los pones). */
+
+.tienda-muestra-sin {
+  box-sizing: border-box;
+  border: 2px dashed rgba(var(--t-tinte), 0.22);
+  background: transparent;
+  color: var(--t-gris);
+}
+
+.tienda-muestra-sin .icono {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.tp-mini.tienda-muestra-sin .icono {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* El color del perfil: circulitos que se eligen al momento (el elegido, con un aro) */
+.tp-colores {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  gap: 0.4rem;
+  height: 4.2rem;
+  padding: 0.4rem 0.6rem;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--t-panel-3);
+}
+
+.tp-color {
+  flex: none;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(var(--c));
+  cursor: pointer;
+}
+
+.tp-color:hover {
+  transform: scale(1.12);
+}
+
+.tp-color.elegido {
+  box-shadow: 0 0 0 2px var(--t-panel-3), 0 0 0 4px rgb(var(--c));
+}
+
+.tp-candado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--t-gris);
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.tp-candado .icono {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.tp-candado-sobre {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: rgba(28, 26, 25, 0.85);
+  color: #fff;
+}
+
+.tp-candado-sobre .icono {
+  width: 0.75rem;
+  height: 0.75rem;
 }

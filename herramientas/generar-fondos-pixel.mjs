@@ -23,7 +23,8 @@
 // pueden poner solo algunos (kanto,tienda-bosque), el momento de la animación que se quiere ver
 // (de 0 a 1) y a cuánto se amplía (2 si no se dice).
 
-import { readdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { png } from "./png.mjs";
@@ -55,13 +56,15 @@ function azarFijo(texto) {
   };
 }
 
-// A lo ancho siempre da la vuelta; a lo alto, solo en las capas que se repiten también hacia abajo
-function lienzo(ancho = W, alto = H, envolverAlto = false) {
+// A lo ancho da la vuelta (menos en las capas con «recortar», las esquinas: ahí lo que se sale se
+// pierde); a lo alto, solo en las capas que se repiten también hacia abajo
+function lienzo(ancho = W, alto = H, envolverAlto = false, envolverAncho = true) {
   const datos = new Uint8Array(ancho * alto * 4);
   // alfa: lo opaco que queda (0…1; si no se dice, del todo). Lo que se pinta encima tapa lo de debajo.
   const poner = (x, y, color, alfa = 1) => {
     y = envolverAlto ? vuelta(y, alto) : Math.round(y);
     if (y < 0 || y >= alto) return;
+    if (!envolverAncho && (Math.round(x) < 0 || Math.round(x) >= ancho)) return;
     const i = (y * ancho + vuelta(x, ancho)) * 4;
     const [r, g, b] = rgb(color);
     datos.set([r, g, b, Math.round(alfa * 255)], i);
@@ -186,29 +189,6 @@ function brillo(l, cx, cy, r, color, fuerza, a) {
   }
 }
 
-// Un abeto por pisos, con la luz por la izquierda y el borde de abajo de cada piso dentado
-function abeto(l, x, base, alto, [oscuro, medio, claro], a, tronco = "#4a3020") {
-  const pie = Math.max(2, Math.round(alto * 0.12));
-  rect(l, x - 1, base - pie, 2, pie, tronco, a);
-  const copa = alto - pie;
-  const pisos = alto > 22 ? 4 : 3;
-  const anchoMax = Math.max(3, Math.round(alto * 0.3));
-  for (let p = 0; p < pisos; p++) {
-    const arriba = base - pie - copa + Math.round((p * copa) / (pisos + 0.6));
-    const altoPiso = Math.round((copa / pisos) * 1.6);
-    const anchoPiso = anchoMax * (0.45 + (0.55 * (p + 1)) / pisos);
-    for (let k = 0; k <= altoPiso; k++) {
-      const y = arriba + k;
-      if (y > base - pie) break;
-      const media = Math.round((anchoPiso * k) / altoPiso);
-      for (let dx = -media; dx <= media; dx++) {
-        if (k === altoPiso && (x + dx) % 2) continue;
-        l.poner(x + dx, y, dx <= -media + 1 ? claro : dx < 0 ? medio : oscuro, a);
-      }
-    }
-  }
-}
-
 // Una mata de hierba alta: cuatro hojas puntiagudas (la cara izquierda al sol, la derecha en
 // sombra y un perfil oscuro), unidas abajo. Mide unos 12 de ancho.
 function mata(l, x, base, alto, [oscuro, claro, sombra], a) {
@@ -223,12 +203,6 @@ function mata(l, x, base, alto, [oscuro, claro, sombra], a) {
     }
   }
   rect(l, x - 1, base - 1, 13, 2, oscuro, a);
-}
-
-function mariposa(l, x, y, ala, a) {
-  for (const [dx, dy] of [[-1, 0], [1, 0], [-1, -1], [1, -1], [-2, -1], [2, -1]]) l.poner(x + dx, y + dy, ala, a);
-  l.poner(x, y, "#3a2e2a", a);
-  l.poner(x, y - 1, "#3a2e2a", a);
 }
 
 // El cielo de los fondos de día (cieloDeDia): azul, más claro hacia el horizonte
@@ -387,18 +361,6 @@ function fantasma(l, x, y, a) {
   ], { a: "#f4f2ff", b: "#c8c4e8", k: "#2a2438", o: "#6a5a88" }, a);
 }
 
-// Cristales de cueva en racimo, con su resplandor
-function cristales(l, x, base, [color, claro], a) {
-  brillo(l, x, base - 5, 11, color, 0.5, 0.32);
-  for (const [dx, alto, inclina] of [[-6, 4, -0.6], [5, 5, 0.6], [-3, 8, -0.3], [3, 7, 0.35], [0, 12, 0]]) {
-    for (let k = 0; k < alto; k++) {
-      const px = x + dx + Math.round(k * inclina);
-      l.poner(px, base - k, k >= alto - 1 ? "#ffffff" : claro, a);
-      if (k < alto - 2) l.poner(px + 1, base - k, color, a);
-    }
-  }
-}
-
 // Olas que avanzan hacia la derecha: suben despacio y caen de golpe por delante (con espuma)
 function olas(l, { base, alto, crestas, color, claro, espuma, a }) {
   const periodo = l.ancho / crestas;
@@ -515,6 +477,895 @@ function copo(l, x, y, tam, a) {
   for (const [dx, dy] of [[1, 1], [-1, -1], [1, -1], [-1, 1]]) l.poner(x + dx, y + dy, "#cfe0f2", a);
 }
 
+// ---------- Piezas de los fondos claros (pompas, cerezos, girasoles, playa, globos, Centro) ----------
+
+// Una pompa de jabón: el borde tornasolado (cada tramo de un color, según hacia dónde mira), por
+// dentro casi transparente y el brillo arriba a la izquierda
+const TORNASOL = ["#ff9ad0", "#ffd27a", "#9af0c8", "#8ad0ff", "#c8a8ff"];
+function pompa(l, cx, cy, r, a) {
+  const giro = (cx * 3 + cy * 5) % TORNASOL.length;
+  for (let y = -r - 1; y <= r + 1; y++) {
+    for (let x = -r - 1; x <= r + 1; x++) {
+      const d = Math.sqrt(x * x + y * y);
+      if (d > r + 0.5) continue;
+      if (d > r - 0.5) {
+        const angulo = (Math.atan2(y, x) / (2 * Math.PI) + 1) % 1;
+        l.poner(cx + x, cy + y, TORNASOL[(Math.floor(angulo * TORNASOL.length) + giro) % TORNASOL.length], a);
+      } else if (r > 2) l.poner(cx + x, cy + y, "#ffffff", a * 0.16);
+    }
+  }
+  if (r < 2) return;
+  const b = Math.round(r * 0.45);
+  l.poner(cx - b, cy - b, "#ffffff", 1);
+  if (r > 3) {
+    l.poner(cx - b + 1, cy - b, "#ffffff", 0.8);
+    l.poner(cx - b, cy - b + 1, "#ffffff", 0.8);
+  }
+  if (r > 4) for (const [dx, dy] of [[0.6, 0.35], [0.4, 0.6]]) l.poner(cx + Math.round(r * dx), cy + Math.round(r * dy), "#ffffff", 0.6);
+}
+
+// Un pétalo de cerezo (de dos o tres píxeles), en una de cuatro posturas
+function petalo(l, x, y, postura, a) {
+  const formas = [[[0, 0], [1, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]], [[0, 0], [1, 0]], [[0, 0], [1, 1], [2, 1]]];
+  formas[postura % 4].forEach(([dx, dy], i) => l.poner(x + dx, y + dy, i ? "#ffb4cc" : "#ffe4ee", a));
+}
+
+// Un racimo de flores de cerezo: la sombra abajo, el rosa y la luz arriba a la izquierda
+function racimo(l, x, y, r, a = 1) {
+  disco(l, x, y, r, "#e07ea2", a);
+  disco(l, x - 1, y - 1, Math.max(1, r - 1), "#f6a8c4", a);
+  if (r > 2) l.poner(x - 1, y - 2, "#ffd8e6", a);
+  l.poner(x - r + 1, y - 1, "#fff4f8", a);
+}
+
+// Un girasol: el tallo (con hojas, si es grande) y la cabeza de cara, con los pétalos alrededor
+// (más claros arriba a la izquierda) y el centro marrón con trama
+// Una hoja ancha en diagonal (hacia lado), con el nervio claro
+function hoja(l, x, y, largo, lado) {
+  for (let k = 0; k < largo; k++) {
+    const ancho = Math.round(Math.sin((Math.PI * (k + 0.5)) / largo) * largo * 0.28);
+    const [px, py] = [x + lado * k, y - Math.round(k * 0.45)];
+    for (let j = -ancho; j <= ancho; j++) l.poner(px, py + j, j < 0 ? "#5cb844" : "#3c8a2c");
+    if (k > 0 && k < largo - 1) l.poner(px, py, "#86d060");
+  }
+}
+
+function girasol(l, x, base, alto, tam) {
+  const cy = base - alto - tam;
+  for (let k = 0; k <= alto; k++) {
+    l.poner(x, base - k, k % 5 ? "#3c8a2c" : "#4ca23a");
+    if (tam > 2) l.poner(x + 1, base - k, "#2e7222");
+  }
+  if (tam > 1) {
+    for (const [ky, lado] of [[0.3, -1], [0.55, 1], [0.8, -1]]) {
+      if (tam < 3 && ky > 0.7) continue;
+      hoja(l, lado < 0 ? x - 1 : x + (tam > 2 ? 2 : 1), base - Math.round(alto * ky), tam * 2 + 2, lado);
+    }
+  }
+  const R = tam * 2.1 + 1;
+  const n = tam > 2 ? 14 : 9;
+  for (let dy = -Math.ceil(R); dy <= Math.ceil(R); dy++) {
+    for (let dx = -Math.ceil(R); dx <= Math.ceil(R); dx++) {
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d <= tam + 0.3) {
+        l.poner(x + dx, cy + dy, dx + dy < -tam * 0.7 ? "#a0662e" : (dx + dy) % 2 ? "#8a5426" : "#5e3416");
+      } else if (d <= R) {
+        const punta = (d - tam) / (R - tam);
+        if (Math.cos(Math.atan2(dy, dx) * n) < punta * 2.2 - 1.4) continue;
+        l.poner(x + dx, cy + dy, dx + dy < -R * 0.3 ? "#ffe866" : dx + dy > R * 0.6 ? "#f0a018" : "#ffc928");
+      }
+    }
+  }
+}
+
+// Una abeja de lado (mirando a la derecha): alas claras, rayas amarillas y negras
+function abeja(l, x, y) {
+  mapa(l, x, y, [
+    "..aa...",
+    ".aaaa..",
+    ".ybyby.",
+    "bybybyk",
+    ".ybyby."
+  ], { a: "#eef8ff", y: "#ffd23a", b: "#2a2220", k: "#2a2220" }, 1);
+}
+
+// Una gaviota de frente, con las alas en uve
+function gaviota(l, x, y, a) {
+  mapa(l, x, y, [".ww...ww.", "g..wkw..g"], { w: "#ffffff", g: "#9aa8b8", k: "#f0b030" }, a);
+}
+
+// Un globo aerostático: la tela a gajos de dos colores (curvos, como si fuera redonda), más estrecha
+// hacia la boca, con sombra a la derecha y un brillo; las cuerdas y la cesta.
+// colores: [uno, su sombra, otro, su sombra]
+function globo(l, cx, top, r, [c1, s1, c2, s2], a = 1) {
+  const alto = Math.round(r * 2.2);
+  let boca = 1;
+  for (let y = 0; y <= alto; y++) {
+    const hw = y <= r ? Math.sqrt(Math.max(0, r * r - (y - r) ** 2)) : r - ((y - r) / (alto - r)) * r * 0.7;
+    boca = hw;
+    for (let x = -Math.round(hw); x <= Math.round(hw); x++) {
+      const u = x / Math.max(1, hw);
+      const gajo = Math.floor((u + 1) * 3) % 2;
+      let c = gajo ? c2 : c1;
+      if (u > 0.4 && umbral(cx + x, top + y) < (u - 0.4) * 1.8) c = gajo ? s2 : s1;
+      l.poner(cx + x, top + y, c, a);
+    }
+  }
+  const b = Math.round(boca);
+  rect(l, cx - b, top + alto, b * 2 + 1, 1, "#8a4a2a", a);
+  for (const [dx, dy] of [[-0.55, 0.4], [-0.45, 0.3], [-0.6, 0.55]]) l.poner(cx + Math.round(r * dx), top + Math.round(r * dy), "#ffffff", a * 0.75);
+  const yb = top + alto + 1;
+  const cuerdas = Math.max(2, Math.round(r * 0.3));
+  for (let k = 0; k < cuerdas; k++) {
+    l.poner(cx - b + Math.round((k * (b - 1)) / cuerdas), yb + k, "#6a5040", a);
+    l.poner(cx + b - Math.round((k * (b - 1)) / cuerdas), yb + k, "#6a5040", a);
+  }
+  const ancho = Math.max(3, Math.round(r * 0.5));
+  const yc = yb + cuerdas;
+  rect(l, cx - Math.floor(ancho / 2), yc, ancho, Math.max(2, Math.round(r * 0.35)), "#a0703a", a);
+  rect(l, cx - Math.floor(ancho / 2), yc, ancho, 1, "#c89050", a);
+}
+
+// Una flor de cerezo de cara: cinco pétalos con la muesca en la punta, el borde algo más oscuro
+// (para que se vea sobre el rosa), la luz arriba a la izquierda, el centro fucsia y estambres
+function florCerezo(l, cx, cy, r, giro = 0) {
+  for (let y = -r - 1; y <= r + 1; y++) {
+    for (let x = -r - 1; x <= r + 1; x++) {
+      const d = Math.sqrt(x * x + y * y);
+      const angulo = Math.atan2(y, x) - giro;
+      const borde = r * (0.6 + 0.4 * Math.abs(Math.cos(2.5 * angulo)));
+      if (d > borde + 0.5) continue;
+      if (d > r * 0.7 && Math.abs(Math.sin(2.5 * angulo)) < 0.12) continue; // la muesca
+      let c = x + y < -r * 0.4 ? "#ffe2ec" : "#ffc4d8";
+      if (d > borde - 0.6) c = "#e888a8";
+      else if (d < r * 0.28) c = "#e0507a";
+      else if (d < r * 0.5) c = "#f590b0";
+      l.poner(cx + x, cy + y, c);
+    }
+  }
+  if (r < 3) return;
+  for (let k = 0; k < 5; k++) {
+    const a = giro + (k * 2 * Math.PI) / 5 + Math.PI / 5;
+    l.poner(cx + Math.round(Math.cos(a) * r * 0.45), cy + Math.round(Math.sin(a) * r * 0.45), "#ffe066");
+  }
+}
+
+// Una rama florida que entra por una esquina (dibujada para la de arriba a la derecha; espejoX y
+// espejoY le dan la vuelta para las otras): la rama con ramitas, flores grandes y pequeñas y capullos
+function esquinaFlorida(l, azar, espejoX, espejoY) {
+  const lienzoEspejo = { ...l, poner: (x, y, c, a) => l.poner(espejoX ? l.ancho - 1 - x : x, espejoY ? l.alto - 1 - y : y, c, a) };
+  const e = lienzoEspejo;
+  const [W0, H0] = [l.ancho, l.alto];
+  const flores = [];
+  const trazo = (x0, y0, x1, y1, grueso, ramas) => {
+    const pasos = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let k = 0; k <= pasos; k++) {
+      const t = k / pasos;
+      const x = Math.round(x0 + (x1 - x0) * t);
+      const y = Math.round(y0 + (y1 - y0) * t + Math.sin(t * Math.PI * 2) * 2);
+      const g = Math.max(1, Math.round(grueso * (1 - t * 0.6)));
+      for (let j = 0; j < g; j++) e.poner(x, y + j, j === 0 ? "#7a5250" : "#4e3232");
+      if (ramas && k > 6 && k % 9 === 0) {
+        const largo = 6 + Math.floor(azar() * 6);
+        const abajo = azar() < 0.6 ? 1 : -1;
+        for (let j = 1; j <= largo; j++) e.poner(x - Math.round(j * 0.6), y + abajo * j, "#5e3e3c");
+        flores.push([x - Math.round(largo * 0.6), y + abajo * largo, 3 + Math.floor(azar() * 2)]);
+      }
+      if (k % 6 === 3) flores.push([x + Math.round((azar() - 0.5) * 6), y + (azar() < 0.5 ? -3 : 4), 2 + Math.floor(azar() * 3)]);
+    }
+  };
+  trazo(W0 + 2, -2, Math.round(W0 * 0.12), Math.round(H0 * 0.45), 3, true);
+  trazo(W0 - 4, Math.round(H0 * 0.1), Math.round(W0 * 0.55), Math.round(H0 * 0.85), 2, false);
+  flores.sort((uno, otro) => uno[2] - otro[2]);
+  for (const [x, y, r] of flores) {
+    if (r <= 2 && azar() < 0.35) {
+      disco(e, x, y, 1, "#e8608a");
+      e.poner(x - 1, y - 1, "#ff9ab8");
+    } else {
+      const giro = azar() * Math.PI;
+      // Las flores, en el lienzo de verdad (el dibujo de la flor no tiene lado)
+      florCerezo(l, espejoX ? W0 - 1 - x : x, espejoY ? H0 - 1 - y : y, r, giro);
+    }
+  }
+}
+
+// Una enfermera de Centro Pokémon, de cintura para arriba (detrás del mostrador): pelo rosa con
+// sus dos aros a los lados, cofia blanca con la cruz roja, uniforme rosa con delantal blanco.
+// (cx: el centro; y0: lo de más arriba, la cofia)
+function enfermera(l, cx, y0) {
+  const [pelo, peloSombra, piel, pielSombra] = ["#ff8ab4", "#e0608e", "#ffe2cc", "#f4c4aa"];
+  // Los aros del pelo, a los lados (con su hueco)
+  for (const lado of [-1, 1]) {
+    disco(l, cx + lado * 7, y0 + 13, 3, lado < 0 ? pelo : peloSombra);
+    l.poner(cx + lado * 7, y0 + 13, "#000000", 0);
+    rect(l, cx + lado * 6 - (lado > 0 ? 1 : 0), y0 + 8, 2, 4, lado < 0 ? pelo : peloSombra);
+  }
+  // El uniforme
+  rect(l, cx - 6, y0 + 18, 13, 6, "#ff9cc2");
+  rect(l, cx + 3, y0 + 18, 4, 6, "#e87aa6");
+  rect(l, cx - 6, y0 + 18, 1, 6, "#e87aa6");
+  rect(l, cx - 5, y0 + 17, 11, 1, "#ff9cc2");
+  rect(l, cx - 2, y0 + 17, 5, 2, "#ffffff");
+  l.poner(cx, y0 + 18, "#ff9cc2");
+  rect(l, cx - 3, y0 + 20, 7, 4, "#ffffff");
+  rect(l, cx + 2, y0 + 20, 2, 4, "#ece4ee");
+  // El cuello y la cara
+  rect(l, cx - 1, y0 + 16, 3, 1, pielSombra);
+  rect(l, cx - 4, y0 + 9, 9, 5, piel);
+  rect(l, cx - 3, y0 + 14, 7, 1, piel);
+  rect(l, cx - 2, y0 + 15, 5, 1, pielSombra);
+  rect(l, cx + 4, y0 + 10, 1, 4, pielSombra);
+  for (const dx of [-2, 2]) rect(l, cx + dx, y0 + 11, 1, 2, "#3a5ab0");
+  for (const dx of [-2, 2]) l.poner(cx + dx, y0 + 11, "#8ab0f0");
+  for (const dx of [-3, 3]) l.poner(cx + dx, y0 + 13, "#ffaab8");
+  rect(l, cx - 1, y0 + 14, 3, 1, "#e0607a");
+  // El pelo de arriba y el flequillo
+  rect(l, cx - 5, y0 + 4, 11, 4, pelo);
+  rect(l, cx - 4, y0 + 3, 9, 1, pelo);
+  rect(l, cx + 3, y0 + 4, 3, 4, peloSombra);
+  for (const dx of [-5, -4, -1, 0, 3, 5]) l.poner(cx + dx, y0 + 8, dx > 2 ? peloSombra : pelo);
+  rect(l, cx - 5, y0 + 9, 1, 3, pelo);
+  rect(l, cx + 5, y0 + 9, 1, 3, peloSombra);
+  // La cofia con la cruz
+  rect(l, cx - 3, y0, 7, 4, "#ffffff");
+  rect(l, cx - 2, y0 - 1, 5, 1, "#ffffff");
+  rect(l, cx + 3, y0, 1, 4, "#e2dae6");
+  rect(l, cx, y0, 1, 3, "#ee3a4c");
+  rect(l, cx - 1, y0 + 1, 3, 1, "#ee3a4c");
+}
+
+// Una sombrilla de playa a gajos (el palo, de pie en y + 15) con su toalla de rayas al lado
+function sombrilla(l, x, y, [uno, otro, borde], [toalla, toalla2]) {
+  rect(l, x, y, 1, 16, "#8a6a4a");
+  for (let dy = -8; dy <= 0; dy++) {
+    for (let dx = -10; dx <= 10; dx++) {
+      if (dx * dx + (dy * 1.25) ** 2 > 100) continue;
+      l.poner(x + dx, y + dy, Math.floor((Math.atan2(dy, dx) + Math.PI) / (Math.PI / 6)) % 2 ? otro : uno);
+    }
+  }
+  for (let dx = -10; dx <= 10; dx += 2) l.poner(x + dx, y + 1, borde);
+  for (let dy = 12; dy < 16; dy++) for (let dx = 5; dx < 19; dx++) l.poner(x + dx, y + dy, (dx >> 1) % 2 ? toalla2 : toalla);
+}
+
+// Una estrella pequeña: un punto (0), en cruz (1) o de cinco puntas (2)
+function estrellita(l, x, y, tam, color, a = 1) {
+  if (tam === 0) return l.poner(x, y, color, a);
+  if (tam === 1) {
+    for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) l.poner(x + dx, y + dy, color, dx || dy ? a * 0.7 : a);
+    return undefined;
+  }
+  mapa(l, x - 2, y - 2, ["..a..", "aaaaa", ".aaa.", ".a.a.", "a...a"], { a: color }, a);
+  l.poner(x, y, "#ffffff", a);
+  return undefined;
+}
+
+// Las nubes de «Noche estrellada»: lilas, con la luz de la luna arriba
+const NUBES_DE_NOCHE = ["#dcd8fa", "#aaa6e0", "#7e7ac0"];
+
+// Una luna creciente con su resplandor
+function lunaCreciente(l, cx, cy, r) {
+  brillo(l, cx, cy, r + 9, "#fff4c0", 0.45, 0.35);
+  for (let y = -r; y <= r; y++) {
+    for (let x = -r; x <= r; x++) {
+      if (x * x + y * y > r * r) continue;
+      const [cxCorte, cyCorte, rCorte] = [r * 0.5, -r * 0.3, r * 0.85];
+      if ((x - cxCorte) ** 2 + (y - cyCorte) ** 2 <= rCorte * rCorte) continue;
+      l.poner(cx + x, cy + y, x + y > r * 0.2 && umbral(cx + x, cy + y) < 0.5 ? "#f0d880" : "#fff2b0");
+    }
+  }
+}
+
+// Las estrellas fugaces de «Espacio exterior»: [empieza, acaba] (en la vuelta) y de dónde sale
+const FUGACES_ESPACIO = [[0.3, 0.35, 40], [0.78, 0.83, 150]];
+
+// Los palos de la baraja (5×5) y las letras de los naipes (3×5)
+const PALOS = {
+  corazon: [".a.a.", "aaaaa", "aaaaa", ".aaa.", "..a.."],
+  diamante: ["..a..", ".aaa.", "aaaaa", ".aaa.", "..a.."],
+  pica: ["..a..", ".aaa.", "aaaaa", "aaaaa", ".a.a."],
+  trebol: ["..a..", ".aaa.", "aa.aa", "aaaaa", "..a.."]
+};
+const LETRAS_NAIPE = {
+  A: [".a.", "a.a", "aaa", "a.a", "a.a"], K: ["a.a", "aa.", "a..", "aa.", "a.a"],
+  Q: [".a.", "a.a", "a.a", "aa.", ".aa"], J: ["..a", "..a", "..a", "a.a", ".a."]
+};
+
+// Un naipe de 11×15: el borde, la letra en la esquina y el palo en medio (rojo o negro)
+function naipe(l, x, y, letra, palo) {
+  const color = palo === "corazon" || palo === "diamante" ? "#d8283a" : "#2a2228";
+  rect(l, x, y, 11, 15, "#4a3a48");
+  rect(l, x + 1, y + 1, 9, 13, "#fffaf0");
+  rect(l, x + 9, y + 1, 1, 13, "#e8e0d8");
+  mapa(l, x + 2, y + 2, LETRAS_NAIPE[letra], { a: color }, 1);
+  mapa(l, x + 3, y + 8, PALOS[palo], { a: color }, 1);
+}
+
+// Una ficha de póquer vista desde arriba, con las muescas blancas del borde
+function fichaPoker(l, x, y, color) {
+  disco(l, x, y, 3, color);
+  for (const [dx, dy] of [[0, -3], [3, 0], [0, 3], [-3, 0]]) l.poner(x + dx, y + dy, "#ffffff");
+  disco(l, x, y, 1, "#ffffff");
+  l.poner(x, y, color);
+}
+
+// Una pila de fichas de lado (n fichas), de pie en base
+function pilaDeFichas(l, x, base, n, color) {
+  for (let k = 0; k < n; k++) {
+    const y = base - k * 2;
+    rect(l, x - 3, y - 1, 7, 2, color);
+    l.poner(x - 2, y - 1, "#ffffff");
+    l.poner(x + 1, y - 1, "#ffffff");
+    l.poner(x + 3, y, "#000000", 0.3);
+  }
+  rect(l, x - 2, base - n * 2 - 1, 5, 1, color);
+  l.poner(x, base - n * 2 - 1, "#ffffff");
+}
+
+// Un dado de 7×7 con n puntos
+function dado(l, x, y, n) {
+  rect(l, x, y, 7, 7, "#c8c0c8");
+  rect(l, x, y, 6, 6, "#fffaf0");
+  const p = { tl: [1, 1], tr: [4, 1], ml: [1, 3], c: [3, 3], mr: [4, 3], bl: [1, 4], br: [4, 4] };
+  const puntos = { 1: ["c"], 2: ["tl", "br"], 3: ["tl", "c", "br"], 4: ["tl", "tr", "bl", "br"], 5: ["tl", "tr", "c", "bl", "br"], 6: ["tl", "tr", "ml", "mr", "bl", "br"] }[n];
+  for (const cual of puntos) l.poner(x + p[cual][0], y + p[cual][1], n === 1 ? "#d8283a" : "#2a2228");
+}
+
+// Los colores de las hojas de otoño: [la hoja, su sombra]
+const COLORES_OTONO = [["#e8642a", "#b8441a"], ["#d23c2a", "#9a2a20"], ["#f0b030", "#c88418"], ["#c87a3a", "#8a5224"]];
+
+// Una hoja de arce de 7×7 (con el rabito), la mitad derecha en sombra; ladeada: la otra postura
+function hojaArce(l, x, y, [color, sombra], ladeada = false) {
+  const dibujo = ladeada
+    ? ["..a....", ".aaa.a.", "aaaaaa.", ".aaaaab", "aaaab..", "...b...", "..b...."]
+    : ["...a...", ".a.a.a.", "aaaaaaa", ".aaaaa.", "aaaaaaa", "...b...", "...b..."];
+  dibujo.forEach((fila, dy) => [...fila].forEach((c, dx) => {
+    if (c === "a") l.poner(x + dx, y + dy, dx > 3 ? sombra : color);
+    if (c === "b") l.poner(x + dx, y + dy, "#6a4424");
+  }));
+}
+
+// Un montón de hojas de otoño, de pie en base (cx: el centro; ancho y alto: lo que abulta)
+function montonDeHojas(l, azar, cx, base, ancho, alto) {
+  for (let k = 0; k < ancho * alto * 0.12; k++) {
+    const dx = (azar() * 2 - 1) * ancho;
+    const sube = (1 - Math.abs(dx) / ancho) * alto * azar();
+    hojaArce(l, Math.round(cx + dx - 3), Math.round(base - 5 - sube), COLORES_OTONO[Math.floor(azar() * COLORES_OTONO.length)], azar() < 0.5);
+  }
+}
+
+// Una calabaza de pie en base (cx: el centro; r: medio ancho): gajos redondos que se solapan (los
+// de los lados, más oscuros), el borde de cada uno marcado, la luz arriba a la izquierda, el rabo y
+// una hoja
+function calabaza(l, cx, base, r) {
+  const alto = Math.round(r * 1.45);
+  const cy = base - alto / 2;
+  const gajos = [[-0.5, 0.55, "#d8681e"], [0.5, 0.55, "#d8681e"], [-0.24, 0.6, "#f08028"], [0.24, 0.6, "#f08028"], [0, 0.5, "#ff9634"]];
+  for (const [dx, ancho, color] of gajos) {
+    const [ex, rx, ry] = [cx + dx * r, r * ancho, alto / 2];
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+      for (let x = Math.floor(ex - rx); x <= Math.ceil(ex + rx); x++) {
+        const d = ((x - ex) / rx) ** 2 + ((y - cy) / ry) ** 2;
+        if (d > 1) continue;
+        let c = color;
+        if (d > 0.78) c = "#b8501a";
+        else if (dx <= 0 && x < ex - rx * 0.3 && y < cy - ry * 0.2 && umbral(x, y) < 0.6) c = "#ffb860";
+        l.poner(x, y, c);
+      }
+    }
+  }
+  const arriba = Math.round(cy - alto / 2);
+  rect(l, cx - 1, arriba - 4, 3, 6, "#6a5a2a");
+  rect(l, cx - 1, arriba - 4, 1, 6, "#8a7a3a");
+  hojaOval(l, cx + 2, arriba - 1, 7, -0.5, ["#3e7a2a", "#5a9a3a", "#9ad06a"]);
+  for (const [dx, dy] of [[-2, -5], [-3, -6], [-4, -6], [-5, -5]]) l.poner(cx + dx, arriba + dy, "#5a8a2a");
+}
+
+// Una bellota (5 de ancho): el sombrerito con trama y el fruto
+function bellota(l, x, y) {
+  mapa(l, x - 2, y, [".ccc.", "ccccc", ".bbb.", ".bbb.", "..b.."], { c: "#8a5a2a", b: "#c8884a" }, 1);
+}
+
+// Una liana que cuelga desde arriba (x, y0), ondulando, con hojitas a los dos lados
+function liana(l, x, y0, largo, hojas) {
+  for (let k = 0; k < largo; k++) {
+    const px = x + Math.round(Math.sin(k / 4) * 1.5);
+    l.poner(px, y0 + k, "#5a7a3a");
+    if (k % 5 === 3) hojaOval(l, px, y0 + k, 4, Math.PI / 2 + (k % 10 < 5 ? 0.9 : -0.9), hojas[k % hojas.length]);
+  }
+  hojaOval(l, x + Math.round(Math.sin(largo / 4) * 1.5), y0 + largo - 1, 5, Math.PI / 2, hojas[0]);
+}
+
+// Un naipe boca abajo (11×15): rojo con un enrejado blanco
+function naipeReves(l, x, y) {
+  rect(l, x, y, 11, 15, "#4a3a48");
+  rect(l, x + 1, y + 1, 9, 13, "#ffffff");
+  for (let dy = 2; dy < 13; dy++) for (let dx = 2; dx < 9; dx++) l.poner(x + dx, y + dy, (dx + dy) % 3 ? "#c8283a" : "#ff8a96");
+}
+
+// Un montoncito de nieve que baja hasta abajo del todo (para que lo de encima no flote), con su luz
+function montoncitoDeNieve(l, cx, arriba, media) {
+  for (let y = arriba; y < l.alto; y++) {
+    const ancho = Math.round(media * Math.min(1, 0.55 + ((y - arriba) / 6) * 0.45));
+    for (let dx = -ancho; dx <= ancho; dx++) l.poner(cx + dx, y, y === arriba ? "#ffffff" : dx < -ancho / 2 ? "#ffffff" : (dx + y) % 7 ? "#eef4fa" : "#d8e4f0");
+  }
+}
+
+// Una maceta con su planta, de pie en base
+function maceta(l, x, base) {
+  rect(l, x - 4, base - 8, 9, 8, "#d0805a");
+  rect(l, x - 4, base - 8, 9, 1, "#e8a07a");
+  rect(l, x + 3, base - 7, 1, 7, "#a8603e");
+  for (const [dx, dy, rr] of [[0, -16, 5], [-3, -13, 3], [3, -13, 3], [0, -21, 3]]) disco(l, x + dx, base + dy, rr, "#3e9a4a");
+  for (const [dx, dy] of [[-2, -19], [1, -22], [-4, -14], [2, -16]]) rect(l, x + dx, base + dy, 2, 1, "#6cc070");
+}
+
+// Una poción (un frasco de espray con tapón blanco), de pie en base
+function pocion(l, x, base, color) {
+  rect(l, x - 1, base - 11, 3, 2, "#f0f0f4");
+  rect(l, x, base - 12, 1, 1, "#c8c8d4");
+  rect(l, x - 2, base - 9, 5, 9, color);
+  rect(l, x - 2, base - 6, 5, 2, "#ffffff");
+  rect(l, x - 2, base - 9, 1, 9, "#ffffff", 0.45);
+  rect(l, x + 2, base - 9, 1, 9, "#000000", 0.2);
+}
+
+// La franja del Centro Pokémon (para la de arriba; dada la vuelta, la de abajo): rojo y un filo blanco
+function franjaDelCentro(l) {
+  for (let x = 0; x < l.ancho; x++) {
+    rect(l, x, 0, 1, 3, "#ee5a72");
+    l.poner(x, 3, "#c83c56");
+    l.poner(x, 4, "#ffffff");
+    if (x % 8 === 0) l.poner(x, 1, "#ff9aac");
+  }
+}
+
+// Las franjas de peligro (para la de arriba; dada la vuelta, la de abajo): amarillo y negro en diagonal
+function franjaDePeligro(l) {
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < l.ancho; x++) {
+      l.poner(x, y, y < 6 ? ((x + y) % 8 < 4 ? "#f0c020" : "#1a1a1e") : y === 6 ? "#5a5e6a" : "#2a2a30");
+    }
+  }
+}
+
+// Una alarma roja (cx: el centro): la caja, la luz y, si está encendida, el resplandor y el haz
+function alarma(l, cx, encendida) {
+  if (encendida) {
+    brillo(l, cx, 6, 16, "#ff3030", 0.55, 0.4);
+    for (let y = 8; y < 34; y++) {
+      const media = Math.round((y - 8) * 0.55);
+      for (let dx = -media; dx <= media; dx++) if (umbral(cx + dx, y) < 0.22 * (1 - (y - 8) / 26)) l.poner(cx + dx, y, "#ff5050", 0.35);
+    }
+  }
+  rect(l, cx - 3, 2, 7, 2, "#2a2a30");
+  rect(l, cx - 2, 4, 5, 4, encendida ? "#ff3a3a" : "#6a1818");
+  l.poner(cx - 1, 5, encendida ? "#ffd0d0" : "#8a2a2a");
+}
+
+// Una caja de madera con la R (16×13, esquina de arriba a la izquierda en x, y)
+function cajaRocket(l, x, y) {
+  rect(l, x, y, 16, 13, "#8a5a30");
+  rect(l, x, y, 16, 1, "#b07a44");
+  rect(l, x, y + 6, 16, 1, "#6a4424");
+  rect(l, x + 15, y, 1, 13, "#6a4424");
+  mapa(l, x + 6, y + 2, ["##.", "#.#", "##.", "#.#"], { "#": "#a01820" }, 1);
+}
+
+// Un barril de metal de pie en base
+function barril(l, cx, base) {
+  for (let y = 0; y < 14; y++) {
+    for (let dx = -5; dx <= 5; dx++) l.poner(cx + dx, base - y, y % 5 === 1 ? "#3a3e48" : dx < -2 ? "#8a8e9a" : dx > 2 ? "#4a4e58" : "#6a6e7a");
+  }
+  rect(l, cx - 4, base - 14, 9, 1, "#9a9eaa");
+  mapa(l, cx - 2, base - 10, [".a.", "aaa", "a.a"], { a: "#f0c020" }, 1);
+}
+
+// Una noria (cx, cy: el eje; giro: cuánto ha girado): las patas, el aro, los radios y las cabinas,
+// que cuelgan siempre derechas
+const COLORES_CABINA = ["#ff5a6a", "#ffd23a", "#4aa8ff", "#7ad05a"];
+function noria(l, cx, cy, r, giro) {
+  for (let k = 0; k <= 36; k++) {
+    for (const lado of [-1, 1]) l.poner(cx + Math.round((lado * k * 14) / 36), cy + k, k % 6 ? "#5a6ab8" : "#8a9ad8");
+  }
+  rect(l, cx - 16, cy + 36, 33, 2, "#5a6ab8");
+  for (let i = 0; i < 8; i++) {
+    const a = giro + (i * Math.PI) / 4;
+    for (let k = 2; k < r; k++) l.poner(cx + Math.round(Math.cos(a) * k), cy + Math.round(Math.sin(a) * k), "#c8c8e0");
+  }
+  for (let k = 0; k < 220; k++) {
+    const a = (k / 220) * 2 * Math.PI;
+    l.poner(cx + Math.round(Math.cos(a) * r), cy + Math.round(Math.sin(a) * r), "#ff7aa0");
+    l.poner(cx + Math.round(Math.cos(a) * (r - 1)), cy + Math.round(Math.sin(a) * (r - 1)), "#ffb0c8");
+  }
+  disco(l, cx, cy, 2, "#ff7aa0");
+  l.poner(cx, cy, "#ffffff");
+  for (let i = 0; i < 8; i++) {
+    const a = giro + (i * Math.PI) / 4;
+    const [x, y] = [cx + Math.round(Math.cos(a) * r), cy + Math.round(Math.sin(a) * r)];
+    l.poner(x, y + 1, "#5a6ab8");
+    rect(l, x - 2, y + 2, 5, 4, COLORES_CABINA[i % 4]);
+    rect(l, x - 1, y + 3, 3, 1, "#ffffff");
+  }
+}
+
+// Los banderines de una tira (dibujo 0 o 1: mecidos a un lado o al otro), colgando de un cordel
+function tiraDeBanderines(l, dibujo) {
+  const colores = ["#ff5a6a", "#ffd23a", "#4aa8ff", "#7ad05a", "#c07aff", "#ff9a3a"];
+  const cordel = (x) => 1 + Math.round(Math.sin((Math.PI * (x % 64)) / 64) * 5);
+  for (let x = 0; x < l.ancho; x++) l.poner(x, cordel(x), "#8a6a5a");
+  for (let i = 0; i < l.ancho / 8; i++) {
+    const x0 = i * 8 + 1;
+    const y0 = cordel(x0 + 3) + 1;
+    const ladeo = (i + dibujo) % 2 ? 1 : -1;
+    for (let k = 0; k < 7; k++) {
+      const media = Math.round(3 * (1 - k / 7));
+      for (let dx = -media; dx <= media; dx++) l.poner(x0 + 3 + dx + Math.round((ladeo * k) / 4), y0 + k, colores[i % colores.length]);
+    }
+  }
+}
+
+// La montaña rusa de la Feria: la altura de la vía en cada columna (la fila de arriba del raíl), con
+// sus subidas y bajadas suavizadas entre unos puntos (la subida grande, la caída, dos lomas)
+const MONTANA_ANCHO = 110;
+const MONTANA_ALTO = 54;
+const PUNTOS_VIA = [[0, 46], [10, 46], [30, 6], [50, 44], [66, 22], [80, 42], [94, 32], [104, 46], [109, 46]];
+function alturaVia(x) {
+  const i = Math.max(0, PUNTOS_VIA.findIndex(([px], k) => x >= px && x <= (PUNTOS_VIA[k + 1] || [Infinity])[0]));
+  const [[x0, y0], [x1, y1]] = [PUNTOS_VIA[i], PUNTOS_VIA[Math.min(i + 1, PUNTOS_VIA.length - 1)]];
+  const t = x1 === x0 ? 0 : (x - x0) / (x1 - x0);
+  return Math.round(y0 + (y1 - y0) * (0.5 - 0.5 * Math.cos(Math.PI * t)));
+}
+
+// La vía (raíl rojo con traviesas) sobre sus postes, con tirantes en cruz, y la caseta de salida
+function montanaRusa(l) {
+  for (let x = 2; x < l.ancho - 2; x += 6) {
+    const y = alturaVia(x);
+    rect(l, x, y + 2, 1, l.alto - y - 2, "#6a7ac0");
+    const siguiente = alturaVia(x + 6);
+    if (x + 6 < l.ancho - 2) {
+      for (let k = 0; k <= 6; k++) {
+        const ya = Math.round(y + 3 + ((l.alto - y - 3) * k) / 6);
+        if (ya > Math.max(y, siguiente) + 2) l.poner(x + k, ya, "#9aa8e0");
+      }
+    }
+  }
+  for (let x = 0; x < l.ancho; x++) {
+    const y = alturaVia(x);
+    l.poner(x, y, "#e8383a");
+    l.poner(x, y + 1, x % 3 ? "#b82830" : "#fff4f0");
+  }
+  // La caseta de salida, a la izquierda
+  // (azul, con el tejadillo a rayas turquesa y blancas: en rojo y amarillo parecía una bandera)
+  rect(l, 0, 40, 12, 6, "#5aa8e8");
+  rect(l, 11, 40, 1, 6, "#3a7ac0");
+  for (let x = 0; x < 12; x++) rect(l, x, 38, 1, 2, Math.floor(x / 2) % 2 ? "#ffffff" : "#3ac0b0");
+  rect(l, 2, 42, 3, 4, "#2a4a7a");
+  rect(l, 7, 41, 3, 2, "#d8f0ff");
+  for (let x = 0; x < 12; x += 2) l.poner(x, 37, "#ffffff");
+}
+
+// Una carpa de feria a rayas, de pie en base (cx: el centro), con su banderita
+function carpa(l, cx, base) {
+  const [ancho, alto] = [32, 16];
+  for (let y = 0; y < alto; y++) {
+    const media = Math.round(ancho / 2 - 1);
+    for (let dx = -media; dx <= media; dx++) l.poner(cx + dx, base - y, Math.floor((dx + 40) / 4) % 2 ? "#ff5a6a" : "#ffffff");
+  }
+  rect(l, cx - 3, base - 9, 7, 10, "#5a2a3a");
+  for (let k = 0; k < 14; k++) {
+    const media = Math.round(((ancho / 2 + 2) * k) / 14);
+    for (let dx = -media; dx <= media; dx++) l.poner(cx + dx, base - alto - 14 + k, Math.floor((dx + 40) / 4) % 2 ? "#e8383a" : "#ffeaea");
+  }
+  for (let dx = -ancho / 2 - 1; dx <= ancho / 2 + 1; dx += 2) l.poner(cx + dx, base - alto, "#ffd23a");
+  rect(l, cx, base - alto - 20, 1, 6, "#6a4a3a");
+  rect(l, cx + 1, base - alto - 20, 4, 2, "#4aa8ff");
+}
+
+// Los globitos que suben (un globo con su cordel) y el ramo de la esquina
+const COLORES_GLOBITO = [["#ff5a6a", "#c83a4a"], ["#4aa8ff", "#2a78d0"], ["#ffd23a", "#d8a020"], ["#7ad05a", "#4a9a3a"], ["#c07aff", "#8a4ad0"]];
+function globito(l, x, y, [color, sombra]) {
+  disco(l, x, y, 3, sombra);
+  disco(l, x - 1, y - 1, 2, color);
+  l.poner(x - 1, y - 2, "#ffffff");
+  l.poner(x, y + 4, sombra);
+  for (let k = 5; k < 11; k++) l.poner(x + (k % 3 === 0 ? 1 : 0), y + k, "#8a7a6a");
+}
+function ramoDeGlobos(l, cx, base) {
+  const puntos = [[-6, -30], [0, -34], [6, -29], [-3, -24], [4, -22]];
+  for (const [dx, dy] of puntos) {
+    for (let k = 0; k <= 10; k++) l.poner(cx + Math.round((dx * (10 - k)) / 10), base + dy + 4 + Math.round(((-dy - 4) * k) / 10), "#8a7a6a");
+  }
+  puntos.forEach(([dx, dy], i) => globito(l, cx + dx, base + dy, COLORES_GLOBITO[i % COLORES_GLOBITO.length]));
+  rect(l, cx - 1, base - 1, 3, 2, "#e8383a");
+}
+
+// Un planeta pequeño, con luz arriba a la izquierda; colores: [luz, medio, sombra]
+function planetaChico(l, cx, cy, r, [luz, medio, sombra]) {
+  for (let y = -r; y <= r; y++) {
+    for (let x = -r; x <= r; x++) {
+      if (x * x + y * y > r * r + r * 0.5) continue;
+      const k = (-x - y) / (r * 1.5);
+      l.poner(cx + x, cy + y, k > 0.3 ? luz : k > -0.3 || umbral(cx + x, cy + y) < k + 0.6 ? medio : sombra);
+    }
+  }
+}
+
+// ---------- Piezas de los diseños de tarjeta (los sencillos de la Tienda) ----------
+//
+// No son paisajes: un fondo con estampado y la decoración en las esquinas y los bordes, alrededor
+// de la foto y el nombre. Cada esquina se dibuja como la de arriba a la derecha (la que siempre se
+// ve en «Amigos»); las de la izquierda son la misma dada la vuelta.
+
+// El lienzo dado la vuelta (de lado, de arriba abajo o las dos)
+const espejado = (l, espejoX, espejoY) => ({ ...l, poner: (x, y, c, a) => l.poner(espejoX ? l.ancho - 1 - x : x, espejoY ? l.alto - 1 - y : y, c, a) });
+
+// La franja de abajo del bosque: musgo, hierbas, helechos pequeños y setas, cada una a su aire
+function bordeDeBosque(l, azar) {
+  for (let x = 0; x < l.ancho; x++) for (let y = l.alto - 3 + Math.round(Math.sin(x / 5)); y < l.alto; y++) l.poner(x, y, (x + y) % 3 ? "#5a9a3a" : "#78b44a");
+  for (let x = 4; x < l.ancho; x += 6 + Math.floor(azar() * 6)) {
+    const que = azar();
+    if (que < 0.25) helecho(l, x, l.alto - 1, 8 + Math.floor(azar() * 6), azar() < 0.5 ? -1 : 1, ["#2e6e34", "#4a9a42", "#8cd070"]);
+    else if (que < 0.42) seta(l, x, l.alto - 1, 2 + Math.floor(azar() * 2));
+    else brizna(l, x, l.alto, 4 + Math.floor(azar() * 6), [(azar() - 0.5) * 0.8, -1], 0.2, ["#2e6e34", "#4a9a42", "#8cd070"], 2);
+  }
+}
+
+// Capas para las esquinas que se digan, de ancho × alto. pintar(l, azar, abajo): l ya está dado la
+// vuelta de lado si va a la izquierda (la esquina siempre queda a la derecha); abajo dice si va
+// abajo (allí lo que está de pie va con la base en l.alto, y lo que cuelga se da la vuelta con espejado)
+function esquinas(ancho, alto, pintar, cuales = ["arriba-derecha", "arriba-izquierda", "abajo-derecha", "abajo-izquierda"]) {
+  return cuales.map((nombre) => {
+    const izquierda = nombre.endsWith("izquierda");
+    const abajo = nombre.startsWith("abajo");
+    return {
+      nombre: `esquina-${nombre}`, ancho, alto, repetir: "no", recortar: true,
+      sitio: { x: 0, lado: izquierda ? "izquierda" : "derecha", y: 0, desde: abajo ? "abajo" : "arriba" },
+      pintar(l, azar) { pintar(espejado(l, izquierda, false), azar, abajo); }
+    };
+  });
+}
+
+// Una brizna larga y curva (hierba, junco): desde (x, y) hacia (dx, dy), torciéndose (curva: hacia
+// qué lado y cuánto), gruesa al principio y en punta; el filo de un lado, claro
+function brizna(l, x, y, largo, [dx, dy], curva, [oscuro, medio, claro], grueso = 3) {
+  const n = Math.hypot(dx, dy);
+  const [ux, uy] = [dx / n, dy / n];
+  const [px, py] = [-uy, ux];
+  for (let k = 0; k <= largo * 1.5; k++) {
+    const t = k / (largo * 1.5);
+    const cx = x + ux * t * largo + px * curva * t * t * largo;
+    const cy = y + uy * t * largo + py * curva * t * t * largo;
+    const g = Math.max(1, Math.round(grueso * (1 - t * 0.85)));
+    for (let j = 0; j < g; j++) l.poner(Math.round(cx + px * j), Math.round(cy + py * j), j === 0 ? claro : j === g - 1 ? oscuro : medio);
+  }
+}
+
+// Una hoja ovalada en cualquier dirección (ángulo en radianes), con el nervio claro
+function hojaOval(l, x, y, largo, angulo, [oscuro, medio, claro]) {
+  const [ux, uy] = [Math.cos(angulo), Math.sin(angulo)];
+  const R = Math.ceil(largo) + 1;
+  for (let yy = -R; yy <= R; yy++) {
+    for (let xx = -R; xx <= R; xx++) {
+      const a = xx * ux + yy * uy;
+      const b = -xx * uy + yy * ux;
+      if (a < 0 || a > largo) continue;
+      if (Math.abs(b) > Math.sin((Math.PI * a) / largo) * largo * 0.34 + 0.3) continue;
+      l.poner(x + xx, y + yy, Math.abs(b) < 0.5 && a > 1 && a < largo - 1 ? claro : b < 0 ? medio : oscuro);
+    }
+  }
+}
+
+// Una rama con hojas que entra por la esquina de arriba a la derecha y, en algunas ramitas, frutos
+// (fruto(l, x, y, azar)); hojas: dos juegos de colores que se alternan
+function esquinaFrondosa(l, azar, { hojas, fruto, rama = ["#7a5a3a", "#5a3e26"] }) {
+  const [W0, H0] = [l.ancho, l.alto];
+  const sitios = [];
+  const frutos = [];
+  const trazo = (x0, y0, x1, y1, grueso) => {
+    const pasos = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    const angulo = Math.atan2(y1 - y0, x1 - x0);
+    for (let k = 0; k <= pasos; k++) {
+      const t = k / pasos;
+      const x = Math.round(x0 + (x1 - x0) * t);
+      const y = Math.round(y0 + (y1 - y0) * t + Math.sin(t * Math.PI * 2) * 2);
+      const g = Math.max(1, Math.round(grueso * (1 - t * 0.6)));
+      for (let j = 0; j < g; j++) l.poner(x, y + j, j === 0 ? rama[0] : rama[1]);
+      if (k > 3 && k % 5 === 0) sitios.push([x, y, angulo + (k % 10 ? -1 : 1) * (0.9 + azar() * 0.5), 6 + Math.floor(azar() * 4)]);
+      if (fruto && k > 8 && k % 14 === 7) frutos.push([x + Math.round((azar() - 0.5) * 4), y + 4 + Math.floor(azar() * 3)]);
+    }
+    sitios.push([Math.round(x1), Math.round(y1), angulo, 8]);
+  };
+  trazo(W0 + 2, -2, Math.round(W0 * 0.15), Math.round(H0 * 0.42), 3);
+  trazo(W0 - 4, Math.round(H0 * 0.12), Math.round(W0 * 0.55), Math.round(H0 * 0.85), 2);
+  sitios.forEach(([x, y, angulo, largo], i) => hojaOval(l, x, y, largo, angulo, hojas[i % hojas.length]));
+  for (const [x, y] of frutos) fruto(l, x, y, azar);
+}
+
+// Una seta de sombrero rojo con lunares blancos, de pie en base
+function seta(l, x, base, tam) {
+  const pie = tam + 1;
+  rect(l, x - 1, base - pie, 3, pie, "#f4ecd8");
+  rect(l, x + 1, base - pie, 1, pie, "#d8ccb4");
+  const top = base - pie;
+  for (let y = -tam; y <= 0; y++) {
+    for (let dx = -tam - 1; dx <= tam + 1; dx++) {
+      if (dx * dx + (y * 1.4) ** 2 > (tam + 1) ** 2) continue;
+      l.poner(x + dx, top + y, y === 0 ? "#f0d8c0" : dx + y < -tam * 0.7 ? "#ff7a6a" : dx > tam * 0.4 ? "#b82e2a" : "#e8443a");
+    }
+  }
+  for (const [dx, dy] of [[-Math.round(tam * 0.5), -Math.round(tam * 0.5)], [Math.round(tam * 0.4), -Math.round(tam * 0.3)], [0, -tam + 1]]) {
+    l.poner(x + dx, top + dy, "#ffffff");
+    if (tam > 4) l.poner(x + dx + 1, top + dy, "#ffffff");
+  }
+}
+
+// Un helecho: el tallo que sube curvándose y hojitas a los dos lados, más cortas hacia la punta
+function helecho(l, x, base, largo, lado, [oscuro, medio, claro]) {
+  for (let k = 0; k < largo; k++) {
+    const t = k / largo;
+    const cx = Math.round(x + lado * t * t * largo * 0.45);
+    const cy = base - k;
+    l.poner(cx, cy, oscuro);
+    if (k % 3 === 1 && t < 0.92) {
+      const corta = Math.max(1, Math.round((1 - t) * 6));
+      for (let j = 1; j <= corta; j++) {
+        l.poner(cx - j, cy - Math.floor(j / 2), j === corta ? claro : medio);
+        l.poner(cx + j, cy - Math.floor(j / 2), j === corta ? claro : oscuro);
+      }
+    }
+  }
+}
+
+// Un cristal: un prisma que sube inclinado y acaba en punta, con la cara izquierda clara
+function cristal(l, x, base, alto, ancho, inclina, [oscuro, medio, claro]) {
+  for (let k = 0; k < alto; k++) {
+    const w = Math.max(0, Math.round(Math.min(ancho, ((alto - k) * ancho) / Math.max(1, ancho * 1.6))));
+    const cx = Math.round(x + inclina * k);
+    for (let j = -w; j <= w; j++) l.poner(cx + j, base - k, j < -w / 3 ? claro : j <= w / 3 ? medio : oscuro);
+  }
+  l.poner(Math.round(x + inclina * (alto - 2)), base - alto + 2, "#ffffff");
+}
+
+// Un racimo de cristales con su resplandor (escala: 1, el normal)
+function racimoCristales(l, x, base, escala, colores) {
+  brillo(l, x, base - Math.round(10 * escala), Math.round(20 * escala), colores[2], 0.5, 0.4);
+  for (const [dx, alto, ancho, inclina] of [[-8, 11, 2, -0.4], [7, 13, 2, 0.4], [-3, 19, 3, -0.15], [3, 16, 2, 0.18], [0, 25, 3, 0]]) {
+    cristal(l, x + Math.round(dx * escala), base, Math.round(alto * escala), Math.max(1, Math.round(ancho * escala)), inclina, colores);
+  }
+}
+
+// Una estalactita que cuelga desde arriba (y0), con la cara izquierda clara
+function estalactita(l, x, y0, largo, ancho, [oscuro, medio, claro]) {
+  for (let k = 0; k < largo; k++) {
+    const w = Math.round(ancho * (1 - k / largo) ** 0.8);
+    for (let j = -w; j <= w; j++) l.poner(x + j, y0 + k, j < -w / 2 ? claro : j <= w / 3 ? medio : oscuro);
+  }
+}
+
+// Un cactus de brazos (saguaro), de pie en base, con costillas y espinas
+function cactus(l, x, base, alto, [oscuro, medio, claro]) {
+  const columna = (cx, y0, y1, ancho) => {
+    for (let y = y0; y <= y1; y++) {
+      for (let j = 0; j < ancho; j++) l.poner(cx + j, y, j === 0 ? claro : j === ancho - 1 ? oscuro : j === Math.floor(ancho / 2) && y % 2 ? oscuro : medio);
+    }
+    for (let j = 1; j < ancho - 1; j++) l.poner(cx + j, y0 - 1, medio);
+  };
+  columna(x - 3, base - alto + 1, base, 7);
+  const brazo = (lado, alturaBrazo, sube) => {
+    const y = base - alturaBrazo;
+    const x0 = lado < 0 ? x - 8 : x + 4;
+    for (let j = 0; j < 5; j++) for (let k = 0; k < 4; k++) l.poner(x0 + j, y + k, k === 0 ? claro : k === 3 ? oscuro : medio);
+    columna(lado < 0 ? x - 9 : x + 7, y - sube, y + 3, 5);
+  };
+  brazo(-1, Math.round(alto * 0.45), Math.round(alto * 0.3));
+  brazo(1, Math.round(alto * 0.62), Math.round(alto * 0.22));
+  for (let k = 3; k < alto; k += 4) for (const dx of [-4, 4]) l.poner(x + dx, base - k, "#fff4c8");
+}
+
+// Una baya redonda con brillo y su coronita de hojas; colores: [el suyo, sombra, luz]
+const COLORES_BAYA = [
+  ["#3a78e0", "#2a54a8", "#a8d0ff"], ["#e8383a", "#a82428", "#ff9a90"], ["#ff9ac0", "#e06a98", "#ffe0ec"],
+  ["#ffd23a", "#d8a020", "#fff4b0"], ["#ff8a3a", "#c8542a", "#ffc8a0"]
+];
+function baya(l, x, y, r, [color, sombra, luz]) {
+  disco(l, x, y, r, sombra);
+  disco(l, x - 1, y - 1, Math.max(1, r - 1), color);
+  const b = Math.ceil(r / 2);
+  l.poner(x - b, y - b, luz);
+  if (r > 2) l.poner(x - b + 1, y - b, luz);
+  l.poner(x, y - r - 1, "#3e8a32");
+  l.poner(x - 1, y - r, "#5cb844");
+  l.poner(x + 1, y - r, "#5cb844");
+}
+
+// Una cesta de mimbre llena de bayas, de pie en base (cx: el centro): primero el asa (entera, de
+// tres píxeles de grueso), luego las bayas amontonadas y delante la cesta
+function cestaDeBayas(l, cx, base, azar) {
+  const [ancho, alto, r] = [40, 15, 18];
+  const arriba = base - alto;
+  for (let k = 0; k <= 60; k++) {
+    const a = Math.PI * (k / 60);
+    const [x, y] = [Math.round(cx - Math.cos(a) * r), Math.round(arriba - Math.sin(a) * r)];
+    l.poner(x, y - 1, "#f0c888");
+    l.poner(x, y, "#c8904a");
+    l.poner(x, y + 1, "#8a5424");
+  }
+  for (let k = 0; k < 28; k++) {
+    const dx = -16 + Math.floor(azar() * 33);
+    baya(l, cx + dx, arriba - 1 - Math.floor(azar() * (6 - Math.abs(dx) / 5)), 3, COLORES_BAYA[k % COLORES_BAYA.length]);
+  }
+  for (let y = 0; y < alto; y++) {
+    const media = Math.round(ancho / 2 - y * 0.3);
+    for (let dx = -media; dx <= media; dx++) {
+      const trenza = (Math.floor((dx + 40) / 3) + Math.floor(y / 2)) % 2;
+      l.poner(cx + dx, arriba + y, y < 2 ? "#e0b070" : y === 2 ? "#8a5424" : dx > media - 3 ? "#8a5424" : trenza ? "#c8904a" : "#a06a30");
+    }
+  }
+}
+
+// Una Poké Ball pequeña (4×4) para la máquina del Centro Pokémon; si brilla, más clara
+function pokeBallChica(l, x, y, brilla) {
+  mapa(l, x, y, [".rr.", "rkkr", "wkkw", ".ww."], brilla
+    ? { r: "#ff9aa8", k: "#8a7a9a", w: "#ffffff" }
+    : { r: "#e83848", k: "#3a3040", w: "#f2eef4" }, 1);
+}
+
+// La máquina del Centro Pokémon en cada momento (x0: dónde empieza ese dibujo en la capa): 0 vacía,
+// de 1 a 6 con esas Poké Balls puestas (la pantalla, con su barra de carga) y 7 brillando
+function maquinaCuracion(l, x0, cuadro) {
+  const x = x0 + 64;
+  rect(l, x + 18, 0, 14, 9, "#7a8098");
+  rect(l, x + 19, 1, 12, 7, cuadro === 7 ? "#d8f8ff" : cuadro ? "#6ad0f0" : "#4a8ab0");
+  if (cuadro && cuadro < 7) rect(l, x + 20, 5, Math.max(1, Math.round((10 * cuadro) / 6)), 2, "#e8fbff");
+  if (!cuadro) for (const y of [3, 5]) rect(l, x + 20, y, y === 3 ? 7 : 5, 1, "#9ad4ee");
+  if (cuadro === 7) brillo(l, x + 16, 11, 16, "#fff6b0", 0.55, 0.5);
+  rect(l, x, 8, 32, 7, "#7a8098");
+  rect(l, x + 1, 9, 30, 5, "#dfe3ee");
+  rect(l, x + 1, 9, 30, 1, "#ffffff");
+  for (let i = 0; i < 6; i++) {
+    const bx = x + 2 + i * 5;
+    rect(l, bx, 10, 4, 4, "#a8afc4");
+    if (i < Math.min(cuadro, 6)) pokeBallChica(l, bx, 10, cuadro === 7);
+  }
+  if (cuadro === 7) for (const [dx, dy] of [[1, 7], [16, 6], [31, 7]]) destello(l, x + dx, dy, ["#fff6b0", "#ffffff"]);
+}
+
+// ---------- Dibujos que se turnan ----------
+//
+// Para que algo cambie de dibujo sin moverse (un Pokémon que parpadea o mueve la cola, el agua de
+// una cascada, una llama), cada dibujo va en su capa, en el mismo sitio, y en cada momento solo uno
+// está a la vista: los demás se apartan FUERA píxeles (hacia arriba los que van desde abajo, hacia
+// abajo los otros), lejos de cualquier tarjeta. De entrada (y sin animación, con «reducir
+// movimiento») solo se ve el primero de cada grupo: los demás llevan «apartada».
+
+const FUERA = 2000;
+const lejos = (capa) => (capa.sitio.desde === "abajo" ? -FUERA : FUERA);
+function apartadaDe(capa) {
+  return capa.apartada ? lejos(capa) : 0;
+}
+
+// La animación: grupos de capas que se turnan, { capas: [capa, ...] (la primera, la de entrada),
+// pasos: [[desde, cual], ...] (en la vuelta, de 0 a 1; cual, el índice en capas) }. Marca las que
+// empiezan apartadas y devuelve la animación (en el eje y). Con steps(1) cada fotograma se queda
+// quieto hasta el siguiente: basta uno por cambio (no hace falta el de «justo antes»).
+function turnos(duracion, grupos) {
+  const mueve = {};
+  const paradas = new Set([0, 1]);
+  for (const { capas, pasos } of grupos) {
+    const cualEn = (t) => pasos.reduce((cual, [desde, c]) => (t + 1e-6 >= desde ? c : cual), pasos[0][1]);
+    for (const [desde] of pasos.slice(1)) paradas.add(desde);
+    capas.forEach((capa, i) => {
+      if (i > 0) capa.apartada = true;
+      // A la vista: sin apartar (las apartadas, vuelven); si no, apartada
+      mueve[capa.nombre] = (t) => [0, cualEn(t) === i ? -apartadaDe(capa) : lejos(capa) - apartadaDe(capa)];
+    });
+  }
+  return { nombre: "turnos", eje: "y", duracion, pasos: 1, paradas: [...paradas], mueve };
+}
+
+// Cada vez que toca otro dibujo, en una vuelta: n cambios iguales que van pasando por los k dibujos
+const ciclo = (n, k, desfase = 0) => Array.from({ length: n }, (_, i) => [i / n, (i + desfase) % k]);
+
 // ---------- La Tienda ----------
 //
 // Cada fondo: su cielo (un degradado opaco), sus capas (la primera, la de más arriba) y, si se
@@ -535,165 +1386,228 @@ const JUGADA = secuencia([[0, 0], [0.55, 1], [0.58, 2], [0.61, 3], [0.64, 2], [0
 // Las estrellas fugaces de «Noche estrellada»: [empieza, acaba] (en la vuelta, de 0 a 1) y de dónde sale
 const FUGACES = [[0.12, 0.18, -30], [0.47, 0.53, 120], [0.8, 0.86, 40]];
 
+// La máquina del Centro Pokémon: vacía, va recibiendo las seis Poké Balls, brillan unas veces y se
+// vacía (dibujos de maquinaCuracion, que se turnan en el mismo sitio)
+const CURACION = [[0, 0], [0.12, 1], [0.18, 2], [0.24, 3], [0.3, 4], [0.36, 5], [0.42, 6], [0.52, 7], [0.58, 6], [0.64, 7], [0.7, 6], [0.76, 7], [0.82, 6], [0.92, 0]];
+
+// Momentos repartidos por la vuelta (para lo que se mueve en curva: flotar, mecerse)
+const repartidos = (n) => Array.from({ length: n + 1 }, (_, i) => i / n);
+
 const TIENDA = {
+  // ----- Los sencillos: diseños para la tarjeta, no paisajes (estampado, esquinas y bordes) -----
+
+  // El id sigue siendo «hierba» (es el que guardan las compras), pero ahora es «Otoño»
   hierba: {
-    comentario: "Hierba alta: filas de matas, de lejos (claras) a cerca (oscuras), con flores, rocío y dos mariposas",
-    cieloDeDia: true,
-    capas: [{
-      nombre: "campo", ancho: 256, alto: 60, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 26, alto: 8, ondas: [[1, 0.3], [3, 0.15]], color: "#86cc6a", claro: "#a6e086", a: 0.7 });
-        const filas = [
-          ["#7acc5a", "#a8ec86", "#58a844", 0.8], ["#5cbc44", "#8ae06a", "#3e9a32", 0.88],
-          ["#46aa36", "#72d054", "#2c8426", 0.94], ["#34962a", "#5cc040", "#1e6e1c", 0.98]
-        ];
-        filas.forEach(([oscuro, claro, sombra, a], r) => {
-          const base = 27 + r * 9;
-          rect(l, 0, base, l.ancho, l.alto - base, oscuro, a);
-          for (let x = (r % 2) * 6; x < l.ancho; x += 12) {
-            mata(l, x + Math.floor(azar() * 2), base, 8 + r * 2 + Math.floor(azar() * 3), [oscuro, claro, sombra], a);
+    comentario: "Otoño: un diseño para la tarjeta: crema con hojas de colores esparcidas por todo el fondo, una guirnalda de hojas colgando arriba, montones de hojas por abajo, una calabaza y bellotas en las esquinas de abajo",
+    cielo: "linear-gradient(160deg, #fff4e0, #ffe2c0 55%, #f8cc9c)",
+    capas: [
+      ...esquinas(72, 46, (l, azar) => {
+        montonDeHojas(l, azar, l.ancho - 30, l.alto, 30, 14);
+        calabaza(l, l.ancho - 22, l.alto - 2, 14);
+        for (const [x, y] of [[l.ancho - 52, l.alto - 6], [l.ancho - 46, l.alto - 4]]) bellota(l, x, y);
+      }, ["abajo-derecha"]),
+      ...esquinas(72, 46, (l, azar) => {
+        montonDeHojas(l, azar, l.ancho - 26, l.alto, 26, 12);
+        for (const [x, y] of [[l.ancho - 14, l.alto - 12], [l.ancho - 30, l.alto - 8], [l.ancho - 22, l.alto - 6]]) bellota(l, x, y);
+      }, ["abajo-izquierda"]), {
+        nombre: "guirnalda", ancho: 512, alto: 24, repetir: "x", sitio: { y: 0, desde: "arriba" },
+        pintar(l, azar) {
+          // Un cordel que cuelga entre clavos a distancias distintas (más o menos combado); de él,
+          // hojas a distancias distintas y, de vez en cuando, una bellota o una hoja que cuelga más
+          const clavos = [0];
+          while (clavos[clavos.length - 1] < l.ancho - 60) clavos.push(clavos[clavos.length - 1] + 40 + Math.floor(azar() * 50));
+          clavos.push(l.ancho);
+          const comba = clavos.map(() => 3 + Math.floor(azar() * 6));
+          const cordel = (x) => {
+            const i = clavos.findIndex((c, k) => x >= c && x < clavos[k + 1]);
+            const [x0, x1] = [clavos[i], clavos[i + 1]];
+            return 1 + Math.round(Math.sin((Math.PI * (x - x0)) / (x1 - x0)) * comba[i]);
+          };
+          for (let x = 0; x < l.ancho; x++) l.poner(x, cordel(x), "#8a5a3a");
+          for (const x of clavos.slice(0, -1)) rect(l, x - 1, 0, 3, 2, "#c8a070");
+          for (let x = 3; x < l.ancho - 4; x += 5 + Math.floor(azar() * 7)) {
+            const y = cordel(x);
+            const que = azar();
+            if (que < 0.08) {
+              for (let k = 1; k < 4; k++) l.poner(x, y + k, "#8a5a3a");
+              bellota(l, x, y + 4);
+            } else if (que < 0.2) {
+              const largo = 3 + Math.floor(azar() * 5);
+              for (let k = 1; k <= largo; k++) l.poner(x + 3, y + k, "#8a5a3a");
+              hojaArce(l, x, y + largo + 1, COLORES_OTONO[Math.floor(azar() * COLORES_OTONO.length)], azar() < 0.5);
+            } else hojaArce(l, x - 3, y + 1, COLORES_OTONO[Math.floor(azar() * COLORES_OTONO.length)], azar() < 0.5);
           }
-          for (let x = 0; x < l.ancho; x++) if ((x + r) % 3) l.poner(x, base + 1, sombra, a);
-          if (r >= 2) {
-            for (let i = 0; i < 7; i++) {
-              const x = Math.floor(azar() * l.ancho);
-              const flor = ["#ffffff", "#ffe066", "#ff8fb1", "#c9a2ff"][i % 4];
-              l.poner(x, base - 2, flor, 0.95);
-              l.poner(x - 1, base - 1, flor, 0.95);
-              l.poner(x + 1, base - 1, flor, 0.95);
-              l.poner(x, base - 1, "#ffe066", 0.95);
-            }
+        }
+      }, {
+        nombre: "hojas-abajo", ancho: 256, alto: 14, repetir: "x", sitio: { y: 0, desde: "abajo" },
+        pintar(l, azar) {
+          for (let x = 0; x < l.ancho; x += 32) montonDeHojas(l, azar, x + Math.floor(azar() * 10), l.alto, 12 + Math.floor(azar() * 8), 5 + Math.floor(azar() * 4));
+        }
+      }, {
+        nombre: "estampado", ancho: 64, alto: 64, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+        pintar(l, azar) {
+          // Hojas sueltas por todo el fondo (también por el medio), de colores y medio transparentes
+          for (const [x, y] of [[6, 8], [38, 4], [22, 30], [54, 26], [10, 50], [42, 48]]) {
+            const [color, sombra] = COLORES_OTONO[Math.floor(azar() * COLORES_OTONO.length)];
+            mapa(l, x, y, azar() < 0.5 ? ["..a..", "aaaaa", ".aaa.", "..b.."] : [".a.a.", "aaaa.", ".aab.", "...b."], { a: color, b: sombra }, 0.45);
           }
-          for (let i = 0; i < 6; i++) l.poner(Math.floor(azar() * l.ancho), base - 4 - Math.floor(azar() * 4), "#f2fff0", Math.min(1, a + 0.1));
-        });
-        mariposa(l, 60, 16, "#f6d870", 0.9);
-        mariposa(l, 186, 10, "#ffffff", 0.85);
+        }
       }
-    }]
+    ]
   },
 
   bosque: {
-    comentario: "Bosque: abetos de lejos (claros y azulados) a cerca (oscuros y grandes), helechos y setas",
-    cieloDeDia: true,
-    capas: [{
-      nombre: "arboles", ancho: 256, alto: 68, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 45, alto: 6, ondas: [[2, 0.3], [5, 0.12]], color: "#7ab8a0", claro: "#8ccab0", a: 0.6 });
-        for (let i = 0; i < 22; i++) abeto(l, Math.floor((i * l.ancho) / 22 + azar() * 6), 42, 12 + Math.floor(azar() * 6), ["#7ab8a8", "#90cab8", "#acdccc"], 0.6);
-        monte(l, azar, { base: 57, alto: 6, ondas: [[3, 0.3], [7, 0.1]], color: "#3a925c", claro: "#4aa86c", a: 0.85 });
-        for (let i = 0; i < 14; i++) abeto(l, Math.floor((i * l.ancho) / 14 + azar() * 8), 54, 18 + Math.floor(azar() * 8), ["#3a925c", "#4aa86c", "#6cc488"], 0.85);
-        suelo(l, 58, ["#4a8a3a", "#3c7630", "#2e6226"], 0.95);
-        for (let i = 0; i < 8; i++) abeto(l, Math.floor((i * l.ancho) / 8 + 10 + azar() * 12), 66, 34 + Math.floor(azar() * 12), ["#1c5a30", "#267040", "#3e9058"], 0.96);
-        for (let i = 0; i < 12; i++) {
-          const x = Math.floor(azar() * l.ancho);
-          const y = 62 + Math.floor(azar() * 5);
-          for (let k = 1; k <= 3; k++) {
-            l.poner(x - k, y - k + 1, "#5aa060", 0.92);
-            l.poner(x + k, y - k + 1, "#4a9050", 0.92);
-          }
-          l.poner(x, y - 2, "#6ab470", 0.92);
-          l.poner(x, y, "#3a7040", 0.92);
+    comentario: "Bosque: verde salvia con un estampado de hojitas; ramas con hojas (y bellotas) que entran por las esquinas de arriba, helechos y setas en las de abajo, una hiedra arriba de la que caen lianas y, abajo, musgo con setas, helechos y hierbas de punta a punta",
+    cielo: "linear-gradient(160deg, #e2f2da, #c8e6c0 55%, #acd6a6)",
+    capas: [
+      ...esquinas(76, 50, (l, azar, abajo) => {
+        const hojas = [["#2e6e34", "#3e8a42", "#7cc070"], ["#3e8a3a", "#58a84a", "#a0dc80"], ["#5a8a2a", "#78aa3a", "#c0e07a"]];
+        if (abajo) {
+          const [W0, H0] = [l.ancho, l.alto];
+          for (const [x, largo, lado] of [[W0 - 6, 34, -1], [W0 - 16, 26, -1], [W0 - 30, 20, 1], [W0 - 2, 22, -1]]) helecho(l, x, H0, largo, lado, ["#2e6e34", "#4a9a42", "#8cd070"]);
+          for (let x = W0 - 50; x < W0; x++) for (let y = H0 - 3 + Math.round(Math.sin(x / 4)); y < H0; y++) l.poner(x, y, (x + y) % 3 ? "#5a9a3a" : "#78b44a");
+          seta(l, W0 - 24, H0 - 1, 6);
+          seta(l, W0 - 13, H0 - 1, 4);
+          seta(l, W0 - 38, H0 - 1, 3);
+        } else {
+          esquinaFrondosa(l, azar, {
+            hojas,
+            fruto(l, x, y) {
+              mapa(l, x - 2, y, [".ccc.", "ccccc", ".bbb.", ".bbb.", "..b.."], { c: "#8a5a2a", b: "#c8884a" }, 1);
+            }
+          });
         }
-        for (const x of [30, 101, 160, 222]) {
-          rect(l, x, 63, 1, 3, "#f0e6d0", 0.95);
-          rect(l, x - 2, 61, 5, 2, "#d23a2a", 0.95);
-          l.poner(x - 1, 61, "#ffffff", 0.95);
-          l.poner(x + 1, 62, "#ffffff", 0.95);
+      }), {
+        nombre: "franja", ancho: 256, alto: 16, repetir: "x", sitio: { y: 0, desde: "abajo" },
+        pintar(l, azar) { bordeDeBosque(l, azar); }
+      }, {
+        nombre: "lianas", ancho: 256, alto: 40, repetir: "x", sitio: { y: 0, desde: "arriba" },
+        pintar(l) {
+          const hojas = [["#2e6e34", "#3e8a42", "#7cc070"], ["#3e8a3a", "#58a84a", "#a0dc80"]];
+          for (const [x, largo] of [[30, 18], [92, 30], [140, 14], [196, 26], [236, 20]]) liana(l, x, 2 + Math.round(Math.sin((x * 2 * Math.PI * 8) / 256) * 1.5), largo, hojas);
+        }
+      }, {
+        nombre: "hiedra", ancho: 128, alto: 12, repetir: "x", sitio: { y: 0, desde: "arriba" },
+        pintar(l) {
+          for (let x = 0; x < l.ancho; x++) {
+            const y = 2 + Math.round(Math.sin((x * 2 * Math.PI * 4) / l.ancho) * 1.5);
+            l.poner(x, y, "#5a7a3a");
+            if (x % 7 === 0) hojaOval(l, x, y + 1, 5, Math.PI / 2 + (x % 14 ? 0.5 : -0.5), [["#2e6e34", "#3e8a42", "#7cc070"], ["#3e8a3a", "#58a84a", "#a0dc80"]][x % 2]);
+          }
+        }
+      }, {
+        nombre: "estampado", ancho: 32, alto: 32, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+        pintar(l) {
+          for (const [x, y, color, angulo] of [[8, 10, "#f4fcf0", -0.6], [24, 26, "#90c488", 2.5]]) {
+            for (let k = 0; k < 5; k++) {
+              const [px, py] = [x + Math.round(Math.cos(angulo) * k), y + Math.round(Math.sin(angulo) * k)];
+              l.poner(px, py, color, 0.6);
+              if (k > 0 && k < 4) l.poner(px + 1, py, color, 0.6);
+            }
+          }
         }
       }
-    }]
+    ]
   },
 
   cueva: {
-    comentario: "Cueva: el techo con estalactitas que gotean y murciélagos, y abajo estalagmitas, rocas, un charco y racimos de cristales que brillan",
-    cielo: "linear-gradient(to bottom, #3e3029, #2b231f 50%, #3a2e27)",
-    tinte: ["radial-gradient(ellipse at 50% 55%, transparent 40%, rgba(30, 22, 18, 0.32))", "linear-gradient(to bottom, rgba(70, 55, 40, 0.24), transparent 50%, rgba(70, 55, 40, 0.2))"],
-    capas: [{
-      nombre: "techo", ancho: 256, alto: 32, repetir: "x", sitio: { y: 0, desde: "arriba" },
-      pintar(l, azar) {
-        for (let x = 0; x < l.ancho; x++) {
-          const grosor = 4 + Math.round(Math.sin((x * 2 * Math.PI) / 64) * 1.2 + Math.sin((x * 2 * Math.PI) / 23) * 0.8);
-          for (let y = 0; y < grosor; y++) l.poner(x, y, y === grosor - 1 ? "#7a665a" : "#4e3e38", 0.75);
-        }
-        let x = 2;
-        while (x < l.ancho - 4) {
-          const ancho = 3 + Math.floor(azar() * 6);
-          const largo = 5 + Math.floor(azar() * 22);
-          const cx = x + Math.floor(ancho / 2);
-          for (let fila = 0; fila < largo; fila++) {
-            const media = Math.round((ancho / 2) * (1 - fila / largo) ** 0.8);
-            for (let dx = -media; dx <= media; dx++) l.poner(cx + dx, 3 + fila, dx < 0 ? "#7a665a" : dx === media && media > 0 ? "#3a2e2a" : "#5e4c44", 0.72);
+    comentario: "Cueva: piedra lila con un estampado de bloques de roca; racimos de cristales que brillan en las esquinas de abajo, estalactitas y cristales colgando en las de arriba, estalactitas por el borde de arriba y piedras abajo",
+    cielo: "linear-gradient(160deg, #aaa6c8, #908cb2 55%, #7a76a0)",
+    capas: [
+      ...esquinas(72, 50, (l, azar, abajo) => {
+        const piedra = ["#4e4a6e", "#6a6690", "#a8a4c8"];
+        const amatista = ["#6a3aa8", "#a070e0", "#e8d4ff"];
+        const turquesa = ["#2a7aa8", "#50bce8", "#d4f6ff"];
+        if (abajo) {
+          const [W0, H0] = [l.ancho, l.alto];
+          for (let x = W0 - 60; x < W0; x++) {
+            const alto = Math.round(4 + Math.max(0, (x - (W0 - 60)) / 6) + Math.sin(x / 3) * 1.5);
+            for (let y = H0 - alto; y < H0; y++) l.poner(x, y, y === H0 - alto ? piedra[2] : (x + y) % 5 ? piedra[1] : piedra[0]);
           }
-          if (azar() < 0.4) {
-            l.poner(cx, 3 + largo + 1, "#a8d8f0", 0.8);
-            l.poner(cx, 3 + largo + 4, "#a8d8f0", 0.6);
-          }
-          x += ancho + Math.floor(azar() * 4);
+          racimoCristales(l, W0 - 16, H0 - 6, 1.3, amatista);
+          racimoCristales(l, W0 - 40, H0 - 3, 0.8, turquesa);
+        } else {
+          for (const [x, largo, ancho] of [[l.ancho - 3, 30, 4], [l.ancho - 12, 20, 3], [l.ancho - 22, 26, 3], [l.ancho - 34, 14, 2], [l.ancho - 44, 18, 2], [l.ancho - 56, 10, 2]]) estalactita(l, x, 0, largo, ancho, piedra);
+          // Unos cristales colgando, al revés
+          racimoCristales(espejado(l, false, true), l.ancho - 30, l.alto - 1, 0.6, turquesa);
         }
-        const VOLANDO = ["...a.a...", "b..rar..b", "ab.aaa.ba", ".aaaaaaa.", "..a...a.."];
-        const COLGADO = [".a.", "aaa", "ara", "aaa", "a.a"];
-        for (const [x, y] of [[36, 17], [128, 22], [204, 13]]) mapa(l, x, y, VOLANDO, { a: "#4a3a5e", b: "#7a6a90", r: "#ff4a4a" }, 0.95);
-        for (const x of [86, 168]) mapa(l, x, 4, COLGADO, { a: "#4a3a5e", r: "#ff4a4a" }, 0.95);
+      }), {
+        nombre: "estalactitas", ancho: 96, alto: 14, repetir: "x", sitio: { y: 0, desde: "arriba" },
+        pintar(l, azar) {
+          rect(l, 0, 0, l.ancho, 2, "#6a6690");
+          for (let x = 4; x < l.ancho; x += 9 + Math.floor(azar() * 6)) estalactita(l, x, 1, 5 + Math.floor(azar() * 9), 1 + Math.floor(azar() * 2), ["#4e4a6e", "#6a6690", "#a8a4c8"]);
+        }
+      }, {
+        nombre: "piedras", ancho: 96, alto: 8, repetir: "x", sitio: { y: 0, desde: "abajo" },
+        pintar(l, azar) {
+          for (let x = 0; x < l.ancho; x++) {
+            const alto = 3 + Math.round(Math.sin(x / 5) + Math.sin(x / 2.3) * 0.6);
+            for (let y = l.alto - alto; y < l.alto; y++) l.poner(x, y, y === l.alto - alto ? "#a8a4c8" : "#5e5a80");
+          }
+          for (let i = 0; i < 6; i++) {
+            const x = Math.floor(azar() * l.ancho);
+            disco(l, x, l.alto - 4, 2, "#6a6690");
+            l.poner(x - 1, l.alto - 5, "#b8b4d8");
+          }
+        }
+      }, {
+        nombre: "estampado", ancho: 32, alto: 24, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+        pintar(l) {
+          // Bloques de roca al tresbolillo: la junta oscura y el borde de arriba con luz
+          for (let y = 0; y < l.alto; y++) {
+            for (let x = 0; x < l.ancho; x++) {
+              const fila = Math.floor(y / 12);
+              const xx = (x + (fila % 2) * 16) % 32;
+              if ((y % 12 === 11 && umbral(x, y) < 0.7) || (xx === 31 && y % 12 > 1 && y % 12 < 10)) l.poner(x, y, "#5a5680", 0.3);
+              else if (y % 12 === 0 && xx > 2 && xx < 28 && umbral(x, y) < 0.6) l.poner(x, y, "#c4c0e0", 0.25);
+            }
+          }
+        }
       }
-    }, {
-      nombre: "suelo", ancho: 256, alto: 48, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 30, alto: 14, ondas: [[2, 0.3], [5, 0.15], [11, 0.06]], color: "#3e322e", claro: "#4e403a", a: 0.4 });
-        monte(l, azar, { base: 42, alto: 6, ondas: [[3, 0.3], [8, 0.12]], color: "#4e3e38", claro: "#6a5850", a: 0.8 });
-        let x = 0;
-        while (x < l.ancho - 4) {
-          const ancho = 4 + Math.floor(azar() * 6);
-          const largo = 4 + Math.floor(azar() * 14);
-          const cx = x + Math.floor(ancho / 2);
-          for (let fila = 0; fila < largo; fila++) {
-            const media = Math.round((ancho / 2) * (fila / largo) ** 0.8);
-            for (let dx = -media; dx <= media; dx++) l.poner(cx + dx, 42 - largo + fila, dx < 0 ? "#7a665a" : "#5e4c44", 0.78);
-          }
-          x += ancho + 6 + Math.floor(azar() * 14);
-        }
-        // El charco
-        for (let y = -3; y <= 3; y++) {
-          for (let dx = -20; dx <= 20; dx++) {
-            if ((dx * dx) / 400 + (y * y) / 9 > 1) continue;
-            l.poner(150 + dx, 44 + y, y === -3 || (dx + y) % 7 === 0 ? "#6fa8d0" : "#1c3a5a", 0.75);
-          }
-        }
-        cristales(l, 40, 42, ["#9a6aff", "#cdb0ff"], 0.9);
-        cristales(l, 118, 43, ["#3ac8f0", "#a8ecff"], 0.9);
-        cristales(l, 196, 42, ["#ff6ab0", "#ffb8d8"], 0.9);
-        cristales(l, 236, 44, ["#3ac8f0", "#a8ecff"], 0.9);
-        for (let i = 0; i < 30; i++) l.poner(Math.floor(azar() * l.ancho), 44 + Math.floor(azar() * 4), "#7a665a", 0.85);
-      }
-    }]
+    ]
   },
 
   atardecer: {
-    comentario: "Atardecer: el sol a medio esconder en el mar, con su reflejo, nubes largas, un islote con palmera y pájaros",
+    comentario: "Atardecer: un sol grande a medio esconder en el mar, cerca del centro, con su reflejo y pájaros; un solo islote con dos palmeras a su derecha; nubes largas y el mar",
     cielo: "linear-gradient(to top, #ff9d55, #ee6f5c 30%, #9a4f9a 65%, #4a3478)",
     capas: [{
-      nombre: "sol", ancho: 64, alto: 44, repetir: "no", sitio: { x: 40, lado: "derecha", y: 10, desde: "abajo" },
+      // El horizonte, 26 píxeles por encima de abajo (como en el mar)
+      nombre: "islote", ancho: 90, alto: 70, repetir: "no", sitio: { x: 105, lado: "centro", y: 0, desde: "abajo" },
       pintar(l) {
-        for (let y = 0; y < 28; y++) {
-          for (let x = 0; x < 64; x++) {
-            const d = Math.sqrt((x - 32) ** 2 + (y - 28) ** 2);
-            if (d <= 13) l.poner(x, y, d < 7 ? "#fff0b0" : d < 11 || umbral(x, y) < 0.5 ? "#ffd070" : "#ff9a58", 0.9);
-            else if (d < 24 && umbral(x, y) < 0.5 * (1 - (d - 13) / 11)) l.poner(x, y, "#ffb070", 0.4);
+        const horizonte = l.alto - 26;
+        for (let x = 6; x <= 84; x++) {
+          const t = (x - 6) / 78;
+          const alto = Math.round(Math.sin(t * Math.PI) ** 0.7 * 9 + (t > 0.3 && t < 0.6 ? 2 : 0));
+          for (let y = horizonte - alto; y <= horizonte + 1; y++) l.poner(x, y, y === horizonte - alto && x < 40 ? "#4a2a54" : "#2a1a3a");
+        }
+        palmera(l, 50, horizonte - 9, 24, ["#1e1230", "#2a1a40", "#2a1a3a"], 1, -1);
+        palmera(l, 30, horizonte - 7, 15, ["#1e1230", "#2a1a40", "#2a1a3a"], 1, 1);
+        // Su reflejo en el agua, a rayas
+        for (let y = horizonte + 2; y < horizonte + 8; y++) for (let x = 10; x <= 80; x++) if ((x + y * 2) % 4 < 2) l.poner(x, y, "#3a2050", 0.5);
+      }
+    }, {
+      nombre: "sol", ancho: 120, alto: 82, repetir: "no", sitio: { x: -20, lado: "centro", y: 0, desde: "abajo" },
+      pintar(l) {
+        const [cx, horizonte, r] = [60, l.alto - 26, 27];
+        for (let y = 0; y < horizonte; y++) {
+          for (let x = 0; x < l.ancho; x++) {
+            const d = Math.sqrt((x - cx) ** 2 + (y - horizonte) ** 2);
+            if (d <= r) l.poner(x, y, d < r * 0.55 ? "#fff0b0" : d < r * 0.85 || umbral(x, y) < 0.5 ? "#ffd070" : "#ff9a58");
+            else if (d < r + 20 && umbral(x, y) < 0.5 * (1 - (d - r) / 20)) l.poner(x, y, "#ffb070", 0.45);
           }
         }
-        for (let y = 29; y < 44; y++) {
-          const media = Math.round(13 - (y - 29) * 0.7);
-          for (let dx = -media; dx <= media; dx++) if ((dx + y * 3 + 40) % 5 < 3) l.poner(32 + dx, y, y < 34 ? "#ffd080" : "#ff9a60", 0.75);
+        // El reflejo: rayas que se estrechan hacia abajo
+        for (let y = horizonte + 1; y < l.alto; y++) {
+          const media = Math.round(r - (y - horizonte) * 0.75);
+          for (let dx = -media; dx <= media; dx++) if ((dx + y * 3 + 40) % 5 < 3) l.poner(cx + dx, y, y < horizonte + 6 ? "#ffd080" : "#ff9a60", 0.75);
         }
-        for (const [x, y] of [[8, 9], [16, 5], [50, 11]]) {
-          l.poner(x - 2, y - 1, "#4a2a4a", 0.75);
-          l.poner(x - 1, y, "#4a2a4a", 0.75);
-          l.poner(x, y - 1, "#4a2a4a", 0.75);
-          l.poner(x + 1, y, "#4a2a4a", 0.75);
-          l.poner(x + 2, y - 1, "#4a2a4a", 0.75);
+        // Pájaros
+        for (const [x, y] of [[10, 14], [20, 8], [100, 16], [109, 10]]) {
+          for (const [dx, dy] of [[-2, -1], [-1, 0], [0, -1], [1, 0], [2, -1]]) l.poner(x + dx, y + dy, "#4a2a4a", 0.8);
         }
       }
     }, {
-      nombre: "nubes", ancho: 256, alto: 20, repetir: "x", sitio: { y: 36, desde: "abajo" },
+      nombre: "nubes", ancho: 256, alto: 20, repetir: "x", sitio: { y: 40, desde: "abajo" },
       pintar(l, azar) {
         for (let i = 0; i < 5; i++) {
           const x = i * 52 + Math.floor(azar() * 20);
@@ -706,7 +1620,7 @@ const TIENDA = {
         }
       }
     }, {
-      // El horizonte, 20 píxeles por debajo de lo alto de la capa (encima, el islote)
+      // El horizonte, 20 píxeles por debajo de lo alto de la capa
       nombre: "mar", ancho: 256, alto: 46, repetir: "x", sitio: { y: 0, desde: "abajo" },
       pintar(l, azar) {
         const tonos = ["#e08a7a", "#9a5a8a", "#5a3a78", "#3a2a60"];
@@ -718,12 +1632,6 @@ const TIENDA = {
           }
         }
         for (let i = 0; i < 40; i++) rect(l, Math.floor(azar() * l.ancho), 22 + Math.floor(azar() * 22), 2 + Math.floor(azar() * 3), 1, "#ffb890", 0.65);
-        for (let x = 22; x <= 58; x++) {
-          const t = (x - 22) / 36;
-          const alto = Math.round(Math.sin(t * Math.PI) * 6);
-          for (let y = 20 - alto; y <= 21; y++) l.poner(x, y, "#2a1a3a", 0.85);
-        }
-        palmera(l, 42, 16, 14, ["#1e1230", "#2a1a40", "#2a1a3a"], 0.85, -1);
       }
     }]
   },
@@ -775,36 +1683,72 @@ const TIENDA = {
     }]
   },
 
-  olas: {
-    comentario: "Surf: tres filas de olas que avanzan, cada una a su velocidad (las de delante, más deprisa y con espuma)",
-    cieloDeDia: true,
-    animacion: { duracion: 12, pasos: 128 },
-    capas: [{
-      nombre: "delante", ancho: 128, alto: 16, repetir: "x", sitio: { y: 0, desde: "abajo" }, mueve: [384, 0],
-      pintar(l) { olas(l, { base: 11, alto: 8, crestas: 1, color: "#2a7cb8", claro: "#4aa2d8", espuma: "#f2fbff", a: 0.78 }); }
-    }, {
-      nombre: "medio", ancho: 128, alto: 12, repetir: "x", sitio: { y: 12, desde: "abajo" }, mueve: [256, 0],
-      pintar(l) { olas(l, { base: 8, alto: 5, crestas: 2, color: "#3a90c8", claro: "#62b4e2", espuma: "#e6f7ff", a: 0.62 }); }
-    }, {
-      nombre: "lejos", ancho: 128, alto: 10, repetir: "x", sitio: { y: 22, desde: "abajo" }, mueve: [128, 0],
-      pintar(l) { olas(l, { base: 7, alto: 3, crestas: 4, color: "#5aaad8", claro: "#86c6ea", espuma: "#d8f2ff", a: 0.48 }); }
-    }, {
-      nombre: "mar", ancho: 256, alto: 36, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        const tonos = ["#9ad4f2", "#6ab8e6", "#4aa2d8"];
-        for (let y = 0; y < l.alto; y++) {
-          for (let x = 0; x < l.ancho; x++) {
-            const i = Math.floor((y / l.alto) * 2.6 + umbral(x, y) - 0.5);
-            l.poner(x, y, tonos[Math.max(0, Math.min(2, i))], 0.38);
-          }
+  olas: (() => {
+    // Dos peces que saltan, uno detrás de otro (uno cada 3,5 s más o menos), cada uno en su sitio:
+    // escondidos (apartados) casi toda la vuelta; en su tramo salen del agua, suben y vuelven a caer
+    const VUELTA_SALTOS = 7;
+    const peces = [[40, [0.1, 0.28]], [110, [0.6, 0.78]]].map(([x, salto], k) => ({
+      salto,
+      capa: {
+        nombre: `pez-${k}`, archivo: "pez", ancho: 12, alto: 12, repetir: "no", sitio: { x, lado: "centro", y: 6, desde: "abajo" }, apartada: true,
+        pintar: k ? undefined : (l) => {
+          // Un pez naranja saltando hacia arriba a la derecha, con gotas
+          mapa(l, 1, 1, [
+            "......aa..",
+            ".....abba.",
+            "....abbkb.",
+            "...abbbbb.",
+            "..abbbbb..",
+            ".cabbbb...",
+            "cc.aab....",
+            "c....a...."
+          ], { a: "#c84a1a", b: "#ff8a3a", k: "#1a1a24", c: "#ffc040" }, 1);
+          for (const [x, y] of [[0, 9], [3, 11], [9, 10]]) l.poner(x, y, "#e6f7ff", 0.9);
         }
-        for (let i = 0; i < 30; i++) rect(l, Math.floor(azar() * l.ancho), Math.floor(azar() * 14), 2, 1, "#ffffff", 0.6);
       }
-    }]
-  },
+    }));
+    const mueveSalto = ({ capa, salto: [desde, hasta] }) => (t) => {
+      if (t < desde || t > hasta) return [0, lejos(capa) - apartadaDe(capa)];
+      return [0, -apartadaDe(capa) - Math.round(Math.sin((Math.PI * (t - desde)) / (hasta - desde)) * 26)];
+    };
+    return {
+      comentario: "Surf: tres filas de olas que avanzan, cada una a su velocidad (las de delante, más deprisa y con espuma), y dos peces que saltan fuera del agua por turnos y vuelven a meterse",
+      cieloDeDia: true,
+      animacion: [
+        { nombre: "olas", eje: "x", duracion: 12, pasos: 128 },
+        {
+          nombre: "salto", eje: "y", duracion: VUELTA_SALTOS,
+          paradas: [0, 1, ...peces.flatMap(({ salto: [desde, hasta] }) => [desde - 0.0001, ...Array.from({ length: 13 }, (_, i) => desde + ((hasta - desde) * i) / 12), hasta + 0.0001])],
+          mueve: Object.fromEntries(peces.map((pez) => [pez.capa.nombre, mueveSalto(pez)]))
+        }
+      ],
+      capas: [{
+        nombre: "delante", ancho: 128, alto: 16, repetir: "x", sitio: { y: 0, desde: "abajo" }, mueve: [384, 0],
+        pintar(l) { olas(l, { base: 11, alto: 8, crestas: 1, color: "#2a7cb8", claro: "#4aa2d8", espuma: "#f2fbff", a: 0.78 }); }
+      }, ...peces.map(({ capa }) => capa), {
+        nombre: "medio", ancho: 128, alto: 12, repetir: "x", sitio: { y: 12, desde: "abajo" }, mueve: [256, 0],
+        pintar(l) { olas(l, { base: 8, alto: 5, crestas: 2, color: "#3a90c8", claro: "#62b4e2", espuma: "#e6f7ff", a: 0.62 }); }
+      }, {
+        nombre: "lejos", ancho: 128, alto: 10, repetir: "x", sitio: { y: 22, desde: "abajo" }, mueve: [128, 0],
+        pintar(l) { olas(l, { base: 7, alto: 3, crestas: 4, color: "#5aaad8", claro: "#86c6ea", espuma: "#d8f2ff", a: 0.48 }); }
+      }, {
+        nombre: "mar", ancho: 256, alto: 36, repetir: "x", sitio: { y: 0, desde: "abajo" },
+        pintar(l, azar) {
+          const tonos = ["#9ad4f2", "#6ab8e6", "#4aa2d8"];
+          for (let y = 0; y < l.alto; y++) {
+            for (let x = 0; x < l.ancho; x++) {
+              const i = Math.floor((y / l.alto) * 2.6 + umbral(x, y) - 0.5);
+              l.poner(x, y, tonos[Math.max(0, Math.min(2, i))], 0.38);
+            }
+          }
+          for (let i = 0; i < 30; i++) rect(l, Math.floor(azar() * l.ancho), Math.floor(azar() * 14), 2, 1, "#ffffff", 0.6);
+        }
+      }]
+    };
+  })(),
 
   nieve: {
-    comentario: "Nevada: copos que caen (los grandes, más deprisa y de lado: están más cerca), pinos nevados y una cabaña con la luz encendida",
+    comentario: "Nevada: copos que caen (los grandes, más deprisa y de lado: están más cerca), montes y pinos nevados que no se repiten en la portada (la tira mide 512), una cabaña con la luz encendida y un muñeco de nieve, cada uno una vez",
     cielo: "linear-gradient(to bottom, #4f73ad, #7d9fcf 55%, #a9c4e6)",
     animacion: { duracion: 12, pasos: 128 },
     capas: [{
@@ -813,22 +1757,50 @@ const TIENDA = {
         for (let i = 0; i < 9; i++) copo(l, Math.floor(azar() * 128), Math.floor(azar() * 128), i % 3 ? 1 : 2, 0.88);
       }
     }, {
-      nombre: "paisaje", ancho: 256, alto: 40, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 22, alto: 10, ondas: [[2, 0.3], [5, 0.12]], color: "#c8d8ea", claro: "#e6eff8", a: 0.4 });
-        for (let i = 0; i < 18; i++) pino(l, Math.floor((i * l.ancho) / 18 + azar() * 8), 30 + Math.floor(azar() * 3), 9 + Math.floor(azar() * 7), ["#2e4e4c", "#3e6662", "#ffffff"], 0.72, true);
-        // La cabaña
-        const [cx, base] = [70, 34];
-        rect(l, cx, base - 9, 16, 9, "#7a5236", 0.92);
-        for (let y = base - 8; y < base; y += 2) rect(l, cx, y, 16, 1, "#5e3e28", 0.92);
-        rect(l, cx + 12, base - 15, 2, 4, "#4a3a34", 0.92);
+      nombre: "cabana", ancho: 34, alto: 36, repetir: "no", sitio: { x: 70, lado: "centro", y: 0, desde: "abajo" },
+      pintar(l) {
+        const [cx, base] = [8, 28];
+        montoncitoDeNieve(l, 17, base - 1, 17);
+        rect(l, cx, base - 9, 16, 9, "#7a5236", 0.95);
+        for (let y = base - 8; y < base; y += 2) rect(l, cx, y, 16, 1, "#5e3e28", 0.95);
+        rect(l, cx + 12, base - 15, 2, 4, "#4a3a34", 0.95);
         for (let r = 0; r < 5; r++) for (let k = -2 + r; k <= 17 - r; k++) l.poner(cx + k, base - 10 - r, r === 0 ? "#dfe8f3" : "#ffffff", 0.95);
         brillo(l, cx + 4, base - 5, 6, "#ffd66b", 0.5, 0.4);
         rect(l, cx + 3, base - 6, 3, 3, "#ffd66b", 0.95);
         rect(l, cx + 9, base - 5, 3, 5, "#3e2a1c", 0.95);
         for (let i = 0; i < 4; i++) disco(l, cx + 13 + i * 2, base - 18 - i * 3, 1 + (i >> 1), "#c8ccd4", 0.35);
-        monte(l, azar, { base: 37, alto: 6, ondas: [[3, 0.3], [7, 0.12]], color: "#eef4fa", claro: "#ffffff", a: 0.85 });
-        for (let i = 0; i < 20; i++) l.poner(Math.floor(azar() * l.ancho), 36 + Math.floor(azar() * 4), "#b8cce4", 0.9);
+      }
+    }, {
+      nombre: "muneco", ancho: 18, alto: 24, repetir: "no", sitio: { x: 20, lado: "centro", y: 0, desde: "abajo" },
+      pintar(lienzo) {
+        montoncitoDeNieve(lienzo, 9, 18, 9);
+        // El muñeco, dos píxeles a la derecha (centrado sobre su montoncito)
+        const l = { ...lienzo, poner: (x, y, c, a) => lienzo.poner(x + 2, y, c, a) };
+        // Un muñeco de nieve: tres bolas, ojos de carbón, nariz de zanahoria, bufanda y brazos de rama
+        for (const [cy, r] of [[15, 4], [9, 3], [4, 2]]) {
+          disco(l, 7, cy, r, "#dfe8f3");
+          disco(l, 6, cy - 1, r - 1, "#ffffff");
+        }
+        l.poner(6, 3, "#2a2a34");
+        l.poner(8, 3, "#2a2a34");
+        l.poner(9, 4, "#ff8a2a");
+        l.poner(10, 4, "#ff8a2a");
+        rect(l, 4, 6, 7, 1, "#e8383a");
+        rect(l, 8, 7, 2, 3, "#e8383a");
+        for (const [x, y] of [[3, 8], [2, 7], [1, 7], [11, 8], [12, 7], [13, 6]]) l.poner(x, y, "#6a4a30");
+        for (const y of [9, 11]) l.poner(7, y, "#2a2a34");
+      }
+    }, {
+      nombre: "paisaje", ancho: 512, alto: 40, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l, azar) {
+        monte(l, azar, { base: 22, alto: 12, ondas: [[2, 0.3], [3, 0.2], [7, 0.1]], color: "#c8d8ea", claro: "#e6eff8", a: 0.45 });
+        // Pinos en grupos (bosquecillos y claros), de alturas distintas
+        for (let x = 0; x < l.ancho; x += 6 + Math.floor(azar() * 10)) {
+          if (Math.sin((x * 2 * Math.PI * 3) / l.ancho + 1) < -0.35) continue;
+          pino(l, x, 30 + Math.floor(azar() * 4), 7 + Math.floor(azar() * 11), ["#2e4e4c", "#3e6662", "#ffffff"], 0.72, true);
+        }
+        monte(l, azar, { base: 37, alto: 7, ondas: [[3, 0.3], [5, 0.15], [11, 0.06]], color: "#eef4fa", claro: "#ffffff", a: 0.85 });
+        for (let i = 0; i < 40; i++) l.poner(Math.floor(azar() * l.ancho), 36 + Math.floor(azar() * 4), "#b8cce4", 0.9);
       }
     }, {
       nombre: "copos-lejos", ancho: 64, alto: 64, repetir: "xy", sitio: { y: 0, desde: "arriba" }, mueve: [0, 128],
@@ -839,123 +1811,175 @@ const TIENDA = {
   },
 
   noche: {
-    comentario: "Noche estrellada: estrellas que titilan cada una a su ritmo, la luna, colinas con una casita y luciérnagas y, de vez en cuando, estrellas fugaces",
-    cielo: "linear-gradient(170deg, #263184, #171a4a 70%, #12143a)",
-    // Las estrellas: cuatro dibujos uno al lado del otro (cada estrella, más o menos brillante en
-    // cada uno) que se turnan cada 0,6 s sin moverse de su sitio. Las fugaces: tres a lo largo de
-    // la vuelta, cada una en su momento y por su sitio.
-    animacion: { duracion: 12, paradas: [0, ...saltos(20), ...FUGACES.flatMap(([desde, hasta]) => [desde, hasta]), 1] },
+    comentario: "Noche estrellada: un diseño para la tarjeta: azul de noche con estrellitas y constelaciones, la luna creciente entre nubes en la esquina de arriba, estrellas que cuelgan de hilos por arriba, nubes en las demás esquinas y un borde de nubes abajo",
+    cielo: "linear-gradient(160deg, #3c4ca2, #303a8a 55%, #282c70)",
     capas: [
-      ...FUGACES.map(([desde, hasta, x], k) => ({
-        nombre: `fugaz-${k + 1}`, archivo: "fugaz", ancho: 32, alto: 16, repetir: "no", sitio: { x, lado: "derecha", y: -20, desde: "arriba" },
-        mueve: (t) => {
-          const p = Math.max(0, Math.min(1, (t - desde) / (hasta - desde)));
-          return [-p * 300, p * 150];
-        },
-        pintar: k ? undefined : (l) => {
-          for (let n = 0; n < 28; n++) {
-            const px = 3 + n;
-            const py = 13 - Math.round(n * 0.45);
-            if (n < 6 || umbral(px, py) < 1 - n / 28) l.poner(px, py, n < 3 ? "#ffffff" : n < 12 ? "#e6ecff" : "#9aaae0", 0.95 - n * 0.02);
-          }
-          rect(l, 2, 12, 2, 2, "#ffffff", 1);
+      ...esquinas(72, 50, (l) => {
+        lunaCreciente(l, l.ancho - 22, 18, 12);
+        nubeEsponjosa(l, l.ancho - 16, 34, 12, NUBES_DE_NOCHE);
+        nubeEsponjosa(l, l.ancho - 38, 30, 8, NUBES_DE_NOCHE);
+        estrellita(l, l.ancho - 48, 10, 2, "#ffe680");
+        estrellita(l, l.ancho - 56, 24, 1, "#ffffff");
+      }, ["arriba-derecha"]),
+      ...esquinas(72, 50, (l, azar, abajo) => {
+        if (abajo) {
+          for (const [x, base, ancho] of [[l.ancho - 12, l.alto - 1, 16], [l.ancho - 40, l.alto - 1, 12], [l.ancho - 24, l.alto - 13, 11]]) nubeEsponjosa(l, x, base, ancho, NUBES_DE_NOCHE);
+          estrellita(l, l.ancho - 50, l.alto - 22, 2, "#ffe680");
+          estrellita(l, l.ancho - 10, l.alto - 32, 1, "#ffffff");
+          estrellita(l, l.ancho - 36, l.alto - 30, 0, "#fff6c8");
+        } else {
+          nubeEsponjosa(l, l.ancho - 14, 14, 13, NUBES_DE_NOCHE);
+          estrellita(l, l.ancho - 36, 22, 2, "#ffe680");
+          estrellita(l, l.ancho - 10, 30, 1, "#ffffff");
         }
-      })), {
-      nombre: "luna", ancho: 26, alto: 26, repetir: "no", sitio: { x: 28, lado: "derecha", y: 8, desde: "arriba" },
+      }, ["arriba-izquierda", "abajo-derecha", "abajo-izquierda"]), {
+      nombre: "colgantes", ancho: 256, alto: 26, repetir: "x", sitio: { y: 0, desde: "arriba" },
+      pintar(l, azar) {
+        // Estrellas que cuelgan de hilos, cada una a su largo
+        for (let x = 30; x < l.ancho - 10; x += 26 + Math.floor(azar() * 18)) {
+          const largo = 3 + Math.floor(azar() * 14);
+          for (let y = 0; y < largo; y += 2) l.poner(x, y, "#c8ccf0", 0.6);
+          if (azar() < 0.7) estrellita(l, x, largo + 2, 2, "#ffe680");
+          else estrellita(l, x, largo + 1, 1, "#ffffff");
+        }
+      }
+    }, {
+      nombre: "nubes-abajo", ancho: 256, alto: 12, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l, azar) {
+        for (let x = 6; x < l.ancho; x += 18 + Math.floor(azar() * 8)) nubeEsponjosa(l, x, 9, 6 + Math.floor(azar() * 3), NUBES_DE_NOCHE);
+        rect(l, 0, 10, l.ancho, 2, NUBES_DE_NOCHE[2]);
+      }
+    }, {
+      nombre: "constelaciones", ancho: 200, alto: 150, repetir: "xy", sitio: { x: 60, y: 30, desde: "arriba" },
       pintar(l) {
-        brillo(l, 13, 13, 12, "#c9d4ff", 0.45, 0.25);
-        for (let y = 0; y < 26; y++) {
-          for (let x = 0; x < 26; x++) {
-            const dentro = (x - 13) ** 2 + (y - 13) ** 2 <= 70;
-            const corte = (x - 17) ** 2 + (y - 10) ** 2 <= 52;
-            if (dentro && !corte) l.poner(x, y, (x + y) % 6 === 0 ? "#d8d4c0" : "#f3f1e2", 0.95);
-            else if (corte && dentro) l.poner(x, y, "#000000", 0);
+        for (const puntos of [[[20, 30], [34, 22], [50, 28], [62, 18], [70, 34]], [[120, 96], [132, 110], [150, 104], [158, 120], [140, 128], [132, 110]]]) {
+          for (let i = 1; i < puntos.length; i++) {
+            const [[x0, y0], [x1, y1]] = [puntos[i - 1], puntos[i]];
+            const pasos = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+            for (let k = 2; k < pasos - 1; k += 2) l.poner(Math.round(x0 + ((x1 - x0) * k) / pasos), Math.round(y0 + ((y1 - y0) * k) / pasos), "#c8d4ff", 0.35);
           }
+          for (const [x, y] of puntos) estrellita(l, x, y, 1, "#ffffff", 0.8);
         }
       }
     }, {
-      nombre: "colinas", ancho: 256, alto: 36, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 20, alto: 12, ondas: [[2, 0.3], [5, 0.12]], color: "#1c2a48", claro: "#24365a", a: 0.55 });
-        for (let i = 0; i < 12; i++) pino(l, Math.floor((i * l.ancho) / 12 + azar() * 10), 28 + Math.floor(azar() * 3), 8 + Math.floor(azar() * 6), ["#0c1626", "#122036", "#122036"], 0.85);
-        monte(l, azar, { base: 31, alto: 8, ondas: [[3, 0.3], [7, 0.1]], color: "#121c34", claro: "#1a2844", a: 0.82 });
-        const [cx, base] = [180, 30];
-        rect(l, cx, base - 6, 10, 6, "#1e2a40", 0.92);
-        for (let r = 0; r < 4; r++) for (let k = -1 + r; k <= 10 - r; k++) l.poner(cx + k, base - 7 - r, "#2a3550", 0.92);
-        brillo(l, cx + 3, base - 3, 5, "#ffd66b", 0.45, 0.4);
-        rect(l, cx + 2, base - 4, 2, 2, "#ffe08a", 1);
-        for (let i = 0; i < 14; i++) l.poner(Math.floor(azar() * l.ancho), 14 + Math.floor(azar() * 20), "#d8ff70", 0.9);
-      }
-    }, {
-      nombre: "estrellas", ancho: 384, alto: 96, repetir: "xy", sitio: { y: 0, desde: "arriba" },
-      mueve: (t) => [(Math.floor(t * 20 + 1e-6) % 4) * 96, 0],
-      pintar(l, azar) {
-        for (let i = 0; i < 34; i++) {
-          const x = Math.floor(azar() * 96);
-          const y = Math.floor(azar() * 96);
-          const fase = Math.floor(azar() * 4);
-          const titila = i % 3 !== 0;
-          const grande = i % 5 === 0;
-          for (let dibujo = 0; dibujo < 4; dibujo++) {
-            const nivel = titila ? [3, 2, 1, 2][(dibujo + fase) % 4] : 2; // 3: brilla mucho; 1: casi apagada
-            const px = x + dibujo * 96;
-            if (nivel === 1) {
-              l.poner(px, y, "#6a78b8", 0.6);
-              continue;
-            }
-            l.poner(px, y, "#ffffff", nivel === 3 ? 1 : 0.8);
-            if (nivel === 3 || grande) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) l.poner(px + dx, y + dy, "#a8b8f0", nivel === 3 ? 0.75 : 0.45);
-          }
-        }
+      nombre: "estampado", ancho: 24, alto: 24, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+      pintar(l) {
+        for (const [x, y, color, a] of [[4, 6, "#fff6c8", 0.7], [16, 18, "#c8d4ff", 0.6], [20, 4, "#ffffff", 0.5], [9, 15, "#ffffff", 0.35]]) l.poner(x, y, color, a);
+        estrellita(l, 12, 2, 1, "#fff6c8", 0.4);
       }
     }]
   },
 
-  casino: {
-    comentario: "Casino: dos filas de bombillas que se persiguen como en un cartel, tragaperras (de vez en cuando una se pone en marcha y da premio), fichas y la moqueta de rombos",
-    cielo: "linear-gradient(160deg, #7a2470, #4a1d6a 60%, #2e1846)",
-    // Las bombillas avanzan una cada 0,45 s; la tragaperras, como dice JUGADA
-    animacion: { duracion: 7.2, paradas: [0, ...saltos(16), ...JUGADA.paradas, 1] },
-    capas: [{
-      nombre: "bombillas", archivo: "bombillas", ancho: 8, alto: 6, repetir: "x", sitio: { y: 1, desde: "arriba" }, mueve: (t) => [turno(t, 16) * 4, 0],
-      pintar(l) {
-        for (const [x, color, centro] of [[1, "#ffd040", "#ffffff"], [5, "#7a5a28", "#9a7a40"]]) {
-          rect(l, x, 1, 3, 3, color, 0.95);
-          l.poner(x + 1, 2, centro, 0.95);
+  casino: (() => {
+    // La pantalla de la tragaperras de la esquina: un dibujo por momento, en el mismo sitio (ver
+    // pantallaTragaperras), que se turnan como dice JUGADA
+    const dibujoEn = (t) => Math.round(-JUGADA.mueve(t)[0] / 256);
+    const pantallas = Array.from({ length: 5 }, (_, dibujo) => {
+      const capa = {
+        nombre: `pantalla-${dibujo}`, ancho: 72, alto: 50, repetir: "no", recortar: true, sitio: { x: 0, lado: "derecha", y: 0, desde: "abajo" },
+        apartada: dibujo > 0,
+        pintar(l) { pantallaTragaperras(l, 38, l.alto - 11, dibujo); }
+      };
+      capa.mueve = (t) => [0, dibujoEn(t) === dibujo ? -apartadaDe(capa) : lejos(capa) - apartadaDe(capa)];
+      return capa;
+    });
+    // La mano que se reparte en la mesa, a la derecha del centro (a la izquierda va la foto): las
+    // cartas caen boca abajo de una en una, se van volviendo, salen dos más y se recogen
+    const MANO = secuencia([[0, 0], [0.04, 1], [0.08, 2], [0.12, 3], [0.2, 4], [0.27, 5], [0.34, 6], [0.44, 7], [0.54, 8], [0.9, 0]], 1);
+    const manoEn = (t) => Math.round(-MANO.mueve(t)[0]);
+    const cartas = Array.from({ length: 8 }, (_, i) => {
+      const dibujo = i + 1;
+      const capa = {
+        nombre: `cartas-${dibujo}`, ancho: 66, alto: 15, repetir: "no", sitio: { x: 40, lado: "centro", y: 14, desde: "abajo" },
+        apartada: true,
+        pintar(l) {
+          const caras = [["A", "corazon"], ["K", "pica"], ["Q", "diamante"], ["J", "trebol"], ["A", "pica"]];
+          const vueltas = Math.max(0, dibujo - 3);
+          for (let k = 0; k < Math.min(5, dibujo <= 3 ? dibujo : 3 + Math.max(0, dibujo - 6)); k++) {
+            if (k < vueltas) naipe(l, k * 13, 0, ...caras[k]);
+            else naipeReves(l, k * 13, 0);
+          }
         }
-        rect(l, 0, 5, 8, 1, "#3a2a40", 0.6);
-      }
-    }, {
-      nombre: "bombillas-abajo", archivo: "bombillas", ancho: 8, alto: 6, repetir: "x", sitio: { y: 1, desde: "abajo" }, mueve: (t) => [-turno(t, 16) * 4, 0]
-    }, {
-      nombre: "jugada", ancho: 1280, alto: 40, repetir: "x", sitio: { y: 8, desde: "abajo" }, mueve: JUGADA.mueve,
+      };
+      capa.mueve = (t) => [0, manoEn(t) === dibujo ? -apartadaDe(capa) : lejos(capa) - apartadaDe(capa)];
+      return capa;
+    });
+    const luces = (nombre, vertical, sitio, signo) => ({
+      nombre, archivo: vertical ? "luces-v" : "luces", ancho: vertical ? 6 : 8, alto: vertical ? 8 : 6, repetir: vertical ? "y" : "x", sitio,
+      mueve: (t) => (vertical ? [0, signo * turno(t, 16) * 4] : [signo * turno(t, 16) * 4, 0]),
       pintar(l) {
-        for (let dibujo = 0; dibujo < 5; dibujo++) pantallaTragaperras(l, dibujo * 256 + 6 + 3 * 32, 40, dibujo);
-      }
-    }, {
-      nombre: "maquinas", ancho: 256, alto: 40, repetir: "x", sitio: { y: 8, desde: "abajo" },
-      pintar(l) {
-        const colores = [["#b8283a", "#8c1c2c"], ["#2a4ab8", "#1c348c"], ["#7a2ab8", "#5a1c8c"]];
-        const tiradas = [["siete", "siete", "siete"], ["cereza", "bar", "siete"], ["bar", "bar", "cereza"], ["cereza", "cereza", "cereza"]];
-        for (let i = 0; i < 8; i++) tragaperras(l, 6 + i * 32, 40, colores[i % 3], tiradas[i % 4], 0.75, i === 3);
-      }
-    }, {
-      nombre: "fichas", ancho: 128, alto: 80, repetir: "xy", sitio: { x: 20, y: 10, desde: "arriba" },
-      pintar(l, azar) {
-        for (let i = 0; i < 7; i++) ficha(l, Math.floor(azar() * 123), Math.floor(azar() * 75), 0.6);
-        for (let i = 0; i < 6; i++) {
-          const x = Math.floor(azar() * 128);
-          const y = Math.floor(azar() * 80);
-          for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) l.poner(x + dx, y + dy, "#fff2a0", dx || dy ? 0.4 : 0.7);
+        for (const [k, color, centro] of [[1, "#ffd040", "#ffffff"], [5, "#7a5a28", "#9a7a40"]]) {
+          if (vertical) rect(l, 1, k, 3, 3, color);
+          else rect(l, k, 1, 3, 3, color);
+          l.poner(vertical ? 2 : k + 1, vertical ? k + 1 : 2, centro);
         }
       }
-    }, {
-      nombre: "rombos", ancho: 16, alto: 16, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+    });
+    const franja = (nombre, vertical, sitio) => ({
+      nombre, ancho: vertical ? 9 : 16, alto: vertical ? 16 : 9, repetir: vertical ? "y" : "x", sitio,
       pintar(l) {
-        for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (Math.abs(x - 8) + Math.abs(y - 8) === 8) l.poner(x, y, "#d06ab0", 0.18);
+        // Dibujada para la de arriba (o la de la izquierda): granate, y por dentro el filo dorado
+        const e = sitio.desde === "abajo" ? espejado(l, false, true) : sitio.lado === "derecha" ? espejado(l, true, false) : l;
+        for (let a = 0; a < 16; a++) {
+          for (let b = 0; b < 9; b++) {
+            const [x, y] = vertical ? [b, a] : [a, b];
+            e.poner(x, y, b < 7 ? "#6a1424" : b === 7 ? "#b8862a" : "#f0c040");
+          }
+        }
       }
-    }]
-  },
+    });
+    return {
+      comentario: "Casino: un diseño para la tarjeta: tapete verde con los palos de la baraja, un marco de bombillas que se persiguen alrededor, una mano de cartas que se reparte y se recoge en la mesa, naipes en abanico, fichas y dados en las esquinas y una tragaperras que de vez en cuando se pone en marcha y da premio",
+      cielo: "linear-gradient(160deg, #2e9a5e, #23824c 55%, #1a6a3e)",
+      // Las bombillas avanzan una cada 0,45 s; la tragaperras, como dice JUGADA
+      animacion: { duracion: 7.2, paradas: [0, ...saltos(16), ...JUGADA.paradas, ...MANO.paradas, 1] },
+      capas: [
+        ...cartas,
+        luces("luces-arriba", false, { y: 1, desde: "arriba" }, 1),
+        luces("luces-abajo", false, { y: 1, desde: "abajo" }, -1),
+        luces("luces-izquierda", true, { x: 1, y: 0, desde: "arriba" }, -1),
+        luces("luces-derecha", true, { x: 1, lado: "derecha", y: 0, desde: "arriba" }, 1),
+        franja("franja-arriba", false, { y: 0, desde: "arriba" }),
+        franja("franja-abajo", false, { y: 0, desde: "abajo" }),
+        franja("franja-izquierda", true, { x: 0, y: 0, desde: "arriba" }),
+        franja("franja-derecha", true, { x: 0, lado: "derecha", y: 0, desde: "arriba" }),
+        ...pantallas,
+        ...esquinas(72, 50, (l, azar, abajo) => {
+          if (abajo) {
+            tragaperras(l, 38, l.alto - 11, ["#b8283a", "#8c1c2c"], [], 1, true);
+            pilaDeFichas(l, 28, l.alto - 11, 5, "#2a6ae0");
+            pilaDeFichas(l, 20, l.alto - 11, 3, "#e8383a");
+            fichaPoker(l, 64, l.alto - 14, "#2a2228");
+            return;
+          }
+          // El abanico de naipes, con dos fichas delante
+          [["J", "trebol"], ["Q", "diamante"], ["K", "corazon"], ["A", "pica"]].forEach(([letra, palo], k) => naipe(l, l.ancho - 46 + k * 8, 10 + (3 - k) * 2 + (k === 3 ? 0 : 1), letra, palo));
+          fichaPoker(l, l.ancho - 50, 30, "#e8383a");
+          fichaPoker(l, l.ancho - 42, 33, "#2a6ae0");
+        }, ["arriba-derecha", "abajo-derecha"]),
+        ...esquinas(72, 50, (l, azar, abajo) => {
+          if (abajo) {
+            dado(l, l.ancho - 24, l.alto - 22, 5);
+            dado(l, l.ancho - 15, l.alto - 18, 2);
+            pilaDeFichas(l, l.ancho - 34, l.alto - 11, 4, "#2a2228");
+            fichaPoker(l, l.ancho - 44, l.alto - 14, "#f0c040");
+            return;
+          }
+          pilaDeFichas(l, l.ancho - 16, 30, 6, "#e8383a");
+          pilaDeFichas(l, l.ancho - 25, 30, 4, "#2a6ae0");
+          dado(l, l.ancho - 40, 16, 6);
+        }, ["arriba-izquierda", "abajo-izquierda"]), {
+          nombre: "estampado", ancho: 24, alto: 24, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+          pintar(l) {
+            mapa(l, 3, 3, PALOS.corazon, { a: "#ffffff" }, 0.13);
+            mapa(l, 15, 15, PALOS.pica, { a: "#0a3a20" }, 0.28);
+            mapa(l, 15, 3, PALOS.diamante, { a: "#0a3a20" }, 0.18);
+            mapa(l, 3, 15, PALOS.trebol, { a: "#ffffff" }, 0.1);
+          }
+        }
+      ]
+    };
+  })(),
 
   aurora: {
     comentario: "Aurora: dos cortinas de luz (verde y violeta) que ondean una contra otra sobre montañas nevadas, con su reflejo en un lago helado",
@@ -990,142 +2014,107 @@ const TIENDA = {
   },
 
   desierto: {
-    comentario: "Desierto: el cielo de día, el sol que aprieta, dunas con su borde al sol, cactus y las columnas de unas ruinas antiguas",
-    cielo: "linear-gradient(to bottom, rgb(80, 160, 240), rgb(150, 205, 250) 45%, rgb(255, 220, 160) 75%, rgb(245, 190, 120))",
+    comentario: "Desierto: arena con un estampado de ondas, un sol que asoma por la esquina de arriba con sus rayos, cactus, piedras y una calavera en las de abajo y una duna por el borde de abajo",
+    cielo: "linear-gradient(160deg, #fff0c8, #fbdca0 55%, #f2c880)",
     capas: [{
-      nombre: "sol", ancho: 50, alto: 50, repetir: "no", sitio: { x: 30, lado: "derecha", y: 4, desde: "arriba" },
+      nombre: "sol", ancho: 70, alto: 50, repetir: "no", sitio: { x: 0, lado: "derecha", y: 0, desde: "arriba" },
       pintar(l) {
-        brillo(l, 25, 25, 24, "#fff4c0", 0.6, 0.5);
-        disco(l, 25, 25, 10, "#ffe070", 1);
-        disco(l, 25, 25, 7, "#fff6d0", 1);
-        disco(l, 23, 23, 3, "#ffffff", 1);
+        const [cx, cy] = [l.ancho + 2, -4];
+        for (let y = 0; y < l.alto; y++) {
+          for (let x = 0; x < l.ancho; x++) {
+            const d = Math.hypot(x - cx, y - cy);
+            const angulo = Math.atan2(y - cy, x - cx);
+            if (d < 20) l.poner(x, y, d < 16 ? "#fff8d8" : "#ffe890");
+            else if (d < 25 && umbral(x, y) < (25 - d) / 5) l.poner(x, y, "#ffe890", 0.8);
+            else if (d > 28 && d < 54 && Math.cos(angulo * 16) > 0.55 + (d - 28) / 60) l.poner(x, y, "#ffd860", 0.75);
+          }
+        }
+      }
+    },
+    ...esquinas(70, 46, (l, azar, abajo) => {
+      if (!abajo) return;
+      const [W0, H0] = [l.ancho, l.alto];
+      for (let x = W0 - 64; x < W0; x++) {
+        const alto = Math.round(3 + Math.max(0, (x - (W0 - 64)) / 10) + Math.sin(x / 7));
+        for (let y = H0 - alto; y < H0; y++) l.poner(x, y, y === H0 - alto ? "#fff4d0" : (x + y) % 4 ? "#eabc78" : "#dcaa64");
+      }
+      cactus(l, W0 - 18, H0 - 3, 34, ["#3e7e34", "#5aa04a", "#8cc86c"]);
+      cactus(l, W0 - 46, H0 - 2, 20, ["#4a8a3a", "#66ac52", "#98d478"]);
+      // Un cactus redondo con flor, piedras y una calavera
+      disco(l, W0 - 30, H0 - 6, 4, "#5aa04a");
+      disco(l, W0 - 31, H0 - 7, 2, "#8cc86c");
+      for (const [dx, dy] of [[0, -5], [-1, -6], [1, -6]]) l.poner(W0 - 30 + dx, H0 - 6 + dy, "#ff6a8a");
+      for (const [x, r] of [[W0 - 58, 3], [W0 - 6, 2]]) {
+        disco(l, x, H0 - 3, r, "#b89a7a");
+        l.poner(x - 1, H0 - 4, "#e0c8a8");
+      }
+      mapa(l, W0 - 64, H0 - 8, [".www.", "wkwkw", "wwwww", ".w.w."], { w: "#f4ecdc", k: "#6a5040" }, 1);
+    }, ["abajo-derecha", "abajo-izquierda"]), {
+      nombre: "duna", ancho: 128, alto: 10, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l) {
+        for (let x = 0; x < l.ancho; x++) {
+          const alto = 4 + Math.round(Math.sin((x * 2 * Math.PI * 2) / l.ancho) * 2.5 + Math.sin((x * 2 * Math.PI * 5) / l.ancho) * 1);
+          for (let y = l.alto - alto; y < l.alto; y++) l.poner(x, y, y === l.alto - alto ? "#fff4d0" : y === l.alto - alto + 1 ? "#f6d498" : "#eabc78");
+        }
       }
     }, {
-      nombre: "dunas", ancho: 256, alto: 56, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 32, alto: 12, ondas: [[1, 0.4], [2, 0.15]], color: "#e8c890", claro: "#f6e0b0", a: 0.6 });
-        // Las ruinas: columnas (alguna rota) y un arco
-        const columna = (x, alto, rota) => {
-          const base = 34;
-          rect(l, x, base - alto, 5, alto, "#c8a070", 0.6);
-          rect(l, x, base - alto, 1, alto, "#e0c090", 0.6);
-          rect(l, x + 4, base - alto, 1, alto, "#a07a50", 0.6);
-          if (rota) for (let k = 0; k < 5; k++) l.poner(x + k, base - alto - (k % 2), "#c8a070", 0.6);
-          else rect(l, x - 1, base - alto - 2, 7, 2, "#d8b080", 0.6);
-          rect(l, x - 1, base - 2, 7, 2, "#a07a50", 0.6);
-        };
-        columna(150, 20, false);
-        columna(172, 20, false);
-        rect(l, 149, 12, 29, 3, "#d8b080", 0.6);
-        columna(196, 13, true);
-        columna(214, 8, true);
-        monte(l, azar, { base: 42, alto: 10, ondas: [[2, 0.35], [3, 0.12]], color: "#e4b876", claro: "#f6d898", a: 0.82 });
-        const cerca = monte(l, azar, { base: 50, alto: 8, ondas: [[1, 0.3], [3, 0.2]], color: "#d8a462", claro: "#f0c486", a: 0.94 });
+      nombre: "estampado", ancho: 48, alto: 16, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+      pintar(l) {
+        // Las ondas que deja el viento en la arena: una línea clara y, debajo, su sombra
         for (let x = 0; x < l.ancho; x++) {
-          for (let y = cerca[x] + 3; y < l.alto; y += 3) if ((x + y * 2) % 9 < 3) l.poner(x, y, "#b88246", 0.85);
-        }
-        // Cactus
-        for (const [x, alto] of [[30, 16], [96, 12], [238, 18]]) {
-          const base = cerca[x] + 2;
-          rect(l, x - 1, base - alto, 3, alto, "#3f8a4a", 0.92);
-          rect(l, x - 1, base - alto, 1, alto, "#62ac62", 0.92);
-          l.poner(x, base - alto - 1, "#3f8a4a", 0.92);
-          const brazo = (lado, altura, largo) => {
-            const y = base - Math.round(alto * altura);
-            rect(l, lado < 0 ? x - 4 : x + 2, y, 3, 2, "#3f8a4a", 0.92);
-            rect(l, lado < 0 ? x - 4 : x + 3, y - largo, 2, largo, lado < 0 ? "#62ac62" : "#2c6a38", 0.92);
-          };
-          brazo(-1, 0.5, 5);
-          brazo(1, 0.65, 4);
-          for (let k = 2; k < alto; k += 3) l.poner(x + 1, base - k, "#f4f0c8", 0.92);
-        }
-        for (let i = 0; i < 12; i++) {
-          const x = Math.floor(azar() * l.ancho);
-          rect(l, x, cerca[x] + 4 + Math.floor(azar() * 4), 2, 1, "#8a6a48", 0.85);
+          const y = 6 + Math.round(Math.sin((x * 2 * Math.PI) / l.ancho) * 2.5);
+          l.poner(x, y, "#fff8e0", 0.7);
+          l.poner(x, y + 1, "#e8b878", 0.45);
         }
       }
     }]
   },
 
   bayas: {
-    comentario: "Huerto de bayas: matas cargadas de bayas de colores en surcos de tierra, una valla, un cartel y, al fondo, un molino y un granero",
-    cieloDeDia: true,
-    capas: [{
-      nombre: "huerto", ancho: 256, alto: 54, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 26, alto: 8, ondas: [[2, 0.3], [5, 0.12]], color: "#78b860", claro: "#94cc78", a: 0.75 });
-        // El molino: torre blanca, tejado de madera y cuatro aspas de listones
-        const [mx, mb] = [52, 31];
-        for (let r = 0; r < 18; r++) {
-          const media = Math.round(6 - r * 0.2);
-          rect(l, mx - media, mb - r, media * 2 + 1, 1, "#f2ece0", 0.85);
-          l.poner(mx + media, mb - r, "#d6cbb8", 0.85);
-          l.poner(mx - media, mb - r, "#fffaf0", 0.85);
+    comentario: "Huerto de bayas: un mantel de picnic de cuadros, ramas con hojas y bayas de colores en las esquinas de arriba y abajo a la izquierda, una cesta llena de bayas abajo a la derecha y un borde de puntilla arriba",
+    cielo: "linear-gradient(160deg, #fffaf2, #fff0de 60%, #ffe4cc)",
+    capas: [
+      ...esquinas(76, 50, (l, azar, abajo) => {
+        if (abajo) {
+          cestaDeBayas(l, l.ancho - 26, l.alto - 2, azar);
+          for (let k = 0; k < 3; k++) baya(l, l.ancho - 54 - k * 7, l.alto - 4, 3, COLORES_BAYA[(k + 2) % COLORES_BAYA.length]);
+          hojaOval(l, l.ancho - 50, l.alto - 2, 8, -2.6, ["#2e7424", "#4a9a34", "#a0dc80"]);
+          return;
         }
-        rect(l, mx - 1, mb - 4, 3, 4, "#7a5236", 0.85);
-        rect(l, mx - 1, mb - 11, 2, 2, "#6a8aa8", 0.85);
-        for (let r = 0; r < 4; r++) rect(l, mx - 4 + r, mb - 18 - r, (4 - r) * 2 + 1, 1, "#8a5a3a", 0.85);
-        const eje = [mx, mb - 20];
-        for (const [dx, dy] of [[1, 1], [-1, -1], [1, -1], [-1, 1]]) {
-          for (let k = 1; k <= 10; k++) {
-            l.poner(eje[0] + dx * k, eje[1] + dy * k, "#6a4a30", 0.9);
-            if (k > 2) l.poner(eje[0] + dx * k + dy, eje[1] + dy * k, k % 2 ? "#e8dcc8" : "#c8b8a0", 0.9);
+        esquinaFrondosa(l, azar, {
+          hojas: [["#2e7424", "#4a9a34", "#a0dc80"], ["#3e8a3a", "#5cb844", "#b4e890"]],
+          fruto(l, x, y, azar) { baya(l, x, y + 2, 3, COLORES_BAYA[Math.floor(azar() * COLORES_BAYA.length)]); }
+        });
+      }, ["arriba-derecha", "arriba-izquierda", "abajo-derecha"]),
+      ...esquinas(76, 50, (l, azar) => {
+        esquinaFrondosa(espejado(l, false, true), azar, {
+          hojas: [["#2e7424", "#4a9a34", "#a0dc80"], ["#3e8a3a", "#5cb844", "#b4e890"]],
+          fruto(e, x, y, azar) { baya(l, x, l.alto - 1 - y + 2, 3, COLORES_BAYA[Math.floor(azar() * COLORES_BAYA.length)]); }
+        });
+      }, ["abajo-izquierda"]), {
+        nombre: "puntilla", ancho: 8, alto: 6, repetir: "x", sitio: { y: 0, desde: "arriba" },
+        pintar(l) {
+          for (let x = 0; x < 8; x++) {
+            const hondo = 2 + Math.round(Math.sqrt(Math.max(0, 12 - (x - 3.5) ** 2)));
+            for (let y = 0; y < hondo; y++) l.poner(x, y, y === hondo - 1 ? "#f0d8d0" : "#ffffff");
+          }
+          l.poner(3, 2, "#000000", 0);
+          l.poner(4, 2, "#000000", 0);
+        }
+      }, {
+        nombre: "mantel", ancho: 16, alto: 16, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+        pintar(l) {
+          for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+              const v = x < 8;
+              const h = y < 8;
+              if (v && h) l.poner(x, y, "#f28e98", 0.42);
+              else if (v || h) l.poner(x, y, (x + y) % 2 ? "#f28e98" : "#f6a8b0", 0.22);
+            }
           }
         }
-        rect(l, eje[0] - 1, eje[1] - 1, 2, 2, "#4a3424", 0.9);
-        // El granero
-        const [gx, gb] = [146, 30];
-        rect(l, gx, gb - 10, 20, 10, "#c0392b", 0.85);
-        rect(l, gx + 19, gb - 10, 1, 10, "#8e2a20", 0.85);
-        for (let r = 0; r < 6; r++) rect(l, gx - 1 + r, gb - 11 - r, 22 - r * 2, 1, r ? "#7a2a20" : "#5a1e18", 0.85);
-        rect(l, gx + 7, gb - 7, 6, 7, "#f2ece0", 0.85);
-        for (let k = 0; k < 6; k++) {
-          l.poner(gx + 7 + k, gb - 7 + k, "#c0392b", 0.85);
-          l.poner(gx + 12 - k, gb - 7 + k, "#c0392b", 0.85);
-        }
-        rect(l, gx + 9, gb - 14, 2, 2, "#f2ece0", 0.85);
-        // La valla
-        for (let x = 0; x < l.ancho; x++) {
-          for (const y of [24, 28]) l.poner(x, y, "#b88a58", 0.75);
-          if (x % 10 === 0) {
-            rect(l, x, 21, 2, 11, "#a07448", 0.75);
-            l.poner(x, 20, "#a07448", 0.75);
-          }
-        }
-        rect(l, 0, 32, l.ancho, 4, "#7aaa58", 0.6);
-        // Los surcos
-        for (let y = 36; y < l.alto; y++) for (let x = 0; x < l.ancho; x++) l.poner(x, y, Math.floor((y - 36) / 3) % 2 ? "#7a5232" : "#8e6440", 0.85);
-        const bayas = [["#e83a3a", "#ff9a9a"], ["#3a6ae8", "#9ab8ff"], ["#f0c030", "#fff0a0"], ["#f08ab8", "#ffd8ea"], ["#9a4ad8", "#d8a8ff"]];
-        for (let i = 0; i < 11; i++) {
-          const x = 12 + i * 23;
-          const base = i % 2 ? 46 : 52;
-          const [color, brillo] = bayas[i % bayas.length];
-          rect(l, x - 5, base, 11, 2, "#6a4428", 0.9);
-          rect(l, x, base - 3, 1, 3, "#4a6a2a", 0.9);
-          disco(l, x, base - 8, 5, "#357035", 0.9);
-          disco(l, x - 2, base - 9, 4, "#4a8f45", 0.9);
-          disco(l, x + 3, base - 7, 3, "#2e6230", 0.9);
-          l.poner(x - 3, base - 12, "#7cc06a", 0.9);
-          l.poner(x - 2, base - 12, "#7cc06a", 0.9);
-          for (const [dx, dy] of [[-4, -8], [1, -11], [3, -6], [-1, -5], [4, -10]]) {
-            rect(l, x + dx, base + dy, 2, 2, color, 0.95);
-            l.poner(x + dx, base + dy, brillo, 0.95);
-          }
-        }
-        for (let i = 0; i < 18; i++) {
-          const x = Math.floor(azar() * l.ancho);
-          const y = 40 + Math.floor(azar() * 13);
-          l.poner(x, y, "#6ab45a", 0.9);
-          l.poner(x - 1, y - 1, "#6ab45a", 0.9);
-          l.poner(x + 1, y - 1, "#6ab45a", 0.9);
-        }
-        // El cartel
-        rect(l, 200, 26, 2, 10, "#7a5236", 0.92);
-        rect(l, 195, 20, 12, 7, "#c8965a", 0.92);
-        rect(l, 195, 26, 12, 1, "#8a6038", 0.92);
-        for (const y of [22, 24]) rect(l, 197, y, 8, 1, "#6a4428", 0.92);
       }
-    }]
+    ]
   },
 
   eevee: {
@@ -1312,51 +2301,81 @@ const TIENDA = {
   },
 
   espacio: {
-    comentario: "Espacio: nebulosas de colores, estrellas, un planeta con anillos, una luna, un cometa y el suelo lleno de cráteres de una luna",
-    cielo: "linear-gradient(to bottom, #1d1050, #151c4c)",
-    capas: [{
-      nombre: "planeta", ancho: 48, alto: 32, repetir: "no", sitio: { x: 26, lado: "derecha", y: 12, desde: "arriba" },
+    comentario: "Espacio exterior: nebulosas de colores que pasan despacio, estrellas que titilan, un planeta con anillos y otros tres pequeños (en el centro y a la derecha: a la izquierda va la foto), estrellas fugaces, un cohete que cruza y el suelo de una luna con cráteres",
+    cielo: "linear-gradient(160deg, #2c1660, #1e1c56 50%, #10304e)",
+    // Una sola vuelta de 32 s: las estrellas cambian de dibujo cada 1,3 s, la nebulosa se desliza,
+    // el cohete cruza de izquierda a derecha (meciéndose) y las fugaces pasan cada una en su momento
+    animacion: { duracion: 32, paradas: [...repartidos(32), ...saltos(24), ...FUGACES_ESPACIO.flatMap(([desde, hasta]) => [desde, hasta])] },
+    capas: [
+      ...FUGACES_ESPACIO.map(([desde, hasta, x], k) => ({
+        nombre: `fugaz-${k + 1}`, archivo: "fugaz", ancho: 32, alto: 16, repetir: "no", sitio: { x, lado: "derecha", y: -20, desde: "arriba" },
+        mueve: (t) => {
+          const p = Math.max(0, Math.min(1, (t - desde) / (hasta - desde)));
+          return [-p * 300, p * 150];
+        },
+        pintar: k ? undefined : (l) => {
+          for (let n = 0; n < 28; n++) {
+            const px = 3 + n;
+            const py = 13 - Math.round(n * 0.45);
+            if (n < 6 || umbral(px, py) < 1 - n / 28) l.poner(px, py, n < 3 ? "#ffffff" : n < 12 ? "#ffe0f4" : "#c890e0", 0.95 - n * 0.02);
+          }
+          rect(l, 2, 12, 2, 2, "#ffffff", 1);
+        }
+      })), {
+      nombre: "cohete", ancho: 20, alto: 11, repetir: "no", sitio: { x: -30, y: 34, desde: "arriba" },
+      mueve: (t) => [Math.round(t * 900), Math.round(Math.sin(2 * Math.PI * 4 * t) * 2)],
       pintar(l) {
-        const anillo = (dx, dy) => Math.abs((dx / 21) ** 2 + (dy / 4.5) ** 2 - 1) < 0.22;
-        for (let y = 0; y < 32; y++) {
-          for (let x = 0; x < 48; x++) {
-            const [dx, dy] = [x - 24, y - 16];
-            const planeta = dx * dx + dy * dy <= 100;
-            if (anillo(dx, dy) && dy < 0 && planeta) continue; // el anillo pasa por detrás
-            if (planeta) l.poner(x, y, Math.floor((dy + 10) / 3) % 2 ? (dx < -3 ? "#e8b070" : "#c88a50") : dx < -3 ? "#f6d098" : "#d8a060", 0.95);
+        // De lado, mirando a la derecha: la llama, las aletas, el cuerpo con su ventanilla y la punta
+        rect(l, 0, 4, 5, 3, "#ff9a30");
+        rect(l, 2, 5, 3, 1, "#fff080");
+        for (const [x, y] of [[5, 1], [6, 1], [5, 2], [6, 2], [7, 2], [5, 8], [6, 8], [5, 9], [6, 9], [7, 8]]) l.poner(x, y, "#e8383a");
+        rect(l, 6, 3, 10, 5, "#f4f4fa");
+        rect(l, 6, 7, 10, 1, "#c8c8d8");
+        rect(l, 6, 3, 10, 1, "#ffffff");
+        rect(l, 16, 4, 2, 3, "#e8383a");
+        l.poner(18, 5, "#e8383a");
+        disco(l, 12, 5, 1, "#3a5070");
+        l.poner(12, 5, "#7ac8ff");
+      }
+    }, {
+      nombre: "planeta", ancho: 52, alto: 34, repetir: "no", sitio: { x: 60, lado: "centro", y: 4, desde: "arriba" },
+      pintar(l) {
+        const [cx, cy, r] = [26, 17, 12];
+        const anillo = (dx, dy) => Math.abs((dx / 23) ** 2 + (dy / 5) ** 2 - 1) < 0.2;
+        for (let y = 0; y < l.alto; y++) {
+          for (let x = 0; x < l.ancho; x++) {
+            const [dx, dy] = [x - cx, y - cy];
+            if (dx * dx + dy * dy > r * r) continue;
+            if (anillo(dx, dy) && dy < 0) continue; // el anillo pasa por detrás
+            const luz = (-dx - dy) / (r * 1.6) + 0.15;
+            const banda = Math.floor((dy + r) / 4) % 2;
+            const c = luz > 0.35 ? (banda ? "#ffe0b0" : "#ffd29a") : luz > -0.25 || umbral(x, y) < luz + 0.6 ? (banda ? "#f0b070" : "#e09a5a") : banda ? "#c07840" : "#a8643a";
+            l.poner(x, y, c);
           }
         }
-        for (let y = 0; y < 32; y++) {
-          for (let x = 0; x < 48; x++) {
-            const [dx, dy] = [x - 24, y - 16];
-            if (anillo(dx, dy) && (dy >= 0 || dx * dx + dy * dy > 100)) l.poner(x, y, Math.abs(dx) > 17 ? "#a890c8" : "#e0d0f8", 0.85);
+        for (let y = 0; y < l.alto; y++) {
+          for (let x = 0; x < l.ancho; x++) {
+            const [dx, dy] = [x - cx, y - cy];
+            if (anillo(dx, dy) && (dy >= 0 || dx * dx + dy * dy > r * r)) l.poner(x, y, Math.abs(dx) > 18 ? "#a890d8" : dx < 0 ? "#f0e4ff" : "#d0c0f0", 0.95);
           }
         }
       }
     }, {
-      nombre: "luna", ancho: 14, alto: 14, repetir: "no", sitio: { x: 70, y: 48, desde: "arriba" },
-      pintar(l) {
-        disco(l, 7, 7, 5, "#a8a8b8", 0.92);
-        disco(l, 6, 6, 3, "#c8c8d8", 0.92);
-        for (const [x, y] of [[8, 9], [5, 5], [9, 5]]) l.poner(x, y, "#7a7a8a", 0.92);
-      }
+      nombre: "planetita", ancho: 14, alto: 14, repetir: "no", sitio: { x: 5, lado: "centro", y: 30, desde: "arriba" },
+      pintar(l) { planetaChico(l, 7, 7, 5, ["#9af0e0", "#4ac8c0", "#2a8a98"]); }
     }, {
-      nombre: "cometa", ancho: 40, alto: 20, repetir: "no", sitio: { x: 16, y: 8, desde: "arriba" },
+      nombre: "planeta-rojo", ancho: 10, alto: 10, repetir: "no", sitio: { x: 118, lado: "centro", y: 2, desde: "arriba" },
+      pintar(l) { planetaChico(l, 5, 5, 3, ["#ffb0a0", "#e8604a", "#a83a2a"]); }
+    }, {
+      nombre: "planeta-lila", ancho: 20, alto: 12, repetir: "no", sitio: { x: -28, lado: "centro", y: 48, desde: "arriba" },
       pintar(l) {
-        for (let k = 0; k < 34; k++) {
-          const x = 36 - k;
-          const y = 16 - Math.round(k * 0.4);
-          if (k < 5 || umbral(x, y) < 1 - k / 34) {
-            l.poner(x, y, k < 4 ? "#ffffff" : "#9ae0ff", 0.9 - k * 0.015);
-            if (k > 3 && k < 20) l.poner(x, y - 1, "#5aa0e0", 0.5);
-          }
-        }
-        rect(l, 35, 15, 3, 3, "#ffffff", 1);
+        planetaChico(l, 10, 6, 4, ["#e8c8ff", "#b07ae8", "#7a4ab8"]);
+        for (let x = 1; x < 20; x++) if (Math.abs(x - 10) > 3) l.poner(x, 6 + Math.round((x - 10) * 0.15), "#fff0c8", 0.85);
       }
     }, {
       nombre: "suelo", ancho: 256, alto: 22, repetir: "x", sitio: { y: 0, desde: "abajo" },
       pintar(l, azar) {
-        const tope = monte(l, azar, { base: 10, alto: 6, ondas: [[2, 0.3], [5, 0.15]], color: "#5a5a6e", claro: "#7a7a90", a: 0.85 });
+        const tope = monte(l, azar, { base: 10, alto: 6, ondas: [[2, 0.3], [5, 0.15]], color: "#7e7aa2", claro: "#b8b4d8", a: 1 });
         for (let i = 0; i < 9; i++) {
           const cx = Math.floor((i * l.ancho) / 9 + azar() * 14);
           const cy = tope[vuelta(cx, 256)] + 5 + Math.floor(azar() * 8);
@@ -1364,139 +2383,151 @@ const TIENDA = {
           for (let dy = -2; dy <= 2; dy++) {
             for (let dx = -rx; dx <= rx; dx++) {
               const d = (dx / rx) ** 2 + (dy / 2) ** 2;
-              if (d <= 1) l.poner(cx + dx, cy + dy, d > 0.6 && dy > 0 ? "#9a9ab0" : "#43435a", 0.88);
+              if (d <= 1) l.poner(cx + dx, cy + dy, d > 0.55 && dy > 0 ? "#c8c4e0" : d > 0.55 && dy < 0 ? "#4e4a70" : "#625e86");
             }
+          }
+        }
+        for (let i = 0; i < 30; i++) l.poner(Math.floor(azar() * l.ancho), 14 + Math.floor(azar() * 8), i % 2 ? "#9a96bc" : "#6a668e");
+      }
+    }, {
+      nombre: "estrellas", ancho: 384, alto: 96, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+      mueve: (t) => [(Math.floor(t * 24 + 1e-6) % 4) * 96, 0],
+      pintar(l, azar) {
+        for (let i = 0; i < 30; i++) {
+          const x = Math.floor(azar() * 96);
+          const y = Math.floor(azar() * 96);
+          const fase = Math.floor(azar() * 4);
+          const color = ["#ffffff", "#c9d4ff", "#ffe0a0", "#ffb0d8"][i % 4];
+          for (let dibujo = 0; dibujo < 4; dibujo++) {
+            const nivel = i % 3 ? [3, 2, 1, 2][(dibujo + fase) % 4] : 2;
+            const px = x + dibujo * 96;
+            if (nivel === 1) {
+              l.poner(px, y, color, 0.35);
+              continue;
+            }
+            l.poner(px, y, color, nivel === 3 ? 1 : 0.75);
+            if (nivel === 3) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) l.poner(px + dx, y + dy, color, 0.6);
           }
         }
       }
     }, {
-      nombre: "nebulosa", ancho: 256, alto: 96, repetir: "x", sitio: { y: 0, desde: "arriba" },
+      nombre: "nebulosa", ancho: 256, alto: 110, repetir: "x", sitio: { y: 0, desde: "arriba" },
+      mueve: (t) => [-256 * t, 0],
       pintar(l, azar) {
         const fases = Array.from({ length: 6 }, () => azar() * Math.PI * 2);
         const s = (x, y, kx, ky, f) => Math.sin((2 * Math.PI * kx * x) / 256 + y * ky + f);
-        for (let y = 0; y < 96; y++) {
+        for (let y = 0; y < l.alto; y++) {
           for (let x = 0; x < 256; x++) {
-            const n = s(x, 0, 2, 0, fases[0]) * Math.sin(y * 0.07 + fases[1]) * 0.6 + s(x, 0, 5, 0, fases[2]) * Math.sin(y * 0.15 + fases[4]) * 0.3 + s(x, y, 9, 0.2, fases[5]) * 0.1 - 0.12;
+            const n = s(x, 0, 2, 0, fases[0]) * Math.sin(y * 0.06 + fases[1]) * 0.6 + s(x, 0, 5, 0, fases[2]) * Math.sin(y * 0.13 + fases[4]) * 0.3 + s(x, y, 9, 0.2, fases[5]) * 0.1 - 0.05;
             const tono = s(x, y, 1, 0.03, fases[3]);
-            const densidad = Math.max(0, n) * 0.9 * (1 - y / 120);
-            if (umbral(x, y) < densidad) l.poner(x, y, tono > 0.3 ? "#c86ad8" : tono > -0.3 ? "#7a6ae8" : "#4aa0e0", 0.3);
+            const densidad = Math.max(0, n) * (1 - y / 140);
+            if (umbral(x, y) < densidad) l.poner(x, y, tono > 0.3 ? "#e070c8" : tono > -0.3 ? "#8a6af0" : "#40c0d8", 0.38);
+            else if (umbral(x, y) < densidad * 2.2) l.poner(x, y, tono > 0.3 ? "#a04a9a" : tono > -0.3 ? "#5a4ab8" : "#2a8aa8", 0.25);
           }
         }
       }
     }, {
-      nombre: "estrellas", ancho: 128, alto: 128, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+      nombre: "polvo", ancho: 64, alto: 64, repetir: "xy", sitio: { y: 0, desde: "arriba" },
       pintar(l, azar) {
-        for (let i = 0; i < 46; i++) {
-          const x = Math.floor(azar() * 128);
-          const y = Math.floor(azar() * 128);
-          const color = ["#ffffff", "#c9d4ff", "#ffe0a0", "#ffb0c8"][i % 4];
-          l.poner(x, y, color, i % 3 ? 0.55 : 0.95);
-          if (i % 9 === 0) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) l.poner(x + dx, y + dy, color, 0.55);
-        }
+        for (let i = 0; i < 14; i++) l.poner(Math.floor(azar() * 64), Math.floor(azar() * 64), i % 3 ? "#8a90c8" : "#ffffff", i % 3 ? 0.5 : 0.7);
       }
     }]
   },
 
-  rocket: {
-    comentario: "Guarida Rocket: paredes de metal con tuberías, estandartes con la R, cajas, una pantalla, suelo con franjas de peligro, alarmas rojas que parpadean y Wobbuffet, que sale de su caja, saluda meneándose y se vuelve a meter",
-    cielo: "linear-gradient(to bottom, #4a1c24, #262229 60%, #1f1d24)",
-    // Las alarmas (encendidas y apagadas) se turnan cada 0,6 s sin moverse. Wobbuffet: la caja
-    // cerrada, se asoma, sale, saluda meneándose y se vuelve a meter (WOBBUFFET)
-    animacion: { duracion: 4.8, paradas: [0, ...saltos(8), ...WOBBUFFET.paradas, 1] },
-    capas: [{
-      nombre: "wobbuffet", ancho: 1280, alto: 72, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      mueve: WOBBUFFET.mueve,
-      pintar(l) {
-        for (let dibujo = 0; dibujo < 5; dibujo++) pintarWobbuffet(l, dibujo * 256, dibujo);
-      }
-    }, {
-      nombre: "alarmas", ancho: 512, alto: 30, repetir: "x", sitio: { y: 44, desde: "abajo" },
-      mueve: (t) => [turno(t, 8) * 256, 0],
-      pintar(l) {
-        for (const encendida of [true, false]) {
-          for (const x of [64, 192]) {
-            const cx = x + (encendida ? 0 : 256);
-            if (encendida) {
-              brillo(l, cx, 6, 16, "#ff3030", 0.55, 0.4);
-              for (let y = 8; y < 30; y++) {
-                const media = Math.round((y - 8) * 0.55);
-                for (let dx = -media; dx <= media; dx++) if (umbral(cx + dx, y) < 0.22 * (1 - (y - 8) / 22)) l.poner(cx + dx, y, "#ff5050", 0.35);
+  rocket: (() => {
+    // Estampado, no una habitación: chapa con la R, franjas de peligro arriba y abajo, alarmas que
+    // parpadean en las esquinas de arriba, cajas en las de abajo y, a la derecha del centro (a la
+    // izquierda va la foto), Wobbuffet saliendo de su caja (un dibujo por momento, como dice WOBBUFFET)
+    const dibujoEn = (t) => Math.round(-WOBBUFFET.mueve(t)[0] / 256);
+    const wobbuffets = Array.from({ length: 5 }, (_, dibujo) => {
+      const capa = {
+        nombre: `wobbuffet-${dibujo}`, ancho: 56, alto: 72, repetir: "no", recortar: true, sitio: { x: 50, lado: "centro", y: -1, desde: "abajo" },
+        apartada: dibujo > 0,
+        pintar(l) { pintarWobbuffet(l, 28 - 133, dibujo); }
+      };
+      capa.mueve = (t) => [0, dibujoEn(t) === dibujo ? -apartadaDe(capa) : lejos(capa) - apartadaDe(capa)];
+      return capa;
+    });
+    // Las alarmas de las esquinas de arriba: encendida y apagada se turnan (la que no toca, a un lado)
+    const alarmas = ["derecha", "izquierda"].flatMap((lado) => [true, false].map((encendida) => ({
+      nombre: `alarma-${lado}-${encendida ? "on" : "off"}`, ancho: 32, alto: 34, repetir: "no", sitio: { x: 6, lado, y: 6, desde: "arriba" },
+      mueve: (t) => [turno(t, 8) === (encendida ? 0 : 1) ? 0 : FUERA, 0],
+      pintar(l) { alarma(l, 16, encendida); }
+    })));
+    return {
+      comentario: "Guarida Rocket: un diseño para la tarjeta: chapa con la R, franjas de peligro arriba y abajo, alarmas rojas que parpadean en las esquinas de arriba, cajas y un barril en las de abajo y, a la derecha del centro, Wobbuffet, que sale de su caja, saluda meneándose y se vuelve a meter",
+      cielo: "linear-gradient(160deg, #5a2a36, #3a3240 55%, #2c2a34)",
+      animacion: { duracion: 4.8, paradas: [0, ...saltos(8), ...WOBBUFFET.paradas, 1] },
+      capas: [...wobbuffets, ...alarmas,
+        ...esquinas(60, 44, (l) => {
+          cajaRocket(l, l.ancho - 22, l.alto - 21);
+          cajaRocket(l, l.ancho - 39, l.alto - 21);
+          cajaRocket(l, l.ancho - 30, l.alto - 34);
+        }, ["abajo-derecha"]),
+        ...esquinas(60, 44, (l) => {
+          cajaRocket(l, l.ancho - 26, l.alto - 21);
+          barril(l, l.ancho - 36, l.alto - 8);
+        }, ["abajo-izquierda"]), {
+          // Una tubería bajo la franja de arriba, con válvulas y relojes de presión de vez en cuando
+          nombre: "tuberia", ancho: 512, alto: 10, repetir: "x", sitio: { y: 8, desde: "arriba" },
+          pintar(l, azar) {
+            rect(l, 0, 1, l.ancho, 3, "#5a5e6a");
+            rect(l, 0, 1, l.ancho, 1, "#8a8e9a");
+            for (let x = 0; x < l.ancho; x += 24) rect(l, x, 0, 2, 5, "#3a3e48");
+            for (let x = 20 + Math.floor(azar() * 30); x < l.ancho - 10; x += 40 + Math.floor(azar() * 70)) {
+              if (azar() < 0.5) {
+                disco(l, x, 6, 3, "#c8ccd4");
+                disco(l, x, 6, 2, "#f4f4f8");
+                l.poner(x + 1, 5, "#e8242e");
+                l.poner(x, 6, "#2a2a30");
+              } else {
+                rect(l, x - 1, 4, 3, 2, "#3a3e48");
+                rect(l, x - 3, 6, 7, 1, "#e8242e");
+                l.poner(x, 5, "#a01820");
               }
             }
-            rect(l, cx - 3, 2, 7, 2, "#2a2a30", 0.95);
-            rect(l, cx - 2, 4, 5, 4, encendida ? "#ff3a3a" : "#6a1818", 0.95);
-            l.poner(cx - 1, 5, encendida ? "#ffd0d0" : "#8a2a2a", 0.95);
           }
-        }
-      }
-    }, {
-      nombre: "guarida", ancho: 256, alto: 72, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l) {
-        // La pared: paneles con remaches
-        for (let y = 0; y < 62; y++) {
-          for (let x = 0; x < l.ancho; x++) {
-            const borde = x % 32 === 0 || y % 20 === 0;
-            const remache = (x % 32 === 3 || x % 32 === 29) && (y % 20 === 3 || y % 20 === 17);
-            l.poner(x, y, remache ? "#7a7e8a" : borde ? "#1c1e24" : (x % 32) < 2 ? "#3a3e48" : "#2c2f37", 0.72);
+        }, {
+          // Sobre la franja de abajo, de vez en cuando: conos, cajas de herramientas y papeles
+          nombre: "cosas", ancho: 512, alto: 12, repetir: "x", sitio: { y: 7, desde: "abajo" },
+          pintar(l, azar) {
+            for (let x = 40 + Math.floor(azar() * 30); x < l.ancho - 12; x += 50 + Math.floor(azar() * 80)) {
+              const que = Math.floor(azar() * 3);
+              if (que === 0) mapa(l, x - 3, l.alto - 8, ["...o...", "...o...", "..www..", "..ooo..", ".ooooo.", ".wwwww.", "ooooooo", "kkkkkkk"], { o: "#ff7a2a", w: "#ffffff", k: "#2a2a30" }, 1);
+              else if (que === 1) mapa(l, x - 4, l.alto - 6, ["..kkkk...", ".k....k..", "rrrrrrrrr", "rrrryrrrr", "rrrrrrrrr", "ddddddddd"], { k: "#3a3e48", r: "#c8283a", y: "#f0c020", d: "#8a1a24" }, 1);
+              else mapa(l, x - 3, l.alto - 2, ["wwwww..", "..wwwww"], { w: "#d8d4c8" }, 1);
+            }
           }
-        }
-        // Tuberías
-        for (let x = 0; x < l.ancho; x++) {
-          rect(l, x, 6, 1, 3, "#5a5e6a", 0.85);
-          l.poner(x, 6, "#8a8e9a", 0.85);
-          if (x % 24 === 0) rect(l, x, 5, 2, 5, "#3a3e48", 0.85);
-        }
-        for (const x of [108, 236]) {
-          rect(l, x, 9, 3, 53, "#5a5e6a", 0.85);
-          rect(l, x, 9, 1, 53, "#8a8e9a", 0.85);
-        }
-        // Los estandartes con la R
-        const R = [
-          "######.",
-          "##...##",
-          "##...##",
-          "######.",
-          "##.##..",
-          "##..##.",
-          "##...##"
-        ];
-        for (const x of [24, 152]) {
-          rect(l, x, 12, 22, 30, "#141418", 0.92);
-          rect(l, x + 1, 13, 20, 28, "#1e1e24", 0.92);
-          for (let k = 0; k < 22; k += 2) l.poner(x + k, 42, "#141418", 0.92);
-          mapa(l, x + 8, 21, R, { "#": "#a01820" }, 0.95);
-          mapa(l, x + 7, 20, R, { "#": "#e8242e" }, 0.95);
-        }
-        // Una pantalla con letras verdes
-        rect(l, 66, 22, 18, 12, "#141418", 0.92);
-        rect(l, 67, 23, 16, 10, "#0e2a1a", 0.92);
-        for (let y = 24; y < 32; y += 2) for (let x = 68; x < 68 + 4 + ((y * 7) % 10); x++) l.poner(x, y, "#4aff7a", 0.92);
-        rect(l, 73, 34, 4, 4, "#2a2a30", 0.92);
-        // Cajas
-        const caja = (x, y) => {
-          rect(l, x, y, 16, 13, "#8a5a30", 0.92);
-          rect(l, x, y, 16, 1, "#b07a44", 0.92);
-          rect(l, x, y + 6, 16, 1, "#6a4424", 0.92);
-          rect(l, x + 15, y, 1, 13, "#6a4424", 0.92);
-          mapa(l, x + 6, y + 2, ["##.", "#.#", "##.", "#.#"], { "#": "#a01820" }, 0.92);
-        };
-        caja(186, 49);
-        caja(203, 49);
-        caja(194, 36);
-        // El suelo con franjas de peligro
-        for (let y = 62; y < 72; y++) {
-          for (let x = 0; x < l.ancho; x++) {
-            const franja = y < 65;
-            l.poner(x, y, franja ? ((x + y) % 8 < 4 ? "#f0c020" : "#1a1a1e") : (x + y) % 5 ? "#3a3c44" : "#4a4c56", 0.88);
+        }, {
+          // Por el medio, sueltas y medio transparentes: erres grandes
+          nombre: "motivos", ancho: 384, alto: 96, repetir: "xy", sitio: { x: 50, y: 22, desde: "arriba" },
+          pintar(l) {
+            const R = ["######.", "##...##", "##...##", "######.", "##.##..", "##..##.", "##...##"];
+            for (const [x, y] of [[40, 16], [170, 62], [290, 26], [100, 86]]) mapa(l, x, y, R, { "#": "#d8283a" }, 0.22);
           }
-        }
-      }
-    }]
-  },
+        }, {
+          nombre: "franja-arriba", ancho: 16, alto: 8, repetir: "x", sitio: { y: 0, desde: "arriba" },
+          pintar(l) { franjaDePeligro(l); }
+        }, {
+          nombre: "franja-abajo", ancho: 16, alto: 8, repetir: "x", sitio: { y: 0, desde: "abajo" },
+          pintar(l) { franjaDePeligro(espejado(l, false, true)); }
+        }, {
+          nombre: "estampado", ancho: 32, alto: 32, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+          pintar(l) {
+            // La R al tresbolillo y remaches
+            for (const [x, y] of [[6, 6], [22, 22]]) mapa(l, x, y, ["rrrr.", "r...r", "rrrr.", "r.r..", "r..rr"], { r: "#c8283a" }, 0.3);
+            for (const [x, y] of [[22, 6], [6, 22]]) {
+              l.poner(x, y, "#8a8e9a", 0.5);
+              l.poner(x + 1, y + 1, "#1c1e24", 0.5);
+            }
+          }
+        }]
+    };
+  })(),
 
   cementerio: {
     comentario: "Cementerio: lápidas (con flores en alguna), un árbol seco, una verja, la luna llena, niebla que pasa y fantasmitas que flotan",
-    cielo: "linear-gradient(to bottom, #2f2a62, #262b44 65%, #20263a)",
+    cielo: "linear-gradient(to bottom, #48307e, #352d62 55%, #282645)",
     // Dos animaciones: de lado, despacio (los fantasmas, unos a un lado y otros al otro, y la
     // niebla), y arriba y abajo, más deprisa (los fantasmas flotando)
     animacion: [
@@ -1676,167 +2707,575 @@ const TIENDA = {
     }]
   },
 
-  tormenta: {
-    comentario: "Tormenta: nubes negras, lluvia que cae de lado, charcos y, de vez en cuando, un relámpago (dos destellos) que lo ilumina todo",
-    cielo: "linear-gradient(to bottom, #333c50, #3f4c60 60%, #4a5a6c)",
-    // La lluvia cae sin parar; el relámpago y el destello aparecen dos veces, un momento
-    animacion: { duracion: 6.4, paradas: [0, 0.7 - 0.0001, 0.7, 0.72 - 0.0001, 0.72, 0.75 - 0.0001, 0.75, 0.76 - 0.0001, 0.76, 1] },
-    capas: [{
-      nombre: "destello", ancho: 4, alto: 4, tamano: "100% 100%", repetir: "no", sitio: { y: -4000, desde: "arriba" },
-      mueve: (t) => [0, (t >= 0.7 && t < 0.72) || (t >= 0.75 && t < 0.76) ? 4000 : 0],
-      pintar(l) { rect(l, 0, 0, 4, 4, "#e8f0ff", 0.22); }
-    }, {
-      nombre: "rayo", ancho: 40, alto: 84, repetir: "no", sitio: { x: 60, y: -200, desde: "arriba" },
-      mueve: (t) => [0, (t >= 0.7 && t < 0.72) || (t >= 0.75 && t < 0.76) ? 200 : 0],
-      pintar(l, azar) {
-        // Tramos en zigzag (de un punto al siguiente, en línea) y una rama a media altura
-        const puntos = [];
-        const linea = ([x0, y0], [x1, y1]) => {
-          const pasos = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
-          for (let k = 0; k <= pasos; k++) puntos.push([Math.round(x0 + ((x1 - x0) * k) / pasos), Math.round(y0 + ((y1 - y0) * k) / pasos)]);
-        };
-        let antes = [20, 0];
-        for (let y = 7, lado = 1; y < 84; y += 7 + Math.floor(azar() * 4), lado = -lado) {
-          const ahora = [Math.max(4, Math.min(34, antes[0] + lado * (5 + Math.floor(azar() * 5)))), Math.min(83, y)];
-          linea(antes, ahora);
-          if (y > 30 && y < 40) linea(ahora, [ahora[0] + 12, ahora[1] + 10]), linea([ahora[0] + 12, ahora[1] + 10], [ahora[0] + 10, ahora[1] + 18]);
-          antes = ahora;
+  // El id sigue siendo «tormenta» (es el que guardan las compras), pero ahora es «Feria»
+  tormenta: (() => {
+    // Una vuelta de 12 s en 48 tramos: la noria cambia de dibujo en cada uno (6 dibujos: va
+    // girando), los banderines se mecen cada dos y los globitos suben sin parar
+    const TRAMOS = 48;
+    const tramo = (t) => Math.floor(t * TRAMOS + 1e-6);
+    const norias = Array.from({ length: 6 }, (_, k) => {
+      const capa = {
+        nombre: `noria-${k}`, ancho: 64, alto: 66, repetir: "no", recortar: true, sitio: { x: 50, lado: "centro", y: 6, desde: "abajo" },
+        apartada: k > 0,
+        pintar(l) { noria(l, 32, 27, 24, (k * Math.PI) / 4 / 6); }
+      };
+      capa.mueve = (t) => [0, tramo(t) % 6 === k ? -apartadaDe(capa) : lejos(capa) - apartadaDe(capa)];
+      return capa;
+    });
+    const banderines = [0, 1].map((k) => {
+      const capa = {
+        nombre: `banderines-${k}`, ancho: 128, alto: 18, repetir: "x", sitio: { y: 0, desde: "arriba" },
+        apartada: k > 0,
+        pintar(l) { tiraDeBanderines(l, k); }
+      };
+      capa.mueve = (t) => [0, Math.floor(tramo(t) / 2) % 2 === k ? -apartadaDe(capa) : lejos(capa) - apartadaDe(capa)];
+      return capa;
+    });
+    // La montaña rusa, a la izquierda de la noria: la vía (MONTANA_ANCHO de ancho, sobre el césped) y la
+    // vagoneta, que la recorre de ida y vuelta en cada vuelta (rápida en las bajadas, lenta al llegar
+    // a los extremos), siempre apoyada en la vía
+    const MONTANA = { x: -40, abajo: 6 };
+    const vagoneta = {
+      nombre: "vagoneta", ancho: 9, alto: 7, repetir: "no", sitio: { x: MONTANA.x - MONTANA_ANCHO / 2, lado: "centro", y: 0, desde: "abajo" },
+      mueve: (t) => {
+        const x = 6 + (MONTANA_ANCHO - 12) * (0.5 - 0.5 * Math.cos(2 * Math.PI * t));
+        return [Math.round(x), -(MONTANA.abajo + MONTANA_ALTO - alturaVia(Math.round(x)))];
+      },
+      pintar(l) {
+        // Dos pasajeros con los brazos arriba y el carro rojo con sus ruedas
+        for (const x of [2, 6]) {
+          l.poner(x, 0, "#ffd23a");
+          l.poner(x, 1, "#ffe0c8");
+          l.poner(x - 1, 0, "#ffe0c8");
         }
-        for (const [px, py] of puntos) brillo(l, px, py, 3, "#a8c8ff", 0.5, 0.5);
-        for (const [px, py] of puntos) {
-          l.poner(px, py, "#ffffff", 1);
-          l.poner(px + 1, py, "#fff6c0", 0.9);
+        rect(l, 0, 2, 9, 3, "#e8383a");
+        rect(l, 0, 2, 9, 1, "#ff7a7a");
+        rect(l, 0, 4, 9, 1, "#a82428");
+        for (const x of [1, 7]) l.poner(x, 5, "#3a3040");
+      }
+    };
+    return {
+      comentario: "Feria: un diseño para la tarjeta: crema con confeti, banderines de colores que se mecen arriba, una noria que gira a la derecha del centro y, a su izquierda, una montaña rusa con su vagoneta que sube y baja, una carpa de rayas y un ramo de globos en las esquinas de abajo, globitos que suben y un borde de césped",
+      cielo: "linear-gradient(160deg, #fff6dc, #ffe6c4 55%, #ffd4b0)",
+      animacion: { duracion: 12, paradas: [0, ...saltos(TRAMOS), 1] },
+      capas: [...banderines, ...norias, vagoneta, {
+        nombre: "montana-rusa", ancho: MONTANA_ANCHO, alto: MONTANA_ALTO, repetir: "no", sitio: { x: MONTANA.x, lado: "centro", y: MONTANA.abajo, desde: "abajo" },
+        pintar(l) { montanaRusa(l); }
+      },
+        ...esquinas(56, 44, (l) => { carpa(l, l.ancho - 24, l.alto - 6); }, ["abajo-derecha"]),
+        ...esquinas(56, 44, (l) => { ramoDeGlobos(l, l.ancho - 18, l.alto - 6); }, ["abajo-izquierda"]), {
+          nombre: "globitos", ancho: 96, alto: 128, repetir: "xy", sitio: { x: 40, y: 0, desde: "arriba" },
+          mueve: (t) => [0, -128 * t],
+          pintar(l) {
+            for (const [x, y, k] of [[20, 30, 0], [70, 90, 2], [50, 10, 1]]) globito(l, x, y, COLORES_GLOBITO[k]);
+          }
+        }, {
+          nombre: "cesped", ancho: 64, alto: 8, repetir: "x", sitio: { y: 0, desde: "abajo" },
+          pintar(l, azar) {
+            rect(l, 0, 4, l.ancho, 4, "#6cbc5a");
+            rect(l, 0, 4, l.ancho, 1, "#9ad87a");
+            for (let x = 0; x < l.ancho; x += 2) {
+              const alto = 1 + Math.floor(azar() * 3);
+              rect(l, x, 4 - alto, 1, alto, "#7ac868");
+            }
+            for (const x of [9, 30, 51]) {
+              l.poner(x, 2, ["#ff6a8a", "#ffe066", "#ffffff"][x % 3]);
+            }
+          }
+        }, {
+          nombre: "estampado", ancho: 32, alto: 32, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+          pintar(l) {
+            // Confeti: tiritas de colores en distintas posturas
+            for (const [x, y, color, tumbada] of [[4, 6, "#ff6a8a", true], [20, 3, "#4aa8ff", false], [12, 18, "#ffd23a", false], [27, 24, "#7ad05a", true], [6, 27, "#c07aff", false], [24, 13, "#ff9a3a", true]]) {
+              l.poner(x, y, color, 0.6);
+              l.poner(x + (tumbada ? 1 : 0), y + (tumbada ? 0 : 1), color, 0.6);
+            }
+          }
+        }]
+    };
+  })(),
+
+  pompas: {
+    comentario: "Pompas de jabón: pompas tornasoladas que suben bamboleándose (las grandes, más deprisa: están más cerca) sobre un jardín con valla blanca y nubes de algodón",
+    cielo: "linear-gradient(to bottom, #9fd2ff, #c6e3ff 45%, #f4dcf4 80%, #ffe4ec)",
+    animacion: [
+      { nombre: "sube", eje: "y", duracion: 16, pasos: 128, mueve: { "pompas-cerca": [0, -256], "pompas-lejos": [0, -128] } },
+      {
+        nombre: "baila", eje: "x", duracion: 4, paradas: repartidos(16),
+        mueve: { "pompas-cerca": (t) => [Math.sin(2 * Math.PI * t) * 2.5, 0], "pompas-lejos": (t) => [Math.cos(2 * Math.PI * t) * 1.5, 0] }
+      }
+    ],
+    capas: [{
+      nombre: "pompas-cerca", ancho: 128, alto: 128, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+      pintar(l) {
+        for (const [x, y, r] of [[18, 14, 6], [72, 40, 4], [106, 8, 3], [40, 76, 5], [98, 96, 6], [12, 112, 3], [66, 120, 2]]) pompa(l, x, y, r, 0.92);
+      }
+    }, {
+      nombre: "pompas-lejos", ancho: 96, alto: 96, repetir: "xy", sitio: { x: 30, y: 20, desde: "arriba" },
+      pintar(l, azar) {
+        for (let i = 0; i < 9; i++) pompa(l, Math.floor(azar() * 96), Math.floor(azar() * 96), 1 + (i % 3), 0.6);
+      }
+    }, {
+      nombre: "jardin", ancho: 256, alto: 30, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l, azar) {
+        monte(l, azar, { base: 14, alto: 8, ondas: [[2, 0.3], [5, 0.12]], color: "#b4e6c4", claro: "#d2f4dc", a: 1 });
+        for (let i = 0; i < 6; i++) arbol(l, Math.floor((i * l.ancho) / 6 + azar() * 20), 15, 7 + Math.floor(azar() * 3), ["#8ccfa0", "#a8e0b6", "#d4f6de"], 1);
+        // La valla blanca
+        for (let x = 0; x < l.ancho; x++) {
+          for (const y of [18, 21]) l.poner(x, y, x % 6 === 1 ? "#dde4ee" : "#ffffff");
+          if (x % 6 === 0) {
+            rect(l, x, 16, 2, 9, "#ffffff");
+            rect(l, x + 1, 17, 1, 8, "#dde4ee");
+            l.poner(x, 15, "#ffffff");
+          }
+        }
+        suelo(l, 24, ["#a6e4ae", "#8ed89a", "#78c888"], 1);
+        for (let i = 0; i < 26; i++) {
+          const x = Math.floor(azar() * l.ancho);
+          const y = 25 + Math.floor(azar() * 4);
+          const flor = ["#ffffff", "#ffd6ec", "#fff2a0", "#d8c8ff"][i % 4];
+          for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) l.poner(x + dx, y + dy, flor);
+          l.poner(x, y, "#ffd23a");
         }
       }
     }, {
-      nombre: "lluvia", ancho: 64, alto: 64, repetir: "xy", sitio: { y: 0, desde: "arriba" }, mueve: (t) => [-256 * t, 1024 * t],
+      nombre: "nubes", ancho: 256, alto: 36, repetir: "x", sitio: { y: 2, desde: "arriba" },
+      pintar(l) {
+        for (const [cx, base, ancho] of [[34, 24, 14], [124, 30, 9], [200, 22, 15]]) nubeEsponjosa(l, cx, base, ancho, ["#ffffff", "#f6f2ff", "#e2daf6"]);
+      }
+    }]
+  },
+
+  cerezos: {
+    comentario: "Cerezos en flor: no es un paisaje, es un diseño para la tarjeta: rosa con un estampado de florecitas, ramas floridas que entran por las cuatro esquinas, flores sueltas por arriba y pétalos caídos abajo, y pétalos que caen meciéndose con el viento",
+    cielo: "linear-gradient(160deg, #ffe8f0, #ffd4e3 55%, #fbc0d6)",
+    animacion: [
+      { nombre: "cae", eje: "y", duracion: 16, pasos: 128, mueve: { "petalos-cerca": [0, 256], "petalos-lejos": [0, 128] } },
+      {
+        nombre: "viento", eje: "x", duracion: 16, paradas: repartidos(48),
+        mueve: {
+          "petalos-cerca": (t) => [-128 * t + Math.sin(2 * Math.PI * 4 * t) * 4, 0],
+          "petalos-lejos": (t) => [-64 * t + Math.sin(2 * Math.PI * 3 * t) * 2, 0]
+        }
+      }
+    ],
+    capas: [{
+      nombre: "petalos-cerca", ancho: 128, alto: 128, repetir: "xy", sitio: { y: 0, desde: "arriba" },
       pintar(l, azar) {
-        for (let i = 0; i < 22; i++) {
+        for (let i = 0; i < 14; i++) petalo(l, Math.floor(azar() * 128), Math.floor(azar() * 128), i, 1);
+      }
+    },
+    ...[["arriba-derecha", false, false], ["arriba-izquierda", true, false], ["abajo-derecha", false, true], ["abajo-izquierda", true, true]].map(([nombre, espejoX, espejoY]) => ({
+      nombre: `esquina-${nombre}`, ancho: 84, alto: 52, repetir: "no", recortar: true,
+      sitio: { x: 0, lado: espejoX ? "izquierda" : "derecha", y: 0, desde: espejoY ? "abajo" : "arriba" },
+      pintar(l, azar) { esquinaFlorida(l, azar, espejoX, espejoY); }
+    })), {
+      nombre: "petalos-lejos", ancho: 64, alto: 64, repetir: "xy", sitio: { x: 17, y: 9, desde: "arriba" },
+      pintar(l, azar) {
+        for (let i = 0; i < 9; i++) {
           const x = Math.floor(azar() * 64);
           const y = Math.floor(azar() * 64);
-          for (let k = 0; k < 4; k++) l.poner(x - Math.floor(k / 2), y + k, k ? "#a8c0dc" : "#e0ecf8", 0.55);
+          l.poner(x, y, "#ffffff", 0.8);
+          if (i % 2) l.poner(x + 1, y, "#ffb0c8", 0.8);
         }
       }
     }, {
-      nombre: "nubes", ancho: 256, alto: 30, repetir: "x", sitio: { y: 0, desde: "arriba" },
+      nombre: "borde-arriba", ancho: 512, alto: 24, repetir: "x", sitio: { y: 0, desde: "arriba" },
       pintar(l, azar) {
+        // Ramitas que cuelgan a distancias y largos distintos (algunas con varias flores o un capullo),
+        // con huecos entre medias: nada se ve igual dos veces en la portada
+        for (let x = 0; x < l.ancho; x++) if ((x * 7) % 11 < 6 && Math.sin(x / 23) > -0.4) l.poner(x, 0, "#f4a2c0");
+        for (let x = 8 + Math.floor(azar() * 10); x < l.ancho - 8; x += 18 + Math.floor(azar() * 44)) {
+          const largo = 2 + Math.floor(azar() * 10);
+          for (let k = 0; k < largo; k++) l.poner(x + (k > largo / 2 ? 1 : 0), k, "#6e4a48");
+          const n = azar() < 0.35 ? 3 : azar() < 0.55 ? 2 : 1;
+          for (let f = 0; f < n; f++) florCerezo(l, x + Math.round((f - (n - 1) / 2) * 6), largo + 3 + (f % 2) * 3, f === 0 ? 3 : 2, azar() * Math.PI);
+          if (azar() < 0.4) {
+            disco(l, x + 5, largo + 1, 1, "#e8608a");
+            l.poner(x + 4, largo, "#ff9ab8");
+          }
+        }
+      }
+    }, {
+      nombre: "borde-abajo", ancho: 512, alto: 12, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l, azar) {
+        // Pétalos amontonados, más altos en unos sitios que en otros, flores caídas sueltas o en grupo
         for (let x = 0; x < l.ancho; x++) {
-          const bajo = 14 + Math.round(Math.sin((x * 2 * Math.PI * 5) / 256) * 4 + Math.abs(Math.sin((x * 2 * Math.PI * 16) / 256 + 1)) * 4);
-          for (let y = 0; y <= bajo; y++) l.poner(x, y, bajo - y < 2 ? "#5a6478" : (x * 3 + y * 5) % 13 ? "#2e3444" : "#3a4254", 0.72);
+          const ola = 2.5 + Math.sin((x * 2 * Math.PI * 3) / l.ancho) * 1.8 + Math.sin((x * 2 * Math.PI * 11) / l.ancho + 1) * 1.2 + Math.sin((x * 2 * Math.PI * 29) / l.ancho) * 0.6;
+          const alto = Math.max(1, Math.round(ola));
+          for (let y = l.alto - alto; y < l.alto; y++) l.poner(x, y, (x + y) % 3 ? "#ffb4cc" : "#ffe4ee");
         }
-
+        for (let x = 6; x < l.ancho - 6; x += 14 + Math.floor(azar() * 40)) {
+          const n = azar() < 0.3 ? 3 : azar() < 0.5 ? 2 : 1;
+          for (let f = 0; f < n; f++) florCerezo(l, x + f * 5, l.alto - 4 - (f % 2) * 2, azar() < 0.3 ? 3 : 2, azar() * Math.PI);
+        }
+        for (let i = 0; i < 30; i++) petalo(l, Math.floor(azar() * l.ancho), l.alto - 6 - Math.floor(azar() * 4), i, 1);
       }
     }, {
-      nombre: "suelo", ancho: 256, alto: 26, repetir: "x", sitio: { y: 0, desde: "abajo" },
-      pintar(l, azar) {
-        monte(l, azar, { base: 12, alto: 8, ondas: [[2, 0.3], [5, 0.12]], color: "#26302e", claro: "#34403c", a: 0.8 });
-        // Hierba doblada por el viento
-        for (let i = 0; i < 30; i++) {
-          const x = Math.floor(azar() * l.ancho);
-          const y = 14 + Math.floor(azar() * 10);
-          for (let k = 0; k < 3; k++) l.poner(x - k, y - k, "#46564e", 0.88);
+      nombre: "estampado", ancho: 32, alto: 32, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+      pintar(l) {
+        // Florecitas de cinco puntos (blancas y rosas, al tresbolillo) y puntitos entre medias
+        for (const [cx, cy, color] of [[8, 8, "#ffffff"], [24, 24, "#f7a6c4"]]) {
+          for (let k = 0; k < 5; k++) {
+            const a = (k * 2 * Math.PI) / 5 - Math.PI / 2;
+            l.poner(cx + Math.round(Math.cos(a) * 2), cy + Math.round(Math.sin(a) * 2), color, 0.55);
+          }
+          l.poner(cx, cy, "#f080a8", 0.45);
         }
-        // Charcos con salpicaduras
-        for (const x of [40, 120, 220]) {
-          rect(l, x, 20, 16, 2, "#5a7a9a", 0.85);
-          rect(l, x + 2, 20, 4, 1, "#a8c0dc", 0.85);
-          for (const dx of [3, 9, 13]) {
-            l.poner(x + dx - 1, 18, "#c8dcf0", 0.85);
-            l.poner(x + dx + 1, 18, "#c8dcf0", 0.85);
+        for (const [x, y] of [[24, 8], [8, 24]]) l.poner(x, y, "#ffffff", 0.45);
+      }
+    }]
+  },
+
+  girasoles: {
+    comentario: "Girasoles: un campo de girasoles de lejos a cerca, abejas (cinco, a varias alturas) que pasan zumbando y nubes que van despacio",
+    cielo: "linear-gradient(to bottom, #62b6f4, #9fd6fb 50%, #fff0c2)",
+    animacion: [
+      { nombre: "vuelo", eje: "x", duracion: 48, pasos: 512, mueve: { abejas: [512, 0], nubes: [-256, 0] } },
+      { nombre: "zumbido", eje: "y", duracion: 1.2, paradas: repartidos(4), mueve: { abejas: (t) => [0, Math.round(Math.sin(2 * Math.PI * t) * 1.5)] } }
+    ],
+    capas: [{
+      nombre: "abejas", ancho: 256, alto: 52, repetir: "x", sitio: { y: 6, desde: "arriba" },
+      pintar(l) {
+        for (const [x, y] of [[20, 8], [96, 24], [150, 40], [196, 12], [236, 32]]) {
+          for (let k = 1; k <= 3; k++) l.poner(x - k * 3, y + 3 + (k % 2), "#ffffff", 0.55);
+          abeja(l, x, y);
+        }
+      }
+    }, {
+      nombre: "nubes", ancho: 256, alto: 36, repetir: "x", sitio: { y: 2, desde: "arriba" }, pintar: nubesDeDia
+    }, {
+      nombre: "campo", ancho: 256, alto: 72, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l, azar) {
+        monte(l, azar, { base: 28, alto: 8, ondas: [[2, 0.3], [5, 0.12]], color: "#8cc864", claro: "#a6da7c", a: 1 });
+        // A lo lejos, el campo amarillo (puntitos cada vez más grandes)
+        for (let y = 27; y < 38; y++) {
+          for (let x = 0; x < l.ancho; x++) {
+            l.poner(x, y, umbral(x, y) < 0.5 + (y - 27) * 0.03 ? ((x + y) % 3 ? "#ffd23a" : "#f0a818") : "#5ea83a");
+          }
+        }
+        for (let x = 0; x < l.ancho; x += 3) l.poner(x + (x % 2), 27, "#ffe866");
+        suelo(l, 46, ["#4a9a32", "#3e8a2a", "#327a24"], 1);
+        rect(l, 0, 38, l.ancho, 8, "#5ea83a");
+        for (let x = 2; x < l.ancho; x += 7) girasol(l, x + Math.floor(azar() * 3), 46, 6 + Math.floor(azar() * 4), 2);
+        for (let x = 12; x < l.ancho; x += 16) girasol(l, x + Math.floor(azar() * 5), 62, 10 + Math.floor(azar() * 6), 3);
+        // Matas de hojas entre los de cerca
+        for (let x = 0; x < l.ancho; x += 6) hoja(l, x + Math.floor(azar() * 4), 70 - Math.floor(azar() * 4), 6 + Math.floor(azar() * 4), x % 12 ? 1 : -1);
+        for (let x = 6; x < l.ancho; x += 26) girasol(l, x + Math.floor(azar() * 8), 72, 22 + Math.floor(azar() * 12), 4);
+      }
+    }]
+  },
+
+  playa: {
+    comentario: "Playa tropical: el mar turquesa con destellos que titilan, olas que lamen la orilla, el sol en medio, arena blanca con dos sombrillas, un castillo, una pelota y dos palmeras (cada cosa una vez, en su sitio: en la portada, que es ancha, no se repiten), gaviotas que pasan y un cangrejo que va de lado",
+    cielo: "linear-gradient(to bottom, #48b0f0, #86d0fa 55%, #cdeffd)",
+    animacion: [
+      {
+        nombre: "pasan", eje: "x", duracion: 24, paradas: [...repartidos(48), ...saltos(24)],
+        mueve: {
+          gaviotas: (t) => [-256 * t, 0],
+          destellos: (t) => [(Math.floor(t * 24 + 1e-6) % 4) * 64, 0],
+          cangrejo: (t) => [Math.round(Math.sin(2 * Math.PI * 3 * t) * 14), 0]
+        }
+      },
+      {
+        nombre: "olas", eje: "y", duracion: 4, paradas: repartidos(16),
+        mueve: { espuma: (t) => [0, Math.round((0.5 - 0.5 * Math.cos(2 * Math.PI * t)) * 3)], gaviotas: (t) => [0, Math.sin(2 * Math.PI * t) * 1.5] }
+      }
+    ],
+    capas: [{
+      nombre: "gaviotas", ancho: 256, alto: 22, repetir: "x", sitio: { y: 6, desde: "arriba" },
+      pintar(l) { for (const [x, y] of [[30, 4], [44, 10], [150, 2], [212, 13]]) gaviota(l, x, y, 0.95); }
+    }, {
+      nombre: "sol", ancho: 40, alto: 40, repetir: "no", sitio: { x: 0, lado: "centro", y: 0, desde: "arriba" },
+      pintar(l) {
+        brillo(l, 20, 20, 19, "#fff8d0", 0.6, 0.55);
+        disco(l, 20, 20, 8, "#ffe680", 1);
+        disco(l, 20, 20, 6, "#fffbe0", 1);
+      }
+    }, {
+      nombre: "palmera", ancho: 48, alto: 56, repetir: "no", sitio: { x: 2, lado: "derecha", y: 12, desde: "abajo" },
+      pintar(l) { palmera(l, 30, 54, 34, ["#2e8a3a", "#4cb050", "#a07a4a"], 1, -1); }
+    }, {
+      nombre: "palmera-chica", ancho: 40, alto: 46, repetir: "no", sitio: { x: 105, lado: "centro", y: 13, desde: "abajo" },
+      pintar(l) { palmera(l, 12, 44, 26, ["#2e8a3a", "#4cb050", "#a07a4a"], 1, 1); }
+    }, {
+      nombre: "cangrejo", ancho: 9, alto: 7, repetir: "no", sitio: { x: 40, lado: "derecha", y: 3, desde: "abajo" },
+      pintar(l) {
+        mapa(l, 0, 0, ["rr.....rr", ".rd...dr.", "..k...k..", ".rrrrrrr.", "rrrrrrrrr", ".ddddddd.", "d.d...d.d"], { r: "#e8503a", d: "#b83426", k: "#2a1a1a" }, 1);
+      }
+    }, {
+      nombre: "sombrilla", ancho: 40, alto: 24, repetir: "no", sitio: { x: 30, lado: "centro", y: 9, desde: "abajo" },
+      pintar(l) { sombrilla(l, 12, 8, ["#ff5a6a", "#ffffff", "#d84050"], ["#4aa8ff", "#ffffff"]); }
+    }, {
+      nombre: "sombrilla-azul", ancho: 40, alto: 24, repetir: "no", sitio: { x: 65, lado: "centro", y: 7, desde: "abajo" },
+      pintar(l) { sombrilla(l, 12, 8, ["#3a8ae8", "#fff2a0", "#2a6ac0"], ["#ff9a3a", "#ffffff"]); }
+    }, {
+      nombre: "castillo", ancho: 9, alto: 10, repetir: "no", sitio: { x: -60, lado: "centro", y: 4, desde: "abajo" },
+      pintar(l) {
+        mapa(l, 0, 0, [
+          "....rr...",
+          "....k....",
+          "..b.k.b..",
+          ".bbbkbbb.",
+          ".bab.bab.",
+          "bbbbbbbbb",
+          "baabbbaab",
+          "bbbbdbbbb",
+          "bbbbddbbb",
+          "bbbbbbbbb"
+        ], { b: "#e6c27e", a: "#c89a58", d: "#8a6a40", r: "#e8383a", k: "#6a5040" }, 1);
+      }
+    }, {
+      nombre: "pelota", ancho: 7, alto: 7, repetir: "no", sitio: { x: -20, lado: "centro", y: 4, desde: "abajo" },
+      pintar(l) {
+        for (let y = -3; y <= 3; y++) {
+          for (let x = -3; x <= 3; x++) {
+            if (x * x + y * y > 10) continue;
+            l.poner(3 + x, 3 + y, ["#ff5a6a", "#ffffff", "#3a8ae8", "#ffe066"][Math.floor((Math.atan2(y, x) + Math.PI) / (Math.PI / 2)) % 4]);
+          }
+        }
+        l.poner(2, 2, "#ffffff");
+      }
+    }, {
+      nombre: "espuma", ancho: 256, alto: 11, repetir: "x", sitio: { y: 14, desde: "abajo" },
+      pintar(l) {
+        // Arriba, tres filas más de agua: así, cuando la ola baja, sigue tapando la arena mojada
+        for (let x = 0; x < l.ancho; x++) {
+          const borde = 7 + Math.round(Math.sin((x * 2 * Math.PI * 5) / 256) * 0.8 + Math.sin((x * 2 * Math.PI * 12) / 256 + 1) * 0.5);
+          for (let y = 0; y < borde; y++) l.poner(x, y, "#7ee4dc", y < 3 ? 0.5 : 0.75);
+          l.poner(x, borde, "#ffffff", 0.95);
+          if (umbral(x, borde + 1) < 0.5) l.poner(x, borde + 1, "#ffffff", 0.8);
+        }
+      }
+    }, {
+      nombre: "destellos", ancho: 256, alto: 20, repetir: "x", sitio: { y: 24, desde: "abajo" },
+      pintar(l, azar) {
+        for (let i = 0; i < 7; i++) {
+          const x = 4 + Math.floor(azar() * 56);
+          const y = 2 + Math.floor(azar() * 16);
+          const fase = Math.floor(azar() * 4);
+          for (let cuadro = 0; cuadro < 4; cuadro++) {
+            const nivel = [3, 2, 1, 0][(cuadro + fase) % 4];
+            const px = x + cuadro * 64;
+            if (nivel === 3) destello(l, px, y, ["#e8fcff", "#ffffff"], false, 0.95);
+            if (nivel === 2) for (const dx of [-1, 0, 1]) l.poner(px + dx, y, dx ? "#d8f8ff" : "#ffffff", dx ? 0.7 : 0.9);
+            if (nivel === 1) l.poner(px, y, "#d8f8ff", 0.6);
+          }
+        }
+      }
+    }, {
+      nombre: "playa", ancho: 256, alto: 46, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l, azar) {
+        // El mar: más hondo a lo lejos, turquesa cerca de la orilla
+        const mar = ["#2e9ed6", "#38b4dc", "#46c8dc", "#62d8da", "#86e6dc"];
+        for (let y = 0; y < 26; y++) {
+          for (let x = 0; x < l.ancho; x++) l.poner(x, y, mar[Math.max(0, Math.min(4, Math.floor((y / 26) * 4.6 + umbral(x, y) - 0.5)))]);
+        }
+        rect(l, 0, 0, l.ancho, 1, "#bfe8f8");
+        for (let i = 0; i < 30; i++) rect(l, Math.floor(azar() * l.ancho), 2 + Math.floor(azar() * 20), 3, 1, "#bff0f4", 0.7);
+        // La arena (mojada junto al agua)
+        suelo(l, 26, ["#f8e8bc", "#f4dfac", "#efd49c"], 1);
+        rect(l, 0, 26, l.ancho, 2, "#ecd8a4");
+        for (let i = 0; i < 50; i++) l.poner(Math.floor(azar() * l.ancho), 29 + Math.floor(azar() * 17), i % 2 ? "#fff6dc" : "#dcc08a");
+        // Conchas y una estrella de mar (pequeñas: que se repitan no se nota)
+        for (const x of [24, 98, 226]) mapa(l, x, 38 + (x % 5), [".aa.", "abba"], { a: "#ffe0e8", b: "#f0b0c0" }, 1);
+        mapa(l, 168, 41, ["..a..", "aaaaa", ".aaa.", "a...a"], { a: "#ff8a3a" }, 1);
+      }
+    }]
+  },
+
+  globos: {
+    comentario: "Globos aerostáticos: cinco globos de gajos que suben y bajan sobre un mar de nubes que pasa (las de cerca, más deprisa), un trozo de arcoíris que sale de las nubes y una bandada a lo lejos",
+    cielo: "linear-gradient(to bottom, #7cc2f4, #b4dcfa 45%, #fbe4dc 85%, #ffd8c4)",
+    animacion: [
+      { nombre: "viento", eje: "x", duracion: 48, pasos: 512, mueve: { "nubes-cerca": [-512, 0], "nubes-medio": [-256, 0], "nubes-lejos": [-128, 0], bandada: [256, 0] } },
+      {
+        nombre: "flota", eje: "y", duracion: 6, paradas: repartidos(16),
+        mueve: {
+          "globo-grande": (t) => [0, Math.sin(2 * Math.PI * t) * 3],
+          "globo-chico": (t) => [0, Math.sin(2 * Math.PI * (t + 0.35)) * 2],
+          "globo-lejos": (t) => [0, Math.cos(2 * Math.PI * t) * 1.5],
+          "globo-rosa": (t) => [0, Math.sin(2 * Math.PI * (t + 0.6)) * 2.5],
+          "globo-morado": (t) => [0, Math.cos(2 * Math.PI * (t + 0.2)) * 2]
+        }
+      }
+    ],
+    capas: [{
+      nombre: "bandada", ancho: 256, alto: 16, repetir: "x", sitio: { y: 10, desde: "arriba" },
+      pintar(l) {
+        for (const [x, y] of [[140, 6], [146, 3], [146, 9], [152, 1], [152, 11]]) mapa(l, x, y, ["k.k", ".k."], { k: "#5a6a88" }, 0.65);
+      }
+    }, {
+      nombre: "globo-grande", ancho: 28, alto: 36, repetir: "no", sitio: { x: 70, lado: "centro", y: 4, desde: "arriba" },
+      pintar(l) { globo(l, 14, 1, 11, ["#ff5a5a", "#c83a3a", "#ffd23a", "#e0a020"]); }
+    }, {
+      nombre: "globo-chico", ancho: 16, alto: 22, repetir: "no", sitio: { x: 125, lado: "centro", y: 26, desde: "arriba" },
+      pintar(l) { globo(l, 8, 1, 6, ["#4aa8ff", "#2a78d0", "#ffffff", "#c8dcf0"]); }
+    }, {
+      nombre: "globo-rosa", ancho: 20, alto: 28, repetir: "no", sitio: { x: -60, lado: "centro", y: 22, desde: "arriba" },
+      pintar(l) { globo(l, 10, 1, 8, ["#ff8ac0", "#e05a98", "#ffffff", "#f0d4e4"]); }
+    }, {
+      nombre: "globo-morado", ancho: 14, alto: 19, repetir: "no", sitio: { x: 20, lado: "centro", y: 6, desde: "arriba" },
+      pintar(l) { globo(l, 7, 1, 5, ["#a07aff", "#7050d0", "#ffe066", "#d8b040"], 0.9); }
+    }, {
+      nombre: "nubes-cerca", ancho: 256, alto: 30, repetir: "x", sitio: { y: 0, desde: "abajo" },
+      pintar(l, azar) {
+        for (let x = 0; x < l.ancho; x += 26) nubeEsponjosa(l, x + Math.floor(azar() * 6), 20, 11 + Math.floor(azar() * 4), ["#ffffff", "#fbf6fa", "#e8deea"]);
+        rect(l, 0, 22, l.ancho, 8, "#f6eef4");
+        for (let x = 0; x < l.ancho; x++) if (umbral(x, 22) < 0.5) l.poner(x, 22, "#e8deea");
+      }
+    }, {
+      nombre: "nubes-medio", ancho: 256, alto: 36, repetir: "x", sitio: { y: 10, desde: "abajo" },
+      pintar(l, azar) {
+        for (let x = 10; x < l.ancho; x += 30) nubeEsponjosa(l, x + Math.floor(azar() * 8), 24, 9 + Math.floor(azar() * 4), ["#fff6f0", "#f6e6ea", "#e4d0dc"]);
+        rect(l, 0, 26, l.ancho, 10, "#efdfe6");
+      }
+    }, {
+      nombre: "globo-lejos", ancho: 12, alto: 15, repetir: "no", sitio: { x: -18, lado: "centro", y: 24, desde: "arriba" },
+      pintar(l) { globo(l, 6, 1, 4, ["#7ad05a", "#4a983a", "#ffe066", "#d8b040"], 0.8); }
+    }, {
+      nombre: "nubes-lejos", ancho: 128, alto: 28, repetir: "x", sitio: { y: 22, desde: "abajo" },
+      pintar(l, azar) {
+        for (let x = 4; x < l.ancho; x += 22) nubeEsponjosa(l, x + Math.floor(azar() * 6), 18, 6 + Math.floor(azar() * 3), ["#fbeee8", "#f0dce0", "#e0ccd8"], 0.9);
+        rect(l, 0, 20, l.ancho, 8, "#ead8e0", 0.9);
+      }
+    }, {
+      nombre: "arcoiris", ancho: 130, alto: 90, repetir: "no", sitio: { x: -20, lado: "centro", y: 14, desde: "abajo" },
+      pintar(l) {
+        // Un trozo de un arco muy grande: sale de las nubes por la izquierda y sube hasta salirse por arriba
+        const bandas = ["#ff8a8a", "#ffc27a", "#ffe98a", "#9ae29a", "#8ac4ff", "#c2a2ff"];
+        for (let y = 0; y < l.alto; y++) {
+          for (let x = 0; x < l.ancho; x++) {
+            const d = Math.sqrt((x - 140) ** 2 + (y - 124) ** 2);
+            const banda = Math.floor((128 - d) / 4);
+            if (banda >= 0 && banda < 6) l.poner(x, y, bandas[banda], umbral(x, y) < 0.15 ? 0.4 : 0.55);
           }
         }
       }
     }]
-  }
+  },
+
+  centro: (() => {
+    // Estampado, no una sala: rosa con Poké Balls y cruces, franjas del Centro arriba y abajo,
+    // macetas y pociones en las esquinas y, a la derecha del centro (a la izquierda va la foto), la
+    // enfermera tras un trozo de mostrador con la máquina que cura, y la Poké Ball grande detrás
+    const CENTRO = 40;
+    const maquinas = Array.from({ length: 8 }, (_, cuadro) => ({
+      nombre: `maquina-${cuadro}`, ancho: 40, alto: 16, repetir: "no", recortar: true, sitio: { x: CENTRO + 22, lado: "centro", y: 19, desde: "abajo" },
+      pintar(l) { maquinaCuracion(l, 4 - 64, cuadro); }
+    }));
+    return {
+      comentario: "Centro Pokémon: un diseño para la tarjeta: rosa con Poké Balls y cruces, las franjas del Centro arriba y abajo, macetas y pociones en las esquinas y, a la derecha del centro, la enfermera tras el mostrador con la máquina que va cargando las seis Poké Balls y las hace brillar, y media Poké Ball grande detrás",
+      cielo: "linear-gradient(160deg, #fff3f6, #ffe2ea 55%, #ffd4e0)",
+      animacion: [turnos(8, [{ capas: maquinas, pasos: CURACION }])],
+      capas: [...maquinas, {
+        // Encima de la franja de abajo (no la tapa) y bajo: la enfermera, de cintura para arriba
+        nombre: "mostrador", ancho: 120, alto: 40, repetir: "no", sitio: { x: CENTRO, lado: "centro", y: 6, desde: "abajo" },
+        pintar(l) {
+          enfermera(l, 48, 2);
+          rect(l, 6, 26, 108, 1, "#ff9aac");
+          rect(l, 6, 27, 108, 2, "#ee5a72");
+          rect(l, 6, 29, 108, 1, "#c83c56");
+          rect(l, 7, 30, 106, 10, "#fbf7fa");
+          for (let x = 26; x < 113; x += 20) rect(l, x, 30, 1, 10, "#e6dce4");
+          rect(l, 7, 34, 106, 2, "#ee5a72");
+          rect(l, 7, 30, 1, 10, "#e6dce4");
+          rect(l, 112, 30, 1, 10, "#d8ccd6");
+        }
+      }, {
+        nombre: "pokeball", ancho: 56, alto: 36, repetir: "no", sitio: { x: CENTRO - 12, lado: "centro", y: 5, desde: "arriba" },
+        pintar(l) {
+          const [cx, cy, r] = [28, 10, 24];
+          for (let y = -r; y <= r; y++) {
+            for (let x = -r; x <= r; x++) {
+              const d = Math.sqrt(x * x + y * y);
+              if (d > r + 0.3 || cy + y < 0) continue;
+              let c = y < 0 ? (x + y < -r * 0.75 ? "#ff94a6" : x > r * 0.45 ? "#d84c62" : "#f06478") : x > r * 0.4 && umbral(cx + x, cy + y) < (x / r - 0.4) * 2 ? "#f6e4ec" : "#fffafc";
+              if (d > r - 1.2 || Math.abs(y) <= 2) c = "#b8405a";
+              l.poner(cx + x, cy + y, c);
+            }
+          }
+          disco(l, cx, cy, 7, "#b8405a");
+          disco(l, cx, cy, 5, "#fffafc");
+          disco(l, cx, cy, 3, "#f6e4ec");
+          l.poner(cx - 2, cy - 2, "#ffffff");
+        }
+      },
+      ...esquinas(60, 40, (l, azar, abajo) => {
+        if (abajo) {
+          maceta(l, l.ancho - 12, l.alto - 4);
+          pocion(l, l.ancho - 26, l.alto - 4, "#a050d0");
+          pocion(l, l.ancho - 33, l.alto - 4, "#3a9ae8");
+          return;
+        }
+        // Un letrero redondo con la cruz
+        disco(l, l.ancho - 16, 18, 8, "#c83c56");
+        disco(l, l.ancho - 16, 18, 7, "#ee5a72");
+        rect(l, l.ancho - 17, 13, 3, 11, "#ffffff");
+        rect(l, l.ancho - 21, 17, 11, 3, "#ffffff");
+        l.poner(l.ancho - 20, 13, "#ff9aac");
+      }), {
+        // Colgando de la franja de arriba, de vez en cuando (a distancias distintas): Poké Balls,
+        // corazones y cruces
+        nombre: "colgantes", ancho: 512, alto: 16, repetir: "x", sitio: { y: 5, desde: "arriba" },
+        pintar(l, azar) {
+          for (let x = 14 + Math.floor(azar() * 20); x < l.ancho - 10; x += 34 + Math.floor(azar() * 60)) {
+            const largo = 2 + Math.floor(azar() * 6);
+            for (let y = 0; y < largo; y++) l.poner(x, y, "#d8a0b0");
+            const que = Math.floor(azar() * 3);
+            if (que === 0) mapa(l, x - 2, largo, [".rrr.", "rrrrr", "kkwkk", "wwwww", ".www."], { r: "#f06478", k: "#b8405a", w: "#ffffff" }, 1);
+            else if (que === 1) mapa(l, x - 2, largo, [".a.a.", "aaaaa", "aaaaa", ".aaa.", "..a.."], { a: "#ff7a96" }, 1);
+            else mapa(l, x - 2, largo, ["..a..", "..a..", "aaaaa", "..a..", "..a.."], { a: "#ffffff" }, 1);
+          }
+        }
+      }, {
+        // Sobre la franja de abajo, de vez en cuando: Poké Balls y pociones
+        nombre: "objetos", ancho: 512, alto: 14, repetir: "x", sitio: { y: 5, desde: "abajo" },
+        pintar(l, azar) {
+          for (let x = 30 + Math.floor(azar() * 30); x < l.ancho - 10; x += 40 + Math.floor(azar() * 70)) {
+            if (azar() < 0.5) mapa(l, x - 2, l.alto - 5, [".rrr.", "rrrrr", "kkwkk", "wwwww", ".www."], { r: "#e83848", k: "#3a3040", w: "#ffffff" }, 1);
+            else pocion(l, x, l.alto, ["#a050d0", "#3a9ae8", "#ffb030"][Math.floor(azar() * 3)]);
+          }
+        }
+      }, {
+        // Por el medio, sueltos y medio transparentes: Poké Balls, cruces y corazones más grandes
+        nombre: "motivos", ancho: 384, alto: 96, repetir: "xy", sitio: { x: 50, y: 18, desde: "arriba" },
+        pintar(l, azar) {
+          for (const [x, y, que] of [[30, 20, 0], [120, 60, 1], [210, 14, 2], [300, 52, 0], [350, 86, 1], [80, 84, 2]]) {
+            if (que === 0) mapa(l, x, y, ["..rrr..", ".rrrrr.", "rrrrrrr", "kkkwkkk", "wwwwwww", ".wwwww.", "..www.."], { r: "#f06478", k: "#b8405a", w: "#ffffff" }, 0.35);
+            else if (que === 1) mapa(l, x, y, ["..w..", "..w..", "wwwww", "..w..", "..w.."], { w: "#ffffff" }, 0.6);
+            else mapa(l, x, y, [".aa.aa.", "aaaaaaa", "aaaaaaa", ".aaaaa.", "..aaa..", "...a..."], { a: "#ff8aa4" }, 0.4);
+          }
+          for (let i = 0; i < 8; i++) l.poner(Math.floor(azar() * l.ancho), Math.floor(azar() * l.alto), "#ffffff", 0.6);
+        }
+      }, {
+        nombre: "franja-arriba", ancho: 16, alto: 6, repetir: "x", sitio: { y: 0, desde: "arriba" },
+        pintar(l) { franjaDelCentro(l); }
+      }, {
+        nombre: "franja-abajo", ancho: 16, alto: 6, repetir: "x", sitio: { y: 0, desde: "abajo" },
+        pintar(l) { franjaDelCentro(espejado(l, false, true)); }
+      }, {
+        nombre: "estampado", ancho: 32, alto: 32, repetir: "xy", sitio: { y: 0, desde: "arriba" },
+        pintar(l) {
+          mapa(l, 5, 5, [".rrr.", "rrrrr", "kkwkk", "wwwww", ".www."], { r: "#f06478", k: "#b8405a", w: "#ffffff" }, 0.4);
+          mapa(l, 20, 20, [".w.", "www", ".w."], { w: "#ffffff" }, 0.7);
+          l.poner(21, 6, "#ffffff", 0.5);
+          l.poner(6, 22, "#f6a8bc", 0.6);
+        }
+      }]
+    };
+  })()
 };
-
-// ---------- Dibujos que se turnan ----------
-//
-// Para que algo cambie de dibujo sin moverse (un Pokémon que parpadea o mueve la cola, el agua de
-// una cascada, una llama), cada dibujo va en su capa, en el mismo sitio, y en cada momento solo uno
-// está a la vista: los demás se apartan FUERA píxeles (hacia arriba los que van desde abajo, hacia
-// abajo los otros), lejos de cualquier tarjeta. De entrada (y sin animación, con «reducir
-// movimiento») solo se ve el primero de cada grupo: los demás llevan «apartada».
-
-const FUERA = 2000;
-const lejos = (capa) => (capa.sitio.desde === "abajo" ? -FUERA : FUERA);
-function apartadaDe(capa) {
-  return capa.apartada ? lejos(capa) : 0;
-}
-
-// La animación: grupos de capas que se turnan, { capas: [capa, ...] (la primera, la de entrada),
-// pasos: [[desde, cual], ...] (en la vuelta, de 0 a 1; cual, el índice en capas) }. Marca las que
-// empiezan apartadas y devuelve la animación (en el eje y). Con steps(1) cada fotograma se queda
-// quieto hasta el siguiente: basta uno por cambio (no hace falta el de «justo antes»).
-function turnos(duracion, grupos) {
-  const mueve = {};
-  const paradas = new Set([0, 1]);
-  for (const { capas, pasos } of grupos) {
-    const cualEn = (t) => pasos.reduce((cual, [desde, c]) => (t + 1e-6 >= desde ? c : cual), pasos[0][1]);
-    for (const [desde] of pasos.slice(1)) paradas.add(desde);
-    capas.forEach((capa, i) => {
-      if (i > 0) capa.apartada = true;
-      // A la vista: sin apartar (las apartadas, vuelven); si no, apartada
-      mueve[capa.nombre] = (t) => [0, cualEn(t) === i ? -apartadaDe(capa) : lejos(capa) - apartadaDe(capa)];
-    });
-  }
-  return { nombre: "turnos", eje: "y", duracion, pasos: 1, paradas: [...paradas], mueve };
-}
-
-// Cada vez que toca otro dibujo, en una vuelta: n cambios iguales que van pasando por los k dibujos
-const ciclo = (n, k, desfase = 0) => Array.from({ length: n }, (_, i) => [i / n, (i + desfase) % k]);
 
 // ---------- Los de Eevee ----------
 //
 // Los que dan los logros de registrar a Eevee y a cada Eeveelution (js/comun/fondos.js,
-// FONDOS_EEVEE): el Pokémon sentado a la derecha, como en un retrato, en un paisaje suyo
-// (herramientas/pokemon-pixel.mjs). Las tiras miden ALTO y van pegadas abajo; el Pokémon se sienta
-// en la fila SUELO, que es lo que se ve en todas partes: en «Amigos», junto al nombre (lo de debajo
-// lo tapa la franja de los contadores) y en el perfil, entre las cifras y el botón. Parpadea y
-// mueve la cola de vez en cuando, y en su paisaje hay algo que se mueve (agua, fuego, destellos).
+// FONDOS_EEVEE). Estampados (ver eeveeEstampado, más abajo): su color, su estampado, bandas arriba y
+// abajo, cosas suyas que suben o caen y el Pokémon (su sello de una tinta) sentado a la derecha del
+// centro.
 
-const ALTO = 92;
-const SUELO = 52;
-const A_LA_DERECHA = 8;
-const VUELTA_EEVEE = 8; // segundos
 
-// El Pokémon: su sello de una tinta (herramientas/sellos-pixel.mjs, hecho a partir de su arte
-// oficial), quieto, en una capa. Se coloca por lo que ocupa de verdad el dibujo: su centro, a
-// «centro» píxeles del borde derecho (el centro de su roca, tocón o nube), y lo más bajo (las
-// patas), en la fila «suelo»
-function capasPokemon(nombre, { centro = 31, suelo = SUELO + 1 } = {}) {
-  const fig = sello(nombre);
-  let [x0, x1, y1] = [fig.ancho, 0, 0];
-  fig.pixeles.forEach((c, k) => {
-    if (!c) return;
-    const [x, y] = [k % fig.ancho, Math.floor(k / fig.ancho)];
-    x0 = Math.min(x0, x);
-    x1 = Math.max(x1, x);
-    y1 = Math.max(y1, y);
-  });
-  const derecha = Math.round(centro - fig.ancho + (x0 + x1 + 1) / 2);
-  const abajo = ALTO - 1 - (suelo - y1 + fig.alto - 1);
-  return [{
-    nombre: "pokemon", ancho: fig.ancho, alto: fig.alto, repetir: "no",
-    sitio: { x: derecha, lado: "derecha", y: abajo, desde: "abajo" },
-    pintar: (l) => pintarFigura(l, fig, 0, 0)
-  }];
-}
-
-// Un fondo de Eevee: el Pokémon delante de todo (salvo «delante»), luego las capas del paisaje.
-// turnosEscena: grupos de dibujos que se turnan (agua, fuego...); deriva: lo que se desplaza
-// despacio de lado (nubes, vilanos), { capa: [cuánto en una vuelta, 0] }, con su duración.
-function fondoEevee({ comentario, cielo, pokemon, sitio = {}, delante = [], capas, turnosEscena = [], deriva = null }) {
-  const animacion = turnosEscena.length ? [turnos(VUELTA_EEVEE, turnosEscena)] : [];
-  // Lo que se desliza va suave (sin saltos de un píxel, como la lluvia de «Tormenta») y al doble
-  if (deriva) animacion.push({ nombre: "deriva", eje: "x", duracion: deriva.duracion / 2, mueve: deriva.mueve });
-  return { comentario, cielo, capas: [...delante, ...capasPokemon(pokemon, sitio), ...capas], animacion: animacion.length ? animacion : undefined };
-}
-
-// Una capa que se repite a lo ancho, pegada abajo, del alto de la tira (o el que se diga)
-const tira = (nombre, pintar, alto = ALTO, y = 0) => ({ nombre, ancho: 256, alto, repetir: "x", sitio: { y, desde: "abajo" }, pintar });
-// Una capa que va una vez, pegada a la derecha y abajo (x: lo que la separa del borde derecho)
-const aLaDerecha = (nombre, ancho, alto, x, y, pintar) => ({ nombre, ancho, alto, repetir: "no", sitio: { x, lado: "derecha", y, desde: "abajo" }, pintar });
 
 // Una nube esponjosa: bultos de tamaños distintos con la base plana (más grandes hacia el medio),
 // la luz arriba a la izquierda y la sombra abajo
@@ -1857,56 +3296,6 @@ function nubeEsponjosa(l, cx, base, ancho, [claro, medio, sombra], a = 1, semill
   }
 }
 
-// Una peña: arriba casi llana (donde se sienta el Pokémon, en la fila top) y los lados que caen
-// hasta abajo; la cara de la izquierda al sol, la de la derecha en sombra, con grietas
-function pena(l, azar, cx, ancho, top, [luz, base, sombra, grieta], llana = 0.5, hasta = l.alto) {
-  const media = ancho / 2;
-  const arriba = [];
-  for (let x = Math.floor(cx - media); x <= Math.ceil(cx + media); x++) {
-    const d = Math.abs(x + 0.5 - cx) / media;
-    if (d > 1) continue;
-    const caida = Math.max(0, (d - llana) / (1 - llana));
-    arriba.push([x, top + Math.round(caida ** 1.5 * (l.alto - top + 2)) + (azar() < 0.2 ? 1 : 0)]);
-  }
-  for (const [x, y0] of arriba) {
-    const lado = (x + 0.5 - cx) / media;
-    for (let y = y0; y < hasta; y++) {
-      let c = lado < -0.25 ? luz : lado > 0.4 ? sombra : base;
-      if (Math.abs(lado + 0.25) < 0.08 && umbral(x, y) < 0.5) c = base;
-      if (Math.abs(lado - 0.4) < 0.08 && umbral(x, y) < 0.5) c = base;
-      if (y - y0 < 1) c = lado > 0.4 ? base : "#ffffff";
-      else if (y - y0 < 3 && lado <= 0.4) c = luz;
-      l.poner(x, y, c);
-    }
-  }
-  // Grietas: rayitas en diagonal
-  for (let i = 0; i < Math.round(ancho / 6); i++) {
-    let x = Math.round(cx - media * 0.7 + azar() * media * 1.4);
-    let y = top + 5 + Math.floor(azar() * (l.alto - top - 6));
-    for (let k = 0; k < 3 + Math.floor(azar() * 4); k++) {
-      const [, y0] = arriba.find(([px]) => px === x) || [0, 999];
-      if (y > y0 + 1 && y < hasta) l.poner(x, y, grieta);
-      x += azar() < 0.5 ? 1 : 0;
-      y += 1;
-    }
-  }
-}
-
-// Un árbol frondoso: el tronco y la copa hecha de bultos, con luz arriba a la izquierda
-function arbolFrondoso(l, azar, x, base, alto, [oscuro, medio, claro, brillo], tronco = ["#6a4a2a", "#8a6640"]) {
-  const copa = Math.round(alto * 0.62);
-  const r = Math.max(3, Math.round(copa / 2.3));
-  rect(l, x - 1, base - alto + copa - 2, 3, alto - copa + 2, tronco[0]);
-  rect(l, x - 1, base - alto + copa - 2, 1, alto - copa + 2, tronco[1]);
-  const cy = base - alto + r + 1;
-  const bultos = [[0, 0, r], [-r * 0.8, r * 0.45, r * 0.75], [r * 0.8, r * 0.4, r * 0.8], [-r * 0.3, -r * 0.55, r * 0.7], [r * 0.45, -r * 0.35, r * 0.65]]
-    .map(([dx, dy, rr]) => [Math.round(x + dx + (azar() - 0.5)), Math.round(cy + dy), Math.max(2, Math.round(rr))]);
-  for (const [bx, by, br] of bultos) disco(l, bx, by, br, oscuro);
-  for (const [bx, by, br] of bultos) disco(l, bx - 1, by - 1, br - 1, medio);
-  for (const [bx, by, br] of bultos) if (br > 2) disco(l, bx - Math.ceil(br / 2), by - Math.ceil(br / 2), Math.max(1, Math.floor(br / 2.5)), claro);
-  for (const [bx, by, br] of bultos) if (br > 3) l.poner(bx - br + 2, by - br + 2, brillo);
-}
-
 // Un destello de cuatro puntas (grande: con las puntas largas)
 function destello(l, x, y, [color, centro], grande = false, a = 1) {
   mapa(l, x - (grande ? 2 : 1), y - (grande ? 2 : 1), grande
@@ -1914,596 +3303,268 @@ function destello(l, x, y, [color, centro], grande = false, a = 1) {
     : [".a.", "aba", ".a."], { a: color, b: centro }, a);
 }
 
-// Una pared de roca: la parte de la izquierda al sol y la de la derecha en sombra (pasando de una a
-// otra con trama), con vetas en horizontal y alguna grieta; top: la fila de arriba en cada columna
-function roca(l, desde, hasta, top, abajo, [luz, base, sombra, oscuro]) {
-  const azar = azarFijo(`roca-${desde}-${hasta}`);
-  const vetas = Array.from({ length: 12 }, () => [Math.floor(azar() * 8), 3 + Math.floor(azar() * 9)]);
-  for (let x = desde; x <= hasta; x++) {
-    const y0 = Math.round(top(x));
-    const t = (x - desde) / Math.max(1, hasta - desde) + (umbral(x, 0) - 0.5) * 0.12;
-    for (let y = y0; y < abajo; y++) {
-      let c = t < 0.3 ? luz : t < 0.7 ? base : sombra;
-      const [fase, largo] = vetas[Math.floor(y / 6) % vetas.length];
-      if (y % 6 === 0 && (x + fase) % (largo + 4) < largo) c = t < 0.7 ? sombra : oscuro;
-      if (y - y0 < 1) c = t < 0.7 ? "#ffffff" : luz;
-      else if (y - y0 < 2 && t < 0.7) c = luz;
-      l.poner(x, y, c);
-    }
-  }
+// Un fondo de Eevee como estampado: el fondo de su color con un estampado de su tema, una banda arriba y
+// otra abajo con su motivo (dibujada para la de arriba; la de abajo es la misma dada la vuelta), cosas
+// suyas que suben o caen sin parar (burbujas, brasas, hojas...) y el Pokémon al doble (como los
+// legendarios), a la derecha del centro (a la izquierda va la foto), asomando por detrás de la banda de
+// abajo, con la cabeza a ALTO_EEVEE del borde de abajo (así cabe también en la fila de la lista de
+// amigos, que es la más baja).
+const BANDA_EEVEE = 10;
+const ALTO_EEVEE = 60;
+function eeveeEstampado({ comentario, pokemon, cielo, estampado, banda, particula, sube = true }) {
+  const fig = sello(pokemon);
+  // Lo que ocupa de verdad el dibujo: para centrarlo por su cuerpo y ponerle la cabeza a su altura
+  let [x0, x1, y0] = [fig.ancho, 0, fig.alto];
+  fig.pixeles.forEach((c, k) => {
+    if (!c) return;
+    const [x, y] = [k % fig.ancho, Math.floor(k / fig.ancho)];
+    x0 = Math.min(x0, x);
+    x1 = Math.max(x1, x);
+    y0 = Math.min(y0, y);
+  });
+  const [ancho, alto] = [fig.ancho * 2, fig.alto * 2];
+  return {
+    comentario,
+    cielo,
+    animacion: { duracion: 16, pasos: 128, mueve: { particulas: [0, sube ? -256 : 256] } },
+    capas: [
+      { nombre: "banda-arriba", archivo: "banda", ancho: 256, alto: BANDA_EEVEE, repetir: "x", sitio: { y: 0, desde: "arriba" }, pintar: banda },
+      {
+        nombre: "banda-abajo", ancho: 256, alto: BANDA_EEVEE, repetir: "x", sitio: { y: 0, desde: "abajo" },
+        pintar: (l, azar) => banda(espejado(l, false, true), azar)
+      },
+      {
+        nombre: "pokemon", ancho, alto, repetir: "no", recortar: true,
+        sitio: { x: Math.round(60 - (x0 + x1 + 1 - fig.ancho)), lado: "centro", y: ALTO_EEVEE - (alto - y0 * 2), desde: "abajo" },
+        pintar: (l) => pintarFigura({ ...l, poner: (x, y, c, a) => {
+          for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) l.poner(x * 2 + dx, y * 2 + dy, c, a);
+        } }, fig, 0, 0)
+      },
+      { nombre: "particulas", ancho: 128, alto: 128, repetir: "xy", sitio: { x: 20, y: 0, desde: "arriba" }, pintar: particula },
+      { nombre: "estampado", ancho: 32, alto: 32, repetir: "xy", sitio: { y: 0, desde: "arriba" }, pintar: estampado }
+    ]
+  };
 }
 
-// Una mata de hierba alta con la punta clara
-function hierbas(l, x, base, alto, [oscuro, medio, claro]) {
-  for (const [dx, h, lado] of [[0, alto, -1], [2, alto + 2, 0], [4, alto, 1], [1, alto - 2, -1], [3, alto - 1, 1]]) {
-    for (let k = 0; k < h; k++) {
-      const px = x + dx + (k > h * 0.6 ? lado : 0);
-      l.poner(px, base - k, k > h - 3 ? claro : k > h / 2 ? medio : oscuro);
-    }
-  }
-}
-
-// Un diente de león: el tallo y la bola de vilanos
-function dienteDeLeon(l, x, base, alto) {
-  rect(l, x, base - alto, 1, alto, "#6e9a3a");
-  l.poner(x - 1, base - 2, "#86b048");
-  disco(l, x, base - alto - 3, 3, "#f4f1e6");
-  for (const [dx, dy] of [[-4, 0], [4, 0], [0, -4], [-3, -3], [3, -3], [-3, 2], [3, 2]]) l.poner(x + dx, base - alto - 3 + dy, "#ffffff");
-  l.poner(x - 1, base - alto - 4, "#ffffff");
-  l.poner(x + 1, base - alto - 2, "#d8d4c4");
+// Unas cuantas cosas sueltas por la tesela de las partículas (dibujar(l, x, y, i))
+function esparcir(l, azar, n, dibujar) {
+  for (let i = 0; i < n; i++) dibujar(l, Math.floor(azar() * l.ancho), Math.floor(azar() * l.alto), i);
 }
 
 const EEVEE = {
-  // ---------- Eevee: una pradera dorada a media tarde, con dientes de león y sus vilanos volando ----------
-  eevee: (() => {
-    const VERDES = ["#4f8f2e", "#6aa83a", "#8cc44a", "#b6dc6a"];
-    return fondoEevee({
-      comentario: "Eevee: sentado entre la hierba de una pradera dorada a media tarde, con dientes de león, flores y vilanos que vuelan",
-      cielo: "linear-gradient(to bottom, #5fb0ec, #9dd4f6 42%, #ffe2b0 80%, #ffcf8c)",
-      pokemon: "eevee",
-      sitio: { centro: 31, suelo: 54 },
-      capas: [
-        tira("vilanos", (l, azar) => {
-          // Vilanos sueltos: una bolita blanca con su hilo
-          for (let i = 0; i < 18; i++) {
-            const [x, y] = [Math.floor(azar() * l.ancho), 4 + Math.floor(azar() * 44)];
-            l.poner(x, y, "#ffffff");
-            l.poner(x + 1, y, "#f2efe2");
-            l.poner(x, y - 1, "#f2efe2");
-            l.poner(x + 1, y + 1, "#c8c0a8");
-          }
-        }, 60, 26),
-        tira("pradera", (l, azar) => {
-          suelo(l, 50, ["#a6d05a", "#94c24e", "#80b244", "#6aa03a", "#5a8e30"], 1);
-          for (let i = 0; i < 70; i++) {
-            const x = Math.floor(azar() * l.ancho);
-            const y = 52 + Math.floor(azar() * 40);
-            hierbas(l, x, y, 3 + Math.floor((y - 50) / 9), VERDES);
-          }
-          for (const [x, alto] of [[14, 13], [46, 9], [92, 15], [128, 11], [168, 14], [206, 10], [238, 16]]) dienteDeLeon(l, x, 54 + (x % 5), alto);
-          for (let i = 0; i < 40; i++) {
-            const [x, y] = [Math.floor(azar() * l.ancho), 52 + Math.floor(azar() * 38)];
-            const c = ["#ffe066", "#ffffff", "#ff9ab8", "#ffd23a"][i % 4];
-            l.poner(x, y, c);
-            if (i % 3 === 0) { l.poner(x - 1, y + 1, c); l.poner(x + 1, y + 1, c); l.poner(x, y + 1, "#f0a030"); }
-          }
-        }),
-        tira("colinas", (l, azar) => {
-          monte(l, azar, { base: 46, alto: 14, ondas: [[1, 0.3], [3, 0.12]], color: "#86b8a4", claro: "#a6d0bc", a: 1, hasta: 52 });
-          const loma = monte(l, azar, { base: 52, alto: 9, ondas: [[2, 0.35], [5, 0.12]], color: "#8cbc52", claro: "#a8d264", a: 1, hasta: 54 });
-          for (const x of [20, 58, 64, 150, 196, 202]) arbol(l, x, loma[x] + 1, 7 + (x % 4), ["#3e7a36", "#5a9a44", "#9ad070"], 1);
-        }),
-        { nombre: "nubes", ancho: 256, alto: 40, repetir: "x", sitio: { y: 6, desde: "arriba" }, pintar(l, azar) {
-          for (let i = 0; i < 3; i++) nubeEsponjosa(l, 30 + i * 86 + Math.floor(azar() * 20), 18 + Math.floor(azar() * 12), 10 + Math.floor(azar() * 6), ["#ffffff", "#fff4e6", "#f2cfb4"]);
-        } }
-      ],
-      deriva: { duracion: 128, pasos: 256, mueve: { nubes: [-256, 0], vilanos: [-512, 0] } }
-    });
-  })(),
-
-  // ---------- Vaporeon: en una roca de la laguna, junto a una cascada que cae entre rocas ----------
-  vaporeon: (() => {
-    const ROCA = ["#b4c2d6", "#8a9cb8", "#64789a", "#4a5a7c"];
-    // La cascada: franjas que bajan (cada dibujo, un poco más abajo) y la espuma de abajo
-    const cascada = (k) => aLaDerecha(`cascada-${k}`, 28, 50, 66, 30, (l) => {
-      for (let x = 0; x < l.ancho; x++) {
-        for (let y = 0; y < 44; y++) {
-          const franja = (x * 7 + Math.floor((y - k * 3 + 60) / 3)) % 6;
-          const borde = x < 2 || x > l.ancho - 3;
-          l.poner(x, y, borde ? "#7ac4ec" : franja === 0 ? "#ffffff" : franja < 3 ? "#bfe8fb" : "#86cdf2");
-        }
-        l.poner(x, 0, "#e8f8ff");
+  eevee: eeveeEstampado({
+    pokemon: "eevee",
+    comentario: "Eevee: crema con huellas, bandas de pelo pardo con el collar de pelusa crema, motas de pelusa que suben y Eevee sentado",
+    cielo: "linear-gradient(160deg, #fff4e2, #f8e2c6 55%, #f0cea8)",
+    estampado(l) {
+      for (const [x, y, color, a] of [[6, 8, "#c89a6a", 0.35], [22, 24, "#ffffff", 0.6]]) {
+        rect(l, x, y + 2, 3, 2, color, a);
+        for (const [dx, dy] of [[-1, 0], [1, -1], [3, 0]]) l.poner(x + dx, y + dy, color, a);
       }
-      for (let i = 0; i < 26; i++) {
-        const x = ((i * 11 + k * 5) % (l.ancho + 6)) - 3;
-        const y = 42 + ((i * 7 + k * 3) % 7);
-        disco(l, x, y, 1 + ((i + k) % 2), "#ffffff");
+    },
+    banda(l, azar) {
+      rect(l, 0, 0, l.ancho, 5, "#a8703a");
+      rect(l, 0, 0, l.ancho, 1, "#7a4e26");
+      for (let x = 0; x < l.ancho; x += 6) {
+        const r = 2 + (azar() < 0.3 ? 1 : 0);
+        disco(l, x + 3, 5, r, "#f6e6c8");
+        l.poner(x + 2, 4, "#ffffff");
       }
-    });
-    const cascadas = [0, 1, 2].map(cascada);
-    // Brillos en el agua: dos dibujos que se turnan
-    const brillos = [0, 1].map((k) => tira(`brillos-${k}`, (l, azar) => {
-      for (let i = 0; i < 26; i++) {
-        const [x, y] = [Math.floor(azar() * l.ancho), 4 + Math.floor(azar() * 30)];
-        rect(l, x + k * 3, y, 2 + (i % 3), 1, i % 4 ? "#d4f2ff" : "#ffffff");
-      }
-    }, 36));
-    return fondoEevee({
-      comentario: "Vaporeon: en una roca de la laguna, junto a una cascada que cae entre rocas con musgo, con espuma y brillos en el agua",
-      cielo: "linear-gradient(to bottom, #4cacf0, #8ad2fa 55%, #c4ecff)",
-      pokemon: "vaporeon",
-      sitio: { centro: 26, suelo: 54 },
-      capas: [
-        ...cascadas,
-        aLaDerecha("orilla", 60, 8, 4, ALTO - 66, (l) => {
-          // El agua que rodea la roca, con espuma: va delante de la roca
-          for (let x = 0; x < l.ancho; x++) for (let y = 2; y < l.alto; y++) l.poner(x, y, y < 4 ? "#a8e0fa" : "#4aa6e0");
-          for (let x = 2; x < l.ancho - 2; x += 1) if ((x * 5) % 7 < 4) l.poner(x, 2 + (x % 2), "#ffffff");
-        }),
-        aLaDerecha("rocas", 124, ALTO, 0, 0, (l, azar) => {
-          // Las paredes de roca a los dos lados de la cascada (que cae entre la columna 66 y la 94
-          // contando desde la derecha: aquí, de 30 a 58), con musgo arriba
-          const top = (x) => (x < 30 ? 14 + ((29 - x) / 29) ** 1.4 * 44 + Math.sin(x / 3) : x > 58 ? 14 + (x - 59) * 0.25 + Math.sin(x / 4) * 1.5 : 99);
-          roca(l, 0, 29, top, 62, ROCA);
-          roca(l, 59, 123, top, 62, ROCA);
-          for (let x = 0; x < l.ancho; x++) {
-            if (x >= 30 && x <= 58) continue;
-            const y0 = Math.round(top(x));
-            for (let k = -2; k < 1; k++) l.poner(x, y0 + k, k === -2 ? "#9ad86a" : (x + k) % 3 ? "#5aa83e" : "#3e8a32");
-            if (x % 9 === 3) mata(l, x - 4, y0 - 1, 6, ["#3e8a32", "#7ac456", "#2e6e2a"], 1);
-          }
-          // La roca de Vaporeon, en el agua (lo de abajo lo tapa la laguna, que va delante)
-          pena(l, azar, 92, 56, 53, ["#d2dcea", "#a2b2c8", "#76889e", "#56647e"], 0.55, 64);
-        }),
-        ...brillos,
-        tira("laguna", (l) => {
-          for (let y = 56; y < l.alto; y++) {
-            const t = (y - 56) / (l.alto - 56);
-            for (let x = 0; x < l.ancho; x++) l.poner(x, y, t + umbral(x, y) * 0.5 - 0.25 < 0.35 ? "#4aa6e0" : t + umbral(x, y) * 0.5 - 0.25 < 0.7 ? "#3290d0" : "#2378bc");
-          }
-          for (let x = 0; x < l.ancho; x++) l.poner(x, 56, "#a8e0fa");
-        }),
-        tira("lejos", (l, azar) => {
-          monte(l, azar, { base: 46, alto: 22, ondas: [[1, 0.35], [3, 0.12], [7, 0.04]], color: "#7c9ad0", claro: "#a2bce4", a: 1, hasta: 58, nieve: 30 });
-          for (let i = 0; i < 26; i++) {
-            const x = Math.floor((i * l.ancho) / 26 + azar() * 6);
-            abeto(l, x, 57, 10 + Math.floor(azar() * 9), ["#2e6a4a", "#3e845a", "#5aa070"], 1);
-          }
-          rect(l, 0, 56, l.ancho, 2, "#2e6a4a");
-        }),
-        NUBES_DE_DIA
-      ],
-      turnosEscena: [{ capas: cascadas, pasos: ciclo(64, 3) }, { capas: brillos, pasos: ciclo(8, 2) }],
-      deriva: { duracion: 128, pasos: 256, mueve: { nubes: [-256, 0] } }
-    });
-  })(),
-
-  // ---------- Jolteon: en un peñasco de un prado, con tormenta al atardecer, rayos y chispas ----------
-  jolteon: (() => {
-    const chispas = [0, 1, 2].map((k) => aLaDerecha(`chispas-${k}`, 60, 56, 0, ALTO - SUELO - 4, (l) => {
-      if (k === 0) return;
-      const sitios = k === 1 ? [[8, 14], [52, 8], [44, 40], [14, 44]] : [[4, 30], [56, 26], [30, 2], [50, 50]];
-      for (const [x, y] of sitios) {
-        mapa(l, x - 2, y - 2, k === 1 ? ["a...", ".ab.", "..ba", "...a"] : ["...a", ".ba.", ".ab.", "a..."], { a: "#fff36a", b: "#ffffff" });
-      }
-    }));
-    const rayos = [0, 1].map((k) => ({ nombre: `rayo-${k}`, ancho: 256, alto: 50, repetir: "x", sitio: { y: 6, desde: "arriba" }, pintar(l) {
-      if (k === 0) return;
-      for (const [x0, largo] of [[60, 44], [196, 34]]) {
-        let [x, y] = [x0, 0];
-        for (let lado = 1; y < largo; lado = -lado) {
-          for (let n = 0; n < 4 && y < largo; n++) {
-            x += lado;
-            y += 1;
-            brillo(l, x, y, 3, "#fff6b0", 0.5, 0.45);
-            l.poner(x, y, "#ffffff");
-            l.poner(x + 1, y, "#fff36a");
-          }
-        }
-      }
-    } }));
-    return fondoEevee({
-      comentario: "Jolteon: en un peñasco de un prado de hierba amarilla, con una tormenta al atardecer, rayos y chispas a su alrededor",
-      cielo: "linear-gradient(to bottom, #2c2266, #5c3c96 38%, #c86494 72%, #ffa070)",
-      pokemon: "jolteon",
-      sitio: { centro: 37, suelo: 54 },
-      delante: chispas,
-      capas: [
-        aLaDerecha("pena", 76, 40, 0, 0, (l, azar) => {
-          pena(l, azar, 39, 66, 1, ["#b8a2d2", "#8672aa", "#5e4e84", "#3e3460"]);
-        }),
-        tira("prado", (l, azar) => {
-          suelo(l, 52, ["#c8b040", "#a89434", "#8a7a2c", "#6e6226"], 1);
-          for (let x = 0; x < l.ancho; x += 2) {
-            const alto = 4 + Math.floor(azar() * 6);
-            const base = 54 + Math.floor(azar() * 38);
-            for (let k = 0; k < alto; k++) l.poner(x + (k > alto / 2 ? 1 : 0), base - k, k > alto - 3 ? "#fff07a" : "#e0c030");
-          }
-        }),
-        tira("lejos", (l, azar) => {
-          monte(l, azar, { base: 46, alto: 12, ondas: [[1, 0.3], [4, 0.1]], color: "#6a4a8a", claro: "#8a64a6", a: 1, hasta: 54 });
-          monte(l, azar, { base: 52, alto: 5, ondas: [[3, 0.3], [7, 0.1]], color: "#8a6a5a", claro: "#a8806a", a: 1, hasta: 54 });
-          for (const x of [40, 168]) {
-            rect(l, x, 26, 2, 26, "#3a2c4a");
-            rect(l, x - 5, 27, 12, 1, "#3a2c4a");
-          }
-          for (let x = 0; x < l.ancho; x++) {
-            const t = ((x - 40 + 256) % 128) / 128;
-            l.poner(x, 27 + Math.round(Math.sin(t * Math.PI) * 6), "#2a2038");
-          }
-        }),
-        ...rayos,
-        { nombre: "nubes", ancho: 256, alto: 30, repetir: "x", sitio: { y: 0, desde: "arriba" }, pintar(l, azar) {
-          // El techo de nubes: oscuro arriba y, abajo, bultos más claros por donde les da la luz
-          const fases = [0, 1, 2].map(() => azar() * Math.PI * 2);
-          for (let x = 0; x < l.ancho; x++) {
-            const borde = 9 + Math.sin((2 * Math.PI * 4 * x) / l.ancho + fases[0]) * 3 + Math.sin((2 * Math.PI * 9 * x) / l.ancho + fases[1]) * 2
-              + Math.abs(Math.sin((2 * Math.PI * 16 * x) / l.ancho + fases[2])) * 3;
-            for (let y = 0; y < borde; y++) {
-              const hondo = borde - y;
-              l.poner(x, y, hondo < 2 ? "#9a86c0" : hondo < 4 && umbral(x, y) < 0.6 ? "#7a68a6" : y < 3 ? "#3a2e62" : "#56478a");
-            }
-          }
-          for (let i = 0; i < 4; i++) nubeEsponjosa(l, 20 + i * 64 + Math.floor(azar() * 20), 18 + Math.floor(azar() * 6), 9 + Math.floor(azar() * 5), ["#a490c8", "#7a68a6", "#56478a"]);
-        } }
-      ],
-      turnosEscena: [
-        { capas: chispas, pasos: ciclo(16, 3) },
-        { capas: rayos, pasos: [[0, 0], [0.3, 1], [0.32, 0], [0.34, 1], [0.37, 0], [0.75, 1], [0.78, 0]] }
-      ],
-      deriva: { duracion: 96, pasos: 256, mueve: { nubes: [-256, 0] } }
-    });
-  })(),
-
-  // ---------- Flareon: junto a una hoguera al atardecer, con chispas que suben y árboles de otoño ----------
-  flareon: (() => {
-    const FUEGO = (k) => aLaDerecha(`fuego-${k}`, 22, 26, 58, ALTO - 58, (l) => {
-      // Una llama grande en medio y dos pequeñas a los lados: anchas abajo, en punta arriba y
-      // ladeadas por el aire, con el corazón amarillo; en cada dibujo, de otro alto y otro vaivén
-      const llamas = [[11, [22, 25, 20][k], 6, [0, 1, -1][k]], [5, [11, 8, 12][k], 3.4, [-1, 0, 1][k]], [17, [9, 12, 8][k], 3.4, [1, -1, 0][k]]];
-      for (const [cx, h, ancho, vaiven] of llamas) {
-        for (let y = 0; y < h; y++) {
-          const t = y / h;
-          // Ancha abajo (lo más ancho, a un tercio) y en punta arriba
-          const media = (ancho / 2) * (t < 0.3 ? 0.75 + (t / 0.3) * 0.25 : (1 - (t - 0.3) / 0.7) ** 1.2);
-          const centro = cx + Math.round(vaiven * Math.sin(t * Math.PI) * 1.6 + vaiven * t * t * 2);
-          for (let dx = -Math.round(media); dx <= Math.round(media); dx++) {
-            const r = Math.abs(dx) / Math.max(0.5, media);
-            const c = r > 0.75 || t > 0.8 ? "#e8441e" : r > 0.4 || t > 0.55 ? "#ff8a2a" : t < 0.3 && r < 0.25 ? "#fffbe0" : "#ffd84a";
-            l.poner(centro + dx, l.alto - 1 - y, c);
-          }
-        }
-      }
-    });
-    const fuegos = [0, 1, 2].map(FUEGO);
-    const chispas = [0, 1, 2].map((k) => aLaDerecha(`chispas-${k}`, 30, 40, 54, ALTO - SUELO + 18, (l) => {
-      for (let i = 0; i < 7; i++) {
-        const x = (i * 9 + k * 4) % 30;
-        const y = (i * 13 + k * 9) % 40;
-        l.poner(x, y, ["#ffd060", "#ff8a2a", "#fff3a0"][(i + k) % 3]);
-      }
-    }));
-    return fondoEevee({
-      comentario: "Flareon: junto a una hoguera al atardecer, con la llama que baila, chispas que suben y árboles de otoño",
-      cielo: "linear-gradient(to bottom, #3c2a70, #8c3c82 38%, #f0684e 72%, #ffb464)",
-      pokemon: "flareon",
-      sitio: { centro: 31, suelo: 55 },
-      delante: [...fuegos, ...chispas],
-      capas: [
-        aLaDerecha("hoguera", 100, 46, 0, 0, (l) => {
-          // El resplandor en el suelo, las piedras y los troncos
-          brillo(l, 31, 12, 26, "#ffb050", 0.6, 1);
-          for (const [dx, dy] of [[-12, 1], [12, 1], [-8, 3], [8, 3], [0, 4], [-14, 3], [14, 3]]) disco(l, 31 + dx, 14 + dy, 2, dx < 0 ? "#a8a0a8" : "#7a727e");
-          rect(l, 19, 13, 24, 2, "#6a4428");
-          for (let k = 0; k < 20; k++) l.poner(21 + k, 11 + (Math.floor(k / 4) % 2), "#5a3820");
-        }),
-        tira("suelo", (l, azar) => {
-          suelo(l, 52, ["#8a5a3a", "#76482e", "#623a26", "#4e2e20"], 1);
-          for (let i = 0; i < 70; i++) {
-            const [x, y] = [Math.floor(azar() * l.ancho), 54 + Math.floor(azar() * 38)];
-            l.poner(x, y, ["#e0782c", "#c8462a", "#f0b040", "#a8401e"][i % 4]);
-            if (i % 2) l.poner(x + 1, y, ["#e0782c", "#c8462a", "#f0b040", "#a8401e"][(i + 1) % 4]);
-          }
-        }),
-        tira("bosque", (l, azar) => {
-          monte(l, azar, { base: 40, alto: 14, ondas: [[1, 0.3], [3, 0.12]], color: "#8a4a7a", claro: "#a85e8e", a: 1, hasta: 54 });
-          const colores = [["#8e2a20", "#c0442a", "#e8743c", "#ffb070"], ["#9a5a10", "#d08a20", "#f2b440", "#ffe08a"], ["#7a2a3a", "#a83a3c", "#d85a4a", "#ff9a7a"]];
-          for (let i = 0; i < 11; i++) {
-            const x = Math.floor((i * l.ancho) / 11 + azar() * 10);
-            arbolFrondoso(l, azar, x, 54, 16 + Math.floor(azar() * 9), colores[i % 3], ["#4a2a20", "#6a3e2a"]);
-          }
-          rect(l, 0, 52, l.ancho, 2, "#6a3a26");
-        })
-      ],
-      turnosEscena: [{ capas: fuegos, pasos: ciclo(32, 3) }, { capas: chispas, pasos: ciclo(16, 3) }]
-    });
-  })(),
-
-  // ---------- Espeon: en un risco, al amanecer, con el sol saliendo tras montañas lilas ----------
-  espeon: (() => {
-    const destellos = [0, 1].map((k) => ({ nombre: `destellos-${k}`, ancho: 256, alto: 60, repetir: "x", sitio: { y: 4, desde: "arriba" }, pintar(l, azar) {
-      for (let i = 0; i < 9; i++) {
-        const [x, y] = [Math.floor(azar() * l.ancho), Math.floor(azar() * 56)];
-        destello(l, (x + k * 97) % l.ancho, y, ["#ffd8f6", "#ffffff"], i % 3 === 0);
-      }
-    } }));
-    return fondoEevee({
-      comentario: "Espeon: en un risco al amanecer, con el sol saliendo detrás de montañas lilas, nubes rosas y destellos que titilan",
-      cielo: "linear-gradient(to bottom, #7e62cc, #c884d2 38%, #ff9eb8 68%, #ffd29c)",
-      pokemon: "espeon",
-      sitio: { centro: 37, suelo: 54 },
-      capas: [
-        aLaDerecha("risco", 76, 40, 0, 0, (l, azar) => {
-          pena(l, azar, 39, 70, 1, ["#e0cdf0", "#ae96cc", "#806aa6", "#5c4a80"], 0.45);
-          for (const x of [14, 22, 58]) mapa(l, x, 0, [".a.", "aba"], { a: "#ff9ac8", b: "#ffe070" });
-        }),
-        aLaDerecha("sol", 64, 36, 58, ALTO - 50, (l) => {
-          for (let y = 0; y < l.alto; y++) {
-            for (let x = 0; x < l.ancho; x++) {
-              const d = Math.hypot(x - 32, y - 34);
-              if (d <= 20) l.poner(x, y, d < 13 ? "#fff6d0" : d < 17 || umbral(x, y) < 0.5 ? "#ffd27a" : "#ffa0b0");
-              else if (d < 31 && umbral(x, y) < 0.5 * (1 - (d - 20) / 11)) l.poner(x, y, "#ffd0dc");
-            }
-          }
-        }),
-        tira("montanas", (l, azar) => {
-          monte(l, azar, { base: 50, alto: 26, ondas: [[2, 0.35], [5, 0.12], [11, 0.04]], color: "#a080c8", claro: "#c4a6e4", a: 1, hasta: 60, nieve: 30 });
-          monte(l, azar, { base: 56, alto: 10, ondas: [[3, 0.3], [7, 0.1]], color: "#7a5aa8", claro: "#9474c0", a: 1, hasta: 62 });
-          suelo(l, 58, ["#7a5aa8", "#6a4c96", "#5a3e84", "#4c3474"], 1);
-          for (let i = 0; i < 30; i++) l.poner(Math.floor(azar() * l.ancho), 60 + Math.floor(azar() * 30), i % 2 ? "#c8a2e8" : "#ff9ac8");
-        }),
-        ...destellos,
-        { nombre: "nubes", ancho: 256, alto: 40, repetir: "x", sitio: { y: 4, desde: "arriba" }, pintar(l, azar) {
-          for (let i = 0; i < 5; i++) {
-            const x = Math.floor(azar() * l.ancho);
-            const y = 6 + Math.floor(azar() * 26);
-            const largo = 22 + Math.floor(azar() * 22);
-            for (let k = 0; k < largo; k++) l.poner(x + k, y + (k > 3 && k < largo - 3 ? 0 : 1), "#ffc4dc");
-            for (let k = 3; k < largo - 6; k++) l.poner(x + k + 2, y - 1, "#ffe8f2");
-          }
-        } }
-      ],
-      turnosEscena: [{ capas: destellos, pasos: ciclo(6, 2) }],
-      deriva: { duracion: 160, pasos: 256, mueve: { nubes: [-256, 0] } }
-    });
-  })(),
-
-  // ---------- Umbreon: en una roca bajo la luna llena, con el bosque de noche y luces de anillo ----------
-  umbreon: (() => {
-    const estrellas = [0, 1].map((k) => ({ nombre: `estrellas-${k}`, ancho: 128, alto: 64, repetir: "xy", sitio: { y: 2, desde: "arriba" }, pintar(l, azar) {
-      for (let i = 0; i < 16; i++) {
-        const [x, y] = [Math.floor(azar() * l.ancho), Math.floor(azar() * l.alto)];
-        if (i % 4 === k * 2) destello(l, x, y, ["#c8d0ff", "#ffffff"]);
-        else l.poner(x, y, i % 3 ? "#e8ecff" : "#ffffff");
-      }
-    } }));
-    const luces = [0, 1].map((k) => tira(`luces-${k}`, (l) => {
-      for (const [x, y] of [[18, 26], [62, 36], [100, 20], [150, 32], [196, 24], [236, 38]]) {
-        const [px, py] = [(x + k * 9) % 256, y + (k ? -3 : 0)];
-        brillo(l, px + 1, py + 1, 5, "#ffe680", 0.5, 1);
-        mapa(l, px, py, ["aaa", "a.a", "aaa"], { a: k ? "#fff07a" : "#ffd84a" });
-      }
-    }, 60, 30));
-    return fondoEevee({
-      comentario: "Umbreon: en una roca bajo la luna llena, con el bosque de noche, estrellas que titilan, luces en forma de anillo y sus anillos que brillan",
-      cielo: "linear-gradient(to bottom, #141a4c, #22307a 50%, #33489a)",
-      pokemon: "umbreon",
-      sitio: { centro: 37, suelo: 54 },
-      capas: [
-        ...luces,
-        aLaDerecha("roca", 76, 40, 0, 0, (l, azar) => {
-          pena(l, azar, 39, 66, 1, ["#8692c4", "#56629a", "#3a4472", "#262c50"]);
-        }),
-        aLaDerecha("luna", 44, 44, 60, ALTO - 56, (l) => {
-          brillo(l, 22, 22, 21, "#fff6c0", 0.55, 1);
-          disco(l, 22, 22, 12, "#ffe680");
-          disco(l, 20, 20, 9, "#fff4b8");
-          for (const [x, y, r] of [[26, 25, 2], [17, 24, 1], [24, 16, 1], [19, 27, 1]]) disco(l, x, y, r, "#f0d468");
-        }),
-        tira("bosque", (l, azar) => {
-          for (let i = 0; i < 22; i++) abeto(l, Math.floor((i * l.ancho) / 22 + azar() * 6), 54, 14 + Math.floor(azar() * 14), ["#141a3a", "#1e2650", "#2c3868"], 1);
-          suelo(l, 53, ["#1e2a52", "#1a2448", "#161f3e", "#121a34"], 1);
-          for (let y = 60; y < 70; y++) {
-            const media = Math.round(34 * Math.sqrt(Math.max(0, 1 - ((y - 65) / 5.5) ** 2)));
-            for (let dx = -media; dx <= media; dx++) l.poner(70 + dx, y, (dx + y) % 7 ? "#2c3c7a" : "#3a4c90");
-          }
-          for (let y = 61; y < 69; y += 2) rect(l, 64 + (y % 4), y, 12 - (y - 61), 1, "#ffe680");
-        }),
-        ...estrellas
-      ],
-      turnosEscena: [{ capas: estrellas, pasos: ciclo(8, 2) }, { capas: luces, pasos: ciclo(4, 2) }]
-    });
-  })(),
-
-  // ---------- Leafeon: en el tocón musgoso de un bosque soleado, con helechos y hojas que vuelan ----------
-  leafeon: (() => {
-    // Mariposas que abren y cierran las alas, y motas de luz que titilan entre los árboles
-    const mariposas = [0, 1].map((k) => tira(`mariposas-${k}`, (l) => {
-      for (const [x, y, ala] of [[24, 10, "#ffe066"], [70, 22, "#ffffff"], [118, 8, "#ff9ac8"], [168, 18, "#9ad0ff"], [214, 12, "#ffe066"]]) {
-        mapa(l, x - 2, y - 1, k ? ["a.a", ".k.", "a.a"] : ["aa.aa", "aakaa", ".a.a."], { a: ala, k: "#3a2e2a" });
-      }
-    }, 40, 44));
-    const motas = [0, 1].map((k) => tira(`motas-${k}`, (l, azar) => {
-      for (let i = 0; i < 16; i++) {
-        const [x, y] = [Math.floor(azar() * l.ancho), Math.floor(azar() * 44)];
-        if ((i + k) % 2) destello(l, x, y, ["#fff6b0", "#ffffff"]);
-        else l.poner(x, y, "#fffbd8");
-      }
-    }, 48, 40));
-    return fondoEevee({
-      comentario: "Leafeon: en un tocón con musgo en un bosque soleado, con rayos de luz, helechos, setas, flores, mariposas, motas de luz y hojas que vuelan",
-      cielo: "linear-gradient(to bottom, #6cc8f2, #b4e6cc 52%, #e6f6bc)",
-      pokemon: "leafeon",
-      sitio: { centro: 38, suelo: 54 },
-      capas: [
-        ...mariposas,
-        ...motas,
-        aLaDerecha("tocon", 76, 40, 0, 0, (l) => {
-          // El tocón: el corte de arriba (claro, con sus anillos), la corteza que se ensancha abajo en
-          // raíces y el musgo que cae por los lados
-          for (let y = 1; y < l.alto; y++) {
-            const abre = y > 12 ? Math.round(((y - 12) / (l.alto - 12)) ** 1.6 * 12) : 0;
-            for (let x = 12 - abre; x < 64 + abre; x++) {
-              const t = (x - (12 - abre)) / (52 + abre * 2);
-              l.poner(x, y, t < 0.08 || t > 0.92 ? "#4a2e18" : t < 0.3 ? "#9a6e40" : t < 0.7 ? "#7e5630" : "#5e3e22");
-              if (x % 5 === 0 && y > 4 && umbral(x, y) < 0.6) l.poner(x, y, "#4e3420");
-            }
-          }
-          for (let x = 12; x < 64; x++) {
-            l.poner(x, 0, "#e0bc86");
-            l.poner(x, 1, (x - 38) % 7 === 0 ? "#b08a58" : "#d4ae76");
-            l.poner(x, 2, "#b08a58");
-          }
-          for (let x = 10; x < 66; x++) if ((x * 7) % 5 < 3) rect(l, x, 1 + ((x * 3) % 3), 1, 2 + ((x * 5) % 7), x % 2 ? "#5aa83e" : "#7ac456");
-          for (const x of [0, 64]) mata(l, x, l.alto - 1, 10, ["#3e8a32", "#7ac456", "#2e6e2a"], 1);
-        }),
-        tira("hojas", (l, azar) => {
-          for (let i = 0; i < 12; i++) {
-            const [x, y] = [Math.floor(azar() * l.ancho), Math.floor(azar() * 50)];
-            mapa(l, x, y, i % 2 ? ["..a", ".ab", "ab."] : ["a..", "ba.", ".ba"], { a: "#9ae070", b: "#4a8a3a" });
-          }
-        }, 56, 30),
-        tira("helechos", (l, azar) => {
-          suelo(l, 52, ["#6aae46", "#5a9c3c", "#4a8a34", "#3c782c"], 1);
-          for (let i = 0; i < 20; i++) {
-            const x = Math.floor(azar() * l.ancho);
-            const y = 56 + Math.floor(azar() * 34);
-            for (let k = 1; k <= 5; k++) {
-              l.poner(x - k, y - k + 1, "#7ad060");
-              l.poner(x + k, y - k + 1, "#5ab048");
-              l.poner(x - k, y - k + 2, "#3e8a32");
-            }
-            l.poner(x, y - 4, "#9ae070");
-          }
-          for (let i = 0; i < 26; i++) {
-            const [x, y] = [Math.floor(azar() * l.ancho), 54 + Math.floor(azar() * 36)];
-            mapa(l, x, y, [".a.", "aba"], { a: ["#ffffff", "#ffe066", "#ff9ab8"][i % 3], b: "#f0a030" });
-          }
-          // Setas rojas con puntos blancos y arbustos con bayas
-          for (const [x, y] of [[30, 58], [36, 60], [104, 57], [176, 59], [182, 61], [236, 58]]) {
-            mapa(l, x - 2, y - 3, [".rrr.", "rwrwr", "rrrrr", "..c..", "..c.."], { r: "#d8382a", w: "#ffffff", c: "#f2e6cc" });
-          }
-          for (const x of [60, 150, 222]) {
-            disco(l, x, 60, 5, "#3e8a32");
-            disco(l, x - 1, 59, 4, "#5aac44");
-            for (const [dx, dy] of [[-2, -1], [2, 0], [0, 2], [-3, 2], [3, -2]]) l.poner(x + dx, 60 + dy, "#e83a5a");
-          }
-        }),
-        tira("bosque", (l, azar) => {
-          // Rayos de luz entre los árboles
-          for (const x0 of [30, 110, 190]) {
-            for (let y = 0; y < 52; y++) for (let k = 0; k < 10; k++) if (umbral(x0 + k + y * 0.5, y) < 0.22) l.poner(x0 + k + Math.round(y * 0.5), y, "#fff8c8");
-          }
-          // Dos filas de árboles: los de atrás más pequeños y azulados, los de delante más vivos
-          for (let i = 0; i < 12; i++) {
-            arbolFrondoso(l, azar, Math.floor((i * l.ancho) / 12 + azar() * 8), 50, 24 + Math.floor(azar() * 8), ["#4a8a6a", "#5ea07a", "#7cbc90", "#a8dcb4"], ["#5a5a4a", "#6e6e5a"]);
-          }
-          for (let i = 0; i < 8; i++) {
-            arbolFrondoso(l, azar, Math.floor((i * l.ancho) / 8 + 14 + azar() * 10), 55, 34 + Math.floor(azar() * 10), ["#2e7a2e", "#46983a", "#6cbc4a", "#a6e070"]);
-          }
-          monte(l, azar, { base: 55, alto: 4, ondas: [[3, 0.3], [6, 0.1]], color: "#4a9a40", claro: "#6ab852", a: 1, hasta: 57 });
-        })
-      ],
-      turnosEscena: [{ capas: mariposas, pasos: ciclo(16, 2) }, { capas: motas, pasos: ciclo(6, 2) }],
-      deriva: { duracion: 64, pasos: 256, mueve: { hojas: [-256, 0] } }
-    });
-  })(),
-
-  // ---------- Glaceon: en un bloque de hielo de un glaciar, con polvo de diamante que brilla ----------
-  glaceon: (() => {
-    const polvo = [0, 1, 2].map((k) => ({ nombre: `polvo-${k}`, ancho: 96, alto: 96, repetir: "xy", sitio: { y: 0, desde: "arriba" }, pintar(l, azar) {
-      for (let i = 0; i < 14; i++) {
-        const [x, y] = [Math.floor(azar() * 96), Math.floor(azar() * 96)];
-        if ((i + k) % 3 === 0) destello(l, x, y, ["#c4f2ff", "#ffffff"], i % 2 === 0);
-        else l.poner(x, y, "#ffffff");
-      }
-    } }));
-    return fondoEevee({
-      comentario: "Glaceon: en un bloque de hielo de un glaciar, con montañas nevadas, acantilados de hielo y polvo de diamante que brilla",
-      cielo: "linear-gradient(to bottom, #4aa6ea, #8ed0f6 50%, #d6f2ff)",
-      pokemon: "glaceon",
-      sitio: { centro: 38, suelo: 54 },
-      capas: [
-        ...polvo,
-        aLaDerecha("bloque", 76, 40, 0, 0, (l) => {
-          // Un bloque de hielo con la cara de arriba llana y las de los lados en ángulo, más anchas
-          // abajo; brillos en diagonal
-          for (let y = 1; y < l.alto; y++) {
-            const abre = Math.round(y * 0.3);
-            for (let x = 10 - abre; x < 66 + abre; x++) {
-              const t = (x - (10 - abre)) / (56 + abre * 2);
-              let c = t < 0.22 ? "#ecfbff" : t < 0.72 ? "#a6e2f6" : "#6eb8de";
-              if (y < 3) c = "#ffffff";
-              if ((x + y) % 17 === 0 && t < 0.72) c = "#ffffff";
-              if (Math.abs(t - 0.22) < 0.012 || Math.abs(t - 0.72) < 0.012) c = "#d6f6ff";
-              l.poner(x, y, c);
-            }
-          }
-        }),
-        tira("glaciar", (l, azar) => {
-          let x = 0;
-          while (x < l.ancho) {
-            const ancho = 12 + Math.floor(azar() * 14);
-            const alto = 12 + Math.floor(azar() * 16);
-            for (let dx = 0; dx < ancho; dx++) {
-              const pico = Math.round(alto - Math.abs(dx - ancho / 2) * 0.9);
-              for (let y = 54 - pico; y < 56; y++) l.poner(x + dx, y, dx < ancho / 2 ? "#e2f8ff" : (dx + y) % 6 ? "#9ad8f0" : "#b8e6f8");
-            }
-            x += ancho - 2;
-          }
-          suelo(l, 54, ["#f6fcff", "#e2f2fc", "#cce4f4", "#b6d6ee"], 1);
-          for (let i = 0; i < 40; i++) l.poner(Math.floor(azar() * l.ancho), 58 + Math.floor(azar() * 32), "#ffffff");
-        }),
-        tira("montanas", (l, azar) => {
-          monte(l, azar, { base: 44, alto: 26, ondas: [[1, 0.4], [3, 0.14], [8, 0.04]], color: "#8ab0dc", claro: "#aecaec", a: 1, hasta: 56, nieve: 40 });
-        })
-      ],
-      turnosEscena: [{ capas: polvo, pasos: ciclo(12, 3) }]
-    });
-  })(),
-
-  // ---------- Sylveon: sentado en una nube, con cintas rosas y azules que ondean, corazones y destellos ----------
-  sylveon: (() => {
-    const CINTAS = [["#ff8ac0", "#ffc8e0"], ["#6ab0ff", "#c4dcff"]];
-    const cintas = [0, 1].map((k) => tira(`cintas-${k}`, (l) => {
-      // Dos cintas que ondulan (cada dibujo, con la onda algo más adelante)
-      [[20, 6, 2, 0, 4], [30, 5, 3, 1.5, 3]].forEach(([y0, alto, vueltas, fase, grueso], i) => {
-        for (let x = 0; x < l.ancho; x++) {
-          const y = Math.round(y0 + Math.sin((2 * Math.PI * vueltas * x) / l.ancho + fase + k * 0.8) * alto);
-          for (let n = 0; n < grueso; n++) l.poner(x, y + n, n === 0 ? CINTAS[i][1] : CINTAS[i][0]);
-        }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 7, (l, x, y, i) => {
+        l.poner(x, y, "#fffaf0", 0.9);
+        if (i % 2) for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) l.poner(x + dx, y + dy, "#f6e6c8", 0.6);
       });
-    }, 44, 36));
-    const corazones = [0, 1].map((k) => tira(`corazones-${k}`, (l, azar) => {
-      for (let i = 0; i < 7; i++) {
-        const [x, y] = [Math.floor(azar() * l.ancho), Math.floor(azar() * 40)];
-        if ((i + k) % 2) mapa(l, x, y, [".a.a.", "aaaaa", "aaaaa", ".aaa.", "..a.."], { a: i % 3 ? "#ff8ac0" : "#ffb0d8" });
-        else destello(l, x + 2, y + 2, ["#ffd8f0", "#ffffff"], true);
+    }
+  }),
+
+  vaporeon: eeveeEstampado({
+    pokemon: "vaporeon",
+    comentario: "Vaporeon: azul agua con burbujitas, bandas de olas, burbujas que suben y Vaporeon sentado",
+    cielo: "linear-gradient(160deg, #d8f2ff, #a8dcf6 55%, #7cc4ec)",
+    estampado(l) {
+      for (const [x, y, r, color, a] of [[8, 8, 2, "#ffffff", 0.55], [24, 22, 1, "#3a8ac8", 0.4], [20, 6, 1, "#ffffff", 0.45]]) {
+        for (let k = 0; k < 16; k++) l.poner(x + Math.round(Math.cos(k / 2.55) * r), y + Math.round(Math.sin(k / 2.55) * r), color, a);
       }
-    }, 50, 40));
-    return fondoEevee({
-      comentario: "Sylveon: sentado en una nube de un cielo pastel, con cintas rosas y azules que ondean, corazones y destellos que titilan",
-      cielo: "linear-gradient(to bottom, #9cc0ff, #e6c2f0 52%, #ffd6e6)",
-      pokemon: "sylveon",
-      sitio: { centro: 40, suelo: 55 },
-      capas: [
-        aLaDerecha("nube", 80, 40, 0, 0, (l) => {
-          // Una nube grande y esponjosa: bultos arriba (donde se sienta) y más abajo
-          nubeEsponjosa(l, 40, 16, 34, ["#ffffff", "#fff0f6", "#f2c6dc"], 1, 3);
-          nubeEsponjosa(l, 36, 30, 36, ["#ffffff", "#fff4fa", "#f0c8dc"], 1, 5);
-          for (let y = 30; y < l.alto; y++) for (let x = 2; x < 76; x++) l.poner(x, y, "#fff4fa");
-        }),
-        ...corazones,
-        ...cintas,
-        tira("nubes", (l, azar) => {
-          for (let i = 0; i < 7; i++) nubeEsponjosa(l, i * 37 + Math.floor(azar() * 10), 50 + Math.floor(azar() * 4), 12 + Math.floor(azar() * 5), ["#ffffff", "#ffe4f2", "#f0c0d8"]);
-          rect(l, 0, 52, l.ancho, l.alto - 52, "#ffe4f2");
-          for (let i = 0; i < 9; i++) nubeEsponjosa(l, i * 29 + Math.floor(azar() * 8), 64 + Math.floor(azar() * 12), 10 + Math.floor(azar() * 6), ["#ffffff", "#fff4fa", "#f0c8dc"]);
-        })
-      ],
-      turnosEscena: [{ capas: cintas, pasos: ciclo(8, 2) }, { capas: corazones, pasos: ciclo(6, 2) }]
-    });
-  })()
+    },
+    banda(l) {
+      for (let x = 0; x < l.ancho; x++) {
+        const y = 5 + Math.round(Math.sin((2 * Math.PI * x) / 16) * 1.6);
+        for (let k = 0; k <= y; k++) l.poner(x, k, k === y ? "#ffffff" : k > y - 2 ? "#6ab4e6" : "#2a74b8");
+      }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 6, (l, x, y, i) => pompa(l, x, y, 1 + (i % 3), 0.8));
+    }
+  }),
+
+  jolteon: eeveeEstampado({
+    pokemon: "jolteon",
+    comentario: "Jolteon: amarillo con rayitos, bandas de pelo de punta, chispas que caen y Jolteon sentado",
+    cielo: "linear-gradient(160deg, #fffbe0, #fff0a8 55%, #ffe070)",
+    estampado(l) {
+      for (const [x, y, color, a] of [[6, 4, "#e8a818", 0.45], [22, 20, "#ffffff", 0.7]]) {
+        mapa(l, x, y, ["..a", ".a.", "aaa", ".a.", "a.."], { a: color }, a);
+      }
+    },
+    banda(l) {
+      rect(l, 0, 0, l.ancho, 3, "#f0c020");
+      for (let x = 0; x < l.ancho; x += 6) {
+        for (let k = 0; k < 6; k++) {
+          const media = Math.round(3 * (1 - k / 6));
+          for (let dx = -media; dx <= media; dx++) l.poner(x + 3 + dx, 3 + k, k > 3 ? "#ffffff" : "#f0c020");
+        }
+      }
+      rect(l, 0, 0, l.ancho, 1, "#b88a10");
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 6, (l, x, y) => {
+        destello(l, x, y, ["#fff280", "#ffffff"], false, 0.9);
+        l.poner(x + 2, y + 2, "#ffe040", 0.8);
+      });
+    },
+    sube: false
+  }),
+
+  flareon: eeveeEstampado({
+    pokemon: "flareon",
+    comentario: "Flareon: naranja con llamitas, bandas de llamas, brasas que suben y Flareon sentado",
+    cielo: "linear-gradient(160deg, #fff0e0, #ffd4b0 55%, #ffb888)",
+    estampado(l) {
+      for (const [x, y, color, a] of [[6, 6, "#e8642a", 0.4], [22, 22, "#ffd23a", 0.55]]) {
+        mapa(l, x, y, [".a.", ".aa", "aaa", "aba", ".a."], { a: color, b: "#fff4c0" }, a);
+      }
+    },
+    banda(l) {
+      rect(l, 0, 0, l.ancho, 4, "#d8481e");
+      for (let x = 0; x < l.ancho; x++) {
+        const largo = 4 + Math.round(Math.abs(Math.sin((Math.PI * x) / 8)) * 4 + Math.sin(x / 3) * 0.8);
+        for (let k = 4; k < Math.min(BANDA_EEVEE, largo + 2); k++) l.poner(x, k, k > largo ? "#ffe066" : k > largo - 2 ? "#ffa030" : "#f06a2a");
+      }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 8, (l, x, y, i) => {
+        l.poner(x, y, i % 2 ? "#ffd23a" : "#ff7a2a", 0.9);
+        if (i % 3 === 0) l.poner(x, y + 1, "#ff9a3a", 0.6);
+      });
+    }
+  }),
+
+  espeon: eeveeEstampado({
+    pokemon: "espeon",
+    comentario: "Espeon: lila con gemas y estrellitas, bandas con la gema roja, motas psíquicas que suben y Espeon sentado",
+    cielo: "linear-gradient(160deg, #f8ecff, #e6ccf6 55%, #d2acea)",
+    estampado(l) {
+      mapa(l, 6, 6, [".a.", "aba", ".a."], { a: "#e8283a", b: "#ff9aa6" }, 0.5);
+      estrellita(l, 22, 22, 1, "#ffffff", 0.7);
+      l.poner(22, 6, "#b07ae0", 0.5);
+    },
+    banda(l, azar) {
+      rect(l, 0, 0, l.ancho, 4, "#b07ae0");
+      rect(l, 0, 4, l.ancho, 1, "#8a52c0");
+      for (let x = 0; x < l.ancho; x += 2) l.poner(x, 6, "#c89ae8");
+      for (let x = 8; x < l.ancho; x += 16 + (azar() < 0.3 ? 8 : 0)) {
+        mapa(l, x - 2, 1, ["..a..", ".aba.", "aabaa", ".aaa.", "..a.."], { a: "#e8283a", b: "#ffb0b8" }, 1);
+      }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 6, (l, x, y, i) => (i % 2 ? estrellita(l, x, y, 1, "#ffffff", 0.85) : l.poner(x, y, "#f0c8ff", 0.9)));
+    }
+  }),
+
+  umbreon: eeveeEstampado({
+    pokemon: "umbreon",
+    comentario: "Umbreon: azul de noche con los aros amarillos, bandas negras con aros, motas que suben como luciérnagas y Umbreon sentado",
+    cielo: "linear-gradient(160deg, #3c3c78, #2c2c5c 55%, #222248)",
+    estampado(l) {
+      for (const [x, y, r, a] of [[8, 8, 3, 0.5], [24, 24, 2, 0.35]]) {
+        for (let k = 0; k < 24; k++) l.poner(x + Math.round(Math.cos(k / 3.8) * r), y + Math.round(Math.sin(k / 3.8) * r), "#f0c020", a);
+      }
+      l.poner(24, 8, "#ffffff", 0.4);
+    },
+    banda(l) {
+      rect(l, 0, 0, l.ancho, 6, "#1a1a26");
+      rect(l, 0, 6, l.ancho, 1, "#f0c020");
+      for (let x = 10; x < l.ancho; x += 20) {
+        for (let k = 0; k < 20; k++) l.poner(x + Math.round(Math.cos(k / 3.2) * 2.5), 3 + Math.round(Math.sin(k / 3.2) * 2), "#f0c020");
+      }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 6, (l, x, y) => {
+        brillo(l, x, y, 3, "#f0d040", 0.5, 0.5);
+        l.poner(x, y, "#fff4a0", 1);
+      });
+    }
+  }),
+
+  leafeon: eeveeEstampado({
+    pokemon: "leafeon",
+    comentario: "Leafeon: verde claro con hojitas, bandas de enredadera, hojas que caen y Leafeon sentado",
+    cielo: "linear-gradient(160deg, #f2fbe2, #d8f0b8 55%, #bce496)",
+    estampado(l) {
+      hojaOval(l, 6, 10, 5, -0.7, ["#5a9a3a", "#7cbc4a", "#c0e890"]);
+      for (const [x, y] of [[22, 22], [24, 6]]) l.poner(x, y, "#ffffff", 0.5);
+    },
+    banda(l, azar) {
+      rect(l, 0, 0, l.ancho, 3, "#4a8a2a");
+      for (let x = 0; x < l.ancho; x++) l.poner(x, 3 + Math.round(Math.sin(x / 5) * 1.2), "#6a5a2a");
+      for (let x = 2; x < l.ancho; x += 6 + Math.floor(azar() * 4)) {
+        const y = 3 + Math.round(Math.sin(x / 5) * 1.2);
+        hojaOval(l, x, y + 1, 5, Math.PI / 2 + (x % 12 < 6 ? 0.6 : -0.6), [["#3e7a2a", "#5aa03a", "#a6dc78"], ["#5a9a3a", "#7cbc4a", "#c0e890"]][x % 2]);
+      }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 5, (l, x, y, i) => hojaOval(l, x, y, 4, i * 1.3, [["#5a9a3a", "#7cbc4a", "#c0e890"], ["#c8a020", "#e8c040", "#fff0a0"]][i % 2]));
+    },
+    sube: false
+  }),
+
+  glaceon: eeveeEstampado({
+    pokemon: "glaceon",
+    comentario: "Glaceon: azul hielo con copos y rombos, bandas con carámbanos (arriba cuelgan; abajo, cristales que suben), nieve que cae y Glaceon sentado",
+    cielo: "linear-gradient(160deg, #f0fbff, #d0eef8 55%, #a8dcf0)",
+    estampado(l) {
+      copo(l, 8, 8, 2, 0.6);
+      mapa(l, 22, 20, [".a.", "aba", ".a."], { a: "#7ac0e0", b: "#ffffff" }, 0.55);
+    },
+    banda(l, azar) {
+      rect(l, 0, 0, l.ancho, 3, "#8ad0ec");
+      rect(l, 0, 3, l.ancho, 1, "#ffffff");
+      for (let x = 1; x < l.ancho; x += 3 + Math.floor(azar() * 3)) {
+        const largo = 2 + Math.floor(azar() * 5);
+        for (let k = 0; k < largo; k++) {
+          l.poner(x, 4 + k, k === largo - 1 ? "#ffffff" : "#b8e4f6");
+          if (k < largo - 2) l.poner(x + 1, 4 + k, "#7ac0e0");
+        }
+      }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 7, (l, x, y, i) => copo(l, x, y, i % 3, 0.9));
+    },
+    sube: false
+  }),
+
+  sylveon: eeveeEstampado({
+    pokemon: "sylveon",
+    comentario: "Sylveon: rosa con lazos y corazones, bandas de cinta con lunares y lazos, corazones que suben y Sylveon sentado",
+    cielo: "linear-gradient(160deg, #fff2f8, #ffd8ea 55%, #f8bcd8)",
+    estampado(l) {
+      mapa(l, 4, 6, ["a...a", "aabaa", "a...a"], { a: "#f07aa8", b: "#5ab0e8" }, 0.5);
+      mapa(l, 20, 20, [".a.a.", "aaaaa", ".aaa.", "..a.."], { a: "#ffffff" }, 0.7);
+    },
+    banda(l, azar) {
+      rect(l, 0, 0, l.ancho, 6, "#f490bc");
+      rect(l, 0, 6, l.ancho, 1, "#d8608e");
+      for (let x = 2; x < l.ancho; x += 5) l.poner(x, 2 + ((x / 5) % 2) * 2, "#ffffff");
+      for (let x = 20; x < l.ancho; x += 40 + Math.floor(azar() * 20)) {
+        mapa(l, x - 4, 1, ["aa...aa", "abaaaba", "aaacaaa", "abaaaba", "aa...aa"], { a: "#ffffff", b: "#5ab0e8", c: "#5ab0e8" }, 1);
+      }
+    },
+    particula(l, azar) {
+      esparcir(l, azar, 5, (l, x, y, i) => mapa(l, x, y, [".a.a.", "aaaaa", ".aaa.", "..a.."], { a: i % 2 ? "#ff8ab8" : "#ffffff" }, 0.9));
+    }
+  })
 };
 
 // ---------- Las regiones ----------
@@ -2514,14 +3575,11 @@ const EEVEE = {
 //   · el papel: un degradado suave entre los colores de los legendarios;
 //   · una banda pegada al borde de arriba y otra al de abajo (en todos los sitios), con un dibujo
 //     que es de esa región (Poké Balls en Kanto, hojas de arce en Johto, olas en Hoenn...);
-//   · los sellos de sus legendarios de carátula (herramientas/sellos-pixel.mjs), a la derecha y del
-//     mismo tamaño, a un píxel de pantalla por píxel (capas finas).
+//   · sus legendarios de carátula (los sellos de herramientas/sellos-pixel.mjs, de una tinta), grandes
+//     (a la escala del fondo, como todo lo demás), a la derecha del centro (a la izquierda va la foto)
+//     y asomando medio cuerpo desde abajo, por detrás de las bandas.
 
 const ALTO_BANDA = 8;
-const LADO_SELLO = 64;
-// En la ficha del perfil (la vista vertical), los sellos al doble y pegados a los lados, con lo de
-// abajo por detrás del botón: lo de abajo a 32 px del borde (el botón acaba a 16)
-const SELLO_VERTICAL_ABAJO = 32;
 
 // Una banda, fina (a un píxel de pantalla por píxel: 8 px en todas partes) y pegada a su borde: el
 // fondo, una raya a cada lado y el dibujo de la región entre medias (filas 1 a 6)
@@ -2610,88 +3668,98 @@ const DIBUJOS_BANDA = {
   }
 };
 
-// Un fondo de región: papel, bandas y sellos (de izquierda a derecha). Los sellos, en cada vista:
-//   · normal (la tarjeta de «Amigos»): a un píxel de pantalla por píxel, a la derecha, junto al nombre;
-//   · horizontal (las muestras pequeñas): igual de tamaño, centrados entre las dos bandas (--sello-y);
-//   · vertical (la ficha del perfil): al doble, el primero pegado a la izquierda y el último a la
-//     derecha (con tres, el de en medio centrado y más arriba), con lo de abajo detrás del botón.
-function fondoDeSellos({ comentario, papel, sellos, dibujo, colores }) {
-  const n = sellos.length;
+// Un fondo de región: papel, bandas y los legendarios. Las bandas van delante (la de abajo les tapa
+// los pies); los legendarios, en fila a la derecha del centro y metidos por abajo: se les ve de medio
+// cuerpo para arriba.
+// Lo que se aparta del normal cada legendario: escala (2: cada píxel del sello, 2 × 2), oculto (la parte
+// de abajo que queda metida, de 0 a 1) y espejo (dado la vuelta de lado: mirando al otro lado). Para que a
+// todos se les vea la cara y algo de cuerpo.
+const AJUSTE_SELLO = {
+  zekrom: { escala: 2.3 },
+  zamazenta: { escala: 1.8 },
+  lunala: { oculto: 0.3 },
+  zacian: { oculto: 0.36 },
+  moltres: { oculto: 0.2, espejo: true },
+  zapdos: { oculto: 0.38 },
+  kyogre: { oculto: 0.28 },
+  hoOh: { oculto: 0.3 },
+  lugia: { oculto: 0.3 }
+};
+
+// separados: los de esa región, algo más apartados entre sí (si no, se montaban demasiado)
+function fondoDeSellos({ comentario, papel, sellos, dibujo, colores, separados = false }) {
+  // Grandes (al doble, o lo que diga AJUSTE_SELLO). Un poco montados unos sobre otros (el sello deja
+  // mucho margen alrededor del Pokémon)
+  const centros = sellos.length === 3 ? [-40, 42, 124] : separados ? [-30, 118] : [-16, 104];
   const capas = sellos.map((nombre, i) => {
-    const derecha = 4 + (n - 1 - i) * (LADO_SELLO + 6);
     const fig = sello(nombre);
-    const LADO_V = fig.ancho * 2;
-    const medio = n === 3 && i === 1;
-    const subeV = medio ? 30 : 0;
-    const xV = i === 0 ? "left 2px" : i === n - 1 ? "right 2px" : "center";
+    const { escala = 2, oculto = 0.45, espejo = false } = AJUSTE_SELLO[nombre] || {};
+    const [ancho, alto] = [Math.round(fig.ancho * escala), Math.round(fig.alto * escala)];
     return {
-      nombre: `sello-${nombre}`, ancho: fig.ancho, alto: fig.alto, repetir: "no", fino: true,
-      sitio: { x: derecha, lado: "derecha", y: 0, desde: "abajo" },
-      donde: {
-        x: `right ${derecha}px`, y: "top var(--sello-y)",
-        muestra: (vista, TW, TH) => {
-          if (vista === "vertical") {
-            const x = i === 0 ? 2 : i === n - 1 ? TW - LADO_V - 2 : Math.round((TW - LADO_V) / 2);
-            return [x, TH - LADO_V - SELLO_VERTICAL_ABAJO - subeV, 2];
+      nombre: `sello-${nombre}`, ancho, alto, repetir: "no", recortar: true,
+      sitio: { x: centros[i], lado: "centro", y: -Math.round(alto * oculto), desde: "abajo" },
+      // Ampliado sin suavizar: cada píxel de la capa toma el del sello que le cae debajo
+      pintar(l) {
+        for (let y = 0; y < alto; y++) {
+          for (let x = 0; x < ancho; x++) {
+            const xs = Math.floor((espejo ? ancho - 1 - x : x) / escala);
+            const c = fig.pixeles[Math.floor(y / escala) * fig.ancho + xs];
+            if (c) l.poner(x, y, c);
           }
-          return [TW - fig.ancho - derecha, vista === "horizontal" ? Math.round((TH - fig.alto) / 2) : TH - fig.alto - 92, 1];
         }
-      },
-      vertical: { tamano: `${LADO_V}px ${LADO_V}px`, css: `${xV} bottom ${SELLO_VERTICAL_ABAJO + subeV}px` },
-      pintar: (l) => pintarFigura(l, fig, 0, 0)
+      }
     };
   });
   return {
     comentario,
     cielo: papel,
-    vertical: true,
-    capas: [...capas, banda("banda-arriba", DIBUJOS_BANDA[dibujo], colores, false), banda("banda-abajo", DIBUJOS_BANDA[dibujo], colores, true)]
+    capas: [banda("banda-arriba", DIBUJOS_BANDA[dibujo], colores, false), banda("banda-abajo", DIBUJOS_BANDA[dibujo], colores, true), ...capas]
   };
 }
 
 const REGIONES = {
   kanto: fondoDeSellos({
-    comentario: "Kanto: los sellos de Articuno, Zapdos y Moltres, con bandas de Poké Balls",
+    comentario: "Kanto: Articuno, Zapdos y Moltres asomando, con bandas de Poké Balls",
     papel: "linear-gradient(105deg, #e8eef8, #f3ede6 50%, #f8e8dc)",
     sellos: ["articuno", "zapdos", "moltres"], dibujo: "pokeballs", colores: { fondo: "#f0e2d6", raya: "#c88a7a" }
   }),
   johto: fondoDeSellos({
-    comentario: "Johto: los sellos de Ho-Oh y Lugia, con bandas de hojas de arce",
+    comentario: "Johto: Ho-Oh y Lugia asomando, con bandas de hojas de arce",
     papel: "linear-gradient(105deg, #f8e6cc, #f4ead8 50%, #e6eaf2)",
     sellos: ["hoOh", "lugia"], dibujo: "hojas", colores: { fondo: "#f2e2c6", raya: "#c89a62" }
   }),
   hoenn: fondoDeSellos({
-    comentario: "Hoenn: los sellos de Groudon y Kyogre, con bandas de olas",
+    comentario: "Hoenn: Groudon y Kyogre asomando, con bandas de olas",
     papel: "linear-gradient(105deg, #f6e0d6, #f0ebe6 50%, #dde8f6)",
     sellos: ["groudon", "kyogre"], dibujo: "olas", colores: { fondo: "#a8d4f0", raya: "#3a84c8" }
   }),
   sinnoh: fondoDeSellos({
-    comentario: "Sinnoh: los sellos de Dialga y Palkia, con bandas de diamantes y perlas",
+    comentario: "Sinnoh: Dialga y Palkia asomando, con bandas de diamantes y perlas",
     papel: "linear-gradient(105deg, #e0e6f6, #ede9f2 50%, #f4e4ee)",
-    sellos: ["dialga", "palkia"], dibujo: "diamantes", colores: { fondo: "#e6e4f2", raya: "#9a9ac8" }
+    sellos: ["dialga", "palkia"], separados: true, dibujo: "diamantes", colores: { fondo: "#e6e4f2", raya: "#9a9ac8" }
   }),
   teselia: fondoDeSellos({
-    comentario: "Teselia: los sellos de Reshiram y Zekrom, con bandas en blanco y negro",
+    comentario: "Teselia: Reshiram y Zekrom asomando, con bandas en blanco y negro",
     papel: "linear-gradient(105deg, #f4f4f6, #ebebee 50%, #dadae2)",
     sellos: ["reshiram", "zekrom"], dibujo: "blancoNegro", colores: { fondo: "#f6f6f8", raya: "#2a2a32" }
   }),
   kalos: fondoDeSellos({
-    comentario: "Kalos: los sellos de Xerneas e Yveltal, con bandas de la celosía de la Torre Prisma",
+    comentario: "Kalos: Xerneas e Yveltal asomando, con bandas de la celosía de la Torre Prisma",
     papel: "linear-gradient(105deg, #dfe6f6, #ebe8f0 50%, #f4e0e2)",
     sellos: ["xerneas", "yveltal"], dibujo: "celosia", colores: { fondo: "#e4e6f4", raya: "#6a72b8" }
   }),
   alola: fondoDeSellos({
-    comentario: "Alola: los sellos de Solgaleo y Lunala, con bandas de triángulos como las del Pasaporte",
+    comentario: "Alola: Solgaleo y Lunala asomando, con bandas de triángulos como las del Pasaporte",
     papel: "linear-gradient(105deg, #f7e8c8, #f4e8da 50%, #e4e2f4)",
-    sellos: ["solgaleo", "lunala"], dibujo: "triangulos", colores: { fondo: "#efe0c2", raya: "#c8b080" }
+    sellos: ["solgaleo", "lunala"], separados: true, dibujo: "triangulos", colores: { fondo: "#efe0c2", raya: "#c8b080" }
   }),
   galar: fondoDeSellos({
-    comentario: "Galar: los sellos de Zacian y Zamazenta, con bandas de tartán",
+    comentario: "Galar: Zacian y Zamazenta asomando, con bandas de tartán",
     papel: "linear-gradient(105deg, #dfe6f6, #ebe8ee 50%, #f4e0e0)",
     sellos: ["zacian", "zamazenta"], dibujo: "tartan", colores: { fondo: "#b8343e", raya: "#5a1a20" }
   }),
   paldea: fondoDeSellos({
-    comentario: "Paldea: los sellos de Koraidon y Miraidon, con bandas de azulejos",
+    comentario: "Paldea: Koraidon y Miraidon asomando, con bandas de azulejos",
     papel: "linear-gradient(105deg, #f6e0da, #f2e9e6 50%, #e4e0f6)",
     sellos: ["koraidon", "miraidon"], dibujo: "azulejos", colores: { fondo: "#fbf6ec", raya: "#2e6ab8" }
   })
@@ -2848,7 +3916,7 @@ const dibujos = new Map();
 for (const fondo of FONDOS) {
   for (const capa of fondo.capas) {
     if (!capa.pintar) continue;
-    const l = lienzo(capa.ancho, capa.alto, capa.repetir === "xy");
+    const l = lienzo(capa.ancho, capa.alto, capa.repetir === "xy" || capa.repetir === "y", !capa.recortar && capa.repetir !== "y");
     capa.pintar(l, azarFijo(capa.archivo));
     dibujos.set(capa.archivo, l.datos);
     writeFileSync(join(CARPETA, `${capa.archivo}.png`), png(capa.ancho, capa.alto, l.datos));
@@ -2865,9 +3933,17 @@ for (const archivo of readdirSync(CARPETA)) {
 
 // ---------- El CSS ----------
 
+// Cada imagen lleva detrás una huella de su contenido (?v=...): las imágenes se guardan un día en el
+// navegador (_headers), así que al retocar una cambia su dirección y todos ven la nueva al momento.
+const huellas = new Map();
+const huella = (archivo) => {
+  if (!huellas.has(archivo)) huellas.set(archivo, createHash("sha1").update(readFileSync(join(CARPETA, `${archivo}.png`))).digest("hex").slice(0, 8));
+  return huellas.get(archivo);
+};
+
 const QUIEN = ":is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo)";
 const px = (n) => (n === 0 ? "0" : `calc(${Math.round(n * 100) / 100} * var(--px))`);
-const REPETIR = { x: "repeat-x", xy: "repeat", no: "no-repeat" };
+const REPETIR = { x: "repeat-x", y: "repeat-y", xy: "repeat", no: "no-repeat" };
 
 // Las animaciones de un fondo («animacion»: una o una lista). Cada una con su duración, cómo avanza
 // (pasos: a saltos iguales; si no, en línea entre sus paradas) y el eje que mueve ("x", "y" o, si no
@@ -2893,7 +3969,10 @@ function sitioDe(capa, [dx, dy], eje = "xy") {
   if (capa.donde) return eje === "x" ? capa.donde.x : eje === "y" ? capa.donde.y : `${capa.donde.x} ${capa.donde.y}`;
   dy += apartadaDe(capa);
   const { x = 0, y = 0, lado = "izquierda", desde = "arriba" } = capa.sitio;
-  const horizontal = lado === "derecha" ? `right ${px(x - dx)}` : `left ${px(x + dx)}`;
+  // lado "centro": centrada (x, lo que se aparta del centro hacia la derecha)
+  // (sin «+ 0»: calc(50% + 0) no vale, y entonces el navegador tira la posición de todas las capas)
+  const centrada = Math.round((x + dx) * 100) === 0 ? "left 50%" : `left calc(50% + ${px(x + dx)})`;
+  const horizontal = lado === "derecha" ? `right ${px(x - dx)}` : lado === "centro" ? centrada : `left ${px(x + dx)}`;
   const vertical = desde === "abajo" ? `bottom ${px(y - dy)}` : `top ${px(y + dy)}`;
   return eje === "x" ? horizontal : eje === "y" ? vertical : `${horizontal} ${vertical}`;
 }
@@ -2938,7 +4017,7 @@ const css = [
 ];
 
 for (const fondo of FONDOS) {
-  const imagenes = [...fondo.capas.map((capa) => `url("../img/fondos/${capa.archivo}.png")`), ...debajoDe(fondo)];
+  const imagenes = [...fondo.capas.map((capa) => `url("../img/fondos/${capa.archivo}.png?v=${huella(capa.archivo)}")`), ...debajoDe(fondo)];
   const fino = (n) => `calc(${n} * var(--px-fino))`;
   const tamanos = [...fondo.capas.map((capa) => capa.tamano || (capa.fino ? `${fino(capa.ancho)} ${fino(capa.alto)}` : `${px(capa.ancho)} ${px(capa.alto)}`)), ...debajoDe(fondo).map(() => "auto")];
   const repetir = [...fondo.capas.map((capa) => REPETIR[capa.repetir]), ...debajoDe(fondo).map(() => "no-repeat")];
@@ -3086,14 +4165,14 @@ function componer(fondo, TW0, TH0, momento, pxCss = 1, vista = "") {
       for (let k = 0; k < TW * TH; k++) mezclar(k, datos, datos[3] / 255);
       continue;
     }
-    const x0 = Math.round(lado === "derecha" ? TW0 - capa.ancho - (x - dx) : x + dx);
+    const x0 = Math.round(lado === "derecha" ? TW0 - capa.ancho - (x - dx) : lado === "centro" ? (TW0 - capa.ancho) / 2 + x + dx : x + dx);
     const y0 = Math.round(desde === "abajo" ? TH0 - capa.alto - (y - dy) : y + dy);
     for (let ty = 0; ty < TH; ty++) {
       for (let tx = 0; tx < TW; tx++) {
         let sx = Math.floor(tx / k) - x0;
         let sy = Math.floor(ty / k) - y0;
-        if (capa.repetir !== "no") sx = vuelta(sx, capa.ancho);
-        if (capa.repetir === "xy") sy = vuelta(sy, capa.alto);
+        if (capa.repetir === "x" || capa.repetir === "xy") sx = vuelta(sx, capa.ancho);
+        if (capa.repetir === "y" || capa.repetir === "xy") sy = vuelta(sy, capa.alto);
         if (sx < 0 || sy < 0 || sx >= capa.ancho || sy >= capa.alto) continue;
         const j = (sy * capa.ancho + sx) * 4;
         if (datos[j + 3]) mezclar(ty * TW + tx, [datos[j], datos[j + 1], datos[j + 2]], datos[j + 3] / 255);
@@ -3114,7 +4193,18 @@ const SITIOS = [
     ["disco", 76, 42, 30, 0, "#7c818c", 1], ["caja", 52, 77, 48, 15, "#f2f2f2", 0.55], ["caja", 56, 96, 40, 10, "#8a7cc0", 0.8],
     ["caja", 8, 114, 136, 51, "#000000", 0.35], ["caja", 8, 227, 136, 21, "#50bed7", 1]
   ] },
-  { vista: "horizontal", ancho: 260, alto: 80, px: 1, encima: [] }
+  { vista: "horizontal", ancho: 260, alto: 80, px: 1, encima: [] },
+  // La portada de tu perfil (y la del probador de la Tienda): ancha, a 2 px (900 × 168 en pantalla);
+  // la foto a la izquierda, el nombre y, a la derecha, los tipos de locke y las cifras
+  { vista: "portada", ancho: 450, alto: 84, px: 2, encima: [
+    ["disco", 38, 42, 28, 0, "#7c818c", 1], ["caja", 75, 22, 110, 11, "#f2f2f2", 0.55], ["caja", 75, 37, 80, 7, "#8a7cc0", 0.8],
+    ["caja", 305, 11, 135, 62, "#000000", 0.3]
+  ] },
+  // Una fila de la lista de amigos: baja y alargada, a 1 px; la foto, el nombre y el marcador
+  { vista: "fila", ancho: 340, alto: 67, px: 1, encima: [
+    ["disco", 33, 33, 22, 0, "#7c818c", 1], ["caja", 66, 16, 100, 11, "#f2f2f2", 0.55], ["caja", 66, 34, 70, 8, "#8a7cc0", 0.8],
+    ["caja", 292, 18, 38, 30, "#f2f2f2", 0.45]
+  ] }
 ];
 
 const carpetaMuestra = process.argv[2];

@@ -16,9 +16,10 @@
 // Cada uno elige el color de su perfil (perfil.color, ver COLORES_PERFIL en js/comun/fichas.js): la
 // ventana entera se tiñe del de la persona que se ve (--color-vista), se abra desde donde se abra.
 //
-// «Editar perfil» cambia la ventana al modo editar: a la izquierda los apartados (foto y nombre,
-// sobre mí, título, marco, fondo, color, equipos destacados, lockes jugados y la cuenta), en medio las
-// opciones del elegido y a la derecha tu ficha tal como quedará. Lo que se cambia va a un
+// «Editar perfil» cambia la ventana al modo editar: a la izquierda los apartados (tus datos, equipos
+// destacados, lockes jugados, tipos de locke y la cuenta), en medio las opciones del elegido y a la
+// derecha cómo te ven (tu fila de la lista de amigos) y el botón que lleva al probador de la Tienda,
+// donde se cambian el fondo, el marco, el título y el color. Lo que se cambia va a un
 // borrador y se guarda todo junto con «Guardar cambios» (o se tira con «Cancelar»). Solo los
 // lockes jugados se apuntan en su propia ventana (la de «Amigos»), que guarda al momento.
 //
@@ -49,11 +50,7 @@ import { obtenerVariedades } from "./comun/formas.js";
 import { elegirForma, datosDeForma } from "./comun/elegir-forma.js";
 import { LOGROS, CATEGORIAS, insignia } from "./comun/logros.js";
 import {
-  FONDOS, FONDOS_METAL, FONDOS_TIPO, FONDOS_EEVEE, FONDOS_TIENDA, FONDOS_REGION, fondoDe, logrosDe, desbloqueado,
-  requisito, requisitoCorto, claseFondo, estiloFondo
-} from "./comun/fondos.js";
-import {
-  TITULOS, MARCOS, COLORES_PERFIL, loTiene, tieneMarco, marcoDe, claseMarco, claseTitulo, fondoVisual, colorElegido, rgbDePerfil
+  TITULOS, loTiene, marcoDe, claseMarco, claseTitulo, fondoVisual, rgbDePerfil, plantillaTituloDe
 } from "./comun/fichas.js";
 import { miColeccion, escucharColeccion, alCambiarColeccion, coleccionDe, escaparate, aspectoDe } from "./comun/coleccion.js";
 import { confirmar } from "./comun/ventanas.js";
@@ -134,17 +131,10 @@ function textoLockes(cuantos) {
 const TITULOS_TIENDA = TITULOS.map((titulo) => ({ ...titulo, icono: "estrella", descripcion: t("Comprado en la Tienda.") }));
 
 function tituloDe(perfil) {
-  const logro = LOGROS.find((cada) => cada.id === perfil.titulo);
-  if (logro) return (perfil.logros || {})[logro.id] ? logro : null;
   const comprado = TITULOS_TIENDA.find((cada) => cada.id === perfil.titulo);
   return comprado && loTiene(perfil, comprado.id) ? comprado : null;
 }
 
-// Los que puede ponerse: los de la Tienda que tiene y los de sus logros
-function titulosDe(perfil) {
-  const tengo = perfil.logros || {};
-  return [...TITULOS_TIENDA.filter((titulo) => loTiene(perfil, titulo.id)), ...LOGROS.filter((logro) => tengo[logro.id])];
-}
 
 // ---------- La ficha (izquierda) ----------
 
@@ -701,15 +691,14 @@ export function pulsarEnPerfilIncrustado(boton) {
 
 // ---------- Editar perfil ----------
 //
-// borrador: { mote, sobreMi, horario, busca, titulo, marco, fondo, color, escaparate, foto }. foto es
-// null mientras no se cambie y, si se cambia, lo que se guardará: { avatar, fotoGoogle, foto }.
+// borrador: { mote, sobreMi, horario, busca, escaparate, tipos, foto }. foto es null mientras no se
+// cambie y, si se cambia, lo que se guardará: { avatar, fotoGoogle, foto }.
+//
+// El aspecto (fondo, marco, título y color) no se cambia aquí: se cambia en el probador de la Tienda,
+// donde te lo pruebas antes y están todos (también los de logros). Aquí hay un botón que lleva allí.
 
 const APARTADOS = [
   { id: "foto", icono: "persona", nombre: () => t("Tus datos") },
-  { id: "titulo", icono: "etiqueta", nombre: () => t("Título") },
-  { id: "marco", icono: "estrella", nombre: () => t("Marco") },
-  { id: "fondo", icono: "imagen", nombre: () => t("Fondo") },
-  { id: "color", icono: "atardecer", nombre: () => t("Color") },
   { id: "equipos", icono: "pokeball", nombre: () => t("Equipos destacados") },
   { id: "lockes", icono: "trofeo", nombre: () => t("Lockes jugados") },
   { id: "tipos", icono: "etiqueta", nombre: () => t("Tipos de locke") }
@@ -733,10 +722,6 @@ function empezarAEditar(cual = "foto") {
     sobreMi: perfil.sobreMi || "",
     horario: perfil.horario || "",
     busca: Boolean(perfil.busca),
-    titulo: tituloDe(perfil) ? perfil.titulo : null,
-    marco: marcoDe(perfil),
-    fondo: fondoDe(perfil) || null,
-    color: colorElegido(perfil),
     escaparate: [...(perfil.escaparate || [])].slice(0, MAX_DESTACADOS),
     tipos: tiposDe(perfil).map((tipo) => ({ ...tipo })),
     foto: null
@@ -758,10 +743,6 @@ function perfilEditado() {
     sobreMi: borrador.sobreMi,
     horario: borrador.horario,
     busca: borrador.busca,
-    titulo: borrador.titulo,
-    marco: borrador.marco,
-    fondo: borrador.fondo,
-    color: borrador.color,
     escaparate: borrador.escaparate,
     ...(borrador.foto || {})
   };
@@ -776,10 +757,6 @@ function cambiosDelBorrador() {
   if (sobreMi !== (perfil.sobreMi || "")) cambios.sobreMi = sobreMi;
   if (horario !== (perfil.horario || "")) cambios.horario = horario;
   if (borrador.busca !== Boolean(perfil.busca)) cambios.busca = borrador.busca;
-  if ((borrador.titulo || null) !== (tituloDe(perfil) ? perfil.titulo : null)) cambios.titulo = borrador.titulo || null;
-  if ((borrador.marco || "") !== marcoDe(perfil)) cambios.marco = borrador.marco || "";
-  if ((borrador.fondo || null) !== (fondoDe(perfil) || null)) cambios.fondo = borrador.fondo || null;
-  if (borrador.color !== colorElegido(perfil)) cambios.color = borrador.color || null;
   const ids = (lista) => lista.map((equipo) => equipo.id).join("|");
   if (ids(borrador.escaparate) !== ids((perfil.escaparate || []).slice(0, MAX_DESTACADOS))) cambios.escaparate = borrador.escaparate;
   const tipos = tiposLimpios(borrador.tipos);
@@ -874,92 +851,6 @@ function panelSobreMi() {
     </label>`;
 }
 
-function panelTitulo() {
-  const perfil = miPerfil() || {};
-  const lista = titulosDe(perfil);
-  return `
-    <h3>${t("Título")}</h3>
-    <p>${t("Sale debajo de tu nombre, aquí, en «Amigos», en el foro y en la clasificación.")}</p>
-    <div class="editar-titulos">
-      <button class="editar-opcion editar-titulo ${borrador.titulo ? "" : "elegido"}" data-titulo="">
-        <span class="editar-sin">${t("Sin título")}</span>
-      </button>
-      ${lista
-        .map(
-          (titulo) => `
-            <button class="editar-opcion editar-titulo ${titulo.id === borrador.titulo ? "elegido" : ""}" data-titulo="${escaparHTML(titulo.id)}"
-                    title="${escaparHTML(titulo.descripcion)}">
-              <span class="perfil-titulo ${claseTitulo(titulo)}">${escaparHTML(titulo.nombre)}</span>
-            </button>`
-        )
-        .join("")}
-    </div>
-    ${lista.length ? "" : `<p class="perfil-vacio">${t("Consigue títulos con los logros o cómpralos en la Tienda de «Juegos».")}</p>`}`;
-}
-
-function panelMarco() {
-  const perfil = perfilEditado();
-  const tuyos = MARCOS.filter((marco) => tieneMarco(miPerfil() || {}, marco));
-  const opcion = (id, nombre) => `
-    <button class="editar-opcion editar-marco ${id === (borrador.marco || "") ? "elegido" : ""}" data-marco="${id}" title="${escaparHTML(nombre)}">
-      <span class="perfil-marco-foto ${claseMarco(id)}">${plantillaFoto(perfil, "perfil-foto")}</span>
-      <small>${escaparHTML(nombre)}</small>
-    </button>`;
-  return `
-    <h3>${t("Marco")}</h3>
-    <p>${t("Alrededor de tu foto, en toda la web. Se consiguen en la Tienda de «Juegos» y con algunos logros.")}</p>
-    <div class="editar-marcos">
-      ${opcion("", t("Sin marco"))}
-      ${tuyos.map((marco) => opcion(marco.id, marco.nombre)).join("")}
-    </div>`;
-}
-
-function panelFondo() {
-  const perfil = miPerfil() || {};
-  const sinFondo = { id: "", nombre: t("Sin fondo") };
-  const muestra = (fondo) => {
-    const libre = !fondo.id || desbloqueado(fondo, perfil);
-    // A los de metal les sirve saber cuántos logros llevas; a los demás, no
-    const metal = FONDOS_METAL.includes(fondo);
-    const pide = `${requisito(fondo)}${metal ? ` ${t("(tienes {n} logros)", { n: logrosDe(perfil) })}` : ""}`;
-    return `
-      <button class="editar-opcion editar-fondo ${(fondo.id || null) === (borrador.fondo || null) ? "elegido" : ""}" data-fondo="${fondo.id}"
-              ${libre ? "" : "disabled"} title="${escaparHTML(libre ? fondo.nombre : pide)}">
-        <span class="perfil-fondo ${claseFondo(fondo.id)}" style="${estiloFondo(fondo.id)}">${libre ? "" : `<span class="editar-candado">${icono("candado")}</span>`}</span>
-        <small>${escaparHTML(fondo.nombre)}${libre ? "" : ` · ${escaparHTML(requisitoCorto(fondo))}`}</small>
-      </button>`;
-  };
-  const grupo = (titulo, fondos) => {
-    const tengo = fondos.filter((fondo) => !fondo.id || desbloqueado(fondo, perfil)).length;
-    return `
-      <section class="editar-grupo">
-        <h4>${titulo} <small>${tengo}/${fondos.length}</small></h4>
-        <div class="editar-fondos">${fondos.map(muestra).join("")}</div>
-      </section>`;
-  };
-  return `
-    <h3>${t("Fondo")}</h3>
-    <p>${t("Va detrás de tu ficha, aquí y en «Amigos». Los que te faltan dicen qué piden.")}</p>
-    ${grupo(t("Básicos"), [sinFondo, ...FONDOS_METAL])}
-    ${grupo(t("De la Tienda"), FONDOS_TIENDA)}
-    ${grupo(t("De región"), FONDOS_REGION)}
-    ${grupo("Eevee", FONDOS_EEVEE)}
-    ${grupo(t("Tipos"), FONDOS_TIPO)}`;
-}
-
-function panelColor() {
-  const opcion = (color) => `
-    <button class="editar-opcion editar-color ${color.id === (borrador.color || "celeste") ? "elegido" : ""}" data-color="${color.id}"
-            title="${escaparHTML(color.nombre)}">
-      <span class="editar-muestra-color" style="--c: ${color.rgb}"></span>
-      <small>${escaparHTML(color.nombre)}</small>
-    </button>`;
-  return `
-    <h3>${t("Color")}</h3>
-    <p>${t("El de tu ficha, sus botones y todo tu perfil. Lo ven así todos, lo abran desde donde lo abran.")}</p>
-    <div class="editar-colores">${COLORES_PERFIL.map(opcion).join("")}</div>`;
-}
-
 function panelEquipos() {
   const destacados = borrador.escaparate;
   const guardados = leerGuardados();
@@ -1042,9 +933,25 @@ function panelCuenta() {
 }
 
 const PANELES = {
-  foto: panelFoto, sobre: panelSobreMi, titulo: panelTitulo, marco: panelMarco, fondo: panelFondo,
-  color: panelColor, equipos: panelEquipos, lockes: panelLockes, tipos: panelTipos, cuenta: panelCuenta
+  foto: panelFoto, sobre: panelSobreMi, equipos: panelEquipos, lockes: panelLockes, tipos: panelTipos, cuenta: panelCuenta
 };
+
+// Cómo te ven, en horizontal (como de verdad: tu fila en la lista de amigos), y el botón que lleva al
+// probador de la Tienda, que es donde se cambian el fondo, el marco, el título y el color
+function plantillaComoTeVen(perfil) {
+  const fondo = fondoVisual(perfil);
+  return `
+    <span class="editar-asi">${t("Así te ven")}</span>
+    <div class="amigo-fila editar-fila ${fondo.clase}" style="--color-vista: ${rgbDePerfil(perfil)}; ${fondo.estilo}">
+      <span class="jugador-foto ${claseMarco(marcoDe(perfil))}" style="--foto: 2.7rem">${plantillaFoto(perfil, "")}</span>
+      <span class="amigo-fila-quien">
+        <b class="amigo-fila-nombre">${escaparHTML(perfil.nombre || t("Jugador"))}</b>
+        <span class="amigo-fila-estado">${plantillaTituloDe(perfil, "pequeno")}</span>
+      </span>
+    </div>
+    <button class="perfil-boton editar-ir-aspecto" data-ir-aspecto>${icono("tienda")} ${t("Fondo, marco, título y color")}</button>
+    <small class="editar-ir-nota">${t("Se cambian en el probador de la Tienda: ahí te los pruebas antes de ponértelos.")}</small>`;
+}
 
 // La ventana entera, del color de la persona (en el modo editar, del que estás eligiendo)
 function teñir(perfil) {
@@ -1071,6 +978,7 @@ function pintarEditar() {
         ${APARTADOS.map(
           (cada) => `<button class="${cada.id === apartado ? "activo" : ""}" data-apartado="${cada.id}">${icono(cada.icono)} ${cada.nombre()}</button>`
         ).join("")}
+        <button class="editar-menu-tienda" data-ir-aspecto>${icono("tienda")} ${t("Fondo, marco, título y color")}${icono("derecha")}</button>
         <hr>
         <button class="peligro ${apartado === "cuenta" ? "activo" : ""}" data-apartado="cuenta">${icono("papelera")} ${t("Borrar mi cuenta")}</button>
       </nav>
@@ -1080,10 +988,7 @@ function pintarEditar() {
           <button class="editar-guardar" ${guardando || !cambia ? "disabled" : ""}>${icono("visto")} ${guardando ? t("Guardando...") : t("Guardar cambios")}</button>
         </div>
         <span class="editar-nota">${errorEditar ? `<span class="perfil-error">${escaparHTML(errorEditar)}</span>` : cambia ? t("Hay cambios sin guardar") : ""}</span>
-        <div class="editar-vista">
-          <span class="editar-asi">${t("Resumen")}</span>
-          ${plantillaFicha(perfilEditado(), { mio: true, vistaPrevia: true })}
-        </div>
+        <div class="editar-vista">${plantillaComoTeVen(perfilEditado())}</div>
       </aside>
     </div>`;
   cuerpo.querySelector(".editar-panel").scrollTop = bajadoPanel;
@@ -1094,7 +999,7 @@ function pintarEditar() {
 function refrescarVistaPrevia() {
   const vista = cuerpo.querySelector(".editar-vista");
   if (!vista || !borrador) return;
-  vista.innerHTML = `<span class="editar-asi">${t("Resumen")}</span>${plantillaFicha(perfilEditado(), { mio: true, vistaPrevia: true })}`;
+  vista.innerHTML = plantillaComoTeVen(perfilEditado());
   const cambia = hayCambios();
   const nota = cuerpo.querySelector(".editar-nota");
   if (nota && !errorEditar) nota.textContent = cambia ? t("Hay cambios sin guardar") : "";
@@ -1432,14 +1337,19 @@ function alPulsarEditando(boton) {
   } else if (boton.classList.contains("editar-cambiar-foto")) {
     abrirAvatar();
     return true;
-  } else if (boton.classList.contains("editar-titulo")) {
-    borrador.titulo = boton.dataset.titulo || null;
-  } else if (boton.classList.contains("editar-marco")) {
-    borrador.marco = boton.dataset.marco || "";
-  } else if (boton.classList.contains("editar-fondo")) {
-    borrador.fondo = boton.dataset.fondo || null;
-  } else if (boton.classList.contains("editar-color")) {
-    borrador.color = boton.dataset.color === "celeste" ? "" : boton.dataset.color;
+  } else if (boton.hasAttribute("data-ir-aspecto")) {
+    // Al probador de la Tienda (si hay cambios sin guardar, pregunta antes)
+    dejarDeEditar()
+      .then((salio) => {
+        if (!salio) return;
+        dialogo.close();
+        import("./tienda/index.js").then(({ abrirPestana }) => {
+          abrirPestana("fondos");
+          irA("tienda");
+        });
+      })
+      .catch(siFalla);
+    return true;
   } else if (boton.classList.contains("editar-equipo")) {
     alternarDestacado(boton.dataset.id);
   } else if (boton.classList.contains("editar-subir")) {
