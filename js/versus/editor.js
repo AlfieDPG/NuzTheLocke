@@ -12,7 +12,7 @@
 import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { coloresTipo, iconoTipo } from "../comun/tipos.js";
-import { activarAutocompletado, iconoPokemon, iconoObjeto } from "../comun/autocompletado.js";
+import { activarAutocompletado, iconoPokemon } from "../comun/autocompletado.js";
 import { imagenConRespaldo, urlsRetrato, urlsIconoObjeto } from "../comun/imagenes.js";
 import { generosPosibles, ICONO_GENERO, NOMBRE_GENERO } from "../comun/pokemon.js";
 import { campoNumero } from "../comun/numero.js";

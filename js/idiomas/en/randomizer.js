@@ -133,7 +133,6 @@ export default {
     "Changes what special shops sell (all but the regular Poké Mart). Where a TM was sold, another TM is sold.",
   "Sin lo de las tiendas normales": "Without what regular shops sell",
   "Siempre hay piedras evolutivas": "Evolution stones always available",
-  "Caramelos Raros baratos": "Cheap Rare Candies",
   "Esenciales baratos": "Cheap essentials",
   "Caramelos Raros y Poké Balls a 10 ₽, y los Caramelos Raros, a la venta desde la primera tienda: en un locke se compran a montones.":
     "Rare Candies and Poké Balls for ₽10, and Rare Candies on sale from the first shop: in a locke you buy loads of them.",
@@ -168,7 +167,6 @@ export default {
   "De un locke": "From a locke",
   "Copiar a las mías": "Copy to mine",
   "Guardar copia": "Save a copy",
-  "¿Borrar todo lo elegido para randomizar?": "Clear everything chosen to randomize?",
   "Borrar todo": "Clear all",
   "Nombre para estas normas:": "Name for these rules:",
   "¿Borrar las normas «{nombre}»?": "Delete the rules “{nombre}”?",

@@ -616,48 +616,12 @@
   display: none;
 }
 
-.jugar-seguir {
-  display: grid;
-  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1.1rem;
-  padding: 1.1rem 1.2rem;
-  border-left: 0.35rem solid var(--juego);
-  border-radius: 0.9rem;
-  background: var(--t-panel);
-  /* Como las tarjetas de Equipos: un degradado suave del color de la versión (el de su Pokémon de
-     la carátula), desde la portada hacia la derecha */
-  background-image: linear-gradient(90deg, color-mix(in srgb, var(--juego) 14%, transparent), transparent 65%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.jugar-seguir > .jugar-portada {
-  width: 6.5rem;
-  height: 6.5rem;
-  border-radius: 0.8rem;
-}
-
-.jugar-seguir-texto {
-  min-width: 0;
-}
-
 .jugar-ceja {
   color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), var(--t-texto));
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.jugar-seguir h3 {
-  margin: 0;
-  font-size: 1.55rem;
-  line-height: 1.15;
-  text-wrap: balance;
-}
-
-.jugar-seguir .jugar-detalle {
-  margin: 0.3rem 0 0.75rem;
 }
 
 /* Qué tipo de partida es: una etiqueta pequeña al lado del juego (el icono, del color de su sección: Lockes,
@@ -710,16 +674,6 @@
 }
 
 /* El equipo: seis círculos con el retrato, los vacíos con borde de puntos (como en las filas, algo más grandes) */
-.jugar-seguir-equipo {
-  display: flex;
-  gap: 0.35rem;
-}
-
-.jugar-seguir-botones {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
 
 .jugar-partidas button {
   display: inline-flex;
@@ -750,70 +704,9 @@
   background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
 }
 
-.jugar-seguir .jugar-jugar {
-  padding: 0.75rem 1.3rem;
-  font-size: 1.05rem;
-}
-
-.jugar-otras {
-  margin: 0.4rem 0 -0.4rem;
-  color: var(--t-gris-2);
-  font-size: 1rem;
-}
-
-.jugar-filas {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-/* Cada fila, pegado a la izquierda: portada, nombre, tipo y los seis huecos; «Jugar» y «⋯», a la derecha */
-.jugar-fila {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.5rem 0.7rem;
-  border-left: 0.35rem solid var(--juego);
-  border-radius: 0.75rem;
-  background: var(--t-panel);
-  background-image: linear-gradient(90deg, color-mix(in srgb, var(--juego) 10%, transparent), transparent 55%);
-}
-
-.jugar-fila .jugar-jugar {
-  margin-left: auto;
-}
-
 /* El tipo, en un hueco del mismo ancho en todas: así los equipos empiezan a la misma altura */
 .jugar-fila-tipo {
   flex: 0 0 9.5rem;
-}
-
-.jugar-fila > .jugar-portada {
-  width: 2.4rem;
-  height: 2.4rem;
-}
-
-.jugar-fila-texto {
-  display: flex;
-  flex: 0 1 15rem;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.jugar-fila-texto strong {
-  overflow: hidden;
-  font-family: var(--letra-titulos);
-  font-size: 1.02rem;
-  line-height: 1.15;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.jugar-fila-texto .jugar-detalle {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .jugar-fila-equipo {
@@ -822,7 +715,6 @@
 }
 
 .jugar-fila-equipo .jugar-cara,
-.jugar-seguir-equipo .jugar-cara,
 .jugar-hueco {
   flex: none;
   display: block;
@@ -837,23 +729,6 @@
 }
 
 @media (max-width: 760px) {
-  .jugar-seguir {
-    grid-template-columns: 4.5rem minmax(0, 1fr);
-  }
-
-  .jugar-seguir > .jugar-portada {
-    width: 4.5rem;
-    height: 4.5rem;
-  }
-
-  .jugar-seguir-botones {
-    grid-column: 1 / -1;
-    flex-direction: row;
-  }
-
-  .jugar-seguir-botones .jugar-jugar {
-    flex: 1;
-  }
 
   .jugar-fila-equipo,
   .jugar-fila-tipo {
@@ -1609,17 +1484,6 @@
   }
 }
 
-/* Los círculos del equipo de la partida grande: llenos y vacíos, del mismo tamaño (va al final para mandar sobre el
-   tamaño de las filas) */
-.jugar-seguir-equipo .jugar-cara,
-.jugar-seguir-equipo .jugar-hueco {
-  flex: none;
-  box-sizing: border-box;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 50%;
-}
-
 /* «Teclas y mando», en la tira de las pantallas anchas de DS: abre la ventana con las teclas */
 .jugar-tira-teclas {
   display: inline-flex;
@@ -1725,12 +1589,6 @@
 .jj-datos .jugar-medalla {
   width: 1.55rem;
   height: 1.55rem;
-}
-
-.jj-nota {
-  color: var(--t-gris);
-  font-size: 0.78rem;
-  font-weight: 600;
 }
 
 /* El equipo: seis tarjetas iguales (las vacías, con borde de puntos) */
@@ -2198,20 +2056,6 @@
   border-radius: 50%;
   background: #e05a4a;
   box-shadow: 0 0 0 3px rgba(224, 90, 74, 0.25);
-}
-
-.jj-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.jj-chips span {
-  padding: 0.1rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(var(--t-tinte), 0.08);
-  font-size: 0.74rem;
-  font-weight: 700;
 }
 
 /* ---- «Ver todas» ---- */

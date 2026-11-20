@@ -289,8 +289,6 @@ const DE_CADA = {
     428, 431, 432, 433, ...desde(438, 440), 443, ...desde(445, 455), ...desde(459, 464), 466, 467, 631, 632, 1267, 1278, 1822
   ]
 };
-// Los que existen pero no se pueden equipar (las losas y fragmentos del Gran Subsuelo)
-const NO_EQUIPABLES = new Set(desde(1808, 1821));
 
 export const BOLSILLOS_BDSP = Object.entries(DE_CADA).map(([id, lista]) => ({
   id, caben: lista.length, maximo: id === "clave" ? 1 : 999

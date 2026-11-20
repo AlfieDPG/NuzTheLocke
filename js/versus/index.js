@@ -58,7 +58,7 @@ import { REGLAS_ARBITRO, arbitroLimpio } from "../partida/arbitro.js";
 import { completarReglas, hayAlgo, misReglas, normasGuardadas, resumenNormas, hierbaEnPueblos } from "../randomizer/reglas.js";
 import { confirmar, avisar } from "../comun/ventanas.js";
 import { campoNumero } from "../comun/numero.js";
-import { caraDePokemon, carasDeEquipo } from "../comun/elegir-equipo.js";
+import { caraDePokemon } from "../comun/elegir-equipo.js";
 import { t, LOCALE } from "../comun/idioma.js";
 
 let seccion = null;

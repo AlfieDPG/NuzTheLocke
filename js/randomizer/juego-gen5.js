@@ -26,7 +26,7 @@
 import { leerNarc, crearNarc } from "./rom-nds.js";
 import { leerTextos, escribirTextos } from "./textos-bw.js";
 import { descomprimirLZ } from "./lz.js";
-import { perfilDe, JUEGOS_GEN5 } from "./perfiles-gen5.js";
+import { perfilDe } from "./perfiles-gen5.js";
 import { IPS, aplicarIPS } from "./parches-gen5.js";
 import { ponerHierbaEnPueblos as hierbaEnPueblos } from "./hierba-gen5.js";
 import { ponerMentasGen5, mentasPosiblesGen5, mentasYaPuestasGen5, PRIMERA_MENTA_GEN5, MENTAS_GEN5 } from "./mentas-gen5.js";

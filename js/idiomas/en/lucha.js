@@ -4,13 +4,11 @@
 
 export default {
   // ---------- La lista ----------
-  "Sección en pruebas: todavía puede fallar. Si algo va mal, cuéntalo en el foro.": "This section is still being tested: it may not work properly yet. If something goes wrong, let us know in the forum.",
   "DBPR": "BDSP",
   "{n} gen": "Gen {n}",
   "Todos al 50": "All at level 50",
   "Niveles del equipo": "Team's own levels",
   "Te reta": "Challenges you",
-  "Esperando respuesta": "Awaiting reply",
   "Te toca": "Your turn",
   "Le toca a {nombre}": "{nombre}'s turn",
   "Luchar": "Battle",
@@ -22,19 +20,9 @@ export default {
   "se rindió": "they forfeited",
   "Quitar de la lista": "Remove from the list",
   "Retar a un amigo": "Challenge a friend",
-  "Combates por turnos con los equipos que quieras, contra tus amigos y sin salir de la web. Cada uno elige cuando puede: no hace falta estar a la vez.":
-    "Turn-based battles against your friends with any team you like, without leaving the site. Each of you chooses whenever you can: you don't need to be online at the same time.",
   "Entra con tu cuenta para retar a tus amigos.": "Sign in to challenge your friends.",
   "Firebase no deja leer los combates. Falta publicar las reglas de Firestore.": "Firebase won't let the battles be read. The Firestore rules need publishing.",
   "No se han podido cargar los combates.": "The battles couldn't be loaded.",
-  "Todavía no has combatido": "You haven't battled yet",
-  "Reta a un amigo con uno de tus equipos, con el nivel y el escenario que queráis.":
-    "Challenge a friend with one of your teams, at the level and on the stage you both choose.",
-  "Desde «Lockes», los combates de vuestro locke se juegan aquí y suman la victoria solos.":
-    "From “Lockes”, your locke's battles are played here and add the win by themselves.",
-  "Todo queda guardado: puedes ver la repetición de cada combate terminado.":
-    "Everything is saved: you can watch the replay of every finished battle.",
-  "Te retan": "Challenges for you",
   "Retos": "Challenges",
   "Ver repetición": "Watch replay",
   "Terminadas": "Finished",
@@ -84,7 +72,6 @@ export default {
   "Elegiste desde otro sitio: sigue el combate desde allí para destapar tu elección.": "You chose from another device: continue the battle there to reveal your choice.",
   "Elección sellada. Esperando a {nombre}...": "Choice sealed. Waiting for {nombre}...",
   "Esperando a {nombre}...": "Waiting for {nombre}...",
-  "Elige con quién empiezas. El equipo de {nombre}:": "Choose your lead. {nombre}'s team:",
   "¿A quién sacas?": "Who will you send out?",
   "¿Qué hará {nombre}?": "What will {nombre} do?",
   "No puede huir ni cambiar": "It can't escape or switch",
@@ -271,12 +258,10 @@ export default {
   // ---------- Vista previa y equipos a la vista ----------
   "sin vista previa": "no team preview",
   "Vista previa": "Team preview",
-  "Ver los dos equipos antes de empezar": "See both teams before starting",
   "Sin vista previa": "No team preview",
   "Escenario": "Battlefield",
   "sin tera": "no Tera",
   "Teracristalización": "Terastallization",
-  "Se puede teracristalizar": "Terastallizing allowed",
   "Sin tera": "No Tera",
   "Cancelar mi elección": "Cancel my choice",
   "Cancelar ataque": "Cancel move",
@@ -289,7 +274,6 @@ export default {
   "Playa": "Beach",
   "Cargando el combate...": "Loading the battle...",
   "Elige con quién empiezas": "Choose your lead",
-  "Equipo de {nombre}": "{nombre}'s team",
   "Debilitado": "Fainted",
   "transformado en {especie}": "transformed into {especie}",
   "Aún no ha salido": "Not seen yet",
@@ -325,10 +309,8 @@ export default {
   "A {nombre} se le ha acabado el tiempo {n} veces seguidas. ¡Has ganado!": "{nombre} ran out of time {n} turns in a row. You win!",
 
   // ---------- Mirar combates de amigos ----------
-  "De tus amigos": "Your friends' battles",
   "Mirar": "Watch",
   "Quién lo ve": "Who can watch",
-  "Lo pueden mirar vuestros amigos": "Your friends can watch",
   "Solo vosotros": "Only you two",
   "lo pueden mirar vuestros amigos": "your friends can watch",
   "Estás mirando.": "You're watching.",
@@ -337,7 +319,6 @@ export default {
   "(a {nombre} se le acabó el tiempo)": "({nombre} ran out of time)",
 
   // ---------- Abandono ----------
-  "Ganar por abandono": "Win by forfeit",
   "no jugaste": "you didn't play",
   "no jugó": "they didn't play",
   "Has perdido: llevabas más de dos días sin jugar. Gana {nombre}.": "You lost: you hadn't played for over two days. {nombre} wins.",
@@ -357,19 +338,13 @@ export default {
   "Rivales": "Rivals",
   "Retar a {nombre}": "Challenge {nombre}",
   "Victorias: tú – {nombre}": "Wins: you – {nombre}",
-  "Agrega amigos en «Amigos» para retarles.": "Add friends in “Friends” to challenge them.",
-  "Ningún combate en marcha. Pulsa «Luchar» para retar a un amigo.": "No battles in progress. Press “Battle” to challenge a friend.",
   "1 sin contestar": "1 unanswered",
   "{n} sin contestar": "{n} unanswered",
   "Últimos combates": "Latest battles",
-  "Aquí salen tus combates terminados, con su repetición.": "Your finished battles show up here, with their replay.",
   "Combates pendientes": "Pending battles",
-  "Los de vuestros lockes que aún no se han jugado. Al terminar, la victoria se apunta sola.": "The ones from your lockes that haven't been played yet. When they end, the win is added on its own.",
-  "Nada pendiente": "Nothing pending",
   "Tú vs {nombre} · {combate}": "You vs {nombre} · {combate}",
   "Para mirar": "To watch",
   "de tus amigos": "from your friends",
-  "Aquí salen los combates de tus amigos que se dejan mirar.": "Your friends' battles that can be watched show up here.",
   "Ver todos ({n})": "See all ({n})",
   "Lo último que se eligió": "Last move",
   "Esperando": "Waiting",

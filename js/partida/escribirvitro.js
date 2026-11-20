@@ -19,7 +19,6 @@ import { experienciaPara } from "./convertir.js";
 const ENTRENADOR = 0;
 const MOCHILA = 13;
 const CAJAS = 14;
-export const CAJAS_EDITABLES_VITRO = 40;
 const POR_CAJA = 30;
 
 const MAX_MOTE = 12;

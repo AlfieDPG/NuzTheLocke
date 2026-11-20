@@ -40,8 +40,6 @@ const JUEGO_DE_CODIGO = {
   BPR: "frlg", BPG: "frlg"
 };
 const GEN4 = ["dp", "platino", "hgss"];
-// Los de 3DS (se leen del .3ds y salen como archivos sueltos para el emulador o la consola)
-const TRES_DS = ["xy", "oras", "sm", "usum"];
 // Juego de js/comun/juegos.js por el código de producto de un .3ds («CTR-P-EK2A»)
 const JUEGO_DE_CODIGO_3DS = { EK: "xy", EC: "oras", BN: "sm", A2: "usum" };
 // La generación de cada juego (las actualizaciones de datos son a las siguientes)

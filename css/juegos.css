@@ -108,25 +108,6 @@
 
 /* ---------- Cabecera: saldo y racha ---------- */
 
-.juegos-cabecera {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: 0.8rem 1.5rem;
-  align-items: center;
-  margin: 0.9rem 0 1rem;
-  padding: 1rem 1.2rem;
-  border-radius: 0.7rem;
-  background: var(--t-panel);
-  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
-}
-
-.juegos-saldo,
-.juegos-racha {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
 /* La «i» al lado de «Pokédólares»: abre cómo se ganan */
 .juegos-info {
   display: inline-flex;
@@ -158,107 +139,10 @@
   color: #fff;
 }
 
-.juegos-saldo p {
-  margin: 0;
-  color: var(--t-gris-2);
-}
-
-.juegos-saldo strong {
-  font-family: var(--letra-titulos);
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.juegos-saldo small,
-.juegos-racha small {
-  display: block;
-  color: var(--t-gris);
-  font-size: 0.82rem;
-}
-
-:is(#vista-juegos, #vista-tienda) .juegos-racha > .icono {
-  width: 1.8rem;
-  height: 1.8rem;
-  color: var(--t-gris-4);
-}
-
-.juegos-racha.activa > .icono {
-  color: #f0a53c;
-}
-
 /* ---------- Retos ---------- */
 
 /* Las tarjetas de los cinco retos: el icono suelto, del color de la sección; la elegida con la
    capa de color a la izquierda; las ya jugadas, apagadas y con lo que dieron */
-.retos-fila {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-  gap: 0.6rem;
-  margin-bottom: 1rem;
-}
-
-.reto-tarjeta {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  min-width: 0;
-  padding: 0.65rem 0.85rem;
-  border: none;
-  border-radius: 14px;
-  background: var(--t-panel);
-  color: var(--t-texto);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.reto-tarjeta:hover {
-  background: var(--t-panel-3);
-}
-
-.reto-tarjeta.activa {
-  background: rgba(var(--color-vista), 0.14);
-  box-shadow: inset 3px 0 0 rgb(var(--color-vista));
-}
-
-:is(#vista-juegos, #vista-tienda) .reto-tarjeta > .icono {
-  width: 1.4rem;
-  height: 1.4rem;
-  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
-}
-
-.reto-tarjeta span {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.reto-tarjeta strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-height: 1.15;
-  font-size: 0.9rem;
-}
-
-.reto-tarjeta small {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--t-gris);
-  font-size: 0.8rem;
-}
-
-.reto-tarjeta small.hecho {
-  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
-  font-weight: bold;
-}
-
-.reto-tarjeta.terminado:not(.activa) > .icono {
-  opacity: 0.45;
-}
 
 .juego {
   padding: 1rem 1.1rem 1.1rem;
@@ -336,8 +220,7 @@
   border-color: rgb(var(--color-vista));
 }
 
-.juego-form button,
-.tienda-articulo button {
+.juego-form button {
   flex: none;
   padding: 0.5rem 0.9rem;
   border: none;
@@ -592,65 +475,6 @@
 
 /* ---------- Tienda ---------- */
 
-.tienda-apartado {
-  margin-bottom: 1.5rem;
-}
-
-.tienda-apartado h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.tienda-explicacion {
-  margin: 0.1rem 0 0.7rem;
-  color: var(--t-gris);
-  font-size: 0.88rem;
-}
-
-.tienda-rejilla {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-  gap: 0.8rem;
-}
-
-.tienda-articulo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem;
-  border-radius: 14px;
-  background: var(--t-panel);
-  text-align: center;
-}
-
-.tienda-articulo.puesto {
-  box-shadow: inset 0 -3px 0 rgb(var(--color-vista));
-}
-
-.tienda-articulo button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.tienda-articulo .tienda-poner,
-.tienda-articulo .tienda-quitar {
-  background: var(--t-control);
-  color: var(--t-texto);
-}
-
-.tienda-articulo .tienda-quitar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.tienda-quitar .icono {
-  width: 0.9rem;
-  height: 0.9rem;
-  color: var(--t-bien);
-}
-
 .tienda-muestra {
   position: relative;
   display: flex;
@@ -770,8 +594,7 @@
 /* ---------- Supereficaz ---------- */
 
 .juego-empezar,
-.masomenos-botones button,
-.juegos-compartir {
+.masomenos-botones button {
   padding: 0.55rem 1.1rem;
   border: none;
   border-radius: 0.5rem;
@@ -1249,14 +1072,6 @@
   font-weight: bold;
 }
 
-
-
-:is(#vista-juegos, #vista-tienda) .retos-siguiente .icono {
-  flex: none;
-  width: 1rem;
-  height: 1rem;
-}
-
 .juegos-compartir-enlace {
   align-self: flex-start;
   font: inherit;
@@ -1265,16 +1080,6 @@
 :is(#vista-juegos, #vista-tienda) .juegos-compartir-enlace .icono {
   width: 0.9rem;
   height: 0.9rem;
-}
-
-.juegos-compartir {
-  padding: 0.55rem 1.1rem;
-  border: none;
-  border-radius: 0.5rem;
-  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
 }
 
 .eficaz-reloj {
@@ -1513,31 +1318,6 @@
 
 /* ---------- Compartir ---------- */
 
-.juegos-pie {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 1rem 1.1rem;
-  border-radius: 14px;
-  background: var(--t-panel);
-}
-
-.juegos-pie h3 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.juegos-pie .juegos-nota {
-  margin: 0;
-}
-
-.juegos-compartir {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 .juegos-copiado {
   color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
   font-weight: bold;
@@ -1632,13 +1412,6 @@
   height: 0.8rem;
 }
 
-.clasificacion-hoy {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  color: var(--t-bien);
-}
-
 .clasificacion-fila .ficha-cifra {
   font-size: 1.15rem;
 }
@@ -1672,7 +1445,6 @@
 
 /* Seis columnas iguales: los tres del líder, los tuyos y los seis para elegir, alineados */
 .lockedia-equipo,
-.lockedia-tu-equipo,
 .lockedia-opciones {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1681,18 +1453,13 @@
 
 @media (max-width: 700px) {
   .lockedia-equipo,
-  .lockedia-tu-equipo,
-  .lockedia-opciones {
+.lockedia-opciones {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 .juego-locke .juego-explicacion {
   margin: 0.8rem 0;
-}
-
-.lockedia-tu-equipo {
-  margin-top: 0.8rem;
 }
 
 .lockedia-opciones {
@@ -2016,41 +1783,6 @@ button.lockedia-poke:hover {
   }
 }
 
-/* Clasificación: la lista y, al lado, tu semana */
-.clasificacion-cuerpo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
-  gap: 1rem;
-  align-items: start;
-}
-
-@media (max-width: 1100px) {
-  .clasificacion-cuerpo {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.clasificacion-dato {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  width: 100%;
-}
-
-.clasificacion-dato > span:first-child {
-  flex: 1;
-  color: var(--t-gris-2);
-}
-
-.clasificacion-dato strong {
-  font-family: var(--letra-titulos);
-  font-size: 1.2rem;
-}
-
-.clasificacion-dato small {
-  color: var(--t-gris);
-}
-
 /* La versión corta, en la columna de los retos */
 .clasificacion-lista.corta {
   width: 100%;
@@ -2071,20 +1803,6 @@ button.lockedia-poke:hover {
 .clasificacion-lista.corta .clasificacion-puesto {
   width: 1.1rem;
   font-size: 1rem;
-}
-
-.juegos-ver-clasificacion {
-  padding: 0.45rem 0.9rem;
-  border: none;
-  border-radius: 0.5rem;
-  background: var(--t-control);
-  color: var(--t-texto);
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.juegos-ver-clasificacion:hover {
-  background: var(--t-control-2);
 }
 
 /* Copiar los resultados: discreto, como un enlace */
@@ -2684,12 +2402,6 @@ button.lockedia-poke:hover {
   cursor: default;
 }
 
-.coleccion-reglas {
-  grid-column: 1 / -1;
-  color: var(--t-gris);
-  font-size: 0.82rem;
-}
-
 /* Lo que sale: primero los huevos agitándose; luego cada uno se abre y enseña su Pokémon */
 .coleccion-salidos {
   display: grid;
@@ -2848,15 +2560,6 @@ button.lockedia-poke:hover {
 .coleccion-gens button.completa small {
   color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), black);
   font-weight: bold;
-}
-
-.coleccion-shiny {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--t-gris-2);
-  font-weight: bold;
-  cursor: pointer;
 }
 
 .coleccion-nota {
@@ -3072,11 +2775,6 @@ button.coleccion-casilla:hover {
   image-rendering: pixelated;
 }
 
-/* Clasificación: las pestañas Esta semana / General (las de «Logros», css/logros.css) */
-.clasificacion-filtro {
-  margin-bottom: 0.6rem;
-}
-
 /* ---------- Títulos: plaquitas ----------
    Todos los títulos son una plaquita (css/logros.css, .perfil-titulo). Los de la Tienda llevan
    además su propio diseño (.placa-tienda.titulo-<id>, ver TITULOS en js/comun/fichas.js):
@@ -3215,63 +2913,6 @@ button.coleccion-casilla:hover {
   }
 }
 
-/* En la Tienda, los títulos en filas: la plaquita y, a la derecha, el precio o el botón. Las
-   columnas, de 22rem como poco: los títulos con adornos no se parten y tienen que caber con el
-   botón en la misma línea (en un móvil estrecho, la columna ocupa todo el ancho) */
-.tienda-titulos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
-  gap: 0.5rem 0.8rem;
-}
-
-/* Si la plaquita no cabe en una línea junto al botón (los títulos con adornos no se parten), el
-   botón baja a la línea de abajo, a la derecha */
-.tienda-titulo-fila {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-  padding: 0.55rem 0.7rem 0.55rem 0.9rem;
-  border-radius: 12px;
-  background: var(--t-panel);
-}
-
-.tienda-titulo-fila.puesto {
-  box-shadow: inset 0 -3px 0 rgb(var(--color-vista));
-}
-
-.tienda-titulo-fila .perfil-titulo {
-  margin: 0;
-}
-
-.tienda-titulo-fila button {
-  flex: none;
-  margin-left: auto;
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: 0.5rem;
-  background: color-mix(in srgb, rgb(var(--color-vista)) 78%, black);
-  color: #fff;
-  font-weight: bold;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.tienda-titulo-fila button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.tienda-titulo-fila .tienda-poner,
-.tienda-titulo-fila .tienda-quitar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: var(--t-control);
-  color: var(--t-texto);
-}
-
 /* ---------- Marcos con movimiento ---------- */
 
 /* Arcoíris: los aros van cambiando de color, uno detrás de otro */
@@ -3381,11 +3022,6 @@ button.coleccion-casilla:hover {
   text-align: center;
 }
 
-.tienda-titulo-fila .perfil-titulo {
-  flex: 0 1 auto;
-  text-align: left;
-}
-
 /* La versión pequeña, junto al nombre (Amigos, la ficha del foro, la clasificación...) */
 .perfil-titulo.pequeno {
   margin: 0;
@@ -3395,18 +3031,11 @@ button.coleccion-casilla:hover {
   letter-spacing: 0.02em;
 }
 
-.ficha-quien .perfil-titulo {
-  margin-top: 0.25rem;
-  margin-inline: 0 auto;
-  text-align: left;
-}
-
 .luchador .perfil-titulo {
   margin-inline: auto;
 }
 
-.foro-usuario-nombre,
-.clasificacion-nombre {
+.foro-usuario-nombre {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -4427,10 +4056,6 @@ img.con-marco.con-marco {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-:is(#vista-juegos, #vista-tienda) .boton-ir.de-juegos {
-  --ir: 76, 182, 92;
-}
-
 /* Al pasar el ratón no se mueve: se ilumina un poco y avanzan las flechas */
 :is(#vista-juegos, #vista-tienda) button.boton-ir {
   cursor: pointer;
@@ -4515,11 +4140,6 @@ img.con-marco.con-marco {
   display: block;
   grid-column: 1 / -1;
   margin: 0;
-}
-
-/* La Tienda: el saldo arriba de «Así te ven» y el hueco de antes (junto a las pestañas), fuera */
-#vista-tienda .tienda-asi .boton-ir.tienda-saldo-cifra {
-  border-radius: 0.5rem;
 }
 
 /* Huevos: las reglas, en una «i» a la derecha de los botones de abrir (antes, un texto debajo) */
@@ -4808,10 +4428,6 @@ img.con-marco.con-marco {
 .juntos-premio { display: flex; align-items: center; gap: 0.4rem; margin: 0; color: var(--t-gris); font-size: 0.85rem; }
 .juntos-premio .icono { width: 1rem; height: 1rem; flex: none; }
 
-.juntos-retar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.6rem; }
-.juntos-retar label { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 12rem; font-size: 0.85rem; }
-
-.juntos-retar button,
 .juntos-fila-botones button:not(.boton-gris),
 .quien-botones button:not(.boton-gris),
 .juntos-cabeza .juntos-rendirse {

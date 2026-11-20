@@ -9,7 +9,6 @@ export default {
   "Denuncias": "Reports",
   "Nuevo hilo": "New thread",
   "Cualquier juego": "Any game",
-  "Solo abiertos": "Open only",
   "Buscar en los hilos...": "Search threads...",
   "Actualizar": "Refresh",
   "Ver más hilos": "Load more threads",
@@ -75,7 +74,6 @@ export default {
 
   // ---------- Un hilo abierto ----------
   "Responder": "Reply",
-  "Escribe una respuesta... (Ctrl + Intro para enviar)": "Write a reply... (Ctrl + Enter to send)",
   "Todavía nadie ha respondido.": "Nobody has replied yet.",
   "Autor": "Author",
   "Volver a abrir": "Reopen",
@@ -114,7 +112,6 @@ export default {
   "No se ha podido enviar la denuncia. Prueba de nuevo.": "Couldn't send the report. Try again.",
 
   // ---------- Ficha de una persona ----------
-  "1 locke ganado": "1 locke won",
   "{n} lockes ganados": "{n} lockes won",
   "Solicitud de amistad pendiente": "Friend request pending",
   "Añadir a amigos": "Add as friend",

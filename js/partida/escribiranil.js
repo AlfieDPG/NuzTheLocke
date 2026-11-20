@@ -31,7 +31,6 @@ const sinAcentos = (texto) => String(texto || "").normalize("NFD").replace(/[\u0
 const ballDeObjeto = (objeto) => BALLS.findIndex((b) => sinAcentos(b) === sinAcentos(OBJETOS_EN[objeto])) + 1;
 const objetoDeBall = (ball) => OBJETOS_EN.findIndex((n) => n && sinAcentos(n) === sinAcentos(BALLS[ball - 1]));
 
-export const CAJAS_EDITABLES_ANIL = 50;
 const POR_CAJA = 30;
 const MAX_MOTE = 12;
 const MAX_ENTRENADOR = 13; // MAX_PLAYER_NAME_SIZE de sus ajustes
@@ -562,11 +561,3 @@ export function escribirMochilaAnil(original, mochila) {
   return escribirNodos(nodos);
 }
 
-export function esPartidaEditableAnil(bytes) {
-  try {
-    nodosDe(bytes);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}

@@ -363,31 +363,6 @@
   gap: 0.25rem;
 }
 
-.calc-entreno {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.6rem;
-  border: none;
-  border-radius: 0.5rem;
-  background: var(--t-control);
-  color: var(--t-texto);
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.calc-entreno:hover {
-  background: var(--t-control-2);
-}
-
-.calc-entreno .icono {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
 /* Estadísticas finales (con su subida o bajada), con las que cuentan para el ataque elegido
    resaltadas, y a la derecha los botones para subirlas o bajarlas */
 .calc-stats {
@@ -703,12 +678,6 @@
 .calc-ps {
   width: 100%;
   accent-color: var(--t-bien);
-}
-
-.calc-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
 }
 
 .calc-chip {

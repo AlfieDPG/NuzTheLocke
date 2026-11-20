@@ -8,7 +8,7 @@
 
 import { imagenConRespaldo } from "../comun/imagenes.js";
 import { elegirEquipo, caraDePokemon, carasDeEquipo } from "../comun/elegir-equipo.js";
-import { fondoDe, claseFondo, estiloFondo } from "../comun/fondos.js";
+import { fondoDe } from "../comun/fondos.js";
 import { marcoDe, claseMarco, claseMarcoDe, fondoVisual, plantillaTituloDe, rgbDePerfil } from "../comun/fichas.js";
 import { icono } from "../comun/iconos.js";
 import { campoNumero } from "../comun/numero.js";
@@ -37,33 +37,13 @@ let seccion = null;
 let lista = null;
 let aviso = null;
 let textoFiltro = ""; // lo escrito en «Buscar entre tus amigos»
-let dialogoTipos = null;
 let dialogoPalmares = null;
-
-// ---------- Colores ----------
-
-// El color va dentro de un atributo style, así que solo se deja pasar #rrggbb.
-// Si alguien guardase cualquier otra cosa en su perfil, aquí se queda fuera.
-function colorSeguro(color) {
-  return /^#[0-9a-f]{6}$/i.test(String(color || "")) ? color : "#3498db";
-}
 
 // ---------- Plantillas ----------
 
 
 // Lockes que se ven de entrada en una lista; el resto, detrás de «Ver todos»
 const MOSTRAR_DE_ENTRADA = 5;
-
-// Un locke jugado: con corona si lo ganó; los demás, un poco más apagados
-function plantillaLocke(ganado, posicion, extra) {
-  const tipo = ganado.tipo || TIPOS_POR_DEFECTO[0];
-  return `
-    <li class="locke-ganado ${ganado.gano ? "gano" : "perdido"} ${extra ? "extra" : ""}" data-posicion="${posicion}" style="--color-locke: ${colorDeTipo(tipo)}"
-        title="${t("Pulsa para ver los datos de este locke")}">
-      <span class="locke-nombre">${ganado.gano ? `<span class="locke-corona" title="${t("Ganado")}">${icono("corona")}</span>` : ""}${escaparHTML(ganado.nombre)}</span>
-      ${ganado.nota ? `<span class="locke-nota">${escaparHTML(ganado.nota)}</span>` : ""}
-    </li>`;
-}
 
 // Del más reciente al más antiguo: primero los que tienen fecha de fin (de la más nueva a
 // la más vieja) y después los que no, de los últimos apuntados a los primeros
@@ -87,14 +67,6 @@ function botonVerTodos(total) {
     <li class="ver-todos-fila">
       <button class="ver-todos" data-quedan="${quedan}">${icono("mas")} ${t("Ver todos ({n} más)", { n: quedan })}</button>
     </li>`;
-}
-
-function plantillaListaGanados(jugados) {
-  const ordenados = delMasReciente(jugados, (ganado) => ganado.fechaFin);
-  return (
-    ordenados.map(({ elemento, posicion }, i) => plantillaLocke(elemento, posicion, i >= MOSTRAR_DE_ENTRADA)).join("") +
-    botonVerTodos(ordenados.length)
-  );
 }
 
 
@@ -1205,47 +1177,6 @@ function activarAgregar() {
   });
 }
 
-// ---------- Diálogo de tipos de locke ----------
-
-let tiposEnEdicion = [];
-
-function pintarTipos() {
-  const cuerpo = dialogoTipos.querySelector(".tipos-lista");
-
-  cuerpo.innerHTML = tiposEnEdicion
-    .map(
-      (tipo, posicion) => `
-        <div class="fila-tipo" data-posicion="${posicion}">
-          <input class="tipo-color" type="color" value="${colorDeTipo(tipo)}" title="${t("Color")}">
-          <input class="tipo-nombre" type="text" value="${escaparHTML(tipo.nombre)}" placeholder="${t("Nombre del tipo")}">
-          <button class="tipo-quitar" title="${t("Quitar")}">${icono("aspa")}</button>
-        </div>`
-    )
-    .join("");
-}
-
-export function abrirTipos() {
-  const mio = miPerfil();
-  tiposEnEdicion = tiposDe(mio).map((tipo) => ({ ...tipo }));
-  pintarTipos();
-  dialogoTipos.showModal();
-}
-
-async function guardarTipos() {
-  const filas = [...dialogoTipos.querySelectorAll(".fila-tipo")];
-
-  const tipos = filas
-    .map((fila, posicion) => ({
-      id: tiposEnEdicion[posicion].id,
-      nombre: fila.querySelector(".tipo-nombre").value.trim(),
-      color: colorSeguro(fila.querySelector(".tipo-color").value)
-    }))
-    .filter((tipo) => tipo.nombre);
-
-  await guardarMiPerfil({ tipos });
-  dialogoTipos.close();
-}
-
 // ---------- Diálogo de lockes ganados ----------
 
 let ganadosEnEdicion = [];
@@ -1762,7 +1693,6 @@ export async function abrirElLocke(id) {
 
 export function iniciar() {
   seccion = document.querySelector("#vista-amigos");
-  dialogoTipos = document.querySelector("#dialogo-tipos");
   dialogoPalmares = document.querySelector("#dialogo-palmares");
   iniciarEstadisticas(alternarVerTodos);
   activarVentanaTodo();
@@ -1844,22 +1774,6 @@ export function iniciar() {
   });
   window.addEventListener("scroll", cerrarFlotante, true);
   window.addEventListener("resize", cerrarFlotante);
-
-  // Diálogo de tipos
-  dialogoTipos.querySelector(".tipos-anadir").addEventListener("click", () => {
-    tiposEnEdicion = leerTiposDelDialogo();
-    tiposEnEdicion.push({ id: nuevoId(), nombre: "", color: "#9b59b6" });
-    pintarTipos();
-  });
-  dialogoTipos.querySelector(".tipos-lista").addEventListener("click", (e) => {
-    const fila = e.target.closest(".fila-tipo");
-    if (!e.target.closest(".tipo-quitar") || !fila) return;
-    tiposEnEdicion = leerTiposDelDialogo();
-    tiposEnEdicion.splice(Number(fila.dataset.posicion), 1);
-    pintarTipos();
-  });
-  dialogoTipos.querySelector("#tipos-cancelar").addEventListener("click", () => dialogoTipos.close());
-  dialogoTipos.querySelector("#tipos-guardar").addEventListener("click", guardarTipos);
 
   // Diálogo del palmarés
   dialogoPalmares.querySelector(".palmares-anadir").addEventListener("click", () => {
@@ -1979,15 +1893,6 @@ export function iniciar() {
   alCambiarLockes(() => {
     if (!seccion.hidden && hayNube() && usuarioActual() && miPerfil()) pintarAmigos();
   });
-}
-
-// Antes de repintar el diálogo hay que recoger lo escrito, que vive en los <input>
-function leerTiposDelDialogo() {
-  return [...dialogoTipos.querySelectorAll(".fila-tipo")].map((fila, posicion) => ({
-    id: tiposEnEdicion[posicion].id,
-    nombre: fila.querySelector(".tipo-nombre").value,
-    color: colorSeguro(fila.querySelector(".tipo-color").value)
-  }));
 }
 
 function leerPalmaresDelDialogo() {

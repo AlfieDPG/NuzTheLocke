@@ -1,0 +1,11 @@
+{
+  "name": "nuzthelocke",
+  "private": true,
+  "description": "Solo para publicar: Cloudflare Pages ejecuta «npm run build» y sirve la carpeta publicar/ (ver herramientas/publicar.mjs)",
+  "scripts": {
+    "build": "node herramientas/publicar.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}

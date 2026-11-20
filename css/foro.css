@@ -58,7 +58,6 @@
   display: none;
 }
 
-.foro-tipo,
 .foro-juego,
 .foro-buscar {
   box-sizing: border-box;
@@ -612,14 +611,6 @@
   height: 1rem;
 }
 
-.foro-hilo-autor {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem 0.7rem;
-  margin: 0.3rem 0 0.8rem;
-}
-
 /* La ficha de quien escribe: su foto con el marco, el nombre, el título a la derecha y, detrás,
    el fondo de su tarjeta (js/comun/fichas.js, fondoVisual). No recorta nada: los marcos con
    dibujo (alas, llamas...) se salen por fuera, como en el resto de la web. */
@@ -644,11 +635,6 @@
 
 .foro-ficha .foro-foto::before {
   font-size: 1rem;
-}
-
-.foro-hilo-autor .foro-ficha .foro-foto {
-  width: 2.5rem;
-  height: 2.5rem;
 }
 
 .foro-ficha-datos {

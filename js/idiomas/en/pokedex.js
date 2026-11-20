@@ -92,7 +92,6 @@ export default {
   "Megaevolución con {objeto}": "Mega Evolution with {objeto}",
   "Megaevolución": "Mega Evolution",
   "Cambio de forma": "Form change",
-  "No evoluciona.": "It doesn't evolve.",
   // Títulos cortos de la tabla en el móvil
   "corto|PS": "HP",
   "corto|At.": "Atk",

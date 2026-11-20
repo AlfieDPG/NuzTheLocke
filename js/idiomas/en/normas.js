@@ -66,15 +66,11 @@ export default {
   "las del locke": "the locke's",
   "Solo se leen": "Read only",
   "Se guarda solo": "Saves automatically",
-  "Aún no tienes ningún conjunto de normas. Crea uno, márcale las normas que quieras y úsalo al crear un locke.": "You have no rule sets yet. Create one, tick the rules you want and use it when creating a locke.",
   "Empezar con las normas básicas": "Start with the basic rules",
 
   // Normas generales
   "Normas generales": "General rules",
-  "Básicas": "Basics",
-  "Las de cualquier Nuzlocke": "The ones in every Nuzlocke",
   "Extras": "Extras",
-  "Muy habituales, pero no están en todos": "Very common, but not in every run",
   "Normas del locke": "Locke rules",
   "Una captura por zona": "One catch per area",
   "Solo puedes capturar el primer Pokémon salvaje que encuentres en cada ruta, ciudad o zona. Si se debilita o huye, pierdes la captura de esa zona. Si es de una especie que ya tienes (duplicado), puedes saltártelo y probar con el siguiente.":
@@ -96,8 +92,6 @@ export default {
   // Sección
   "Renombrar": "Rename",
   "Borrar conjunto": "Delete set",
-  "Normas de «{nombre}»": "“{nombre}” rules",
-  "Todavía no tiene normas. Añádelas con «Nueva norma».": "It has no rules yet. Add them with “New rule”.",
   "Este locke no tiene normas. Quien lo creó puede ponérselas con el lápiz del locke.": "This locke has no rules. Whoever created it can add them with the locke's pencil.",
   "Renombrar conjunto": "Rename set",
   "Ya hay un conjunto con ese nombre.": "There's already a set with that name.",
@@ -105,7 +99,6 @@ export default {
   "Este conjunto ya tiene una norma con ese nombre.": "This set already has a rule with that name.",
   "¿Borrar el conjunto «{nombre}» con todas sus normas?": "Delete the set “{nombre}” with all its rules?",
   "Los lockes que ya lo usan lo conservan.": "Lockes already using it keep it.",
-  "¿Borrar «{norma}» de «{conjunto}»?": "Delete “{norma}” from “{conjunto}”?",
 
   // Ruleta
   "Recompensas": "Rewards",

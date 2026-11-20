@@ -18,8 +18,6 @@ export default {
   "Borrar esta ruleta": "Delete this wheel",
   "Añadir opción...": "Add option...",
   "Últimas tiradas": "Latest spins",
-  "Mote de tu amigo...": "Your friend's username...",
-  "Cómo ver a tus amigos": "How to show your friends",
   "Cómo ver los lockes": "How to show your lockes",
   "Detallados": "Detailed",
   "Resumidos": "Compact",
@@ -30,18 +28,13 @@ export default {
 
   // ---------- Tipos de locke ----------
   "Tipos de locke": "Locke types",
-  "Los que usas tú al crear un locke. Puedes renombrarlos, cambiarles el color, quitarlos o añadir los tuyos. Los lockes que ya has ganado se quedan como estaban.":
-    "The ones you use when creating a locke. You can rename them, change their colour, remove them or add your own. The lockes you've already won stay as they were.",
   "Añadir tipo": "Add type",
 
   // ---------- Perfil ----------
   "Borrar mi cuenta": "Delete my account",
-  "Volver a mi perfil": "Back to my profile",
   "Foto de perfil": "Profile picture",
   "Subir una foto tuya": "Upload a photo of yourself",
-  "Destacar un equipo": "Feature a team",
   "Equipos destacados": "Featured teams",
-  "Destacar otro": "Feature another",
   "Título": "Title",
   "Sin título": "No title",
   "Fondos": "Backgrounds",
@@ -206,7 +199,6 @@ export default {
 
   // ---------- Normas ----------
   "Nuevo conjunto de normas": "New rule set",
-  "Incluye también las normas generales": "Also include the general rules",
   "Crear": "Create",
   "Nueva norma": "New rule",
   "Explicación": "Explanation",

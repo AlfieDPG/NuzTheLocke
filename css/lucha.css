@@ -52,20 +52,6 @@
 }
 
 /* Mientras está en pruebas: un aviso arriba de la lista */
-.lucha-en-pruebas {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.85rem 0 0;
-  padding: 0.55rem 0.8rem;
-  border-radius: 0.6rem;
-  background: rgba(var(--color-vista), 0.12);
-  font-size: 0.88rem;
-}
-
-.lucha-en-pruebas .icono {
-  color: rgb(var(--color-vista));
-}
 
 .lucha-aviso.error,
 .lucha-espera.error {
@@ -75,40 +61,7 @@
 
 /* ---------- La lista ---------- */
 
-.lucha-barra {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem 1rem;
-  margin: 0.85rem 0 1.1rem;
-}
-
-.lucha-explica {
-  flex: 1 1 20rem;
-  margin: 0;
-  font-size: 0.88rem;
-  opacity: 0.7;
-}
-
 /* Cada bloque a todo el ancho, con una sola cosa por fila */
-.lucha-bloque {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  margin-bottom: 1.2rem;
-}
-
-.lucha-bloque.en-marcha {
-  gap: 0.7rem;
-}
-
-.lucha-bloque h3 {
-  grid-column: 1 / -1;
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.75;
-}
 
 .lucha-fila {
   display: grid;
@@ -295,96 +248,13 @@
   background-image: linear-gradient(90deg, rgba(var(--color-vista), 0.2), transparent 70%);
 }
 
-.lucha-ceja {
-  grid-column: 1 / -1;
-  color: color-mix(in srgb, rgb(var(--color-vista)) var(--t-vivo), var(--t-texto));
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.lucha-grande-cuerpo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Cada jugador en su recuadro, con su fondo (si lo lleva) y una sombra: así se separa de la tarjeta */
-.lucha-grande-jugador {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  min-width: 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.7rem;
-  background-color: var(--t-panel-3);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(var(--t-tinte), 0.1);
-}
-
 /* El rival, al revés: su foto a la derecha */
-.lucha-grande-jugador.suyo {
-  flex-direction: row-reverse;
-  text-align: right;
-}
-
-.lucha-grande-quien {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.lucha-grande-jugador.suyo .lucha-grande-quien {
-  align-items: flex-end;
-}
-
-.lucha-grande-nombre {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem 0.5rem;
-  font-family: var(--letra-titulos);
-  font-size: 1.25rem;
-}
-
-.lucha-grande-jugador.suyo .lucha-grande-nombre {
-  flex-direction: row-reverse;
-}
 
 .lucha-grande .cara-equipo img {
   width: 2.1rem;
   height: 2.1rem;
 }
 
-.lucha-grande-centro {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  max-width: 14rem;
-  text-align: center;
-}
-
-.lucha-grande-centro .lucha-vs {
-  font-size: 1.3rem;
-}
-
-.lucha-grande-centro small {
-  font-size: 0.78rem;
-  opacity: 0.7;
-}
-
-.lucha-grande-botones {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.4rem;
-}
-
-.lucha-grande-botones > .lucha-abrir,
 .lucha-grande > .lucha-abrir {
   padding: 0.75rem 1.3rem;
   font-size: 1.05rem;
@@ -394,59 +264,6 @@
   .lucha-grande {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .lucha-grande-cuerpo {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .lucha-grande-jugador.suyo {
-    flex-direction: row;
-    text-align: left;
-  }
-
-  .lucha-grande-jugador.suyo .lucha-grande-quien {
-    align-items: flex-start;
-  }
-
-  .lucha-grande-jugador.suyo .lucha-grande-nombre {
-    flex-direction: row;
-  }
-}
-
-/* Sin luchas: el guante grande y una frase */
-.lucha-nada {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.7rem;
-  max-width: 44rem;
-  margin: 2rem auto;
-  padding: 2rem 1.5rem;
-  border: 2px dashed rgba(var(--color-vista), 0.5);
-  border-radius: 0.9rem;
-  color: var(--t-gris-2);
-  text-align: center;
-}
-
-.lucha-nada h3 {
-  margin: 0;
-  color: var(--t-texto);
-  font-size: 1.35rem;
-}
-
-.lucha-nada-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.lucha-nada-icono .icono {
-  width: 3rem;
-  height: 3rem;
-  color: rgb(var(--color-vista));
 }
 
 /* ---------- Retar / aceptar ---------- */
@@ -2304,14 +2121,6 @@
 }
 
 /* ---------- Combates de amigos que se pueden mirar ---------- */
-.lucha-fila > .lucha-fila-fotos {
-  grid-area: foto;
-  display: flex;
-}
-
-.lucha-fila-fotos .lucha-foto + .lucha-foto {
-  margin-left: -0.7rem;
-}
 
 /* ---------- Apuestas (js/comun/luchas.js) ---------- */
 .lucha-retar-nivel button:disabled {
@@ -3030,50 +2839,6 @@
 .lt-duelo-pie {
   width: 100%;
   box-sizing: border-box;
-}
-
-/* Últimos combates: repetición y quitar, pegados en una sola pieza del alto de «Ganaste» */
-.lt-pegados {
-  display: inline-flex;
-  align-items: center;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(var(--t-tinte), 0.08);
-}
-
-.lt-pegados button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 1.7rem;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--t-gris-2, var(--t-gris));
-  cursor: pointer;
-}
-
-.lt-pegados button + button {
-  border-left: 1px solid rgba(var(--t-tinte), 0.12);
-}
-
-.lt-pegados button:hover {
-  background: rgba(var(--t-tinte), 0.1);
-  color: var(--t-texto);
-}
-
-.lt-pegados .lucha-abrir:hover {
-  color: rgb(var(--color-vista));
-}
-
-.lt-pegados .lucha-quitar:hover {
-  color: var(--t-mal, #e74c3c);
-}
-
-.lt-pegados .icono {
-  width: 0.95rem;
-  height: 0.95rem;
 }
 
 /* El resultado y los botones, juntos a la derecha */

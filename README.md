@@ -16,6 +16,8 @@ a Nintendo, Creatures Inc., GAME FREAK inc. ni The Pokémon Company.
 - `sw.js` guarda en el navegador las imágenes y datos de GitHub y PokeAPI, que si no
   caducan a los 5 minutos.
 - Firestore guarda en el navegador perfiles, amistades y lockes, que salen al momento al entrar.
+- Al publicar, Cloudflare Pages ejecuta `npm run build` (`herramientas/publicar.mjs`): copia la web a
+  `publicar/` con el JS y el CSS minificados y precarga los módulos del arranque. Se edita el código de siempre.
 
 ## Evoluciones del randomizer
 

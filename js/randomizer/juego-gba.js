@@ -86,7 +86,6 @@ const POKEDEX = {
 // especies (de 4 en 4 bytes). Se busca por su forma: vale para todas las versiones
 const CODIGO_ERRANTES = "0004000C012806D0042806D0F32605E0";
 const CODIGO_ERRANTES_HECHO = "00F002F8061C09E0014A10470000";
-const ERRANTES_ORDEN = [244, 245, 243]; // Entei, Suicune, Raikou (las tres opciones de la tabla nueva)
 const SITIO_ERRANTE = [0x16, 0x1a, 0x0c]; // dónde va cada «movs» en el código del juego
 const NIVELES_ERRANTES = [0x2a, 0x3e];
 // push {r7, lr}; si la inicial es 1, la primera; si es 4, la segunda; si no, la tercera; pop {r7, pc}; y las tres especies (u32)

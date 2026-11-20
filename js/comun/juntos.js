@@ -23,7 +23,6 @@ import { miPerfil, amigosAceptados } from "./perfiles.js";
 import { guardarJugada } from "./fichas.js";
 import { t } from "./idioma.js";
 
-export const JUEGOS_JUNTOS = ["quien", "cromos", "siluetas", "dibujo"];
 export const PREMIO_DIA = 60;
 
 const NOMBRES = {

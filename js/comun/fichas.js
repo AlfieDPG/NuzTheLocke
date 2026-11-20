@@ -71,10 +71,6 @@ export function fichasDeLaSemana(perfil) {
   return juegos.semana === lunesDe(hoy()) ? Number(juegos.semanales) || 0 : 0;
 }
 
-export function jugoHoy(perfil) {
-  return ((perfil && perfil.juegos) || {}).dia === hoy();
-}
-
 // La racha que llevas: los días seguidos con algún reto jugado, contando hoy o ayer (si hoy
 // aún no has jugado, no se ha roto)
 export function rachaDe(perfil) {

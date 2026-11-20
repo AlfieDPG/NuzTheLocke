@@ -14,15 +14,12 @@ export default {
   "Importar: pegar un equipo de Showdown": "Import: paste a team from Showdown",
 
   // «Mis equipos» (index.html)
-  "Ver en lista": "List view",
-  "Ver en tarjetas": "Card view",
   "En tarjetas": "As cards",
   "En lista": "As a list",
   "Cómo ver los equipos": "How to show the teams",
   "Más opciones": "More options",
   "Pokémon en el equipo": "Pokémon in the team",
   "Nuevo grupo: para juntar varios equipos (como las carpetas de Showdown)": "New group: to put several teams together (like Showdown folders)",
-  "Un grupo para juntar varios equipos (como las carpetas de Showdown)": "A group to keep several teams together (like Showdown folders)",
   "Nuevo grupo": "New group",
   "Pega uno o varios equipos (copia de seguridad de Showdown)": "Paste one or more teams (Showdown backup)",
   "Copia todos los equipos para pegarlos en Showdown («Backup/Restore all teams»)": "Copy every team to paste into Showdown (“Backup/Restore all teams”)",
@@ -42,7 +39,6 @@ export default {
   "El equipo ya tiene 6 Pokémon.": "The team already has 6 Pokémon.",
   "Añadiendo...": "Adding...",
   "No he podido cargar ese Pokémon.": "I couldn't load that Pokémon.",
-  "Equipo: {n}/{max}": "Team: {n}/{max}",
   "Estadísticas": "Stats",
   "Añadir un Pokémon al equipo": "Add a Pokémon to the team",
   "Cambiar mote": "Change nickname",

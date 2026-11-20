@@ -1,10 +1,6 @@
 // Lo de toda la web: el panel lateral, la sesión, los ajustes y los botones de siempre
 
 export default {
-  // Página
-  "Web de fans para jugar Nuzlockes con amigos: equipos, rutas, level caps, Pokédex y marcador de lockes.":
-    "Fan site for playing Nuzlockes with friends: teams, routes, level caps, Pokédex and a locke scoreboard.",
-
   // Panel lateral
   "Inicio": "Home",
   "Lockes": "Lockes",

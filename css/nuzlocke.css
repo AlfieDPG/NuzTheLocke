@@ -1380,104 +1380,6 @@
   margin-top: 0.85rem;
 }
 
-/* Pestañas: las mismas que las regiones de Rutas y Level caps, con icono si lo llevan */
-.normas-pestanas button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.normas-pestanas .icono {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
-/* La del locke, del color dorado de Versus (de ahí viene) */
-.normas-pestanas .pestana-locke {
-  color: color-mix(in srgb, #f1c40f var(--t-vivo), black);
-}
-
-.normas-pestanas .pestana-locke.activa {
-  background: #f1c40f;
-  color: var(--t-tinta-2);
-}
-
-.pestana-cerrar {
-  display: inline-flex;
-  margin-right: -0.3rem;
-  padding: 0.1rem;
-  border-radius: 0.3rem;
-  opacity: 0.7;
-}
-
-.pestana-cerrar:hover {
-  background: rgba(var(--t-oscurecer), 0.2);
-  opacity: 1;
-}
-
-.pestana-cerrar .icono {
-  width: 0.8rem;
-  height: 0.8rem;
-}
-
-.normas-pestanas .pestana-nueva {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-}
-
-/* Casilla de «incluye las generales», renombrar y borrar el conjunto */
-.conjunto-barra {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.conjunto-casilla {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-right: auto;
-  font-size: 0.92rem;
-  cursor: pointer;
-}
-
-.conjunto-casilla input {
-  width: 1rem;
-  height: 1rem;
-  margin: 0;
-  accent-color: rgb(var(--color-vista));
-  cursor: pointer;
-}
-
-.conjunto-barra button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
-  border: none;
-  border-radius: 0.45rem;
-  background: var(--t-panel);
-  color: var(--t-texto);
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.conjunto-barra button:hover {
-  background: var(--t-control);
-}
-
-.conjunto-barra .conjunto-borrar:hover {
-  background: var(--t-rojo-oscuro);
-}
-
-.conjunto-barra .icono {
-  width: 0.9rem;
-  height: 0.9rem;
-}
-
 /* Las generales dentro de un conjunto: solo de consulta, un poco apagadas */
 .normas-grupo.incluidas {
   opacity: 0.75;
@@ -1590,51 +1492,6 @@
 /* Cambiar / borrar una de las mías: a la derecha, al pasar el ratón */
 .normas-grupo li {
   position: relative;
-}
-
-.norma-acciones {
-  position: absolute;
-  top: 0.45rem;
-  right: 0.5rem;
-  display: flex;
-  gap: 0.3rem;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.normas-grupo li:hover .norma-acciones,
-.norma-acciones:focus-within {
-  opacity: 1;
-}
-
-.norma-acciones button {
-  display: flex;
-  padding: 0.35rem;
-  border: none;
-  border-radius: 0.4rem;
-  background: var(--t-control);
-  color: var(--t-texto);
-  cursor: pointer;
-}
-
-.norma-acciones button:hover {
-  background: var(--t-control-2);
-}
-
-.norma-acciones .norma-borrar:hover {
-  background: var(--t-rojo-oscuro);
-}
-
-.norma-acciones .icono {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
-/* En el móvil no hay «pasar el ratón»: siempre a la vista */
-@media (hover: none) {
-  .norma-acciones {
-    opacity: 1;
-  }
 }
 
 /* Que el texto no se meta debajo de los botones */
@@ -1890,12 +1747,6 @@
   padding-top: 0.9rem;
 }
 
-.normas-titulo-vacio {
-  font-family: var(--letra-titulos);
-  font-size: 1.9rem;
-  font-weight: 800;
-}
-
 .normas-nombre {
   display: inline-flex;
   align-items: center;
@@ -1996,21 +1847,6 @@
 .normas-desplegable .icono {
   width: 1rem;
   height: 1rem;
-}
-
-.normas-sin {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.8rem;
-  margin-top: 1.2rem;
-  max-width: 34rem;
-}
-
-.normas-sin p {
-  margin: 0;
-  line-height: 1.5;
-  opacity: 0.8;
 }
 
 .normas-nuevo.grande {
@@ -2509,8 +2345,7 @@
 }
 
 @media (max-width: 760px) {
-  .normas-nombre,
-  .normas-titulo-vacio {
+  .normas-nombre {
     font-size: 1.5rem;
   }
 

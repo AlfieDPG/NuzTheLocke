@@ -207,7 +207,3 @@ export function filtrarPanel(uid) {
   pintar();
 }
 
-// Repintar cuando cambian los datos del locke (nombres, quién juega...)
-export function repintarPanel() {
-  pintar();
-}

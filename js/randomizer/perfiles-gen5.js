@@ -223,5 +223,3 @@ export function perfilDe(rom) {
   return PERFILES[rom.codigo.slice(0, 3)] || null;
 }
 
-// Nombre del juego («Blanco 2»), por las tres primeras letras del código
-export const JUEGOS_GEN5 = { ...BW2.juegos, ...BW1.juegos };

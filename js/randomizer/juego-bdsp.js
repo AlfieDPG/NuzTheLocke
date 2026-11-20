@@ -133,7 +133,6 @@ export function nombresPokemon() {
   return [];
 }
 
-export const RUTA_PERSONAL = RUTAS.personal;
 
 // De un personal_masterdatas (el del mod que ya tienes puesto, sin volver a randomizar: js/versus/leer-mod.js), lo
 // mismo que apunta el randomizer en el locke (js/comun/randomizados.js): qué enseña cada MT y quién la aprende, y

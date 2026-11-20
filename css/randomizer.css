@@ -22,7 +22,6 @@
 
 .random-elegir,
 .random-elegir-carpeta,
-.random-vaciar,
 .random-jugar,
 .random-ir {
   display: inline-flex;
@@ -37,15 +36,13 @@
 }
 
 .random-elegir,
-.random-elegir-carpeta,
-.random-vaciar {
+.random-elegir-carpeta {
   background: var(--t-panel);
   color: var(--t-texto);
 }
 
 .random-elegir:hover,
-.random-elegir-carpeta:hover,
-.random-vaciar:hover:not(:disabled) {
+.random-elegir-carpeta:hover {
   background: var(--t-panel-5);
 }
 
@@ -74,14 +71,6 @@
 }
 
 /* «Borrar todo» y «Randomizar» juntos, a la derecha */
-.random-vaciar {
-  margin-left: auto;
-}
-
-.random-vaciar:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
 
 .random-ir {
   padding: 0.6rem 1.4rem;
@@ -664,8 +653,7 @@
   font-size: 1.3rem;
 }
 
-.random-lado-nota,
-.random-nota-chica {
+.random-lado-nota {
   color: var(--t-gris);
   font-size: 0.78rem;
 }

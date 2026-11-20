@@ -4,7 +4,6 @@ import {
 import { datos } from "../comun/datos.js";
 import { pedirJSON, URL_API } from "../comun/api.js";
 import { coloresTipo, tiposEs, iconoTipo } from "../comun/tipos.js";
-import { puntosDe, multiplicadoresDe, textoMultiplicador } from "../comun/efectividad.js";
 import { nombreOpcionForma, obtenerVariedades } from "../comun/formas.js";
 import { elegirForma } from "../comun/elegir-forma.js";
 import { sumarContador } from "../comun/contadores.js";
@@ -14,7 +13,7 @@ import {
   datosDeGenero, generosPosibles, generoDe, ICONO_GENERO, NOMBRE_GENERO, CAMPO_DESCRIPCION, descripcionAtaque
 } from "../comun/pokemon.js";
 import { activarTooltips, actualizarTooltip, ocultarTooltip, escaparHTML } from "../comun/tooltip.js";
-import { activarAutocompletado, iconoPokemon, iconoObjeto } from "../comun/autocompletado.js";
+import { activarAutocompletado, iconoPokemon } from "../comun/autocompletado.js";
 import { pasteDelEquipo, copiarAlPortapapeles } from "./exportar.js";
 import { iniciarEntreno, abrirEntreno, textoEntreno, STATS } from "./entreno.js";
 import { filaStat, bloqueTipos } from "../comun/fichas-pokemon.js";

@@ -99,36 +99,6 @@
   text-align: center;
 }
 
-/* Detrás de los últimos 5: despliega (o vuelve a plegar) todos los demás */
-.versus-ver-mas,
-.versus-ver-quitados {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.75rem;
-  border: 1px dashed rgba(var(--t-tinte), 0.25);
-  border-radius: 0.7rem;
-  background: transparent;
-  color: var(--t-texto);
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.versus-ver-mas:hover,
-.versus-ver-quitados:hover {
-  border-color: rgba(var(--color-vista), 0.7);
-  background: rgba(var(--color-vista), 0.08);
-}
-
-.versus-ver-mas .icono,
-.versus-ver-quitados .icono {
-  width: 1rem;
-  height: 1rem;
-}
-
 /* ---------- Tarjeta de un locke ---------- */
 
 /* El color del tipo asoma por la izquierda y se difumina en la cabecera: el título es lo primero
@@ -1332,8 +1302,6 @@ button.locke-rom.pasada:hover {
 }
 
 /* Ventana de un combate: quién ganó y el marcador */
-.combate-ganadores,
-.combate-marcadores,
 .terminar-lista {
   display: flex;
   flex-wrap: wrap;
@@ -1341,8 +1309,6 @@ button.locke-rom.pasada:hover {
   margin-bottom: 0.9rem;
 }
 
-.combate-opcion,
-.combate-marcador-opcion,
 .terminar-opcion {
   display: inline-flex;
   align-items: center;
@@ -1358,20 +1324,15 @@ button.locke-rom.pasada:hover {
   cursor: pointer;
 }
 
-.combate-opcion:hover,
-.combate-marcador-opcion:hover,
 .terminar-opcion:hover {
   background: var(--t-panel-3);
 }
 
-.combate-opcion.elegido,
-.combate-marcador-opcion.elegido,
 .terminar-opcion.elegido {
   border-color: #f1c40f;
   background: var(--t-panel-4);
 }
 
-.combate-opcion .combate-opcion-foto,
 .terminar-opcion .combate-opcion-foto {
   width: 1.9rem;
   height: 1.9rem;
@@ -2959,17 +2920,6 @@ button.salon-cara:hover {
 .combate-elegir-equipo .icono {
   width: 1rem;
   height: 1rem;
-}
-
-#dialogo-combate.solo-ver .combate-opcion:disabled,
-#dialogo-combate.solo-ver .combate-marcador-opcion:disabled {
-  cursor: default;
-  opacity: 0.55;
-}
-
-#dialogo-combate.solo-ver .combate-opcion.elegido:disabled,
-#dialogo-combate.solo-ver .combate-marcador-opcion.elegido:disabled {
-  opacity: 1;
 }
 /* ---------- Partida vinculada (js/versus/partida.js) ---------- */
 
@@ -5117,12 +5067,10 @@ button.locke-caidos:hover .locke-caidos-caras img {
 }
 
 /* Quién ganó: opciones más grandes */
-#dialogo-combate .combate-opcion,
 #dialogo-terminar .terminar-opcion {
   padding: 0.55rem 0.9rem;
 }
 
-#dialogo-combate .combate-opcion .combate-opcion-foto,
 #dialogo-terminar .terminar-opcion .combate-opcion-foto {
   width: 2.3rem;
   height: 2.3rem;
@@ -5318,11 +5266,6 @@ button.locke-caidos:hover .locke-caidos-caras img {
 .locke-tarjeta-pie .icono { width: 1rem; height: 1rem; }
 .locke-tarjeta-medalla { width: 1.15rem; height: 1.15rem; object-fit: contain; }
 
-/* Terminados, plegados al final */
-.versus-ver-terminados { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.65rem 1rem; border: none; border-radius: 0.75rem; background: var(--t-fondo-2); color: rgba(var(--t-texto-rgb), 0.8); font-weight: bold; text-align: left; cursor: pointer; }
-.versus-ver-terminados .icono { width: 1.05rem; height: 1.05rem; }
-.versus-ver-terminados .icono:last-child { margin-left: auto; }
-
 /* ---------- Un locke abierto: el locke a la izquierda y el panel a la derecha ---------- */
 .lockes-volver { display: inline-flex; align-items: center; gap: 0.25rem; align-self: flex-start; padding: 0.2rem 0.4rem 0.2rem 0.1rem; border: none; background: none; color: rgba(var(--t-texto-rgb), 0.7); font-weight: 800; cursor: pointer; }
 .lockes-volver:hover { color: var(--t-texto); }
@@ -5365,8 +5308,6 @@ button.locke-caidos:hover .locke-caidos-caras img {
 .locke-jugador-rom span.locke-rom { border: 1px dashed rgba(var(--t-tinte), 0.18); }
 .locke-jugador-rom .locke-rom .icono { width: 1rem; height: 1rem; }
 .locke-jugador-rom .locke-rom.pasada { border: none; background: linear-gradient(180deg, rgba(240, 196, 60, 0.3), rgba(240, 196, 60, 0.16)); box-shadow: inset 0 0 0 1.5px rgba(240, 196, 60, 0.6); color: #f6d67a; }
-.locke-galardon.en-banner { position: relative; top: auto; right: auto; flex: none; margin-left: auto; }
-.locke-galardon.en-banner::before { display: none; }
 
 @media (max-width: 1100px) {
   #vista-lockes.con-locke .versus-columnas { grid-template-columns: minmax(0, 1fr); }

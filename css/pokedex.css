@@ -790,8 +790,6 @@ td.col-numero {
 
 .pdx-efectos .mal4 { color: #ff6b5a; }
 .pdx-efectos .mal2 { color: #f19a8e; }
-.pdx-efectos .bien2 { color: #8fd6a3; }
-.pdx-efectos .bien4 { color: #4fd17e; }
 .pdx-efectos .cero { color: var(--t-gris); }
 
 /* La línea evolutiva, más apretada que en el bocadillo de antes (la ficha es estrecha) */

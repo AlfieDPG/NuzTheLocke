@@ -18,7 +18,7 @@ import { escribir } from "../comun/almacen.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { confirmar, avisar as avisarVentana } from "../comun/ventanas.js";
 import { usuarioActual } from "../comun/nube.js";
-import { caraDePokemon, carasDeEquipo } from "../comun/elegir-equipo.js";
+import { caraDePokemon } from "../comun/elegir-equipo.js";
 import { cargarDatos } from "../comun/datos.js";
 import { sumarContador } from "../comun/contadores.js";
 import { lockePorId, muertosDe, apuntarMuerto, estaEliminado, apuntarSuceso, medallasDe, cambiarMedallas } from "../comun/lockes.js";

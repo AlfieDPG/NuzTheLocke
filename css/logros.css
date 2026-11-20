@@ -349,14 +349,6 @@ button.perfil-titulo:hover:not(:disabled) {
   background: rgba(var(--t-tinte), 0.07);
 }
 
-.perfil-titulo.sin-titulo {
-  background: transparent;
-  box-shadow: none;
-  color: rgba(var(--t-texto-rgb), 0.45);
-  font-weight: normal;
-  font-size: 0.85rem;
-}
-
 .perfil-titulo.nivel-bronce { --color-nivel: #cd7f32; }
 .perfil-titulo.nivel-plata { --color-nivel: #c3cad6; }
 .perfil-titulo.nivel-oro { --color-nivel: #f1c40f; }
@@ -647,15 +639,6 @@ button.perfil-titulo:hover:not(:disabled) {
   background: rgba(var(--t-tinte), 0.1);
   font-size: 0.85rem;
   font-weight: 800;
-}
-
-.logros-pendientes {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-left: auto;
-  color: var(--t-gris-2);
-  font-size: 0.85rem;
 }
 
 @media (max-width: 900px) {

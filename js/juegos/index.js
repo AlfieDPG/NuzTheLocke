@@ -18,7 +18,7 @@ import { escaparHTML } from "../comun/utilidades.js";
 import { usuarioActual, alCambiarSesion, baseDeDatos } from "../comun/nube.js";
 import { miPerfil, alCambiarMiPerfil, amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos } from "../comun/perfiles.js";
 import {
-  saldo, rachaDe, bonoRacha, fichasDeJuegos, marcoDe, claseMarco, plantillaTituloDe, hoy, lunesDe, fichasDeLaSemana
+  saldo, rachaDe, bonoRacha, fichasDeJuegos, marcoDe, claseMarco, hoy, lunesDe, fichasDeLaSemana
 } from "../comun/fichas.js";
 import { avisar } from "../comun/ventanas.js";
 import { copiarAlPortapapeles } from "../equipos/exportar.js";

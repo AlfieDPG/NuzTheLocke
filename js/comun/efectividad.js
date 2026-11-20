@@ -77,19 +77,3 @@ export function puntosDe(defensor) {
   };
 }
 
-// Recuento del equipo entero: por cada tipo, cuántos miembros son débiles y cuántos lo aguantan
-// (resisten o son inmunes). «equipo» es una lista de listas de tipos.
-export function resumenEquipo(equipo) {
-  return TIPOS.map((tipo) => {
-    let debiles = 0;
-    let aguantan = 0;
-
-    for (const tipos of equipo) {
-      const valor = multiplicador(tipo, tipos);
-      if (valor > 1) debiles++;
-      else if (valor < 1) aguantan++;
-    }
-
-    return { tipo, debiles, aguantan };
-  });
-}

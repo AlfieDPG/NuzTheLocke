@@ -333,11 +333,11 @@
     box-sizing: border-box;
   }
 
-  :is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) {
+  :is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-analisis, #dialogo-buscar-equipo) {
     padding: 1.15rem 1rem 1rem;
   }
 
-  :is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-tipos, #dialogo-analisis, #dialogo-buscar-equipo) h2 {
+  :is(.dialogo-sesion, #dialogo-avisos, #dialogo-importar, #dialogo-analisis, #dialogo-buscar-equipo) h2 {
     font-size: 1.45rem;
   }
 

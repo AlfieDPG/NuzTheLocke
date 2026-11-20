@@ -34,18 +34,11 @@ export default {
   "Terminar el locke": "End the locke",
   "Terminar": "End",
   "Editar locke": "Edit locke",
-  "Volver a ponerlo en tu lista": "Put it back on your list",
-  "Quitar de tu lista": "Remove from your list",
   "Borrar locke": "Delete locke",
-  "Tienes {n} invitación sin contestar: mírala en la campana.": "You have {n} unanswered invitation: check the bell.",
-  "Tienes {n} invitaciones sin contestar: míralas en la campana.": "You have {n} unanswered invitations: check the bell.",
-  "Todavía no tienes ningún locke. Crea uno con «Nuevo locke».": "You don't have any locke yet. Create one with “New locke”.",
   "Los lockes necesitan la nube: no están disponibles en esta versión de la web.": "Lockes need the cloud: they aren't available in this version of the site.",
   "Juega tus lockes con amigos": "Play your lockes with friends",
   "Crea un locke, invita a tus amigos y llevad juntos las vidas, las muertes y los combates. También puedes vincular tu partida para seguirla al momento.": "Create a locke, invite your friends and keep track of lives, deaths and battles together. You can also link your save to follow it live.",
   "Ver solo los últimos": "Show only the latest",
-  "Esconder los quitados": "Hide the removed ones",
-  "Quitados de tu lista ({n})": "Removed from your list ({n})",
   "No se ha podido guardar el cambio.": "The change couldn't be saved.",
   "No se ha podido abrir.": "It couldn't be opened.",
   "Firebase no deja leer los lockes. Falta publicar las reglas de Firestore.": "Firebase won't let the lockes be read. The Firestore rules still need publishing.",
@@ -153,8 +146,6 @@ export default {
   "Todavía no ha pasado nada.": "Nothing has happened yet.",
   "Todavía no ha hecho nada.": "Hasn't done anything yet.",
   "Ver su actividad": "View their activity",
-  "Resumir": "Collapse",
-  "Ver entero": "Expand",
   "Resumen": "Summary",
 
   // ---------- Notificaciones ----------
@@ -173,7 +164,6 @@ export default {
   "Reanudar": "Resume",
   "Vincular partida": "Link save file",
   "Leer partida": "Read save file",
-  "Ver cajas": "View boxes",
   "Equipo de la partida": "Save file team",
   "Muertos por apuntar": "Deaths to record",
   "Cómo funciona": "How it works",
@@ -491,9 +481,6 @@ export default {
   "¿Cuánto? (hasta {n})": "How much? (up to {n})",
   "La ROM está randomizada, pero no se han podido guardar sus MT, tipos y estadísticas en el locke (¿sin conexión o con las reglas de Firestore sin publicar?). Vuelve a randomizar más tarde: con la misma semilla sale la misma ROM.":
     "The ROM is randomized, but its TMs, types and stats couldn't be saved to the locke (offline, or Firestore rules not published?). Randomize again later: the same seed gives the same ROM.",
-  "Estas MT son las del juego original. Para ver las de tu ROM randomizada, vuelve a randomizarla desde el locke (con la misma semilla sale la misma ROM: no hace falta empezar de nuevo).":
-    "These TMs are the original game's. To see your randomized ROM's, randomize it again from the locke (the same seed gives the same ROM: no need to start over).",
-  "Las MT de tu ROM randomizada.": "Your randomized ROM's TMs.",
   "Estas MT son las del juego original. Para ver las de tu ROM randomizada, vuelve a randomizarla desde el locke.":
     "These TMs are the original game's. To see your randomized ROM's, randomize it again from the locke.",
   "Si tu ROM es randomizada, estas MT pueden ser las del juego original. Para ver las tuyas, elige el mod que tienes puesto (el .zip del randomizer o el archivo personal_masterdatas).":
@@ -530,7 +517,6 @@ export default {
   "Este locke tiene una apuesta por cobrar: no se puede borrar.": "This locke has a bet to be collected: it can't be deleted.",
   "Terminados ({n})": "Finished ({n})",
   "En marcha ({n})": "Ongoing ({n})",
-  "Vinculada": "Linked",
   "Editar la partida": "Edit the save",
   "Qué lockes ver": "Which lockes to show",
   "Aquí van tus lockes": "Your lockes go here",
