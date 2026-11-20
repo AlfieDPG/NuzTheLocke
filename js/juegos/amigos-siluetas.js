@@ -105,13 +105,23 @@ export function montar(contenedor, partida, ctx) {
     caja.innerHTML = `
       <div class="siluetas">
         ${marcador}
-        <ol class="siluetas-repaso">${lista.map((ronda, i) => `
+        <ol class="siluetas-repaso siluetas-final">${lista.map((ronda, i) => {
+          // El más rápido de los que la han acertado, con su rayo
+          const m = mias[i];
+          const s2 = suyas[i];
+          const rapido = m && m.ok && (!s2 || !s2.ok || m.ms < s2.ms) ? "yo" : s2 && s2.ok && (!m || !m.ok || s2.ms < m.ms) ? "otro" : "";
+          const fila = (r, quien, nombre, pendiente) => `
+            <small class="${r && r.ok ? "bien" : "mal"} ${rapido === quien ? "rapido" : ""}" ${rapido === quien ? `title="${t("El más rápido")}"` : ""}>
+              ${r ? (r.ok ? icono("visto") : icono("aspa")) : pendiente} ${nombre}${r && r.ok ? ` · ${segundos(r.ms)} s` : ""}${rapido === quien ? ` ${icono("rayo")}` : ""}
+            </small>`;
+          return `
           <li>
             <img src="${escaparHTML(urlArte({ id: ronda.objetivo.id }))}" alt="" draggable="false" loading="lazy">
             <span>${escaparHTML(nombreDe(ronda.objetivo))}</span>
-            <small class="${mias[i] && mias[i].ok ? "bien" : "mal"}">${mias[i] ? (mias[i].ok ? icono("visto") : icono("aspa")) : "–"} ${t("tú")}</small>
-            <small class="${suyas[i] && suyas[i].ok ? "bien" : "mal"}">${suyas[i] ? (suyas[i].ok ? icono("visto") : icono("aspa")) : "…"} ${escaparHTML(ctx.nombreDe(ctx.otro))}</small>
-          </li>`).join("")}</ol>
+            ${fila(m, "yo", t("tú"), "–")}
+            ${fila(s2, "otro", escaparHTML(ctx.nombreDe(ctx.otro)), "…")}
+          </li>`;
+        }).join("")}</ol>
       </div>`;
     return;
   }

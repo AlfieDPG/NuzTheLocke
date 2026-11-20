@@ -1,11 +1,14 @@
 // «Cromos de estadísticas» con un amigo (ver js/juegos/amigos.js), como el juego de cartas de toda la vida:
 //   · De la semilla salen RONDAS cartas para cada uno (Pokémon distintos). En cada ronda se enfrentan las dos de
-//     arriba: la tuya la ves; la del otro, boca abajo.
+//     arriba, de totales parecidos (que ninguna gane por ser mucho más fuerte): la tuya la ves; la del otro, boca
+//     abajo.
 //   · Quien tiene el turno elige una estadística de su carta (PS, Ataque... o el total). Gana la ronda la carta con
-//     más; el que gana elige en la siguiente (en un empate, repite el mismo).
+//     más; en la siguiente elige el que ha perdido (quien elige tiene ventaja: así no se la queda siempre el mismo).
+//     En un empate, elige el otro.
+//   · Las partidas de antes (sin datos.v) siguen con lo de entonces: cartas al azar y elige el que gana.
 //   · Tras las RONDAS, gana quien más rondas se ha llevado.
 //
-//   datos: { elecciones: [índice de la estadística en cada ronda] }   (todo lo demás sale de la semilla)
+//   datos: { v: 2, elecciones: [índice de la estadística en cada ronda] }   (todo lo demás sale de la semilla)
 
 import { escaparHTML } from "../comun/utilidades.js";
 import { icono } from "../comun/iconos.js";
@@ -15,7 +18,8 @@ import { tiposEs, coloresTipo } from "../comun/tipos.js";
 import { t, nombre as nombreDe } from "../comun/idioma.js";
 
 export const NOMBRE = () => t("Cromos de estadísticas");
-export const COMO = () => t("Cada uno tiene 10 cartas de Pokémon. En cada ronda, quien tiene el turno elige una estadística de su carta y gana la carta con más. Quien gana la ronda elige en la siguiente. Gana quien se lleve más rondas.");
+export const COMO = () => t("Cada uno tiene 10 cartas de Pokémon, y en cada ronda se enfrentan dos de fuerza parecida. Quien tiene el turno elige una estadística de su carta y gana la carta con más. Quien pierde la ronda elige en la siguiente. Gana quien se lleve más rondas.");
+const PARECIDO = 30; // diferencia máxima de total entre las dos cartas de una ronda
 const RONDAS = 10;
 const STATS = [
   { nombre: () => t("PS"), valor: (e) => e.bases[0] },
@@ -33,7 +37,7 @@ let ctxActual = null;
 const terminando = new Set();
 
 export function datosIniciales() {
-  return { elecciones: [] };
+  return { v: 2, elecciones: [] };
 }
 
 export function soltar() {
@@ -41,11 +45,38 @@ export function soltar() {
 }
 
 // Las cartas de cada uno: [las de jugadores[0], las de jugadores[1]]
-function mazos(ctx) {
+function mazos(partida, ctx) {
   const azar = ctx.azar();
   const usadas = new Set();
   const cartas = [];
   const validas = ctx.especies.filter((e) => e.bases && e.bases.length === 6);
+  if (((partida.datos || {}).v || 1) >= 2) {
+    // Por parejas: una al azar y, contra ella, otra de total parecido (si no hay, la más parecida)
+    const a = [];
+    const b = [];
+    while (a.length < RONDAS) {
+      const una = validas[Math.floor(azar() * validas.length)];
+      if (usadas.has(una.id)) continue;
+      usadas.add(una.id);
+      const libres = validas.filter((e) => !usadas.has(e.id));
+      let cerca = libres.filter((e) => Math.abs(e.total - una.total) <= PARECIDO);
+      if (!cerca.length) {
+        const menor = Math.min(...libres.map((e) => Math.abs(e.total - una.total)));
+        cerca = libres.filter((e) => Math.abs(e.total - una.total) === menor);
+      }
+      const otra = cerca[Math.floor(azar() * cerca.length)];
+      usadas.add(otra.id);
+      // Quién se lleva cada una, también al azar
+      if (azar() < 0.5) {
+        a.push(una);
+        b.push(otra);
+      } else {
+        a.push(otra);
+        b.push(una);
+      }
+    }
+    return [a, b];
+  }
   while (cartas.length < RONDAS * 2) {
     const especie = validas[Math.floor(azar() * validas.length)];
     if (usadas.has(especie.id)) continue;
@@ -57,10 +88,11 @@ function mazos(ctx) {
 
 // Cómo va: quién elige en cada ronda, quién ganó cada una y los puntos
 function cuentas(partida, ctx) {
-  const [a, b] = mazos(ctx);
+  const [a, b] = mazos(partida, ctx);
+  const nueva = ((partida.datos || {}).v || 1) >= 2;
   const [uno, dos] = partida.jugadores;
   const elecciones = (partida.datos || {}).elecciones || [];
-  // Elige primero el retado (el que aceptó); luego, el que gana cada ronda
+  // Elige primero el retado (el que aceptó); luego, el que pierde cada ronda (en las de antes, el que gana)
   let elige = dos;
   const rondas = [];
   const puntos = { [uno]: 0, [dos]: 0 };
@@ -70,7 +102,9 @@ function cuentas(partida, ctx) {
     const gana = va > vb ? uno : vb > va ? dos : "";
     if (gana) puntos[gana]++;
     rondas.push({ stat, elige, gana, cartas: { [uno]: a[r], [dos]: b[r] } });
-    if (gana) elige = gana;
+    const otroQue = (quien) => (quien === uno ? dos : uno);
+    if (nueva) elige = gana ? otroQue(gana) : otroQue(elige);
+    else if (gana) elige = gana;
   });
   return { rondas, puntos, elige, siguiente: elecciones.length, cartas: { [uno]: a, [dos]: b } };
 }
@@ -140,12 +174,22 @@ export function montar(contenedor, partida, ctx) {
       </div>
       ${resultadoUltima}
       ${fin || acabadas
-        ? `<ol class="cromos-historial">${c.rondas.map((ronda, i) => `
+        ? `<ol class="cromos-historial">${c.rondas.map((ronda, i) => {
+            const mia = ronda.cartas[ctx.yo];
+            const suya = ronda.cartas[ctx.otro];
+            const lado = (especie, gana) => `
+              <span class="cromos-h-carta ${gana ? "gana" : ""}">
+                ${imagenConRespaldo(urlsRetrato({ id: especie.id }), `alt="" draggable="false" loading="lazy"`)}
+                <span class="cromos-h-nombre">${escaparHTML(nombreDe(especie))}</span>
+                <b>${STATS[ronda.stat].valor(especie)}</b>
+              </span>`;
+            return `
             <li class="${ronda.gana === ctx.yo ? "bien" : ronda.gana ? "mal" : ""}">
-              <span>${i + 1}. ${STATS[ronda.stat].nombre()}</span>
-              <span>${escaparHTML(nombreDe(ronda.cartas[ctx.yo]))} ${STATS[ronda.stat].valor(ronda.cartas[ctx.yo])}</span>
-              <span>${STATS[ronda.stat].valor(ronda.cartas[ctx.otro])} ${escaparHTML(nombreDe(ronda.cartas[ctx.otro]))}</span>
-            </li>`).join("")}</ol>`
+              ${lado(mia, ronda.gana === ctx.yo)}
+              <span class="cromos-h-stat"><small>${i + 1}</small>${STATS[ronda.stat].nombre()}</span>
+              ${lado(suya, ronda.gana === ctx.otro)}
+            </li>`;
+          }).join("")}</ol>`
         : `<p class="quien-aviso ${meToca ? "destacado" : ""}">${meToca
             ? t("Te toca: elige la estadística de tu carta con la que crees que ganas.")
             : t("Elige {quien}. Tu carta, mientras:", { quien: escaparHTML(ctx.nombreDe(ctx.otro)) })}</p>

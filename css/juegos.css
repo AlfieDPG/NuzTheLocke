@@ -523,13 +523,6 @@
 /* --g: el grosor de los aros. Normal en las fotos grandes; más fino en las pequeñas */
 .con-marco {
   --g: 1px;
-  z-index: 1;
-}
-
-/* Los marcos quedan por encima de los títulos de al lado (sus adornos salen de la plaquita). Sin
-   especificidad: si la foto ya tiene su posición (absolute...), manda la suya */
-:where(.con-marco) {
-  position: relative;
 }
 
 :is(.foro-foto, .cementerio-cara, .locke-cara, .chat-foto, .inicio-cara, .sesion-foto, .clasificacion-foto, .perfil-marco-foto).con-marco {
@@ -4604,13 +4597,8 @@ img.con-marco.con-marco {
 .siluetas-repaso small.mal { color: var(--t-gris); }
 
 /* Dibuja ese Pokémon */
-.dibujo-mesa { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(12rem, 1fr); gap: 0.8rem; align-items: start; }
-.dibujo-lienzo { width: 100%; aspect-ratio: 1; border-radius: 0.6rem; background: #fff; box-shadow: 0 0 0 2px rgba(var(--t-tinte), 0.2); touch-action: none; }
 .dibujo-lienzo.mio { cursor: crosshair; box-shadow: 0 0 0 3px rgba(var(--color-vista), 0.7); }
-.dibujo-lado { display: flex; flex-direction: column; gap: 0.6rem; }
-.dibujo-modelo { width: 7rem; height: 7rem; object-fit: contain; align-self: center; }
 .dibujo-colores, .dibujo-grosores { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.dibujo-color { width: 1.8rem; height: 1.8rem; border: 2px solid rgba(var(--t-tinte), 0.3); border-radius: 50%; background: var(--c); cursor: pointer; }
 .dibujo-grosor { display: inline-flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border: 2px solid rgba(var(--t-tinte), 0.2); border-radius: 0.5rem; background: transparent; cursor: pointer; }
 .dibujo-grosor i { width: calc(var(--g) * 2); height: calc(var(--g) * 2); border-radius: 50%; background: var(--t-texto); }
 .dibujo-color.elegido, .dibujo-grosor.elegido { border-color: rgb(var(--color-vista)); box-shadow: 0 0 0 2px rgb(var(--color-vista)); }
@@ -4619,7 +4607,7 @@ img.con-marco.con-marco {
 .dibujo-fallos .icono { width: 0.8rem; height: 0.8rem; color: var(--t-mal); }
 
 @media (max-width: 700px) {
-  .dibujo-mesa, .cromos-mesa { grid-template-columns: 1fr; }
+  .cromos-mesa { grid-template-columns: 1fr; }
   .cromo.boca-abajo { min-height: 6rem; }
 }
 
@@ -4732,4 +4720,82 @@ img.con-marco.con-marco {
 @media (max-width: 1000px) {
   .quien-tablero { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: auto; }
   .quien-casilla img { flex: none; width: 3rem; height: 3rem; min-height: 0; }
+}
+
+/* ---------- Juegos con amigos: que cada juego llene la tarjeta (2026-11-20) ---------- */
+
+.juntos-juego > :is(.cromos, .siluetas, .dibujo) { display: flex; flex-direction: column; gap: 0.6rem; flex: 1 1 auto; min-height: 0; }
+
+/* Cromos: el resumen del final, una fila por ronda que se reparten todo el alto. En cada una, las dos cartas
+   (retrato, nombre y lo que sacó) y en medio la estadística; la que ganó, resaltada */
+.cromos-historial { flex: 1 1 auto; min-height: 0; gap: 0.3rem; font-size: 0.9rem; }
+.cromos-historial li { flex: 1 1 0; min-height: 2.6rem; grid-template-columns: minmax(0, 1fr) 7rem minmax(0, 1fr); align-items: center; padding: 0.2rem 0.6rem; }
+.cromos-h-carta { display: flex; align-items: center; gap: 0.5rem; min-width: 0; opacity: 0.7; }
+.cromos-historial li .cromos-h-carta:last-child { flex-direction: row-reverse; text-align: right; }
+.cromos-h-carta.gana { opacity: 1; }
+.cromos-h-carta img { flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%; image-rendering: pixelated; }
+.cromos-h-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cromos-h-carta b { font-family: var(--letra-titulos); font-size: 1.15rem; }
+.cromos-h-carta.gana b { color: var(--t-bien); }
+.cromos-h-stat { display: flex; flex-direction: column; align-items: center; font-weight: bold; text-align: center; }
+.cromos-h-stat small { color: var(--t-gris); font-size: 0.7rem; font-weight: normal; }
+
+/* Duelo de siluetas: la silueta arriba y las cuatro opciones llenando hasta abajo, grandes */
+#vista-juegos .siluetas .silueta-pantalla { flex: 1.2 1 0; min-height: 10rem; height: auto; }
+.siluetas-opciones { flex: 1 1 0; min-height: 7rem; grid-auto-rows: minmax(0, 1fr); gap: 0.6rem; }
+.siluetas-opcion { font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); }
+
+/* El resumen del final (siluetas y dibujos): todas en una rejilla que ocupa la tarjeta entera */
+.siluetas-repaso.siluetas-final { flex: 1 1 auto; min-height: 0; grid-template-columns: repeat(var(--columnas, 5), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 0.5rem; }
+.siluetas-final li { min-height: 0; justify-content: center; gap: 0.2rem; font-size: 0.9rem; }
+.siluetas-final img { flex: 1 1 0; min-height: 3rem; width: 100%; height: auto; max-height: 9rem; }
+.siluetas-final small { font-size: 0.78rem; }
+.siluetas-final small.rapido { padding: 0.05rem 0.4rem; border-radius: 1rem; background: color-mix(in srgb, var(--t-bien) 20%, transparent); font-weight: bold; }
+.siluetas-final small.rapido .icono { color: #f2b51a; }
+
+/* Dibuja ese Pokémon: la pizarra apaisada a todo lo ancho; encima, en la esquina, el Pokémon que toca; debajo,
+   los colores (o la respuesta) */
+.dibujo { position: relative; }
+.dibujo-pizarra { position: relative; flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; align-items: center; }
+.dibujo-lienzo { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; aspect-ratio: 5 / 3; border-radius: 0.6rem; background: #fff; box-shadow: 0 0 0 2px rgba(var(--t-tinte), 0.2); touch-action: none; }
+.dibujo-modelo { position: absolute; top: 0.5rem; right: 0.5rem; width: clamp(4rem, 18%, 8rem); aspect-ratio: 1; object-fit: contain; padding: 0.3rem; border-radius: 0.6rem; background: rgba(255, 255, 255, 0.85); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); pointer-events: none; }
+.dibujo-herramientas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; }
+.dibujo-colores { flex: 1 1 auto; }
+.dibujo-color { width: 1.7rem; height: 1.7rem; border: 2px solid rgba(var(--t-tinte), 0.3); border-radius: 50%; background: var(--c); cursor: pointer; }
+.dibujo-adivinar { margin: 0; }
+.dibujo-final { --columnas: 4; }
+
+/* Entre ronda y ronda: «¡Correcto!» con el Pokémon, que entra de golpe y se va solo */
+.dibujo-aviso {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--t-panel) 88%, transparent);
+  text-align: center;
+  animation: dibujo-aviso-entra 0.45s cubic-bezier(0.2, 1.4, 0.5, 1) both;
+}
+.dibujo-aviso img { width: min(10rem, 40%); aspect-ratio: 1; object-fit: contain; animation: dibujo-aviso-salta 0.7s ease-out 0.1s both; }
+.dibujo-aviso strong { font-family: var(--letra-titulos); font-size: 2rem; }
+.dibujo-aviso.bien strong { color: var(--t-bien); }
+.dibujo-aviso.pasada strong { color: var(--t-gris); }
+.dibujo-aviso.saliendo { animation: dibujo-aviso-sale 0.4s ease-in both; }
+@keyframes dibujo-aviso-entra { from { opacity: 0; transform: scale(0.85); } }
+@keyframes dibujo-aviso-salta { 0% { transform: scale(0.4) rotate(-12deg); } 60% { transform: scale(1.12) rotate(4deg); } 100% { transform: none; } }
+@keyframes dibujo-aviso-sale { to { opacity: 0; transform: scale(1.05); } }
+
+@media (max-width: 1000px) {
+  .siluetas-repaso.siluetas-final { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
+  .siluetas-final img { flex: none; height: 5rem; }
+  .cromos-historial li { grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr); }
+  .dibujo-lienzo { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dibujo-aviso, .dibujo-aviso img, .dibujo-aviso.saliendo { animation: none; }
 }

@@ -1,12 +1,13 @@
 // «Dibuja ese Pokémon» con un amigo (ver js/juegos/amigos.js): RONDAS rondas, la mitad dibuja cada uno.
 //   · Quien dibuja ve qué Pokémon le ha tocado (sale de la semilla) y lo dibuja en el lienzo; los trazos llegan al
-//     otro al soltar cada uno (juntos/{id}/trazos).
+//     otro mientras se dibujan, a trocitos (cada ENVIAR_CADA ms un juntos/{id}/trazos con lo nuevo).
 //   · Quien adivina escribe Pokémon hasta acertar. Cuanto antes, más puntos: PUNTOS_MAX − 1 por segundo (como poco
 //     PUNTOS_MIN) para quien acierta y la mitad para quien dibujó. Quien dibuja puede pasar la ronda (0 puntos).
 //   · Gana quien sume más al final.
 //
-//   datos: { ronda, inicio (ms de cuando empezó la ronda), rondas: [{ acierto, segundos }], fallos: [especie] }
-//   trazos: { uid, ronda, puntos: "C" (borrar) | "color|grosor|x,y x,y ..." (de 0 a 1000) }
+//   datos: { total (rondas; las de antes no lo llevan: 4), ronda, inicio (ms de cuando empezó la ronda),
+//            rondas: [{ acierto, segundos }], fallos: [especie] }
+//   trazos: { uid, ronda, puntos: "C" (borrar) | "color|grosor|x,y x,y ..." (x de 0 a ANCHO, y de 0 a ALTO) }
 
 import { escaparHTML } from "../comun/utilidades.js";
 import { icono } from "../comun/iconos.js";
@@ -17,13 +18,21 @@ import { t, nombre as nombreDe } from "../comun/idioma.js";
 import { mandarTrazo, escucharTrazos } from "../comun/juntos.js";
 
 export const NOMBRE = () => t("Dibuja ese Pokémon");
-export const COMO = () => t("Por turnos, uno dibuja el Pokémon que le toca y el otro lo adivina escribiendo su nombre. Cuanto antes se acierte, más puntos (para los dos). Cuatro rondas: dos dibuja cada uno.");
-const RONDAS = 4;
+export const COMO = () => t("Por turnos, uno dibuja el Pokémon que le toca y el otro lo adivina escribiendo su nombre. Cuanto antes se acierte, más puntos (para los dos). Ocho rondas: cuatro dibuja cada uno.");
+const RONDAS = 8;
+const rondasDe = (partida) => ((partida && partida.datos) || {}).total || 4;
 const PUNTOS_MAX = 100;
 const PUNTOS_MIN = 20;
-const COLORES = ["#222222", "#e03c31", "#f2a51a", "#f7d038", "#3fa34d", "#2f80ed", "#8e44ad", "#8b5a2b", "#ffffff"];
-const GROSORES = [4, 9, 18];
-const LADO = 1000; // las coordenadas, de 0 a LADO
+const COLORES = [
+  "#222222", "#7a7a7a", "#c8c8c8", "#ffffff", "#e03c31", "#f28b82", "#f2a51a", "#f7d038", "#fff3a0",
+  "#3fa34d", "#9fdc6f", "#1e6b3a", "#2f80ed", "#8fd3ff", "#1b3b8f", "#8e44ad", "#e58ad8", "#8b5a2b"
+];
+const GROSORES = [4, 9, 18, 32];
+// Las coordenadas: x de 0 a ANCHO, y de 0 a ALTO (la pizarra es apaisada, 5:3)
+const ANCHO = 1000;
+const ALTO = 600;
+const ENVIAR_CADA = 150; // ms: lo dibujado llega al otro mientras se dibuja
+const AVISO_MS = 1800; // lo que dura el «¡Acertado!» entre ronda y ronda
 
 let caja = null;
 let actual = null;
@@ -35,10 +44,14 @@ let escuchando = "";
 let color = COLORES[0];
 let grosor = GROSORES[1];
 let trazo = null; // el que se está dibujando: [[x, y]]
+let trazoRonda = -1; // la ronda en la que se empezó (si cambia a medias, se tira)
+let enviados = 0; // cuántos puntos del trazo ya han salido
+let ultimoEnvio = 0;
+let rondaVista = { id: "", ronda: -1 }; // para saber cuándo ha cambiado la ronda (y avisar de cómo acabó)
 const terminando = new Set();
 
 export function datosIniciales() {
-  return { ronda: 0, inicio: 0, rondas: [], fallos: [] };
+  return { total: RONDAS, ronda: 0, inicio: 0, rondas: [], fallos: [] };
 }
 
 export function alAceptar() {
@@ -51,6 +64,8 @@ export function soltar() {
   escuchando = "";
   trazos = [];
   montada = "";
+  trazo = null;
+  rondaVista = { id: "", ronda: -1 };
   caja = null;
 }
 
@@ -58,11 +73,11 @@ export function soltar() {
 const dibujante = (partida, ronda) => partida.jugadores[(ronda + 1) % 2];
 
 // Los Pokémon de cada ronda (de las primeras generaciones: más fáciles de dibujar y de reconocer)
-function objetivos(ctx) {
+function objetivos(partida, ctx) {
   const azar = ctx.azar();
   const lista = ctx.especies.filter((e) => e.gen <= 4);
   const elegidos = [];
-  while (elegidos.length < RONDAS) {
+  while (elegidos.length < rondasDe(partida)) {
     const especie = lista[Math.floor(azar() * lista.length)];
     if (!elegidos.includes(especie)) elegidos.push(especie);
   }
@@ -91,7 +106,7 @@ function pintarLienzo() {
   if (!lienzo || !actual) return;
   const ronda = (actual.datos || {}).ronda || 0;
   const c = lienzo.getContext("2d");
-  const escala = lienzo.width / LADO;
+  const escala = lienzo.width / ANCHO;
   c.fillStyle = "#ffffff";
   c.fillRect(0, 0, lienzo.width, lienzo.height);
   const deLaRonda = trazos.filter((cada) => cada.ronda === ronda);
@@ -101,7 +116,7 @@ function pintarLienzo() {
     if (cada.puntos === "C") desde = i + 1;
   });
   const todos = deLaRonda.slice(desde).map((cada) => leerTrazo(cada.puntos)).filter(Boolean);
-  if (trazo) todos.push({ color, grosor, puntos: trazo });
+  if (trazo && trazoRonda === ronda) todos.push({ color, grosor, puntos: trazo });
   for (const cada of todos) {
     c.strokeStyle = cada.color;
     c.lineWidth = cada.grosor * escala;
@@ -122,9 +137,9 @@ function leerTrazo(texto) {
 
 function posicion(e, lienzo) {
   const caja = lienzo.getBoundingClientRect();
-  const x = Math.round(((e.clientX - caja.left) / caja.width) * LADO);
-  const y = Math.round(((e.clientY - caja.top) / caja.height) * LADO);
-  return [Math.max(0, Math.min(LADO, x)), Math.max(0, Math.min(LADO, y))];
+  const x = Math.round(((e.clientX - caja.left) / caja.width) * ANCHO);
+  const y = Math.round(((e.clientY - caja.top) / caja.height) * ALTO);
+  return [Math.max(0, Math.min(ANCHO, x)), Math.max(0, Math.min(ALTO, y))];
 }
 
 function activarLienzo(lienzo) {
@@ -133,6 +148,9 @@ function activarLienzo(lienzo) {
     e.preventDefault();
     lienzo.setPointerCapture(e.pointerId);
     trazo = [posicion(e, lienzo)];
+    trazoRonda = (actual.datos || {}).ronda || 0;
+    enviados = 0;
+    ultimoEnvio = performance.now();
     pintarLienzo();
   });
   lienzo.addEventListener("pointermove", (e) => {
@@ -142,34 +160,46 @@ function activarLienzo(lienzo) {
     if (Math.abs(x - px) + Math.abs(y - py) < 6) return; // menos puntos, el mismo dibujo
     trazo.push([x, y]);
     pintarLienzo();
+    // A trocitos mientras se dibuja: así el otro lo ve casi a la vez
+    if (performance.now() - ultimoEnvio >= ENVIAR_CADA) mandarLoNuevo();
   });
   const soltarTrazo = () => {
     if (!trazo) return;
-    const puntos = trazo;
+    mandarLoNuevo(true);
     trazo = null;
-    enviar(puntos);
+    pintarLienzo();
   };
   lienzo.addEventListener("pointerup", soltarTrazo);
   lienzo.addEventListener("pointercancel", soltarTrazo);
 }
 
-// Un trazo, en trozos que quepan en las reglas (6.000 caracteres): se pinta ya y se manda
-function enviar(puntos) {
+// Lo del trazo que aún no ha salido (desde el último punto mandado, para que no quede un hueco), en trozos que
+// quepan en las reglas (6.000 caracteres). Si la ronda ya ha cambiado (lo han acertado a medias), se tira.
+function mandarLoNuevo(final = false) {
+  if (!trazo || !actual) return;
   const ronda = (actual.datos || {}).ronda || 0;
-  const trozos = [];
-  for (let i = 0; i < puntos.length; i += 500) trozos.push(puntos.slice(Math.max(0, i - 1), i + 500));
-  for (const trozo of trozos) {
+  if (ronda !== trazoRonda || !puedoDibujar()) {
+    trazo = null;
+    return;
+  }
+  ultimoEnvio = performance.now();
+  const desde = Math.max(0, enviados - 1);
+  // Un solo punto suelto solo se manda al soltar (es un puntito)
+  if (trazo.length - desde < 2 && !(final && trazo.length === 1)) return;
+  const nuevos = trazo.slice(desde);
+  enviados = trazo.length;
+  for (let i = 0; i < nuevos.length; i += 500) {
+    const trozo = nuevos.slice(Math.max(0, i - 1), i + 500);
     const texto = `${color}|${grosor}|${trozo.map(([x, y]) => `${x},${y}`).join(" ")}`;
     trazos.push({ ronda, puntos: texto, creado: Date.now(), propio: true });
     mandarTrazo(actual.id, ronda, texto).catch((error) => console.error(error));
   }
-  pintarLienzo();
 }
 
 function puedoDibujar() {
   if (!actual || actual.estado !== "jugando") return false;
   const ronda = (actual.datos || {}).ronda || 0;
-  return ronda < RONDAS && dibujante(actual, ronda) === ctxActual.yo;
+  return ronda < rondasDe(actual) && dibujante(actual, ronda) === ctxActual.yo;
 }
 
 function escuchar(partida) {
@@ -185,6 +215,26 @@ function escuchar(partida) {
 
 // ---------- Pantalla ----------
 
+// Cómo acabó la ronda que se acaba de cerrar: un aviso grande encima de la pizarra que hace de transición
+function plantillaAviso(partida, ctx, r) {
+  const d = partida.datos || {};
+  const hecha = (d.rondas || [])[r];
+  const especie = objetivos(partida, ctx)[r];
+  if (!hecha || !especie) return "";
+  const dibuja = dibujante(partida, r);
+  const adivina = dibuja === ctx.yo ? ctx.otro : ctx.yo;
+  const texto = hecha.acierto
+    ? (adivina === ctx.yo ? t("¡Correcto!") : t("¡{quien} lo ha acertado!", { quien: escaparHTML(ctx.nombreDe(adivina)) }))
+    : t("Ronda pasada");
+  const extra = hecha.acierto ? ` · +${puntosDe(hecha.segundos)}` : "";
+  return `
+    <div class="dibujo-aviso ${hecha.acierto ? "bien" : "pasada"}">
+      <img src="${escaparHTML(urlArte({ id: especie.id }))}" alt="" draggable="false">
+      <strong>${texto}</strong>
+      <span>${t("Era {pokemon}", { pokemon: `<b>${escaparHTML(nombreDe(especie))}</b>` })}${extra}</span>
+    </div>`;
+}
+
 export function montar(contenedor, partida, ctx) {
   const nuevaCaja = caja !== contenedor;
   caja = contenedor;
@@ -192,12 +242,13 @@ export function montar(contenedor, partida, ctx) {
   ctxActual = ctx;
   escuchar(partida);
   const d = partida.datos || {};
+  const total = rondasDe(partida);
   const ronda = d.ronda || 0;
-  const fin = partida.estado === "fin" || ronda >= RONDAS;
+  const fin = partida.estado === "fin" || ronda >= total;
   const puntos = marcador(partida);
 
   // Acabadas las rondas: el final (lo apunta el primero que lo ve)
-  if (partida.estado === "jugando" && ronda >= RONDAS && !terminando.has(partida.id)) {
+  if (partida.estado === "jugando" && ronda >= total && !terminando.has(partida.id)) {
     terminando.add(partida.id);
     const [uno, dos] = partida.jugadores;
     ctx.terminar(puntos[uno] > puntos[dos] ? uno : puntos[dos] > puntos[uno] ? dos : "empate").catch((error) => {
@@ -206,32 +257,42 @@ export function montar(contenedor, partida, ctx) {
     });
   }
 
+  // ¿Acaba de cerrarse una ronda? (no al abrir la partida: solo si ya la estábamos viendo)
+  const cambiaRonda = rondaVista.id === partida.id && ronda > rondaVista.ronda && rondaVista.ronda >= 0;
+  const cerrada = cambiaRonda ? ronda - 1 : -1;
+  rondaVista = { id: partida.id, ronda };
+  // La ronda ha cambiado a medias de un trazo: fuera (que no se quede pintado en la siguiente)
+  if (cambiaRonda) trazo = null;
+
   const clave = `${partida.id}:${ronda}:${partida.estado}`;
-  const lista = objetivos(ctx);
+  const lista = objetivos(partida, ctx);
   const dibujo = !fin && dibujante(partida, ronda) === ctx.yo;
   const cabeza = `
     <div class="cromos-marcador">
       <span><b>${puntos[ctx.yo]}</b> ${t("Tú")}</span>
-      <span class="cromos-ronda">${fin ? t("Final") : t("Ronda {n} de {total}", { n: ronda + 1, total: RONDAS })}</span>
+      <span class="cromos-ronda">${fin ? t("Final") : t("Ronda {n} de {total}", { n: ronda + 1, total })}</span>
       <span>${escaparHTML(ctx.nombreDe(ctx.otro))} <b>${puntos[ctx.otro]}</b></span>
     </div>`;
 
   if (fin) {
+    if (montada === clave && !nuevaCaja) return;
     montada = clave;
     caja.innerHTML = `
       <div class="dibujo">
         ${cabeza}
-        <ol class="siluetas-repaso">${lista.map((especie, r) => {
+        <ol class="siluetas-repaso siluetas-final dibujo-final" style="--columnas: ${Math.ceil(total / 2)}">${lista.map((especie, r) => {
           const suya = (d.rondas || [])[r];
           return `
             <li>
               <img src="${escaparHTML(urlArte({ id: especie.id }))}" alt="" draggable="false" loading="lazy">
               <span>${escaparHTML(nombreDe(especie))}</span>
               <small>${t("dibujó {quien}", { quien: escaparHTML(ctx.nombreDe(dibujante(partida, r))) })}</small>
-              <small class="${suya && suya.acierto ? "bien" : "mal"}">${suya ? (suya.acierto ? `${icono("visto")} ${t("{n} s", { n: Math.round(suya.segundos) })}` : `${icono("aspa")} ${t("pasada")}`) : "–"}</small>
+              <small class="${suya && suya.acierto ? "bien" : "mal"}">${suya ? (suya.acierto ? `${icono("visto")} ${t("{n} s", { n: Math.round(suya.segundos) })} · +${puntosDe(suya.segundos)}` : `${icono("aspa")} ${t("pasada")}`) : "–"}</small>
             </li>`;
         }).join("")}</ol>
+        ${cerrada >= 0 ? plantillaAviso(partida, ctx, cerrada) : ""}
       </div>`;
+    quitarAvisoLuego();
     return;
   }
 
@@ -246,30 +307,33 @@ export function montar(contenedor, partida, ctx) {
   caja.innerHTML = `
     <div class="dibujo">
       ${cabeza}
-      <div class="dibujo-mesa">
-        <canvas class="dibujo-lienzo ${dibujo ? "mio" : ""}" width="640" height="640"></canvas>
-        <div class="dibujo-lado">
-          ${dibujo
-            ? `<p class="quien-aviso destacado">${t("Te toca dibujar:")} <b>${escaparHTML(nombreDe(objetivo))}</b></p>
-               <img class="dibujo-modelo" src="${escaparHTML(urlArte({ id: objetivo.id }))}" alt="" draggable="false">
-               <div class="dibujo-colores">${COLORES.map((cada) => `<button class="dibujo-color ${cada === color ? "elegido" : ""}" data-color="${cada}" style="--c:${cada}" title="${cada}"></button>`).join("")}</div>
-               <div class="dibujo-grosores">${GROSORES.map((cada) => `<button class="dibujo-grosor ${cada === grosor ? "elegido" : ""}" data-grosor="${cada}"><i style="--g:${cada / 2}px"></i></button>`).join("")}</div>
-               <div class="quien-botones">
-                 <button class="dibujo-borrar boton-gris">${icono("papelera")} ${t("Borrar todo")}</button>
-                 <button class="dibujo-pasar boton-gris">${t("Pasar la ronda")}</button>
-               </div>`
-            : `<p class="quien-aviso destacado">${t("Dibuja {quien}. ¿Qué Pokémon es?", { quien: escaparHTML(ctx.nombreDe(ctx.otro)) })}</p>
-               <form class="juego-form dibujo-adivinar">
-                 <span class="juego-campo"><input type="text" autocomplete="off" placeholder="${t("Escribe un Pokémon...")}" aria-label="${t("Pokémon")}"></span>
-                 <button type="submit">${t("Probar")}</button>
-               </form>`}
-          <ul class="dibujo-fallos">${plantillaFallos(d, ctx)}</ul>
-        </div>
+      <p class="quien-aviso destacado">${dibujo
+        ? `${t("Te toca dibujar:")} <b>${escaparHTML(nombreDe(objetivo))}</b>`
+        : t("Dibuja {quien}. ¿Qué Pokémon es?", { quien: escaparHTML(ctx.nombreDe(ctx.otro)) })}</p>
+      <div class="dibujo-pizarra">
+        <canvas class="dibujo-lienzo ${dibujo ? "mio" : ""}" width="${ANCHO}" height="${ALTO}"></canvas>
+        ${dibujo ? `<img class="dibujo-modelo" src="${escaparHTML(urlArte({ id: objetivo.id }))}" alt="" draggable="false">` : ""}
+        ${cerrada >= 0 ? plantillaAviso(partida, ctx, cerrada) : ""}
       </div>
+      ${dibujo
+        ? `<div class="dibujo-herramientas">
+             <div class="dibujo-colores">${COLORES.map((cada) => `<button class="dibujo-color ${cada === color ? "elegido" : ""}" data-color="${cada}" style="--c:${cada}" title="${cada}"></button>`).join("")}</div>
+             <div class="dibujo-grosores">${GROSORES.map((cada) => `<button class="dibujo-grosor ${cada === grosor ? "elegido" : ""}" data-grosor="${cada}"><i style="--g:${Math.min(cada / 2, 12)}px"></i></button>`).join("")}</div>
+             <div class="quien-botones">
+               <button class="dibujo-borrar boton-gris">${icono("papelera")} ${t("Borrar todo")}</button>
+               <button class="dibujo-pasar boton-gris">${t("Pasar la ronda")}</button>
+             </div>
+           </div>`
+        : `<form class="juego-form dibujo-adivinar">
+             <span class="juego-campo"><input type="text" autocomplete="off" placeholder="${t("Escribe un Pokémon...")}" aria-label="${t("Pokémon")}"></span>
+             <button type="submit">${t("Probar")}</button>
+           </form>`}
+      <ul class="dibujo-fallos">${plantillaFallos(d, ctx)}</ul>
     </div>`;
 
   activarLienzo(caja.querySelector(".dibujo-lienzo"));
   pintarLienzo();
+  quitarAvisoLuego();
   if (!caja.dataset.activo) {
     caja.dataset.activo = "1";
     caja.addEventListener("click", alPulsar);
@@ -282,7 +346,16 @@ export function montar(contenedor, partida, ctx) {
       e.preventDefault();
       sugerencias.elegirPrimera();
     });
+    if (cerrada >= 0) campo.focus();
   }
+}
+
+// El aviso entre rondas se va solo (con su animación de salida)
+function quitarAvisoLuego() {
+  const aviso = caja && caja.querySelector(".dibujo-aviso");
+  if (!aviso) return;
+  setTimeout(() => aviso.classList.add("saliendo"), AVISO_MS);
+  setTimeout(() => aviso.remove(), AVISO_MS + 400);
 }
 
 function plantillaFallos(d, ctx) {
@@ -308,7 +381,7 @@ function acabarRonda(acierto) {
       "datos.ronda": siguiente,
       "datos.inicio": Date.now(),
       "datos.fallos": [],
-      turno: siguiente < RONDAS ? dibujante(ahora, siguiente) : ""
+      turno: siguiente < rondasDe(ahora) ? dibujante(ahora, siguiente) : ""
     };
   });
 }
@@ -317,7 +390,7 @@ async function probar(especie) {
   if (!actual || actual.estado !== "jugando" || puedoDibujar()) return;
   const ctx = ctxActual;
   const d = actual.datos || {};
-  const objetivo = objetivos(ctx)[d.ronda || 0];
+  const objetivo = objetivos(actual, ctx)[d.ronda || 0];
   const campo = caja.querySelector(".dibujo-adivinar input");
   try {
     if (especie.id === objetivo.id) {

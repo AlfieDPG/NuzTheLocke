@@ -941,26 +941,28 @@
 }
 
 /* El color del perfil: circulitos que se eligen al momento (el elegido, con un aro) */
-/* Una sola línea de colores grandes (casi todo el alto): salen los que quepan a lo ancho, repartidos
-   hasta el final; los que no caben pasan a una segunda línea que no se ve */
+/* Los colores, en dos líneas de 14 que van de un lado a otro de la tarjeta (los 28 enteros: el
+   primero pegado a la izquierda, el último a la derecha y el mismo hueco entre todos) */
 .tp-colores {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1.5rem));
+  grid-template-rows: repeat(2, 1.5rem);
   justify-content: space-between;
-  gap: 0.6rem 0.4rem;
+  align-content: center;
+  row-gap: 0.4rem;
+  column-gap: 0.25rem;
   height: 4.2rem;
-  padding: 0.6rem;
+  padding: 0.4rem 0.6rem;
   box-sizing: border-box;
-  overflow: hidden;
   border-radius: 12px;
   background: var(--t-panel-3);
 }
 
 .tp-color {
-  flex: none;
-  width: 3rem;
-  height: 3rem;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  align-self: center;
   padding: 0;
   border: none;
   border-radius: 50%;

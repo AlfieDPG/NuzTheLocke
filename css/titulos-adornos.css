@@ -149,7 +149,7 @@
   width: 2.4em;
   height: 1.5em;
   margin-top: -0.75em;
-  background-image: url("../img/titulos/temporal.svg");
+  background-image: url("../img/titulos/temporal.svg?v=2");
   transform-origin: 20.3% 50%;   /* el centro de la gema: las aletas giran a su alrededor */
   animation: titulo-temporal-aletas 3.2s ease-in-out infinite;
 }

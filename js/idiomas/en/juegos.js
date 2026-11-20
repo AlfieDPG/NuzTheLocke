@@ -458,8 +458,8 @@ export default {
   "Pulsa un Pokémon para tacharlo o destacharlo.": "Tap a Pokémon to cross it out or back in.",
   "¿Eliges a {pokemon}? Ya no se puede cambiar.": "Pick {pokemon}? It can't be changed later.",
   "¿Dices que es {pokemon}? Si fallas, pierdes.": "Is it {pokemon}? If you're wrong, you lose.",
-  "Cada uno tiene 10 cartas de Pokémon. En cada ronda, quien tiene el turno elige una estadística de su carta y gana la carta con más. Quien gana la ronda elige en la siguiente. Gana quien se lleve más rondas.":
-    "Each of you has 10 Pokémon cards. Each round, whoever has the turn picks a stat on their card and the card with more wins. The round's winner picks next. Whoever wins the most rounds wins.",
+  "Cada uno tiene 10 cartas de Pokémon, y en cada ronda se enfrentan dos de fuerza parecida. Quien tiene el turno elige una estadística de su carta y gana la carta con más. Quien pierde la ronda elige en la siguiente. Gana quien se lleve más rondas.":
+    "Each of you has 10 Pokémon cards, and each round two of similar strength face off. Whoever has the turn picks a stat on their card and the card with more wins. The round's loser picks next. Whoever wins the most rounds wins.",
   "PS": "HP",
   "Ataque": "Attack",
   "Defensa": "Defense",
@@ -483,8 +483,12 @@ export default {
   "Silueta {n} de {total}": "Silhouette {n} of {total}",
   "Esperando a {quien}": "Waiting for {quien}",
   "tú": "you",
-  "Por turnos, uno dibuja el Pokémon que le toca y el otro lo adivina escribiendo su nombre. Cuanto antes se acierte, más puntos (para los dos). Cuatro rondas: dos dibuja cada uno.":
-    "Taking turns, one draws the Pokémon they get and the other guesses it by typing its name. The sooner it's guessed, the more points (for both). Four rounds: each of you draws two.",
+  "Por turnos, uno dibuja el Pokémon que le toca y el otro lo adivina escribiendo su nombre. Cuanto antes se acierte, más puntos (para los dos). Ocho rondas: cuatro dibuja cada uno.":
+    "Taking turns, one draws the Pokémon they get and the other guesses it by typing its name. The sooner it's guessed, the more points (for both). Eight rounds: each of you draws four.",
+  "¡{quien} lo ha acertado!": "{quien} got it!",
+  "Ronda pasada": "Round skipped",
+  "Era {pokemon}": "It was {pokemon}",
+  "El más rápido": "Fastest",
   "dibujó {quien}": "drawn by {quien}",
   "{n} s": "{n} s",
   "pasada": "skipped",
