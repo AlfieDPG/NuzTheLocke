@@ -116,7 +116,7 @@
 
 /* ---------- Viajero temporal ----------
    El hermano del espacial, al otro lado: azul marino y acero con rayas azul claro y un destello
-   frío. A la izquierda, la gema de diamante del pecho justo en el borde, con tres aletas de acero
+   frío. A la derecha, la gema de diamante del pecho justo en el borde, con tres aletas de acero
    que salen hacia fuera y se mueven despacio; detrás de la gema gira la esfera de un reloj. */
 .perfil-titulo.titulo-temporal {
   --placa-borde: #8fd0f0;
@@ -127,14 +127,14 @@
   color: #e6f6ff;
   text-shadow: 0 0 0.35em rgba(120, 210, 255, 0.7);
   padding-inline: 0.9em;
-  --adorno-izquierda: 1.85em;
-  margin-left: var(--adorno-izquierda);
+  --adorno-derecha: 1.85em;
+  margin-right: var(--adorno-derecha);
   animation: titulo-destello 4.5s ease-in-out infinite;
 }
 
 .perfil-titulo.titulo-temporal::before {
   top: 50%;
-  left: -0.66em;
+  right: -0.66em;
   width: 1.32em;
   height: 1.32em;
   margin-top: -0.66em;
@@ -142,15 +142,15 @@
   animation: titulo-temporal-reloj 16s linear infinite;
 }
 
-/* (la gema, en el 51/64 del dibujo: su centro cae justo en el borde de la plaquita) */
+/* (la gema, en el 13/64 del dibujo: su centro cae justo en el borde de la plaquita) */
 .perfil-titulo.titulo-temporal::after {
   top: 50%;
-  left: -1.91em;
+  right: -1.91em;
   width: 2.4em;
   height: 1.5em;
   margin-top: -0.75em;
   background-image: url("../img/titulos/temporal.svg");
-  transform-origin: 79.7% 50%;   /* el centro de la gema: las aletas giran a su alrededor */
+  transform-origin: 20.3% 50%;   /* el centro de la gema: las aletas giran a su alrededor */
   animation: titulo-temporal-aletas 3.2s ease-in-out infinite;
 }
 
@@ -159,8 +159,8 @@
 }
 
 @keyframes titulo-temporal-aletas {
-  0%, 100% { transform: rotate(4deg); filter: drop-shadow(0 0 0.1em rgba(159, 230, 255, 0.4)); }
-  50% { transform: rotate(-4deg); filter: drop-shadow(0 0 0.35em rgba(159, 230, 255, 0.95)); }
+  0%, 100% { transform: rotate(-4deg); filter: drop-shadow(0 0 0.1em rgba(159, 230, 255, 0.4)); }
+  50% { transform: rotate(4deg); filter: drop-shadow(0 0 0.35em rgba(159, 230, 255, 0.95)); }
 }
 
 /* ---------- Rey del Inframundo ----------

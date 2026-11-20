@@ -102,17 +102,17 @@ function plantillaFila(partida) {
   if (partida.estado === "reto" && partida.jugadores[1] === uid) {
     estado = t("Te invita");
     botones = `<button class="juntos-aceptar" data-id="${partida.id}">${t("Jugar")}</button>
-               <button class="juntos-borrar boton-gris" data-id="${partida.id}">${t("Rechazar")}</button>`;
+               <button class="juntos-borrar" data-id="${partida.id}">${t("Rechazar")}</button>`;
   } else if (partida.estado === "reto") {
     estado = t("Esperando a que acepte");
-    botones = `<button class="juntos-borrar boton-gris" data-id="${partida.id}">${t("Retirar")}</button>`;
+    botones = `<button class="juntos-borrar" data-id="${partida.id}">${t("Retirar")}</button>`;
   } else if (partida.estado === "jugando") {
     estado = partida.turno === uid ? t("Te toca") : partida.turno ? t("Le toca") : t("En marcha");
     botones = `<button class="juntos-abrir" data-id="${partida.id}">${t("Abrir")}</button>`;
   } else {
     estado = partida.ganador === uid ? t("Ganaste") : partida.ganador === "empate" ? t("Empate") : t("Perdiste");
-    botones = `<button class="juntos-abrir boton-gris" data-id="${partida.id}">${t("Ver")}</button>
-               <button class="juntos-borrar boton-gris" data-id="${partida.id}" title="${t("Quitar de la lista")}">${icono("aspa")}</button>`;
+    botones = `<button class="juntos-abrir" data-id="${partida.id}">${t("Ver")}</button>
+               <button class="juntos-borrar" data-id="${partida.id}" title="${t("Quitar de la lista")}">${icono("aspa")}</button>`;
   }
   const clase = partida.estado === "fin" ? (partida.ganador === uid ? "ganada" : partida.ganador === "empate" ? "" : "perdida") : partida.turno === uid || (partida.estado === "reto" && partida.jugadores[1] === uid) ? "me-toca" : "";
   return `
@@ -136,10 +136,9 @@ function plantillaAmigo(perfil, lista) {
       <span class="juntos-fila-quien">
         <strong>${escaparHTML(perfil.nombre)}</strong>
         ${plantillaTituloDe(perfil, "pequeno")}
-        ${conEl ? `<small>${t("Ya tenéis una partida")}</small>` : ""}
       </span>
       <span class="juntos-fila-botones">${conEl
-        ? `<button class="juntos-abrir boton-gris" data-id="${conEl.id}">${t("Abrir")}</button>`
+        ? `<button class="juntos-abrir" data-id="${conEl.id}">${t("Abrir")}</button>`
         : `<button class="juntos-retar-a" data-uid="${escaparHTML(perfil.uid)}">${icono("dados")} ${t("Retar")}</button>`}</span>
     </li>`;
 }
@@ -199,7 +198,7 @@ function cabezaPartida(partida) {
   } else estado = t("Jugáis a la vez");
   return `
     <header class="juego-cabeza juntos-cabeza">
-      <button class="juntos-volver boton-gris" title="${t("Volver")}">${icono("atras")}</button>
+      <button class="juntos-volver boton-gris">${icono("atras")} ${t("Volver")}</button>
       <h2>${modulo.NOMBRE()}</h2>
       <span class="juntos-contra">${t("contra {quien}", { quien: `<b>${escaparHTML(nombreDe(partida, otro))}</b>` })}</span>
       <span class="juntos-estado ${partida.estado === "fin" ? "fin" : partida.turno === uid ? "me-toca" : ""}">${estado}</span>

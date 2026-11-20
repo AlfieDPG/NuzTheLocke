@@ -351,7 +351,8 @@ function plantillaContenidoEstante(perfil, ofertas) {
   const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
   pagina = Math.min(pagina, paginas - 1);
   const vistos = lista.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
-  const huecos = Array.from({ length: POR_PAGINA - vistos.length }, () => `<span class="tp-hueco"></span>`).join("");
+  // Las ofertas son siempre 12: dos filas, sin una tercera de huecos
+  const huecos = Array.from({ length: estante === "ofertas" ? 0 : POR_PAGINA - vistos.length }, () => `<span class="tp-hueco"></span>`).join("");
   return `
     <div class="tp-estante-herramientas">
       <div class="tp-orden">
@@ -370,18 +371,18 @@ function plantillaContenidoEstante(perfil, ofertas) {
         </span>` : ""}
       <span class="tp-progreso"><small>${t("Tienes {n} de {total}", { n: tuyos, total: cuentan.length })}</small><span class="tp-barrita"><i style="width: ${cuentan.length ? Math.round((100 * tuyos) / cuentan.length) : 0}%"></i></span></span>
     </div>
-    <div class="tp-rejilla ${estante === "marcos" ? "tp-rejilla-marcos" : ""}">
+    <div class="tp-rejilla ${estante === "marcos" ? "tp-rejilla-marcos" : ""} ${estante === "ofertas" ? "tp-rejilla-ofertas" : ""}">
       ${vistos.map((articulo) => plantillaArticulo(articulo, perfil, ofertas)).join("")}${huecos}
     </div>`;
 }
 
 function plantillaEstante(perfil, ofertas) {
-  const nombres = { ofertas: t("De oferta hoy"), fondos: t("Fondos"), marcos: t("Marcos"), titulos: t("Títulos") };
+  const nombres = { ofertas: t("Ofertas del día de hoy"), fondos: t("Fondos"), marcos: t("Marcos"), titulos: t("Títulos") };
   return `
     <div class="tp-estante-cabeza">
       <div class="tp-segmentos" role="tablist">
         <span class="tp-indicador" aria-hidden="true"></span>
-        ${ESTANTES.map((cada) => `<button data-estante="${cada}" class="${cada === estante ? "activo" : ""}">${nombres[cada]}${cada === "ofertas" ? ` <span class="tp-oferta-chip">${ofertas.length}</span>` : ""}</button>`).join("")}
+        ${ESTANTES.map((cada) => `<button data-estante="${cada}" class="${cada === estante ? "activo" : ""}">${nombres[cada]}</button>`).join("")}
       </div>
     </div>
     <div class="tp-estante-contenido">${plantillaContenidoEstante(perfil, ofertas)}</div>`;

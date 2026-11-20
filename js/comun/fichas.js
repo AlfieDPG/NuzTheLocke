@@ -344,18 +344,33 @@ export function plantillaTituloDe(perfil, clase = "") {
 // secciones de la web; quien no elige ninguno, el de «Amigos». Gratis, como el «Sobre mí».
 export const COLORES_PERFIL = [
   { id: "rojo", nombre: t("Rojo"), rgb: "231, 76, 60" },
+  { id: "coral", nombre: t("Coral"), rgb: "255, 127, 100" },
+  { id: "salmon", nombre: t("Salmón"), rgb: "250, 160, 140" },
   { id: "naranja", nombre: t("Naranja"), rgb: "240, 150, 60" },
+  { id: "ocre", nombre: t("Ocre"), rgb: "190, 130, 40" },
+  { id: "mostaza", nombre: t("Mostaza"), rgb: "214, 170, 40" },
   { id: "amarillo", nombre: t("Amarillo"), rgb: "241, 196, 15" },
   { id: "arena", nombre: t("Arena"), rgb: "205, 165, 100" },
+  { id: "chocolate", nombre: t("Chocolate"), rgb: "150, 95, 60" },
   { id: "lima", nombre: t("Lima"), rgb: "160, 205, 80" },
+  { id: "oliva", nombre: t("Oliva"), rgb: "128, 140, 50" },
   { id: "verde", nombre: t("Verde"), rgb: "76, 182, 92" },
+  { id: "esmeralda", nombre: t("Esmeralda"), rgb: "30, 150, 100" },
+  { id: "menta", nombre: t("Menta"), rgb: "110, 215, 170" },
   { id: "turquesa", nombre: t("Turquesa"), rgb: "0, 184, 169" },
+  { id: "petroleo", nombre: t("Petróleo"), rgb: "20, 120, 135" },
   { id: "celeste", nombre: t("Celeste"), rgb: "80, 190, 215" },
   { id: "azul", nombre: t("Azul"), rgb: "64, 112, 214" },
+  { id: "marino", nombre: t("Marino"), rgb: "40, 70, 150" },
+  { id: "indigo", nombre: t("Índigo"), rgb: "90, 80, 200" },
+  { id: "lavanda", nombre: t("Lavanda"), rgb: "180, 170, 240" },
   { id: "morado", nombre: t("Morado"), rgb: "155, 110, 230" },
   { id: "lila", nombre: t("Lila"), rgb: "196, 128, 214" },
+  { id: "fucsia", nombre: t("Fucsia"), rgb: "220, 60, 180" },
   { id: "rosa", nombre: t("Rosa"), rgb: "232, 82, 110" },
-  { id: "granate", nombre: t("Granate"), rgb: "186, 62, 102" }
+  { id: "granate", nombre: t("Granate"), rgb: "186, 62, 102" },
+  { id: "pizarra", nombre: t("Pizarra"), rgb: "110, 125, 145" },
+  { id: "carbon", nombre: t("Carbón"), rgb: "70, 75, 85" }
 ];
 export const COLOR_PERFIL_DEFECTO = "celeste";
 

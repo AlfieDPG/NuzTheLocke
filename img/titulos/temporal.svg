@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40">
-  <!-- Viajero temporal: la gema de diamante del pecho (centrada en el borde izquierdo de la plaquita)
-       y tres aletas de acero que salen hacia fuera, a la izquierda -->
+<g transform="matrix(-1 0 0 1 64 0)">
+  <!-- Viajero temporal: la gema de diamante del pecho (centrada en el borde derecho de la plaquita)
+       y tres aletas de acero que salen hacia fuera, a la derecha (dibujado mirando a la izquierda y volteado con el <g>) -->
   <defs>
     <linearGradient id="acero" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#7f9bd6"/>
@@ -30,4 +31,5 @@
   <path d="M51 10.6 L58.4 20 L51 29.4 L43.6 20 Z" fill="url(#diamante)" stroke="#123c66" stroke-width="1.6" stroke-linejoin="round"/>
   <path d="M43.6 20 H58.4 M51 10.6 L48.6 20 L51 29.4 M51 10.6 L53.4 20 L51 29.4" stroke="#4fa8d8" stroke-width="0.9" fill="none"/>
   <path d="M51 12.6 L48.9 18.4 L46.4 19.4 Z" fill="#fff" opacity="0.85"/>
+</g>
 </svg>

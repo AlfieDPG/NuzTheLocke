@@ -95,6 +95,21 @@ export default {
   "Lila": "Lilac",
   "Rosa": "Pink",
   "Granate": "Maroon",
+  "Salmón": "Salmon",
+  "Ocre": "Ochre",
+  "Mostaza": "Mustard",
+  "Chocolate": "Chocolate",
+  "Oliva": "Olive",
+  "Menta": "Mint",
+  "Petróleo": "Teal",
+  "Índigo": "Indigo",
+  "Lavanda": "Lavender",
+  "Fucsia": "Fuchsia",
+  "Pizarra": "Slate",
+  "Carbón": "Charcoal",
+  "Coral": "Coral",
+  "Esmeralda": "Emerald",
+  "Marino": "Navy",
 
   // Editar perfil → Tipos de locke
   "Los que eliges al apuntar un locke. En «Amigos» se ve cuántos has jugado y ganado de cada uno.":

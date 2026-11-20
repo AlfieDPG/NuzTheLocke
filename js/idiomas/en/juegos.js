@@ -504,6 +504,7 @@ export default {
   "Comprar los {n}": "Buy all {n}",
   "Te faltan {n}": "You need {n} more",
   "De oferta hoy": "On sale today",
+  "Ofertas del día de hoy": "Today's deals",
   "Tienes {n} de {total}": "You have {n} of {total}",
   "¿Comprar {lista} por {n} Pokédólares? Te lo pones al momento.": "Buy {lista} for {n} Pokédollars? You'll wear it right away.",
   "Más baratos primero": "Cheapest first",

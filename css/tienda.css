@@ -499,6 +499,11 @@
   gap: 0.7rem;
 }
 
+/* Las 12 ofertas del día: dos filas que llenan la tarjeta */
+.tp-rejilla.tp-rejilla-ofertas {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
 .tp-articulo {
   position: relative;
   display: flex;
@@ -588,6 +593,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-rows: none;
     grid-auto-rows: 6.5rem;
+  }
+
+  .tp-rejilla.tp-rejilla-ofertas {
+    grid-template-rows: none;
   }
 }
 
@@ -932,22 +941,26 @@
 }
 
 /* El color del perfil: circulitos que se eligen al momento (el elegido, con un aro) */
+/* Una sola línea de colores grandes (casi todo el alto): salen los que quepan a lo ancho, repartidos
+   hasta el final; los que no caben pasan a una segunda línea que no se ve */
 .tp-colores {
   display: flex;
   flex-wrap: wrap;
-  align-content: center;
-  gap: 0.4rem;
+  align-content: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem 0.4rem;
   height: 4.2rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.6rem;
   box-sizing: border-box;
+  overflow: hidden;
   border-radius: 12px;
   background: var(--t-panel-3);
 }
 
 .tp-color {
   flex: none;
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 3rem;
+  height: 3rem;
   padding: 0;
   border: none;
   border-radius: 50%;
