@@ -229,184 +229,175 @@
   background-repeat: repeat-x, repeat-x, no-repeat, no-repeat, no-repeat;
 }
 
-/* Eevee: crema con huellas, bandas de pelo pardo con el collar de pelusa crema, motas de pelusa que suben y Eevee sentado */
+/* Eevee: crema con huellas, bandas de pelo pardo con el collar de pelusa crema, motas de pelusa que suben y Eevee */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-eevee {
   background-image:
     url("../img/fondos/eevee-eevee-banda.png?v=bdb6a762"),
     url("../img/fondos/eevee-eevee-banda-abajo.png?v=32014676"),
-    url("../img/fondos/eevee-eevee-pokemon.png?v=6d63f28f"),
     url("../img/fondos/eevee-eevee-particulas.png?v=bd44f9b5"),
     url("../img/fondos/eevee-eevee-estampado.png?v=0fc5f994"),
     linear-gradient(160deg, #fff4e2, #f8e2c6 55%, #f0cea8);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-eevee 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-eevee {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Vaporeon: azul agua con burbujitas, bandas de olas, burbujas que suben y Vaporeon sentado */
+/* Vaporeon: azul agua con burbujitas, bandas de olas, burbujas que suben y Vaporeon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-vaporeon {
   background-image:
     url("../img/fondos/eevee-vaporeon-banda.png?v=d2cb25b1"),
     url("../img/fondos/eevee-vaporeon-banda-abajo.png?v=66851295"),
-    url("../img/fondos/eevee-vaporeon-pokemon.png?v=b764ee65"),
     url("../img/fondos/eevee-vaporeon-particulas.png?v=2c773242"),
     url("../img/fondos/eevee-vaporeon-estampado.png?v=b5522689"),
     linear-gradient(160deg, #d8f2ff, #a8dcf6 55%, #7cc4ec);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-26 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-vaporeon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-vaporeon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-26 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-26 * var(--px)), left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Jolteon: amarillo con rayitos, bandas de pelo de punta, chispas que caen y Jolteon sentado */
+/* Jolteon: amarillo con rayitos, bandas de pelo de punta, chispas que caen y Jolteon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-jolteon {
   background-image:
     url("../img/fondos/eevee-jolteon-banda.png?v=99934632"),
     url("../img/fondos/eevee-jolteon-banda-abajo.png?v=b96d8b89"),
-    url("../img/fondos/eevee-jolteon-pokemon.png?v=0920e5a8"),
     url("../img/fondos/eevee-jolteon-particulas.png?v=f41a46f2"),
     url("../img/fondos/eevee-jolteon-estampado.png?v=75556cac"),
     linear-gradient(160deg, #fffbe0, #fff0a8 55%, #ffe070);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(61 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-jolteon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-jolteon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(61 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(61 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top calc(256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Flareon: naranja con llamitas, bandas de llamas, brasas que suben y Flareon sentado */
+/* Flareon: naranja con llamitas, bandas de llamas, brasas que suben y Flareon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-flareon {
   background-image:
     url("../img/fondos/eevee-flareon-banda.png?v=5f382002"),
     url("../img/fondos/eevee-flareon-banda-abajo.png?v=3d4c53bf"),
-    url("../img/fondos/eevee-flareon-pokemon.png?v=28066034"),
     url("../img/fondos/eevee-flareon-particulas.png?v=8a83a4c1"),
     url("../img/fondos/eevee-flareon-estampado.png?v=e940a234"),
     linear-gradient(160deg, #fff0e0, #ffd4b0 55%, #ffb888);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-22 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-flareon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-flareon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-22 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-22 * var(--px)), left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Espeon: lila con gemas y estrellitas, bandas con la gema roja, motas psíquicas que suben y Espeon sentado */
+/* Espeon: lila con gemas y estrellitas, bandas con la gema roja, motas psíquicas que suben y Espeon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-espeon {
   background-image:
     url("../img/fondos/eevee-espeon-banda.png?v=ce989cdb"),
     url("../img/fondos/eevee-espeon-banda-abajo.png?v=185f9a5d"),
-    url("../img/fondos/eevee-espeon-pokemon.png?v=e99ffa65"),
     url("../img/fondos/eevee-espeon-particulas.png?v=1968c391"),
     url("../img/fondos/eevee-espeon-estampado.png?v=841a521b"),
     linear-gradient(160deg, #f8ecff, #e6ccf6 55%, #d2acea);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-28 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-espeon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-espeon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-28 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-28 * var(--px)), left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Umbreon: azul de noche con los aros amarillos, bandas negras con aros, motas que suben como luciérnagas y Umbreon sentado */
+/* Umbreon: azul de noche con los aros amarillos, bandas negras con aros, motas que suben como luciérnagas y Umbreon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-umbreon {
   background-image:
     url("../img/fondos/eevee-umbreon-banda.png?v=125a82df"),
     url("../img/fondos/eevee-umbreon-banda-abajo.png?v=95c8ef6a"),
-    url("../img/fondos/eevee-umbreon-pokemon.png?v=3cb5232a"),
     url("../img/fondos/eevee-umbreon-particulas.png?v=1202a177"),
     url("../img/fondos/eevee-umbreon-estampado.png?v=aa2eba5f"),
     linear-gradient(160deg, #3c3c78, #2c2c5c 55%, #222248);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-umbreon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-umbreon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Leafeon: verde claro con hojitas, bandas de enredadera, hojas que caen y Leafeon sentado */
+/* Leafeon: verde claro con hojitas, bandas de enredadera, hojas que caen y Leafeon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-leafeon {
   background-image:
     url("../img/fondos/eevee-leafeon-banda.png?v=83c3cbe7"),
     url("../img/fondos/eevee-leafeon-banda-abajo.png?v=22aea047"),
-    url("../img/fondos/eevee-leafeon-pokemon.png?v=a6776145"),
     url("../img/fondos/eevee-leafeon-particulas.png?v=8cc2d77c"),
     url("../img/fondos/eevee-leafeon-estampado.png?v=f4c7d1b0"),
     linear-gradient(160deg, #f2fbe2, #d8f0b8 55%, #bce496);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-28 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-leafeon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-leafeon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-28 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-28 * var(--px)), left calc(20 * var(--px)) top calc(256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Glaceon: azul hielo con copos y rombos, bandas con carámbanos (arriba cuelgan; abajo, cristales que suben), nieve que cae y Glaceon sentado */
+/* Glaceon: azul hielo con copos y rombos, bandas con carámbanos (arriba cuelgan; abajo, cristales que suben), nieve que cae y Glaceon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-glaceon {
   background-image:
     url("../img/fondos/eevee-glaceon-banda.png?v=6ee9da9f"),
     url("../img/fondos/eevee-glaceon-banda-abajo.png?v=9f5a675b"),
-    url("../img/fondos/eevee-glaceon-pokemon.png?v=47e7db46"),
     url("../img/fondos/eevee-glaceon-particulas.png?v=9c39ea98"),
     url("../img/fondos/eevee-glaceon-estampado.png?v=48b6b2c4"),
     linear-gradient(160deg, #f0fbff, #d0eef8 55%, #a8dcf0);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-22 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-glaceon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-glaceon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-22 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-22 * var(--px)), left calc(20 * var(--px)) top calc(256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(256 * var(--px)), left 0 top 0, 0 0; }
 }
 
-/* Sylveon: rosa con lazos y corazones, bandas de cinta con lunares y lazos, corazones que suben y Sylveon sentado */
+/* Sylveon: rosa con lazos y corazones, bandas de cinta con lunares y lazos, corazones que suben y Sylveon */
 :is(.ficha-jugador, .perfil-fondo, .perfil-cabeza, .logro-premio, .tienda-muestra, .lleva-fondo).fondo-eevee-sylveon {
   background-image:
     url("../img/fondos/eevee-sylveon-banda.png?v=96bb2c2a"),
     url("../img/fondos/eevee-sylveon-banda-abajo.png?v=56d9f831"),
-    url("../img/fondos/eevee-sylveon-pokemon.png?v=8a7743ce"),
     url("../img/fondos/eevee-sylveon-particulas.png?v=b5f554af"),
     url("../img/fondos/eevee-sylveon-estampado.png?v=64030d78"),
     linear-gradient(160deg, #fff2f8, #ffd8ea 55%, #f8bcd8);
-  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(92 * var(--px)) calc(92 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
-  background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
-  background-repeat: repeat-x, repeat-x, no-repeat, repeat, repeat, no-repeat;
+  background-size: calc(256 * var(--px)) calc(10 * var(--px)), calc(256 * var(--px)) calc(10 * var(--px)), calc(128 * var(--px)) calc(128 * var(--px)), calc(32 * var(--px)) calc(32 * var(--px)), auto;
+  background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat, repeat, no-repeat;
   animation: fondo-eevee-sylveon 16s steps(128) infinite;
 }
 
 @keyframes fondo-eevee-sylveon {
-  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
-  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(50% + calc(60 * var(--px))) bottom calc(-30 * var(--px)), left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
+  0% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top 0, left 0 top 0, 0 0; }
+  100% { background-position: left 0 top 0, left 0 bottom 0, left calc(20 * var(--px)) top calc(-256 * var(--px)), left 0 top 0, 0 0; }
 }
 
 /* Otoño: un diseño para la tarjeta: crema con hojas de colores esparcidas por todo el fondo, una guirnalda de hojas colgando arriba, montones de hojas por abajo, una calabaza y bellotas en las esquinas de abajo */

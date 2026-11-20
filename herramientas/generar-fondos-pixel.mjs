@@ -28,7 +28,6 @@ import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { png } from "./png.mjs";
-import { pintarFigura } from "./figuras-pixel.mjs";
 import { sello } from "./sellos-pixel.mjs";
 
 // Las tiras de las regiones
@@ -3272,8 +3271,7 @@ const TIENDA = {
 //
 // Los que dan los logros de registrar a Eevee y a cada Eeveelution (js/comun/fondos.js,
 // FONDOS_EEVEE). Estampados (ver eeveeEstampado, más abajo): su color, su estampado, bandas arriba y
-// abajo, cosas suyas que suben o caen y el Pokémon (su sello de una tinta) sentado a la derecha del
-// centro.
+// abajo y cosas suyas que suben o caen (el Pokémon en sí no sale).
 
 
 
@@ -3305,24 +3303,9 @@ function destello(l, x, y, [color, centro], grande = false, a = 1) {
 
 // Un fondo de Eevee como estampado: el fondo de su color con un estampado de su tema, una banda arriba y
 // otra abajo con su motivo (dibujada para la de arriba; la de abajo es la misma dada la vuelta), cosas
-// suyas que suben o caen sin parar (burbujas, brasas, hojas...) y el Pokémon al doble (como los
-// legendarios), a la derecha del centro (a la izquierda va la foto), asomando por detrás de la banda de
-// abajo, con la cabeza a ALTO_EEVEE del borde de abajo (así cabe también en la fila de la lista de
-// amigos, que es la más baja).
+// suyas que suben o caen sin parar (burbujas, brasas, hojas...) (ni el Pokémon ni símbolos: solo su color y sus cosas).
 const BANDA_EEVEE = 10;
-const ALTO_EEVEE = 60;
-function eeveeEstampado({ comentario, pokemon, cielo, estampado, banda, particula, sube = true }) {
-  const fig = sello(pokemon);
-  // Lo que ocupa de verdad el dibujo: para centrarlo por su cuerpo y ponerle la cabeza a su altura
-  let [x0, x1, y0] = [fig.ancho, 0, fig.alto];
-  fig.pixeles.forEach((c, k) => {
-    if (!c) return;
-    const [x, y] = [k % fig.ancho, Math.floor(k / fig.ancho)];
-    x0 = Math.min(x0, x);
-    x1 = Math.max(x1, x);
-    y0 = Math.min(y0, y);
-  });
-  const [ancho, alto] = [fig.ancho * 2, fig.alto * 2];
+function eeveeEstampado({ comentario, cielo, estampado, banda, particula, sube = true }) {
   return {
     comentario,
     cielo,
@@ -3332,13 +3315,6 @@ function eeveeEstampado({ comentario, pokemon, cielo, estampado, banda, particul
       {
         nombre: "banda-abajo", ancho: 256, alto: BANDA_EEVEE, repetir: "x", sitio: { y: 0, desde: "abajo" },
         pintar: (l, azar) => banda(espejado(l, false, true), azar)
-      },
-      {
-        nombre: "pokemon", ancho, alto, repetir: "no", recortar: true,
-        sitio: { x: Math.round(60 - (x0 + x1 + 1 - fig.ancho)), lado: "centro", y: ALTO_EEVEE - (alto - y0 * 2), desde: "abajo" },
-        pintar: (l) => pintarFigura({ ...l, poner: (x, y, c, a) => {
-          for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) l.poner(x * 2 + dx, y * 2 + dy, c, a);
-        } }, fig, 0, 0)
       },
       { nombre: "particulas", ancho: 128, alto: 128, repetir: "xy", sitio: { x: 20, y: 0, desde: "arriba" }, pintar: particula },
       { nombre: "estampado", ancho: 32, alto: 32, repetir: "xy", sitio: { y: 0, desde: "arriba" }, pintar: estampado }
@@ -3353,8 +3329,7 @@ function esparcir(l, azar, n, dibujar) {
 
 const EEVEE = {
   eevee: eeveeEstampado({
-    pokemon: "eevee",
-    comentario: "Eevee: crema con huellas, bandas de pelo pardo con el collar de pelusa crema, motas de pelusa que suben y Eevee sentado",
+    comentario: "Eevee: crema con huellas, bandas de pelo pardo con el collar de pelusa crema, motas de pelusa que suben y Eevee",
     cielo: "linear-gradient(160deg, #fff4e2, #f8e2c6 55%, #f0cea8)",
     estampado(l) {
       for (const [x, y, color, a] of [[6, 8, "#c89a6a", 0.35], [22, 24, "#ffffff", 0.6]]) {
@@ -3380,8 +3355,7 @@ const EEVEE = {
   }),
 
   vaporeon: eeveeEstampado({
-    pokemon: "vaporeon",
-    comentario: "Vaporeon: azul agua con burbujitas, bandas de olas, burbujas que suben y Vaporeon sentado",
+    comentario: "Vaporeon: azul agua con burbujitas, bandas de olas, burbujas que suben y Vaporeon",
     cielo: "linear-gradient(160deg, #d8f2ff, #a8dcf6 55%, #7cc4ec)",
     estampado(l) {
       for (const [x, y, r, color, a] of [[8, 8, 2, "#ffffff", 0.55], [24, 22, 1, "#3a8ac8", 0.4], [20, 6, 1, "#ffffff", 0.45]]) {
@@ -3400,8 +3374,7 @@ const EEVEE = {
   }),
 
   jolteon: eeveeEstampado({
-    pokemon: "jolteon",
-    comentario: "Jolteon: amarillo con rayitos, bandas de pelo de punta, chispas que caen y Jolteon sentado",
+    comentario: "Jolteon: amarillo con rayitos, bandas de pelo de punta, chispas que caen y Jolteon",
     cielo: "linear-gradient(160deg, #fffbe0, #fff0a8 55%, #ffe070)",
     estampado(l) {
       for (const [x, y, color, a] of [[6, 4, "#e8a818", 0.45], [22, 20, "#ffffff", 0.7]]) {
@@ -3428,8 +3401,7 @@ const EEVEE = {
   }),
 
   flareon: eeveeEstampado({
-    pokemon: "flareon",
-    comentario: "Flareon: naranja con llamitas, bandas de llamas, brasas que suben y Flareon sentado",
+    comentario: "Flareon: naranja con llamitas, bandas de llamas, brasas que suben y Flareon",
     cielo: "linear-gradient(160deg, #fff0e0, #ffd4b0 55%, #ffb888)",
     estampado(l) {
       for (const [x, y, color, a] of [[6, 6, "#e8642a", 0.4], [22, 22, "#ffd23a", 0.55]]) {
@@ -3452,8 +3424,7 @@ const EEVEE = {
   }),
 
   espeon: eeveeEstampado({
-    pokemon: "espeon",
-    comentario: "Espeon: lila con gemas y estrellitas, bandas con la gema roja, motas psíquicas que suben y Espeon sentado",
+    comentario: "Espeon: lila con gemas y estrellitas, bandas con la gema roja, motas psíquicas que suben y Espeon",
     cielo: "linear-gradient(160deg, #f8ecff, #e6ccf6 55%, #d2acea)",
     estampado(l) {
       mapa(l, 6, 6, [".a.", "aba", ".a."], { a: "#e8283a", b: "#ff9aa6" }, 0.5);
@@ -3474,8 +3445,7 @@ const EEVEE = {
   }),
 
   umbreon: eeveeEstampado({
-    pokemon: "umbreon",
-    comentario: "Umbreon: azul de noche con los aros amarillos, bandas negras con aros, motas que suben como luciérnagas y Umbreon sentado",
+    comentario: "Umbreon: azul de noche con los aros amarillos, bandas negras con aros, motas que suben como luciérnagas y Umbreon",
     cielo: "linear-gradient(160deg, #3c3c78, #2c2c5c 55%, #222248)",
     estampado(l) {
       for (const [x, y, r, a] of [[8, 8, 3, 0.5], [24, 24, 2, 0.35]]) {
@@ -3499,8 +3469,7 @@ const EEVEE = {
   }),
 
   leafeon: eeveeEstampado({
-    pokemon: "leafeon",
-    comentario: "Leafeon: verde claro con hojitas, bandas de enredadera, hojas que caen y Leafeon sentado",
+    comentario: "Leafeon: verde claro con hojitas, bandas de enredadera, hojas que caen y Leafeon",
     cielo: "linear-gradient(160deg, #f2fbe2, #d8f0b8 55%, #bce496)",
     estampado(l) {
       hojaOval(l, 6, 10, 5, -0.7, ["#5a9a3a", "#7cbc4a", "#c0e890"]);
@@ -3521,8 +3490,7 @@ const EEVEE = {
   }),
 
   glaceon: eeveeEstampado({
-    pokemon: "glaceon",
-    comentario: "Glaceon: azul hielo con copos y rombos, bandas con carámbanos (arriba cuelgan; abajo, cristales que suben), nieve que cae y Glaceon sentado",
+    comentario: "Glaceon: azul hielo con copos y rombos, bandas con carámbanos (arriba cuelgan; abajo, cristales que suben), nieve que cae y Glaceon",
     cielo: "linear-gradient(160deg, #f0fbff, #d0eef8 55%, #a8dcf0)",
     estampado(l) {
       copo(l, 8, 8, 2, 0.6);
@@ -3546,8 +3514,7 @@ const EEVEE = {
   }),
 
   sylveon: eeveeEstampado({
-    pokemon: "sylveon",
-    comentario: "Sylveon: rosa con lazos y corazones, bandas de cinta con lunares y lazos, corazones que suben y Sylveon sentado",
+    comentario: "Sylveon: rosa con lazos y corazones, bandas de cinta con lunares y lazos, corazones que suben y Sylveon",
     cielo: "linear-gradient(160deg, #fff2f8, #ffd8ea 55%, #f8bcd8)",
     estampado(l) {
       mapa(l, 4, 6, ["a...a", "aabaa", "a...a"], { a: "#f07aa8", b: "#5ab0e8" }, 0.5);
