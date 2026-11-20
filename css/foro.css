@@ -2024,14 +2024,8 @@
   pointer-events: none;
 }
 
-.comentario.hijo .foro-ficha {
-  padding-block: 0.25rem;
-}
-
-.comentario.hijo .foro-ficha .foro-foto {
-  width: 1.7rem;
-  height: 1.7rem;
-}
+/* La ficha de quien escribe es la misma en las respuestas a un mensaje que en el resto: nada de
+   encogerla solo en parte (la foto y el relleno más pequeños con el título igual la aplastaban) */
 
 .foro-rama-mas {
   display: inline-flex;
