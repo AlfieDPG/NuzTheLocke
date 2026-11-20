@@ -1648,3 +1648,851 @@
   color: var(--t-mal);
   border-color: currentColor;
 }
+
+/* ---------- Tus partidas (rediseño del 2026-11-20, js/jugar/index.js) ----------
+   La última partida a lo grande (equipo con tipos, objeto y ataques, caja, caídos, tu locke y «Seguir
+   jugando») y, al lado, las otras, los amigos en directo y los juegos que se pueden jugar. Hasta abajo. */
+
+#dialogo-jugar-todas .icono {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.jj-tablero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: 1rem;
+  height: calc(100dvh - 5rem);
+  min-height: 38rem;
+}
+
+.jj-seguir {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-height: 0;
+  padding: 1.2rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--juego) 16%, var(--t-panel)), var(--t-panel) 60%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.jj-cabeza {
+  display: flex;
+  gap: 1.3rem;
+}
+
+.jj-portada {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 9.5rem;
+  height: 9.5rem;
+  border-radius: 1.3rem;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--juego) 55%, #fff), var(--juego) 60%, color-mix(in srgb, var(--juego) 60%, black));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.jj-portada .jugar-portada {
+  width: 8.3rem;
+  height: 8.3rem;
+  border-radius: 1rem;
+  background: none;
+  box-shadow: none;
+}
+
+.jj-datos {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.jj-datos h3 {
+  margin: 0;
+  font-size: 1.9rem;
+  line-height: 1.1;
+}
+
+.jj-datos .jugar-detalle {
+  margin: 0;
+}
+
+.jj-datos .jugar-medalla {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.jj-nota {
+  color: var(--t-gris);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* El equipo: seis tarjetas iguales (las vacías, con borde de puntos) */
+.jj-equipo {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.jj-poke {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.7rem 0.55rem 0.6rem;
+  border-radius: 0.9rem;
+  background: rgba(20, 18, 17, 0.4);
+}
+
+.jj-poke .jugar-cara {
+  width: 3.7rem;
+  height: 3.7rem;
+}
+
+.jj-poke.debilitado .jugar-cara,
+.jj-caras .jugar-cara.debilitado {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.jj-poke-nombre {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--letra-titulos);
+  font-size: 0.95rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jj-poke small {
+  color: var(--t-gris);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.jj-ps {
+  width: 84%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.jj-ps i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--t-bien);
+}
+
+.jj-ps i.casi { background: #f0c43c; }
+.jj-ps i.mal { background: var(--t-mal, #e74c3c); }
+
+.jj-tipos {
+  display: flex;
+  gap: 0.2rem;
+  min-height: 1.05rem;
+}
+
+.jj-tipo {
+  padding: 0.02rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-tipo) 78%, black);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.jj-objeto {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--t-gris);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jj-ataques {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  width: 100%;
+}
+
+.jj-ataques span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.15rem;
+  padding: 0 0.35rem;
+  overflow: hidden;
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jj-ataques span.vacio {
+  box-sizing: border-box;
+  border: 1px dashed rgba(var(--t-tinte), 0.12);
+  background: none;
+}
+
+.jj-ataques i {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+}
+
+.jj-poke-hueco {
+  justify-content: center;
+  border: 2px dashed rgba(var(--t-tinte), 0.16);
+  background: transparent;
+  color: var(--t-gris);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* La caja y los caídos */
+.jj-franja {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 0.7rem;
+}
+
+.jj-franja.sola {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.jj-trozo {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  height: 3.4rem;
+  padding: 0 0.9rem;
+  overflow: hidden;
+  border-radius: 0.8rem;
+  background: rgba(20, 18, 17, 0.4);
+}
+
+.jj-trozo h4,
+.jj-caja h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-family: var(--letra-titulos);
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.jj-trozo h4 small,
+.jj-caja h4 small {
+  color: var(--t-gris);
+  font-family: var(--letra);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.jj-caras {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.jj-caras .jugar-cara {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+}
+
+.jj-mas {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--t-control);
+  font-family: var(--letra-titulos);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+/* Abajo: tu locke y «Seguir jugando» */
+.jj-pie {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 1rem;
+  margin-top: auto;
+}
+
+.jj-tu-locke {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  min-width: 0;
+  padding: 0.7rem 1rem;
+  border-radius: 0.9rem;
+  background: rgba(20, 18, 17, 0.4);
+}
+
+.jj-sin-locke {
+  gap: 0.5rem;
+  color: var(--t-gris);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.jj-cifras {
+  display: flex;
+}
+
+.jj-cifras > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0.85rem;
+  border-left: 1px dashed rgba(var(--t-tinte), 0.14);
+}
+
+.jj-cifras > span:first-child {
+  border-left: none;
+}
+
+.jj-cifras b {
+  font-family: var(--letra-titulos);
+  font-size: 1.5rem;
+  line-height: 1.05;
+}
+
+.jj-cifras b.vidas { color: #e05a4a; }
+.jj-cifras b.victorias { color: #f0c43c; }
+
+.jj-cifras small {
+  color: var(--t-gris);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jj-proximo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-left: 1rem;
+  border-left: 1px dashed rgba(var(--t-tinte), 0.14);
+}
+
+.jj-proximo small {
+  color: var(--t-gris);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.jj-proximo b,
+.jj-proximo-locke {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jj-proximo b {
+  font-family: var(--letra-titulos);
+  font-size: 1rem;
+}
+
+.jj-botones {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.jugar-partidas .jj-seguir-boton {
+  height: 3.2rem;
+  padding: 0 1.8rem;
+  border-radius: 0.8rem;
+  font-family: var(--letra-titulos);
+  font-size: 1.15rem;
+}
+
+.jj-guardado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.jj-guardado small {
+  color: var(--t-gris);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+/* ---- Al lado ---- */
+
+.jj-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.jj-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  background: var(--t-panel);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.jj-juegos {
+  flex: 1;
+  min-height: 0;
+}
+
+.jugar-partidas .jj-ver {
+  margin-left: auto;
+  gap: 0.1rem;
+  padding: 0.2rem 0.4rem 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(var(--color-vista), 0.16);
+  box-shadow: none;
+  color: color-mix(in srgb, rgb(var(--color-vista)) 70%, var(--t-texto));
+  font-family: var(--letra);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.jugar-partidas .jj-ver:hover {
+  background: rgba(var(--color-vista), 0.26);
+}
+
+.jj-otra {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.65rem;
+  height: 3.5rem;
+  padding: 0 0.55rem;
+  box-sizing: border-box;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--juego) 16%, var(--t-panel-3)), var(--t-panel-3));
+}
+
+.jj-otra > .jugar-portada {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.jj-otra-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.jj-otra-texto strong {
+  overflow: hidden;
+  font-family: var(--letra-titulos);
+  font-size: 0.95rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jj-otra-texto .jugar-detalle {
+  display: block;
+  overflow: hidden;
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jj-hueco {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 3.4rem;
+  padding: 0 0.7rem;
+  box-sizing: border-box;
+  border: 2px dashed rgba(var(--t-tinte), 0.16);
+  border-radius: 0.75rem;
+  color: var(--t-gris);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.jj-amigo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6rem;
+  height: 3.4rem;
+  padding: 0 0.55rem;
+  box-sizing: border-box;
+  border-radius: 0.75rem;
+  background: var(--t-panel-3);
+}
+
+.jj-amigo-foto {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--t-control);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.jj-amigo-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.jj-en-vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  overflow: hidden;
+  color: #f08a7c;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.jj-en-vivo::before {
+  content: "";
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #e05a4a;
+  box-shadow: 0 0 0 3px rgba(224, 90, 74, 0.25);
+}
+
+.jj-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.jj-chips span {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(var(--t-tinte), 0.08);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+/* ---- «Ver todas» ---- */
+
+.dialogo-jugar-todas {
+  width: min(60rem, 94vw);
+}
+
+.jj-todas-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 70vh;
+  margin-top: 0.8rem;
+  overflow-y: auto;
+}
+
+.dialogo-jugar-todas .jj-otra {
+  height: 3.8rem;
+}
+
+.dialogo-jugar-todas .jugar-jugar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-vista));
+  color: #fff;
+  font-weight: bold;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* ---- Pantallas más estrechas: una columna, sin alto fijo ---- */
+@media (max-width: 1100px) {
+  .jj-tablero {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .jj-lado {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  .jj-lado,
+  .jj-pie,
+  .jj-franja {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .jj-equipo {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .jj-portada {
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+
+  .jj-portada .jugar-portada {
+    width: 4.8rem;
+    height: 4.8rem;
+  }
+
+  .jj-datos h3 {
+    font-size: 1.4rem;
+  }
+
+  .jj-tu-locke {
+    flex-wrap: wrap;
+  }
+
+  .dialogo-jugar-todas .jugar-fila-equipo,
+  .dialogo-jugar-todas .jugar-fila-tipo {
+    display: none;
+  }
+}
+
+/* ---------- Ajustes de «Tus partidas» (2026-11-20, 2.ª tanda) ---------- */
+
+/* Las medallas, más grandes, y a la derecha la barra de avance (como la de Level caps) */
+.jj-medallas {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 0.2rem;
+}
+
+.jj-datos .jj-medallas .jugar-medallas {
+  flex: none;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  max-width: calc(8 * 2.1rem + 7 * 0.3rem);
+}
+
+.jj-datos .jj-medallas .jugar-medalla {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.jj-avance {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 6rem;
+  max-width: 22rem;
+}
+
+.jj-pista {
+  flex: 1;
+  height: 0.6rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--t-control);
+}
+
+.jj-pista i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: rgb(var(--color-vista));
+  transition: width 0.3s;
+}
+
+.jj-avance b {
+  font-family: var(--letra-titulos);
+  font-size: 1rem;
+  color: color-mix(in srgb, rgb(var(--color-vista)) 65%, var(--t-texto));
+  white-space: nowrap;
+}
+
+/* Sin locke: el hueco, vacío y con borde de puntos */
+.jj-tu-locke.jj-sin-locke {
+  box-sizing: border-box;
+  min-height: 4.2rem;
+  border: 2px dashed rgba(var(--t-tinte), 0.16);
+  background: transparent;
+}
+
+/* Las otras partidas: pulsar (fuera de «Jugar») la pasa a la grande */
+.jj-otra {
+  cursor: pointer;
+}
+
+.jj-otra:hover {
+  filter: brightness(1.12);
+}
+
+/* Se puede jugar: uno por línea, con el color de su juego */
+.jj-lista-juegos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jj-lista-juegos li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 1.7rem;
+  padding: 0 0.6rem 0 0;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--juego) 22%, var(--t-panel-3)), var(--t-panel-3) 75%);
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.jj-raya {
+  flex: none;
+  align-self: stretch;
+  width: 0.35rem;
+  background: var(--raya);
+}
+
+.jj-lista-juegos small {
+  margin-left: auto;
+  color: var(--t-gris);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Ajustes de «Tus partidas» (2026-11-20, 3.ª tanda) ---------- */
+
+/* Se puede jugar: dos por línea */
+.jj-lista-juegos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.jj-lista-juegos li {
+  min-width: 0;
+  gap: 0.45rem;
+  padding-right: 0.45rem;
+  font-size: 0.8rem;
+}
+
+.jj-lista-juegos .jj-nombre-juego {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Con 16 medallas (HeartGold y SoulSilver, con Kanto): todas en la misma fila, algo más pequeñas, y la barra
+   más a la derecha (así no empujan hacia abajo lo de debajo) */
+.jj-datos .jj-medallas .jugar-medallas.dos-filas {
+  flex-wrap: nowrap;
+  gap: 0.2rem;
+  max-width: none;
+}
+
+.jj-datos .jj-medallas .jugar-medallas.dos-filas .jugar-medalla {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.jj-medallas:has(.dos-filas) .jj-avance {
+  min-width: 5rem;
+}
+
+/* ---------- «Tus partidas», 4.ª tanda (2026-11-20) ---------- */
+
+/* Sin barra arriba: «Nueva partida» va abajo de «Se puede jugar», y todo empieza arriba del todo */
+#vista-jugar .jugar-barra:empty + .jugar-cuerpo {
+  margin-top: 0;
+}
+
+#vista-jugar:has(.jugar-barra:empty) .jj-tablero {
+  height: calc(100dvh - 1.7rem);
+}
+
+.jj-juegos {
+  display: flex;
+  flex-direction: column;
+}
+
+.jugar-partidas .jj-nueva {
+  margin-top: auto;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, rgb(var(--color-vista)) 82%, black);
+  color: #fff;
+  font-family: var(--letra-titulos);
+  font-size: 1.1rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+.jugar-partidas .jj-nueva:hover {
+  background: color-mix(in srgb, rgb(var(--color-vista)) 82%, black);
+  filter: brightness(1.12);
+}
+
+.jugar-partidas .jj-nueva .icono {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* Una partida que pasa a la grande entra suave */
+.jj-seguir.entra {
+  animation: jj-entra 0.32s ease both;
+}
+
+@keyframes jj-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jj-seguir.entra { animation: none; }
+}

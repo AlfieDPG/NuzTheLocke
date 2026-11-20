@@ -5562,7 +5562,7 @@ button.locke-caidos:hover .locke-tarjeta-poke.caido img { filter: none; }
    y con la misma letra; el ancho, el suyo */
 #nuevo-locke, #vista-lockes .lockes-volver { font-size: 0.88rem; }
 #vista-lockes .lockes-volver { min-width: 0; margin-top: 0.05rem; }
-#vista-lockes.con-locke .locke-panel { margin-top: calc(2.25rem + 0.85rem); height: calc(100dvh - 1.7rem - 2.25rem - 0.85rem); }
+#vista-lockes.con-locke .locke-panel { margin-top: calc(2.3rem + 0.85rem); height: calc(100dvh - 1.7rem - 2.3rem - 0.85rem); }
 /* El reborde rojo de las bajas, bien marcado */
 .locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) { box-shadow: inset 0 0 0 2.5px rgb(var(--t-rojo-rgb)), 0 0 6px rgba(var(--t-rojo-rgb), 0.45); }
 .locke-jugador .locke-fila .locke-tarjeta-poke.caido:not(.cuenta) img { padding: 3px; }

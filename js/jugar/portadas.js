@@ -18,6 +18,9 @@ const DE_VERSION = {
   HeartGold: [250, "#d9a93a"], SoulSilver: [249, "#aab6c8"],
   Negro: [643, "#8d93a3"], Blanco: [644, "#d6d6d6"], "Negro 2": [646, "#6f86c0"], "Blanco 2": [646, "#d3a4ae"]
 };
+// El color de una versión («Rojo Fuego», «Negro 2»...)
+export const colorDeVersion = (version) => (DE_VERSION[version] || [0, "#888"])[1];
+
 const DE_JUEGO = { frlg: "Rojo Fuego", dp: "Diamante", platino: "Platino", hgss: "HeartGold", bw: "Negro", b2w2: "Negro 2" };
 const GEN_DE = { frlg: 3, dp: 4, platino: 4, hgss: 4, bw: 5, b2w2: 5 };
 
@@ -29,7 +32,8 @@ export function portadaDe(p, resumen) {
 
 const resumenes = new Map(); // id -> { cuando (la partida guardada que se leyó), resumen }
 
-// { version, medallas: [bool], equipo: [convertidos, con ps y psMax] } de la última partida guardada, o null
+// { version, medallas: [bool], equipo: [convertidos, con ps y psMax], caja: { total, primeros: [convertidos] } } de la
+// última partida guardada, o null. De las cajas, solo cuántos hay y los primeros (para sus caras).
 export async function resumenDe(p) {
   const guardado = resumenes.get(p.id);
   if (guardado && guardado.cuando === (p.guardada || p.jugada || 0)) return guardado.resumen;
@@ -40,11 +44,15 @@ export async function resumenDe(p) {
     if (sav && (consola === "nds" ? esPartidaDS(sav) : esPartidaGBA(sav))) {
       if (consola === "gba") await prepararGBA();
       const leida = consola === "nds" ? leerPartidaDS(sav) : leerPartidaGBA(sav);
-      const { equipo } = await convertirPartida({ juego: leida.juego, gen: GEN_DE[leida.juego], equipo: leida.equipo, cajas: [] });
+      const enCajas = (leida.cajas || []).flatMap((caja) => caja.pokemon || []).filter((x) => x && !x.huevo);
+      const { equipo, cajas } = await convertirPartida({
+        juego: leida.juego, gen: GEN_DE[leida.juego], equipo: leida.equipo, cajas: [{ nombre: "", pokemon: enCajas.slice(0, 8) }]
+      });
       resumen = {
         version: leida.version,
         medallas: leida.medallas || [],
-        equipo: equipo.map((x, i) => ({ ...x, ps: leida.equipo[i].ps, psMax: leida.equipo[i].psMax }))
+        equipo: equipo.map((x, i) => ({ ...x, ps: leida.equipo[i].ps, psMax: leida.equipo[i].psMax })),
+        caja: { total: enCajas.length, primeros: cajas[0].pokemon }
       };
     }
   } catch (error) {

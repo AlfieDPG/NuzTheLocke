@@ -5026,3 +5026,50 @@ img.con-marco.con-marco {
 .juntos-amigos .juntos-fila.lleva-fondo {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
 }
+
+/* Locke del día, al perder: el trío (y el orden) con el que se ganaba */
+.lockedia-solucion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--t-panel-3);
+  box-shadow: inset 3px 0 0 var(--t-bien);
+  font-size: 0.9rem;
+}
+
+.lockedia-solucion > span:first-child {
+  font-weight: bold;
+}
+
+.lockedia-solucion-poke {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.lockedia-solucion-poke img {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: var(--t-panel-2);
+}
+
+.lockedia-solucion-poke strong {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lockedia-solucion .lockedia-orden {
+  top: -0.25rem;
+  left: -0.25rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  font-size: 0.66rem;
+}

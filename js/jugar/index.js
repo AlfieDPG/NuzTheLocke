@@ -29,7 +29,15 @@ import { escaparHTML } from "../comun/utilidades.js";
 import { leer, escribir } from "../comun/almacen.js";
 import { confirmar, avisar, preguntar } from "../comun/ventanas.js";
 import { usuarioActual, hayNube } from "../comun/nube.js";
-import { misLockes, alCambiarLockes, lockePorId, apuntarMuerto, estaEliminado } from "../comun/lockes.js";
+import {
+  misLockes, alCambiarLockes, lockePorId, apuntarMuerto, estaEliminado, puestosDe, combatesDe, nombreCombate, victoriasDe, muertosDe
+} from "../comun/lockes.js";
+import { amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos } from "../comun/perfiles.js";
+import { directoDe, alCambiarPresencia } from "../comun/presencia.js";
+import { cargarDatos, datos as datosWeb, buscarPorNombreIngles } from "../comun/datos.js";
+import { cargarPokedex } from "../pokedex/datos.js";
+import { coloresTipo, tiposEs } from "../comun/tipos.js";
+import { OBJETOS_EN } from "../partida/datos-3ds.js";
 import { caraDePokemon } from "../comun/elegir-equipo.js";
 import { prepararSeccion } from "../navegacion.js";
 import { prepararGBA, esPartidaGBA, buscarEquipo, equipoEnMemoria, CAJAS_GBA } from "../partida/gba.js";
@@ -41,13 +49,13 @@ import { entregarPartida, registrarFuente, quitarFuente } from "../partida/vincu
 import { partidaDe, marcarMuertosVistos } from "../partida/partidas.js";
 import { listaDePartidas, datosDe, romDe, savDe, crearPartida, cambiarPartida, guardarSav, guardarRom, borrarPartida, tieneRom } from "./partidas.js";
 import { firmwareDS } from "./firmware-ds.js";
-import { emitiendo, empezarDirecto, acabarDirecto, pintarCajaDirecto } from "./directo.js";
+import { emitiendo, empezarDirecto, acabarDirecto, pintarCajaDirecto, verDirecto } from "./directo.js";
 import {
   BOTON, ACELERAR, VELOCIDADES, misAjustes, cambiarAjustes, teclasDe, mandoDe, listaTeclas, abrirCambiarTeclas
 } from "./ajustes.js";
 import { abrirMenu, cerrarMenu } from "./menu.js";
-import { portadaDe, resumenDe, olvidarResumen } from "./portadas.js";
-import { t, enIngles, LOCALE } from "../comun/idioma.js";
+import { portadaDe, resumenDe, olvidarResumen, colorDeVersion } from "./portadas.js";
+import { t, enIngles, LOCALE, nombre as nombreEnIdioma } from "../comun/idioma.js";
 
 const vista = document.getElementById("vista-jugar");
 const barra = vista.querySelector(".jugar-barra");
@@ -368,9 +376,7 @@ const retrato = (especie, clase) => caraDePokemon({ id: especie, nombre: "" }, c
 // Arriba: sin jugar, «Nueva partida»; jugando, la partida (portada, nombre, locke y juego), su partida guardada y «Parar»
 function pintarBarra() {
   if (!partida) {
-    barra.innerHTML = partidas.length
-      ? `<button class="jugar-nueva-boton">${icono("mas")} ${t("Nueva partida")}</button>`
-      : "";
+    barra.innerHTML = "";
     return;
   }
   const { especie, color } = portadaDe({ juego: partida.juego }, partida.resumen);
@@ -437,9 +443,174 @@ const nombreDe = (p) => p.mote || (enIngles ? p.en || p.nombre : p.nombre);
 // Siempre los 6 huecos del equipo: los que no tienen Pokémon, con borde de puntos
 const seisHuecos = (equipo, pintar, vacio) => Array.from({ length: 6 }, (_, i) => (equipo[i] ? pintar(equipo[i]) : vacio)).join("");
 
-// Tus partidas: la última jugada (o la recién creada) en grande, para seguir; las demás, en filas
+// ---------- Tus partidas (rediseño del 2026-11-20) ----------
+//
+// A la izquierda, la última jugada (o la recién creada) a lo grande: portada, medallas, el equipo con
+// tipos, objeto y ataques (de la partida guardada), lo que hay en las cajas, los caídos del locke y, abajo,
+// tus cifras del locke y «Seguir jugando». A la derecha: las demás partidas, los amigos que emiten en
+// directo y los juegos que se pueden jugar. Diseño fijo: lo que no cabe, en «Ver todas».
+
+const OTRAS_VISIBLES = 4;
+const HUECOS_DIRECTO = 3;
+const CARAS_CAJA = 7;
+const CARAS_CAIDOS = 5;
+const JUEGOS_QUE_VAN = [
+  { nombre: "Rojo Fuego", versiones: ["Rojo Fuego"], consola: "GBA" },
+  { nombre: "Verde Hoja", versiones: ["Verde Hoja"], consola: "GBA" },
+  { nombre: "Diamante", versiones: ["Diamante"], consola: "DS" },
+  { nombre: "Perla", versiones: ["Perla"], consola: "DS" },
+  { nombre: "Platino", versiones: ["Platino"], consola: "DS" },
+  { nombre: "HeartGold", versiones: ["HeartGold"], consola: "DS" },
+  { nombre: "SoulSilver", versiones: ["SoulSilver"], consola: "DS" },
+  { nombre: "Negro", versiones: ["Negro"], consola: "DS" },
+  { nombre: "Blanco", versiones: ["Blanco"], consola: "DS" },
+  { nombre: "Negro 2", versiones: ["Negro 2"], consola: "DS" },
+  { nombre: "Blanco 2", versiones: ["Blanco 2"], consola: "DS" }
+];
+
+// Los tipos de PokeAPI (datos/tipos-ataques.json) con los nombres de js/comun/tipos.js
+const TIPO_POKEAPI = ["", "normal", "fighting", "flying", "poison", "ground", "rock", "bug", "ghost", "steel", "fire", "water", "grass", "electric", "psychic", "ice", "dragon", "dark", "fairy"];
+
+// Lo que hace falta para contar el equipo con detalle (nombres de ataques y objetos, tipos): se carga la
+// primera vez y luego se repinta
+let extras = null;
+let cargandoExtras = null;
+
+function cargarExtras() {
+  if (extras || cargandoExtras) return;
+  cargandoExtras = Promise.all([
+    cargarDatos(),
+    cargarPokedex(),
+    fetch(new URL("../../datos/tipos-ataques.json", import.meta.url)).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+  ])
+    .then(([, pokedex, tiposAtaques]) => {
+      extras = {
+        filas: new Map(pokedex.map((fila) => [fila.clave, fila])),
+        ataques: new Map(((datosWeb && datosWeb.ataques) || []).map((ataque) => [ataque.id, ataque])),
+        tiposAtaques
+      };
+      if (!partida) pintarLista();
+    })
+    .catch((error) => console.error("No se han podido cargar los datos del equipo", error))
+    .finally(() => (cargandoExtras = null));
+}
+
+function tiposDe(p) {
+  if (!extras) return [];
+  const fila = extras.filas.get(p.idForma || p.id) || extras.filas.get(p.id);
+  return (fila && fila.tipos) || [];
+}
+
+function nombreDeObjeto(p) {
+  const ingles = (p.objeto && OBJETOS_EN[p.objeto]) || "";
+  if (!ingles) return "";
+  const entrada = datosWeb && buscarPorNombreIngles(datosWeb.objetos, ingles);
+  return entrada ? nombreEnIdioma(entrada) : ingles;
+}
+
+function ataquesDe(p) {
+  if (!extras) return [];
+  return (p.ataques || []).filter(Boolean).slice(0, 4).map((id) => {
+    const entrada = extras.ataques.get(id);
+    const tipo = TIPO_POKEAPI[(extras.tiposAtaques[id] || [])[0]] || "normal";
+    return { nombre: entrada ? nombreEnIdioma(entrada) : `#${id}`, tipo };
+  });
+}
+
+// Un Pokémon del equipo, con lo que se sabe de la partida guardada
+function tarjetaPokemon(p) {
+  const { parte, clase } = nivelDePs(p);
+  const objeto = nombreDeObjeto(p);
+  const ataques = ataquesDe(p);
+  return `
+    <div class="jj-poke ${p.ps === 0 ? "debilitado" : ""}">
+      ${caraDePokemon(p, "jugar-cara")}
+      <b class="jj-poke-nombre">${escaparHTML(nombreDe(p))}</b>
+      <small>${t("Nv.")} ${p.nivel}</small>
+      <span class="jj-ps" title="${p.ps}/${p.psMax}"><i class="${clase}" style="width: ${parte}%"></i></span>
+      <span class="jj-tipos">${tiposDe(p).map((tipo) => `<span class="jj-tipo" style="--color-tipo: ${coloresTipo[tipo]}">${escaparHTML(tiposEs[tipo] || tipo)}</span>`).join("")}</span>
+      <span class="jj-objeto" title="${escaparHTML(objeto)}">${escaparHTML(objeto || "—")}</span>
+      <span class="jj-ataques">${Array.from({ length: 4 }, (_, i) => {
+        const ataque = ataques[i];
+        return ataque
+          ? `<span title="${escaparHTML(ataque.nombre)}"><i style="background: ${coloresTipo[ataque.tipo]}"></i>${escaparHTML(ataque.nombre)}</span>`
+          : `<span class="vacio"></span>`;
+      }).join("")}</span>
+    </div>`;
+}
+
+// Tus cifras en el locke de la partida y su próximo combate (el primero sin ganador)
+function plantillaTuLocke(locke) {
+  const uid = usuarioActual() ? usuarioActual().uid : "";
+  if (!locke || !uid) {
+    return `<div class="jj-tu-locke jj-sin-locke"></div>`;
+  }
+  const vidas = locke.vidasIlimitadas ? "∞" : (locke.vidas || {})[uid] ?? 0;
+  const puestos = puestosDe(locke);
+  const puesto = puestos && puestos.puestos[uid] ? `${puestos.puestos[uid]}.º` : "—";
+  const proximo = combatesDe(locke).find((combate) => !((locke.resultados || {})[combate.id] || {}).ganador);
+  return `
+    <div class="jj-tu-locke">
+      <span class="jj-cifras">
+        <span><b class="vidas">${vidas}</b><small>${t("Vidas")}</small></span>
+        <span><b class="victorias">${victoriasDe(locke, uid)}</b><small>${t("Victorias")}</small></span>
+        <span><b>${puesto}</b><small>${t("clasificacion|Puesto")}</small></span>
+      </span>
+      <span class="jj-proximo">
+        <small>${t("Próximo combate")}</small>
+        <b>${proximo ? escaparHTML(nombreCombate(locke, proximo.id)) : t("Sin combates pendientes")}</b>
+        <small class="jj-proximo-locke">${escaparHTML(locke.nombre || "")}</small>
+      </span>
+    </div>`;
+}
+
+// Una de las otras partidas, en pequeño
+function filaOtra(p, { conEquipo = false } = {}) {
+  const suyo = resumenGuardado.get(p.id);
+  const portada = portadaDe(p, suyo);
+  const detalle = [nombreDeJuego(p.juego || "frlg"), p.jugada ? cuando(p.jugada) : t("Sin jugar todavía")];
+  return `
+    <article class="jj-otra ${conEquipo ? "con-equipo" : ""}" data-id="${escaparHTML(p.id)}" style="--juego: ${portada.color}">
+      ${retrato(portada.especie, "jugar-portada")}
+      <span class="jj-otra-texto">
+        <strong>${escaparHTML(p.nombre)}</strong>
+        <span class="jugar-detalle">${escaparHTML(detalle.join(" · "))}</span>
+      </span>
+      ${conEquipo ? `<span class="jugar-fila-tipo">${plantillaTipo(p)}</span><span class="jugar-fila-equipo">${seisHuecos(
+        (suyo && suyo.equipo) || [],
+        (x) => caraDePokemon(x, `jugar-cara ${x.ps === 0 ? "debilitado" : ""}`),
+        `<span class="jugar-hueco"></span>`
+      )}</span>` : ""}
+      <button class="jugar-jugar jj-jugar-chico" data-id="${escaparHTML(p.id)}">${icono("reanudar")} ${t("Jugar")}</button>
+    </article>`;
+}
+
+// Los amigos que emiten su partida en directo ahora mismo
+function amigosEnDirecto() {
+  return amigosAceptados()
+    .map((amistad) => amistad.otro)
+    .filter((uid) => directoDe(uid))
+    .map((uid) => ({ uid, perfil: perfilesDeAmigos().get(uid) || null, juego: directoDe(uid) }));
+}
+
+function filaDirecto({ uid, perfil, juego }) {
+  const nombre = (perfil && perfil.nombre) || t("Jugador");
+  const foto = perfil && perfil.foto
+    ? `<img src="${escaparHTML(perfil.foto)}" alt="" referrerpolicy="no-referrer">`
+    : escaparHTML((nombre[0] || "?").toUpperCase());
+  return `
+    <div class="jj-amigo">
+      <span class="jj-amigo-foto" data-perfil="${escaparHTML(uid)}">${foto}</span>
+      <span class="jj-otra-texto"><strong>${escaparHTML(nombre)}</strong><span class="jj-en-vivo">${escaparHTML(juego)}</span></span>
+      <button class="jj-mirar" data-uid="${escaparHTML(uid)}" data-nombre="${escaparHTML(nombre)}" data-juego="${escaparHTML(juego)}">${icono("directo")} ${t("Mirar")}</button>
+    </div>`;
+}
+
+let listaPintada = "";
+
 function pintarLista() {
   if (!partidas.length) {
+    listaPintada = "";
     lista.innerHTML = `
       <div class="jugar-vacio">
         ${icono("consola")}
@@ -455,67 +626,129 @@ function pintarLista() {
       </div>`;
     return;
   }
+  cargarExtras();
 
   const primera = partidas.find((p) => p.id === destacada) || partidas[0];
   const otras = partidas.filter((p) => p !== primera);
-  const nombreDelLocke = (p) => {
-    const locke = p.idLocke ? lockePorId(p.idLocke) : null;
-    return locke ? locke.nombre : t("Locke que ya no está");
-  };
+  const locke = primera.idLocke ? lockePorId(primera.idLocke) : null;
+  const uid = usuarioActual() ? usuarioActual().uid : "";
   const botonMas = (p, texto = "") => `<button class="jugar-mas" data-id="${escaparHTML(p.id)}" title="${t("Más")}" aria-label="${t("Más")}">${icono("puntos")}${texto}</button>`;
 
   // La grande, con lo que se sepa ya (el resumen se lee de la partida guardada: luego se repinta)
   const resumen = resumenGuardado.get(primera.id);
   const { especie, color } = portadaDe(primera, resumen);
-  const equipo = seisHuecos(
-    (resumen && resumen.equipo) || [],
-    (p) => caraDePokemon(p, `jugar-cara ${p.ps === 0 ? "debilitado" : ""}`),
-    `<span class="jugar-hueco" title="${t("Hueco libre")}"></span>`
-  );
-  const grande = `
-    <article class="jugar-seguir" data-id="${escaparHTML(primera.id)}" style="--juego: ${color}">
-      ${retrato(especie, "jugar-portada")}
-      <div class="jugar-seguir-texto">
-        <span class="jugar-ceja">${primera.jugada ? t("Lo último que jugaste · {cuando}", { cuando: cuando(primera.jugada) }) : t("Sin jugar todavía")}</span>
-        <h3>${escaparHTML(primera.nombre)}</h3>
-        <p class="jugar-detalle">
-          <span>${icono("consola")} ${escaparHTML(nombreDeJuego(primera.juego || "frlg"))}</span>
-          ${primera.idLocke ? `<span>${icono("espadas")} ${escaparHTML(nombreDelLocke(primera))}</span>` : ""}
-          ${plantillaTipo(primera)}
-          ${plantillaMedallas(primera.juego || "frlg", resumen)}
-        </p>
-        <div class="jugar-seguir-equipo">${equipo}</div>
-      </div>
-      <div class="jugar-seguir-botones">
-        <button class="jugar-jugar" data-id="${escaparHTML(primera.id)}">${icono("reanudar")} ${primera.jugada ? t("Seguir jugando") : t("Empezar")}</button>
-        ${botonMas(primera, ` ${t("Más")}`)}
-      </div>
-    </article>`;
+  const equipo = (resumen && resumen.equipo) || [];
+  const medallas = medallasDelJuego(primera.juego || "frlg", (resumen && resumen.version) || "");
+  const conseguidas = ((resumen && resumen.medallas) || []).filter(Boolean).length;
+  const caja = (resumen && resumen.caja) || { total: 0, primeros: [] };
+  const caidos = locke && uid ? muertosDe(locke, uid) : [];
 
-  const filas = otras.map((p) => {
-    const suyo = resumenGuardado.get(p.id);
-    const portada = portadaDe(p, suyo);
-    const detalle = [nombreDeJuego(p.juego || "frlg"), p.idLocke ? nombreDelLocke(p) : "", p.jugada ? cuando(p.jugada) : t("Sin jugar todavía")];
-    return `
-      <article class="jugar-fila" data-id="${escaparHTML(p.id)}" style="--juego: ${portada.color}">
-        ${retrato(portada.especie, "jugar-portada")}
-        <div class="jugar-fila-texto">
-          <strong>${escaparHTML(p.nombre)}</strong>
-          <span class="jugar-detalle">${escaparHTML(detalle.filter(Boolean).join(" · "))}</span>
+  const trozoCaja = `
+    <div class="jj-trozo">
+      <h4>${t("En la caja")} <small>${caja.total}</small></h4>
+      <span class="jj-caras">${caja.primeros.slice(0, caja.total > CARAS_CAJA ? CARAS_CAJA - 1 : CARAS_CAJA).map((x) => caraDePokemon(x, "jugar-cara")).join("")}${
+        caja.total > CARAS_CAJA ? `<span class="jj-mas">+${caja.total - CARAS_CAJA + 1}</span>` : ""}${
+        ""}</span>
+    </div>`;
+  const trozoCaidos = locke ? `
+    <div class="jj-trozo">
+      <h4>${t("Caídos")} <small>${caidos.length}</small></h4>
+      <span class="jj-caras">${caidos.slice(-(caidos.length > CARAS_CAIDOS ? CARAS_CAIDOS - 1 : CARAS_CAIDOS)).map((x) => caraDePokemon(x, "jugar-cara debilitado")).join("")}${
+        caidos.length > CARAS_CAIDOS ? `<span class="jj-mas">+${caidos.length - CARAS_CAIDOS + 1}</span>` : ""}${
+        ""}</span>
+    </div>` : "";
+
+  const directos = amigosEnDirecto();
+  const huecoDirecto = () => `<div class="jj-hueco"></div>`;
+
+  const html = `
+    <div class="jj-tablero">
+      <article class="jj-seguir" data-id="${escaparHTML(primera.id)}" style="--juego: ${color}">
+        <div class="jj-cabeza">
+          <span class="jj-portada">${retrato(especie, "jugar-portada")}</span>
+          <div class="jj-datos">
+            <span class="jugar-ceja">${primera.jugada ? t("Lo último que jugaste · {cuando}", { cuando: cuando(primera.jugada) }) : t("Sin jugar todavía")}</span>
+            <h3>${escaparHTML(primera.nombre)}</h3>
+            <p class="jugar-detalle">
+              <span>${icono("consola")} ${escaparHTML(nombreDeJuego(primera.juego || "frlg"))}</span>
+              ${primera.idLocke ? `<span>${icono("espadas")} ${escaparHTML(locke ? locke.nombre : t("Locke que ya no está"))}</span>` : ""}
+              ${plantillaTipo(primera)}
+            </p>
+            ${medallas.length ? `
+              <div class="jj-medallas">
+                ${plantillaMedallas(primera.juego || "frlg", resumen)}
+                <span class="jj-avance" title="${t("{n} de {total} medallas", { n: conseguidas, total: medallas.length })}">
+                  <span class="jj-pista"><i style="width: ${Math.round((100 * conseguidas) / medallas.length)}%"></i></span>
+                  <b>${conseguidas}/${medallas.length}</b>
+                </span>
+              </div>` : ""}
+          </div>
         </div>
-        <span class="jugar-fila-tipo">${plantillaTipo(p)}</span>
-        <span class="jugar-fila-equipo">${seisHuecos(
-          (suyo && suyo.equipo) || [],
-          (x) => caraDePokemon(x, `jugar-cara ${x.ps === 0 ? "debilitado" : ""}`),
-          `<span class="jugar-hueco"></span>`
-        )}</span>
-        <button class="jugar-jugar" data-id="${escaparHTML(p.id)}">${icono("reanudar")} ${t("Jugar")}</button>
-        ${botonMas(p)}
-      </article>`;
-  }).join("");
 
-  lista.innerHTML = `${grande}${otras.length ? `<h4 class="jugar-otras">${t("Otras partidas")}</h4><div class="jugar-filas">${filas}</div>` : ""}`;
+        <div class="jj-equipo">${seisHuecos(equipo, tarjetaPokemon, `<div class="jj-poke jj-poke-hueco"></div>`)}</div>
+
+        <div class="jj-franja ${locke ? "" : "sola"}">${trozoCaja}${trozoCaidos}</div>
+
+        <div class="jj-pie">
+          ${plantillaTuLocke(locke)}
+          <div class="jj-botones">
+            <button class="jugar-jugar jj-seguir-boton" data-id="${escaparHTML(primera.id)}">${icono("reanudar")} ${primera.jugada ? t("Seguir jugando") : t("Empezar")}</button>
+            <span class="jj-guardado">
+              <small>${primera.guardada ? t("Guardada · {cuando}", { cuando: cuando(primera.guardada) }) : t("Sin partida guardada todavía")}</small>
+              ${botonMas(primera, ` ${t("Más")}`)}
+            </span>
+          </div>
+        </div>
+      </article>
+
+      <aside class="jj-lado">
+        <section class="jj-caja">
+          <h4>${t("Otras partidas")} ${otras.length > OTRAS_VISIBLES ? `<button class="jj-ver">${t("Ver todas ({n})", { n: otras.length })}${icono("derecha")}</button>` : ""}</h4>
+          ${otras.slice(0, OTRAS_VISIBLES).map((p) => filaOtra(p)).join("")}
+          ${Array.from({ length: Math.max(0, OTRAS_VISIBLES - otras.length) }, () => `<div class="jj-hueco"></div>`).join("")}
+        </section>
+        <section class="jj-caja">
+          <h4>${t("Jugando ahora")}</h4>
+          ${directos.slice(0, HUECOS_DIRECTO).map(filaDirecto).join("")}
+          ${Array.from({ length: Math.max(0, HUECOS_DIRECTO - directos.length) }, (_, i) => huecoDirecto(i)).join("")}
+        </section>
+        <section class="jj-caja jj-juegos">
+          <h4>${t("Se puede jugar")}</h4>
+          <ul class="jj-lista-juegos">${JUEGOS_QUE_VAN.map((juego) => {
+            const colores = juego.versiones.map(colorDeVersion);
+            const color = colores.length > 1 ? `linear-gradient(180deg, ${colores[0]} 50%, ${colores[1]} 50%)` : colores[0];
+            return `<li style="--juego: ${colores[0]}; --raya: ${color}"><span class="jj-raya"></span><span class="jj-nombre-juego" title="${escaparHTML(t(juego.nombre))}">${escaparHTML(t(juego.nombre))}</span><small>${juego.consola}</small></li>`;
+          }).join("")}</ul>
+          <button class="jugar-nueva-boton jj-nueva">${icono("mas")} ${t("Nueva partida")}</button>
+        </section>
+      </aside>
+    </div>`;
+  if (html !== listaPintada || !lista.querySelector(".jj-tablero")) {
+    lista.innerHTML = html;
+    listaPintada = html;
+    if (entraLaGrande) lista.querySelector(".jj-seguir").classList.add("entra");
+  }
+  entraLaGrande = false;
   leerResumenes();
+}
+
+// Una de las otras partidas pasa a la grande
+let entraLaGrande = false;
+
+function aLaGrande(id) {
+  if (!id || !partidas.some((p) => p.id === id)) return;
+  destacada = id;
+  entraLaGrande = true;
+  pintarLista();
+}
+
+// «Ver todas»: las otras partidas en una ventana, con su equipo
+function abrirTodas() {
+  const dialogo = document.getElementById("dialogo-jugar-todas");
+  if (!dialogo) return;
+  const primera = partidas.find((p) => p.id === destacada) || partidas[0];
+  dialogo.querySelector(".jj-todas-cuerpo").innerHTML = partidas.filter((p) => p !== primera).map((p) => filaOtra(p, { conEquipo: true })).join("");
+  dialogo.showModal();
 }
 
 // Los resúmenes (equipo, medallas, versión) de las partidas guardadas: cuando llegan, se repinta la lista
@@ -1603,7 +1836,35 @@ export function iniciar() {
     if (boton.matches(".jugar-nueva-boton")) nuevaPartida();
     else if (boton.matches(".jugar-mas")) abrirMenuPartida(boton);
     else if (boton.matches(".jugar-jugar")) accionPartida("jugar-jugar", boton.dataset.id);
+    else if (boton.matches(".jj-ver")) abrirTodas();
+    else if (boton.matches(".jj-mirar")) verDirecto(boton.dataset.uid, boton.dataset.nombre, boton.dataset.juego);
   });
+  lista.addEventListener("click", (e) => {
+    const otra = e.target.closest(".jj-otra");
+    if (otra && !e.target.closest("button")) aLaGrande(otra.dataset.id);
+  });
+  const todas = document.getElementById("dialogo-jugar-todas");
+  todas.addEventListener("click", (e) => {
+    const boton = e.target.closest("button");
+    const otra = e.target.closest(".jj-otra");
+    if (!boton && otra) {
+      todas.close();
+      aLaGrande(otra.dataset.id);
+      return;
+    }
+    if (!boton) return;
+    if (boton.matches(".jj-todas-cerrar")) todas.close();
+    else if (boton.matches(".jugar-jugar")) {
+      todas.close();
+      accionPartida("jugar-jugar", boton.dataset.id);
+    }
+  });
+  // Los amigos que emiten en directo, al momento (solo se repinta si cambia algo)
+  const repintarSiHaceFalta = () => {
+    if (!partida && !vista.hidden) pintarLista();
+  };
+  alCambiarPresencia(repintarSiHaceFalta);
+  alCambiarPerfilesAmigos(repintarSiHaceFalta);
   controles.addEventListener("click", (e) => {
     const boton = e.target.closest("button");
     if (boton) alPulsarControl(boton);

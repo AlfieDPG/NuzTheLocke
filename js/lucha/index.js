@@ -1,8 +1,8 @@
 // ---------- Lucha: combates entre amigos (la pantalla) ----------
 //
 // Dos vistas dentro de la sección:
-//   · La lista: retos que te mandan (aceptar con un equipo o rechazar), luchas en marcha (con «Te
-//     toca» si te toca elegir), retos que has mandado y las terminadas. Arriba, «Retar a un amigo».
+//   · La lista (el tablero): tu marcador con «Luchar», tus rivales, los combates en marcha, los retos,
+//     los últimos combates, los pendientes de tus lockes y los de tus amigos para mirar.
 //   · El combate: el campo con los dos Pokémon (sprites animados de la 5.ª gen y, en las fichas,
 //     sus retratos de Mundo Misterioso), lo que pasa contado en frases, los botones para elegir y,
 //     al lado, el registro de todos los turnos.
@@ -19,9 +19,9 @@ import { icono } from "../comun/iconos.js";
 import { escaparHTML } from "../comun/utilidades.js";
 import { t, enIngles } from "../comun/idioma.js";
 import { usuarioActual, hayNube } from "../comun/nube.js";
-import { claseMarcoDe, plantillaTituloDeUid, fondoVisualDe, saldo } from "../comun/fichas.js";
+import { claseMarcoDe, plantillaTituloDeUid, fondoVisual, fondoVisualDe, rgbDePerfil, saldo } from "../comun/fichas.js";
 import { amigosAceptados, perfilesDeAmigos, alCambiarPerfilesAmigos, miPerfil } from "../comun/perfiles.js";
-import { lockes, combatesDe, nombreCombate, estadoDe, lockePorId, sumarVictoriaCombate } from "../comun/lockes.js";
+import { lockes, combatesDe, nombreCombate, estadoDe, lockePorId, sumarVictoriaCombate, alCambiarLockes } from "../comun/lockes.js";
 import { generacionDeJuego } from "../comun/juegos.js";
 import { elegirEquipo, carasDeEquipo, caraDePokemon } from "../comun/elegir-equipo.js";
 import { pokemonParaCopia } from "../comun/pokemon.js";
@@ -146,33 +146,94 @@ function datosLucha(lucha) {
   return `${escaparHTML(textoFormato(lucha.formato))} · ${escaparHTML(textoNivel(lucha.nivel))}${locke ? ` · ${escaparHTML(locke)}` : ""}${lucha.apuesta ? ` · ${t("apuesta")} ${moneda(lucha.apuesta)}` : ""}`;
 }
 
-// Un combate en marcha, en grande: los dos jugadores frente a frente con sus equipos
+// ---------- El tablero (rediseño del 2026-11-20) ----------
+//
+// Tres columnas que llegan hasta abajo, de diseño fijo (lo que no cabe, en «Ver todos»):
+//   · Izquierda: tu marcador (ganados, perdidos, % y los últimos 10) con «Luchar» abajo, y tus rivales
+//     (tus amigos, con su fondo, su marco y su título, cómo vais y un botón para retarles).
+//   · En medio: los combates en marcha (los dos, cada uno con su fondo, chocando en una raya en zigzag
+//     con el «VS» encima), los retos y los últimos combates.
+//   · Derecha: los combates pendientes de tus lockes y los de tus amigos para mirar.
+
+const MAX_DUELOS = 2;
+const MAX_RETOS = 2;
+const MAX_RIVALES = 6;
+const MAX_PENDIENTES = 3;
+const HUECOS_MIRAR = 4;
+const FORMA = 10;
+
+const cuandoFue = (lucha) => Number(lucha.actualizado || lucha.creado || 0);
+const perfilDe = (uid) => (uid === yo() ? miPerfil() : perfilesDeAmigos().get(uid)) || null;
+const colorDe = (uid) => rgbDePerfil(perfilDe(uid));
+
+function haceCuanto(ms) {
+  const minutos = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (minutos < 1) return t("ahora mismo");
+  if (minutos < 60) return t("hace {n} min", { n: minutos });
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return horas === 1 ? t("hace 1 hora") : t("hace {n} horas", { n: horas });
+  const dias = Math.round(horas / 24);
+  return dias === 1 ? t("hace 1 día") : t("hace {n} días", { n: dias });
+}
+
+// Desde cuándo espera el combate (lo último que se eligió)
+function desdeCuando(lucha) {
+  const desde = lucha.esperaDesde && typeof lucha.esperaDesde.toMillis === "function" ? lucha.esperaDesde.toMillis() : Number(lucha.esperaDesde || 0);
+  return desde || cuandoFue(lucha);
+}
+
+// La foto de alguien sabiendo solo su uid (sus datos, de su perfil)
+function fotoDeUid(uid, clase = "lucha-foto") {
+  const perfil = perfilDe(uid);
+  const foto = (perfil && perfil.foto) || "";
+  const letra = escaparHTML((((perfil && perfil.nombre) || "?")[0] || "?").toUpperCase());
+  return `<span class="${clase} ${foto ? "" : "sin-foto"} ${claseMarcoDe(uid)}" data-perfil="${escaparHTML(uid)}" title="${t("Ver perfil")}">${
+    foto ? `<img src="${escaparHTML(foto)}" alt="" referrerpolicy="no-referrer">` : letra
+  }</span>`;
+}
+
+const nombreDeUid = (uid) => {
+  const perfil = perfilDe(uid);
+  return (perfil && perfil.nombre) || t("Jugador");
+};
+
+const botonVerTodos = (que, n) => `<button type="button" class="lt-ver" data-ver="${que}">${t("Ver todos ({n})", { n })}${icono("derecha")}</button>`;
+
+// Huecos vacíos (con borde de puntos) hasta completar «total»; el primero puede decir por qué
+function conHuecos(llenos, total, vacio = "", clase = "lt-hueco") {
+  const huecos = Array.from({ length: Math.max(0, total - llenos.length) }, (_, i) =>
+    `<div class="${clase}">${!llenos.length && i === 0 ? vacio : ""}</div>`);
+  return [...llenos.slice(0, total), ...huecos].join("");
+}
+
+// Un combate en marcha: cada uno en su mitad con su fondo; las dos chocan en una raya en zigzag con el
+// «VS» encima y, debajo, desde cuándo espera en una tarjetita
 function tarjetaEnMarcha(lucha) {
   const uid = yo();
   const rival = rivalDe(lucha, uid);
   const toca = meToca(lucha);
-  const jugador = (quien, clase) => `
-    <div class="lucha-grande-jugador ${clase} ${fondoVisualDe(quien).clase}" style="${fondoVisualDe(quien).estilo}">
-      ${fotoEn(lucha, quien, "lucha-foto grande")}
-      <div class="lucha-grande-quien">
-        <div class="lucha-grande-nombre">${nombreConTitulo(lucha, quien)}</div>
-        ${carasEn(lucha, quien)}
-      </div>
-    </div>`;
+  const lado = (quien, clase) => {
+    const fondo = fondoVisualDe(quien);
+    return `
+      <div class="lt-lado ${clase} ${fondo.clase}" style="${fondo.estilo}; --color-perfil: ${colorDe(quien)}">
+        <span class="lt-velo"></span>
+        <span class="lt-lado-quien">${fotoEn(lucha, quien)}<span class="lt-nombre">${nombreConTitulo(lucha, quien)}</span></span>
+        ${carasEn(lucha, quien) || `<span class="lucha-sin-equipo">${t("Sin equipo")}</span>`}
+      </div>`;
+  };
   return `
-    <article class="lucha-grande ${toca ? "toca" : ""}" data-id="${escaparHTML(lucha.id)}">
-      <span class="lucha-ceja">${toca ? t("Te toca") : t("Le toca a {nombre}", { nombre: escaparHTML(nombreEn(lucha, rival)) })}</span>
-      <div class="lucha-grande-cuerpo">
-        ${jugador(uid, "mio")}
-        <div class="lucha-grande-centro">
-          <span class="lucha-vs">vs</span>
-          <small>${datosLucha(lucha)}</small>
-        </div>
-        ${jugador(rival, "suyo")}
+    <article class="lt-duelo lucha-grande ${toca ? "toca" : ""}" data-id="${escaparHTML(lucha.id)}">
+      <div class="lt-duelo-cuerpo">
+        ${lado(uid, "mio")}
+        <div class="lt-suyo">${lado(rival, "suyo")}</div>
+        <span class="lt-vs" aria-hidden="true"><span>VS</span></span>
+        <span class="lt-turno" title="${t("Lo último que se eligió")}">${escaparHTML(haceCuanto(desdeCuando(lucha)))}</span>
       </div>
-      <div class="lucha-grande-botones">
+      <div class="lt-duelo-pie">
+        <span class="lt-estado">${toca ? t("Te toca") : t("Le toca a {nombre}", { nombre: escaparHTML(nombreEn(lucha, rival)) })}</span>
+        <small class="lt-datos">${datosLucha(lucha)}</small>
+        ${puedoGanarPorAbandono(lucha) ? `<button type="button" class="boton-gris lucha-abandono" title="${t("Lleva más de dos días sin jugar")}">${icono("trofeo")} ${t("Terminar")}</button>` : ""}
         <button type="button" class="lucha-boton lucha-abrir">${icono("lucha")} ${toca ? t("Luchar") : t("Ver")}</button>
-        ${puedoGanarPorAbandono(lucha) ? `<button type="button" class="boton-gris lucha-abandono">${icono("trofeo")} ${t("Ganar por abandono")}</button>` : ""}
       </div>
     </article>`;
 }
@@ -186,71 +247,179 @@ function filaLucha(lucha) {
 
   let estado = "";
   let botones = "";
-  // La capa de color: la de la sección en los retos que te llegan; verde o roja en las terminadas
   let clase = recibido ? "destacada" : "";
   if (recibido) {
     estado = `<span class="lucha-estado reto">${t("Te reta")}</span>`;
     botones = `
-      <button type="button" class="boton-gris lucha-rechazar" title="${t("Rechazar")}">${icono("aspa")}</button>
+      <button type="button" class="boton-gris lucha-rechazar" title="${t("Rechazar")}" aria-label="${t("Rechazar")}">${icono("aspa")}</button>
       <button type="button" class="lucha-boton lucha-aceptar">${icono("visto")} ${t("Aceptar")}</button>`;
   } else if (enviado) {
-    estado = `<span class="lucha-estado">${t("Esperando respuesta")}</span>`;
+    estado = `<span class="lucha-estado">${t("Esperando")}</span>`;
     botones = `<button type="button" class="boton-gris lucha-retirar">${t("Retirar")}</button>`;
   } else {
     const gana = lucha.ganador === uid;
     const empate = lucha.ganador === "empate";
     clase = empate ? "" : gana ? "gana" : "pierde";
-    estado =`<span class="lucha-estado ${empate ? "" : gana ? "gana" : "pierde"}">${
+    const detalle = lucha.rendido ? (lucha.rendido === uid ? t("te rendiste") : t("se rindió"))
+      : lucha.abandono ? (lucha.abandono === uid ? t("no jugaste") : t("no jugó")) : "";
+    estado = `<span class="lucha-estado ${empate ? "" : gana ? "gana" : "pierde"}" title="${escaparHTML(detalle)}">${
       empate ? t("Empate") : gana ? t("Ganaste") : t("Perdiste")
-    }${lucha.rendido ? ` · ${lucha.rendido === uid ? t("te rendiste") : t("se rindió")}` : ""}${lucha.abandono ? ` · ${lucha.abandono === uid ? t("no jugaste") : t("no jugó")}` : ""}${lucha.apuesta && !empate ? ` · ${gana ? "+" : "−"}${moneda(lucha.apuesta)}` : ""}</span>`;
+    }</span>`;
     botones = `
-      <button type="button" class="boton-gris lucha-abrir">${icono("reanudar")} ${t("Ver repetición")}</button>
-      <button type="button" class="boton-gris lucha-quitar" title="${t("Quitar de la lista")}">${icono("papelera")}</button>`;
+      <button type="button" class="lt-icono lucha-abrir" title="${t("Ver repetición")}" aria-label="${t("Ver repetición")}">${icono("reanudar")}</button>
+      <button type="button" class="lt-icono lucha-quitar" title="${t("Quitar de la lista")}" aria-label="${t("Quitar de la lista")}">${icono("papelera")}</button>`;
   }
 
   // El equipo del rival no se enseña hasta que empieza (no se elige con ventaja)
   const misCaras = carasEn(lucha, uid);
   const susCaras = lucha.estado === "reto" ? "" : carasEn(lucha, rival);
+  const apuesta = lucha.apuesta && lucha.estado === "fin" && lucha.ganador !== "empate"
+    ? ` · ${lucha.ganador === uid ? "+" : "−"}${moneda(lucha.apuesta)}` : "";
 
   return `
-    <article class="lucha-fila ${clase}" data-id="${escaparHTML(lucha.id)}">
+    <article class="lucha-fila lt-fila ${clase}" data-id="${escaparHTML(lucha.id)}">
       ${fotoEn(lucha, rival)}
       <div class="lucha-fila-texto">
         <div class="lucha-fila-nombre">${nombreConTitulo(lucha, rival)}</div>
-        <small>${datosLucha(lucha)}</small>
+        <small>${datosLucha(lucha)}${apuesta}${lucha.estado === "fin" ? ` · ${escaparHTML(haceCuanto(cuandoFue(lucha)))}` : ""}</small>
       </div>
       <div class="lucha-fila-equipos">
         ${misCaras || `<span class="lucha-sin-equipo">${t("Sin equipo")}</span>`}
-        ${susCaras ? `<span class="lucha-vs">vs</span>${susCaras}` : ""}
+        ${susCaras ? `<span class="lucha-vs">vs</span>${susCaras}` : recibido ? `<span class="lucha-sin-equipo">${t("Su equipo se ve al aceptar")}</span>` : ""}
       </div>
       ${estado}
       <div class="lucha-fila-botones">${botones}</div>
     </article>`;
 }
 
-function bloque(titulo, contenido, clase = "") {
-  if (!contenido) return "";
+// Un combate de amigos para mirar (en marcha) o ver su repetición, en pequeño
+function filaMirar(lucha) {
+  const [uno, otro] = lucha.jugadores;
+  const enMarcha = lucha.estado === "jugando";
   return `
-    <section class="lucha-bloque ${clase}">
-      <h3>${titulo}</h3>
-      ${contenido}
+    <article class="lucha-fila lt-mini" data-id="${escaparHTML(lucha.id)}">
+      <span class="lt-dos-fotos">${fotoEn(lucha, uno)}${fotoEn(lucha, otro)}</span>
+      <span class="lt-mini-texto">
+        <b>${escaparHTML(nombreEn(lucha, uno))} <span class="lucha-vs">vs</span> ${escaparHTML(nombreEn(lucha, otro))}</b>
+        ${enMarcha
+          ? `<span class="lt-en-vivo">${t("En marcha")}</span>`
+          : `<small>${lucha.ganador === "empate" ? t("Empate") : t("Ganó {nombre}", { nombre: escaparHTML(nombreEn(lucha, lucha.ganador)) })} · ${escaparHTML(haceCuanto(cuandoFue(lucha)))}</small>`}
+      </span>
+      <button type="button" class="boton-gris lucha-abrir">${enMarcha ? t("Mirar") : t("Repetición")}</button>
+    </article>`;
+}
+
+// ---- Tu marcador y tus rivales ----
+
+function marcador(terminadas) {
+  const uid = yo();
+  const ganados = terminadas.filter((lucha) => lucha.ganador === uid).length;
+  const perdidos = terminadas.filter((lucha) => lucha.ganador && lucha.ganador !== uid && lucha.ganador !== "empate").length;
+  const porcentaje = ganados + perdidos ? Math.round((100 * ganados) / (ganados + perdidos)) : 0;
+  // Los últimos 10, del más antiguo al más reciente (el último, a la derecha)
+  const ultimos = terminadas.slice(0, FORMA).reverse();
+  let racha = 0;
+  for (let i = ultimos.length - 1; i >= 0 && ultimos[i].ganador === uid; i--) racha++;
+  const casillas = Array.from({ length: FORMA }, (_, i) => {
+    const lucha = ultimos[i];
+    if (!lucha) return `<span class="lt-forma-hueco"></span>`;
+    const [clase, letra] = lucha.ganador === uid ? ["g", t("forma|G")] : lucha.ganador === "empate" ? ["e", "="] : ["p", t("forma|P")];
+    return `<span class="${clase}" title="${escaparHTML(nombreEn(lucha, rivalDe(lucha, uid)))}">${letra}</span>`;
+  }).join("");
+  return `
+    <section class="lt-caja lt-marcador">
+      <h3>${icono("trofeo")} ${t("Tu marcador")}</h3>
+      <div class="lt-cifras">
+        <span><b class="g">${ganados}</b><small>${t("Ganados")}</small></span>
+        <span><b class="p">${perdidos}</b><small>${t("Perdidos")}</small></span>
+        <span><b class="pc">${porcentaje} %</b><small>${t("Victorias")}</small></span>
+      </div>
+      <small class="lt-nota">${racha > 1 ? t("Los últimos 10 · racha de {n}", { n: racha }) : t("Los últimos 10")}</small>
+      <div class="lt-forma">${casillas}</div>
+      <button type="button" class="lt-luchar lucha-retar">${icono("lucha")} ${t("Luchar")}</button>
     </section>`;
 }
 
+// Tus amigos, con cómo vais en los combates que siguen en la lista; primero con los que más has luchado
+function rivales(terminadas) {
+  const uid = yo();
+  return amigosAceptados()
+    .map((amistad) => amistad.otro)
+    .map((otro) => {
+      const juntos = terminadas.filter((lucha) => lucha.jugadores.includes(otro));
+      return {
+        uid: otro,
+        mias: juntos.filter((lucha) => lucha.ganador === uid).length,
+        suyas: juntos.filter((lucha) => lucha.ganador === otro).length,
+        total: juntos.length,
+        ultima: juntos.length ? cuandoFue(juntos[0]) : 0
+      };
+    })
+    .sort((uno, otro) => otro.total - uno.total || otro.ultima - uno.ultima || nombreDeUid(uno.uid).localeCompare(nombreDeUid(otro.uid)));
+}
+
+function filaRival(rival) {
+  const perfil = perfilDe(rival.uid);
+  const fondo = fondoVisual(perfil);
+  const nombre = escaparHTML(nombreDeUid(rival.uid));
+  return `
+    <div class="lt-rival ${fondo.clase}" style="${fondo.estilo}; --color-perfil: ${rgbDePerfil(perfil)}">
+      ${fotoDeUid(rival.uid)}
+      <span class="lt-rival-quien"><b>${nombre}</b></span>
+      <span class="lt-tanteo" title="${t("Victorias: tú – {nombre}", { nombre })}"><b class="g">${rival.mias}</b>–<b class="p">${rival.suyas}</b></span>
+      <button type="button" class="lt-retar lucha-retar" data-rival="${escaparHTML(rival.uid)}" title="${t("Retar a {nombre}", { nombre })}" aria-label="${t("Retar a {nombre}", { nombre })}">${icono("lucha")}</button>
+    </div>`;
+}
+
+// ---- Combates pendientes de tus lockes ----
+//
+// En cada locke abierto, el primer combate sin ganador, contra cada amigo que juega contigo y con el que
+// no tienes ya un reto o un combate de ese combate en marcha
+
+function combatesPendientes(todas) {
+  const uid = yo();
+  const amigos = new Set(amigosAceptados().map((amistad) => amistad.otro));
+  const lista = [];
+  for (const locke of lockes()) {
+    if (locke.estado === "cerrado" || estadoDe(locke, uid) !== "aceptado") continue;
+    const combate = combatesDe(locke).find((cada) => !((locke.resultados || {})[cada.id] || {}).ganador);
+    if (!combate) continue;
+    for (const otro of locke.jugadores || []) {
+      if (otro === uid || !amigos.has(otro) || estadoDe(locke, otro) !== "aceptado") continue;
+      const yaHay = todas.some((lucha) => lucha.estado !== "fin" && lucha.locke && lucha.locke.id === locke.id
+        && lucha.locke.combate === combate.id && lucha.jugadores.includes(otro));
+      if (!yaHay) lista.push({ locke, combate, otro });
+    }
+  }
+  return lista;
+}
+
+function filaPendiente({ locke, combate, otro }) {
+  const nombre = escaparHTML((locke.nombres || {})[otro] || nombreDeUid(otro));
+  return `
+    <div class="lt-mini">
+      ${fotoDeUid(otro)}
+      <span class="lt-mini-texto">
+        <b>${t("Tú vs {nombre} · {combate}", { nombre, combate: escaparHTML(nombreCombate(locke, combate.id)) })}</b>
+        <small>${escaparHTML(locke.nombre || "")}</small>
+      </span>
+      <button type="button" class="boton-gris lt-retar-suave lucha-retar" data-rival="${escaparHTML(otro)}" data-locke="${escaparHTML(locke.id)}" data-combate="${escaparHTML(combate.id)}">${t("Retar")}</button>
+    </div>`;
+}
+
+// ---- Pintar ----
+
+// Lo que sale en «Ver todos» de cada cosa (se rellena al pintar)
+let listasEnteras = {};
+
 function pintarLista() {
   if (!vistaLista) return;
-  const barra = `
-    <div class="lucha-barra">
-      <button type="button" class="lucha-boton lucha-retar">${icono("lucha")} ${t("Retar a un amigo")}</button>
-      <p class="lucha-explica">${t("Combates por turnos con los equipos que quieras, contra tus amigos y sin salir de la web. Cada uno elige cuando puede: no hace falta estar a la vez.")}</p>
-    </div>`;
-
   if (!hayNube() || !usuarioActual()) {
     vistaLista.innerHTML = `<p class="lucha-aviso">${t("Entra con tu cuenta para retar a tus amigos.")}</p>`;
     return;
   }
   if (fallanLasLuchas()) {
-    vistaLista.innerHTML = `${barra}<p class="lucha-aviso error">${
+    vistaLista.innerHTML = `<p class="lucha-aviso error">${
       fallanLasLuchas() === "permisos"
         ? t("Firebase no deja leer los combates. Falta publicar las reglas de Firestore.")
         : t("No se han podido cargar los combates.")
@@ -262,59 +431,76 @@ function pintarLista() {
   const todas = misLuchas();
   const retos = todas
     .filter((lucha) => lucha.estado === "reto")
-    .sort((una, otra) => Number(otra.jugadores[1] === uid) - Number(una.jugadores[1] === uid)); // primero los que te mandan
+    .sort((una, otra) => Number(otra.jugadores[1] === uid) - Number(una.jugadores[1] === uid) || cuandoFue(otra) - cuandoFue(una));
   const enMarcha = todas
     .filter((lucha) => lucha.estado === "jugando")
-    .sort((una, otra) => Number(meToca(otra)) - Number(meToca(una)));
-  const terminadas = todas.filter((lucha) => lucha.estado === "fin").slice(0, MAX_TERMINADAS);
+    .sort((una, otra) => Number(meToca(otra)) - Number(meToca(una)) || desdeCuando(una) - desdeCuando(otra));
+  const terminadas = todas.filter((lucha) => lucha.estado === "fin").sort((una, otra) => cuandoFue(otra) - cuandoFue(una));
   const deAmigos = luchasParaMirar()
-    .sort((una, otra) => Number(otra.estado === "jugando") - Number(una.estado === "jugando"))
-    .slice(0, MAX_TERMINADAS);
+    .sort((una, otra) => Number(otra.estado === "jugando") - Number(una.estado === "jugando") || cuandoFue(otra) - cuandoFue(una));
+  const listaRivales = rivales(terminadas);
+  const pendientes = combatesPendientes(todas);
 
-  if (!todas.length && !deAmigos.length) {
-    vistaLista.innerHTML = `
-      <div class="lucha-nada">
-        <span class="lucha-nada-icono">${icono("lucha")}</span>
-        <h3>${t("Todavía no has combatido")}</h3>
-        <ul class="lucha-nada-lista">
-          <li>${t("Reta a un amigo con uno de tus equipos, con el nivel y el escenario que queráis.")}</li>
-          <li>${t("Desde «Lockes», los combates de vuestro locke se juegan aquí y suman la victoria solos.")}</li>
-          <li>${t("Todo queda guardado: puedes ver la repetición de cada combate terminado.")}</li>
-        </ul>
-        <button type="button" class="lucha-boton lucha-retar">${icono("lucha")} ${t("Retar a un amigo")}</button>
-      </div>`;
-    return;
-  }
+  // En medio, lo de cada bloque según lo que haya: un combate en marcha ocupa como cuatro filas
+  const duelos = enMarcha.slice(0, MAX_DUELOS);
+  const retosVistos = retos.slice(0, MAX_RETOS);
+  const filasUltimos = Math.min(MAX_TERMINADAS, Math.max(2, 9 - 4 * Math.max(1, duelos.length) - retosVistos.length));
 
-  vistaLista.innerHTML = `${barra}
-    ${bloque(t("En marcha"), enMarcha.map(tarjetaEnMarcha).join(""), "en-marcha")}
-    ${bloque(t("Retos"), retos.map(filaLucha).join(""))}
-    ${bloque(t("Terminadas"), terminadas.map(filaLucha).join(""))}
-    ${bloque(t("De tus amigos"), deAmigos.map(filaMirar).join(""))}`;
+  listasEnteras = {
+    marcha: { titulo: t("En marcha"), html: enMarcha.map(tarjetaEnMarcha).join("") },
+    retos: { titulo: t("Retos"), html: retos.map(filaLucha).join("") },
+    ultimos: { titulo: t("Últimos combates"), html: terminadas.map(filaLucha).join("") },
+    rivales: { titulo: t("Rivales"), html: listaRivales.map(filaRival).join("") },
+    pendientes: { titulo: t("Combates pendientes"), html: pendientes.map(filaPendiente).join("") },
+    mirar: { titulo: t("Para mirar"), html: deAmigos.map(filaMirar).join("") }
+  };
+
+  const cabeza = (titulo, n, que, cuantos, maximo, extra = "") =>
+    `<h3>${titulo}${n ? ` <small>${n}</small>` : ""}${extra}${cuantos > maximo ? botonVerTodos(que, cuantos) : ""}</h3>`;
+  const sinContestar = retos.filter((lucha) => lucha.jugadores[1] === uid).length;
+  const textoSinContestar = sinContestar
+    ? ` <small>${sinContestar === 1 ? t("1 sin contestar") : t("{n} sin contestar", { n: sinContestar })}</small>` : "";
+
+  vistaLista.innerHTML = `
+    <div class="lt-tablero">
+      <div class="lt-col">
+        ${marcador(terminadas)}
+        <section class="lt-caja lt-rivales">
+          ${cabeza(t("Rivales"), 0, "rivales", listaRivales.length, MAX_RIVALES)}
+          <div class="lt-rivales-lista">${conHuecos(listaRivales.map(filaRival), MAX_RIVALES, "", "lt-hueco lt-hueco-rival")}</div>
+        </section>
+      </div>
+
+      <div class="lt-col lt-centro">
+        ${cabeza(t("En marcha"), enMarcha.length, "marcha", enMarcha.length, MAX_DUELOS)}
+        ${duelos.length ? duelos.map(tarjetaEnMarcha).join("") : `<div class="lt-hueco lt-hueco-duelo"></div>`}
+        ${retos.length ? `${cabeza(t("Retos"), 0, "retos", retos.length, MAX_RETOS, textoSinContestar)}${retosVistos.map(filaLucha).join("")}` : ""}
+        ${cabeza(t("Últimos combates"), 0, "ultimos", terminadas.length, filasUltimos)}
+        ${conHuecos(terminadas.map(filaLucha), filasUltimos, "", "lt-hueco lt-hueco-fila")}
+      </div>
+
+      <div class="lt-col">
+        <section class="lt-caja">
+          ${cabeza(`${icono("espadas")} ${t("Combates pendientes")}`, 0, "pendientes", pendientes.length, MAX_PENDIENTES)}
+          ${conHuecos(pendientes.map(filaPendiente), MAX_PENDIENTES, "", "lt-hueco lt-hueco-mini")}
+        </section>
+        <section class="lt-caja lt-mirar">
+          ${cabeza(t("Para mirar"), 0, "mirar", deAmigos.length, HUECOS_MIRAR)}
+          ${conHuecos(deAmigos.map(filaMirar), HUECOS_MIRAR, "", "lt-hueco lt-hueco-mini")}
+        </section>
+      </div>
+    </div>`;
 }
 
-// Un combate de amigos que se puede mirar (en marcha) o ver su repetición
-function filaMirar(lucha) {
-  const [uno, otro] = lucha.jugadores;
-  const enMarcha = lucha.estado === "jugando";
-  const resultado = enMarcha
-    ? `<span class="lucha-estado reto">${t("En marcha")}</span>`
-    : `<span class="lucha-estado">${lucha.ganador === "empate" ? t("Empate") : t("Ganó {nombre}", { nombre: escaparHTML(nombreEn(lucha, lucha.ganador)) })}</span>`;
-  return `
-    <article class="lucha-fila lucha-fila-mirar" data-id="${escaparHTML(lucha.id)}">
-      <span class="lucha-fila-fotos">${fotoEn(lucha, uno)}${fotoEn(lucha, otro)}</span>
-      <div class="lucha-fila-texto">
-        <div class="lucha-fila-nombre">${nombreConTitulo(lucha, uno)} <span class="lucha-vs">vs</span> ${nombreConTitulo(lucha, otro)}</div>
-        <small>${datosLucha(lucha)}</small>
-      </div>
-      <div class="lucha-fila-equipos">
-        ${carasEn(lucha, uno)}<span class="lucha-vs">vs</span>${carasEn(lucha, otro)}
-      </div>
-      ${resultado}
-      <div class="lucha-fila-botones">
-        <button type="button" class="boton-gris lucha-abrir">${icono(enMarcha ? "directo" : "reanudar")} ${enMarcha ? t("Mirar") : t("Ver repetición")}</button>
-      </div>
-    </article>`;
+// «Ver todos»: la lista entera en una ventana (lo que se pulsa dentro funciona igual que en la lista)
+let dialogoTodo = null;
+
+function abrirTodo(que) {
+  const lista = listasEnteras[que];
+  if (!lista || !dialogoTodo) return;
+  dialogoTodo.querySelector(".lt-todo-titulo").textContent = lista.titulo;
+  dialogoTodo.querySelector(".lt-todo-cuerpo").innerHTML = lista.html;
+  dialogoTodo.showModal();
 }
 
 // ---------- Retar y aceptar ----------
@@ -406,43 +592,47 @@ async function pintarRetar() {
           ${motor.GENERACIONES.slice().reverse().map((gen) => `<option value="${gen}" ${gen === retando.gen ? "selected" : ""}>${t("{n} gen", { n: GEN_ORDINAL[gen] })} (${escaparHTML(JUEGOS_GEN[gen])})</option>`).join("")}
         </select>
       </label>`;
-  const campoNivel = aceptando ? "" : `
-    <span class="etiqueta-campo">${t("Nivel")}</span>
-    <div class="lucha-retar-nivel">
-      <button type="button" data-nivel="tal" class="${nivel === "tal" ? "elegido" : ""}">${t("Niveles del equipo")}</button>
-      <button type="button" data-nivel="50" class="${nivel === "50" ? "elegido" : ""}">${t("Todos al 50")}</button>
-    </div>
-    <span class="etiqueta-campo">${t("Vista previa")}</span>
-    <div class="lucha-retar-nivel">
-      <button type="button" data-previa="si" class="${retando.vistaPrevia ? "elegido" : ""}">${t("Ver los dos equipos antes de empezar")}</button>
-      <button type="button" data-previa="no" class="${retando.vistaPrevia ? "" : "elegido"}">${t("Sin vista previa")}</button>
-    </div>
-    <span class="etiqueta-campo">${t("Tiempo")}</span>
-    <div class="lucha-retar-nivel">
-      <button type="button" data-tiempo="no" class="${retando.tiempo ? "" : "elegido"}">${t("Sin límite")}</button>
-      <button type="button" data-tiempo="si" class="${retando.tiempo ? "elegido" : ""}">${t("1 minuto por turno")}</button>
-    </div>
-    <span class="etiqueta-campo">${t("Quién lo ve")}</span>
-    <div class="lucha-retar-nivel">
-      <button type="button" data-mirar="si" class="${retando.mirar ? "elegido" : ""}">${t("Lo pueden mirar vuestros amigos")}</button>
-      <button type="button" data-mirar="no" class="${retando.mirar ? "" : "elegido"}">${t("Solo vosotros")}</button>
-    </div>
-    <span class="etiqueta-campo">${t("Apuesta")} <small class="lucha-retar-saldo">${t("tienes")} ${moneda(miSaldo())}</small></span>
-    <div class="lucha-retar-nivel lucha-retar-apuesta">
-      ${APUESTAS.map((n) => `<button type="button" data-apuesta="${n}" class="${!retando.apuestaLibre && retando.apuesta === n ? "elegido" : ""}" ${n > miSaldo() ? "disabled" : ""}>${n ? moneda(n) : t("Sin apuesta")}</button>`).join("")}
-      <button type="button" data-apuesta="otra" class="${retando.apuestaLibre ? "elegido" : ""}" ${miSaldo() < 1 ? "disabled" : ""}>${t("Otra cantidad")}</button>
-    </div>
-    ${retando.apuestaLibre ? `
-      <label class="lucha-retar-otra">${t("¿Cuánto? (hasta {n})", { n: moneda(miSaldo()) })}
-        <input class="lucha-apuesta-otra" type="number" min="1" max="${miSaldo()}" step="1" value="${retando.apuesta || ""}">
-      </label>` : ""}
-    ${retando.apuesta ? `<p class="lucha-retar-ayuda">${t("Cada uno pone {n}. Quien gana se lleva los dos; en empate, cada uno recupera lo suyo.", { n: moneda(retando.apuesta) })}</p>` : ""}
-    ${!genFija && retando.gen === 9 ? `
-      <span class="etiqueta-campo">${t("Teracristalización")}</span>
+  const campo = (etiqueta, contenido, clase = "") => `<div class="lr-campo ${clase}"><span class="etiqueta-campo">${etiqueta}</span>${contenido}</div>`;
+  const campoNivel = aceptando ? "" : [
+    campo(t("Nivel"), `
       <div class="lucha-retar-nivel">
-        <button type="button" data-tera="si" class="${retando.tera ? "elegido" : ""}">${t("Se puede teracristalizar")}</button>
+        <button type="button" data-nivel="tal" class="${nivel === "tal" ? "elegido" : ""}">${t("Niveles del equipo")}</button>
+        <button type="button" data-nivel="50" class="${nivel === "50" ? "elegido" : ""}">${t("Todos al 50")}</button>
+      </div>`),
+    campo(t("Vista previa"), `
+      <div class="lucha-retar-nivel">
+        <button type="button" data-previa="si" class="${retando.vistaPrevia ? "elegido" : ""}">${t("Ver los equipos")}</button>
+        <button type="button" data-previa="no" class="${retando.vistaPrevia ? "" : "elegido"}">${t("Sin vista previa")}</button>
+      </div>`),
+    campo(t("Tiempo"), `
+      <div class="lucha-retar-nivel">
+        <button type="button" data-tiempo="no" class="${retando.tiempo ? "" : "elegido"}">${t("Sin límite")}</button>
+        <button type="button" data-tiempo="si" class="${retando.tiempo ? "elegido" : ""}">${t("1 minuto por turno")}</button>
+      </div>`),
+    campo(t("Quién lo ve"), `
+      <div class="lucha-retar-nivel">
+        <button type="button" data-mirar="si" class="${retando.mirar ? "elegido" : ""}">${t("Vuestros amigos")}</button>
+        <button type="button" data-mirar="no" class="${retando.mirar ? "" : "elegido"}">${t("Solo vosotros")}</button>
+      </div>`),
+    !genFija && retando.gen === 9 ? campo(t("Teracristalización"), `
+      <div class="lucha-retar-nivel">
+        <button type="button" data-tera="si" class="${retando.tera ? "elegido" : ""}">${t("Con tera")}</button>
         <button type="button" data-tera="no" class="${retando.tera ? "" : "elegido"}">${t("Sin tera")}</button>
-      </div>` : ""}
+      </div>`) : "",
+    campo(`${t("Apuesta")} <small class="lucha-retar-saldo">${t("tienes")} ${moneda(miSaldo())}</small>`, `
+      <div class="lr-apuesta">
+        <div class="lucha-retar-nivel lucha-retar-apuesta">
+          ${APUESTAS.map((n) => `<button type="button" data-apuesta="${n}" class="${!retando.apuestaLibre && retando.apuesta === n ? "elegido" : ""}" ${n > miSaldo() ? "disabled" : ""}>${n ? moneda(n) : t("Sin apuesta")}</button>`).join("")}
+          <button type="button" data-apuesta="otra" class="${retando.apuestaLibre ? "elegido" : ""}" ${miSaldo() < 1 ? "disabled" : ""}>${t("Otra")}</button>
+        </div>
+        ${retando.apuestaLibre ? `
+          <label class="lucha-retar-otra">${t("¿Cuánto? (hasta {n})", { n: moneda(miSaldo()) })}
+            <input class="lucha-apuesta-otra" type="number" min="1" max="${miSaldo()}" step="1" value="${retando.apuesta || ""}">
+          </label>` : ""}
+        ${retando.apuesta ? `<p class="lucha-retar-ayuda">${t("Cada uno pone {n}. Quien gana se lleva los dos; en empate, cada uno recupera lo suyo.", { n: moneda(retando.apuesta) })}</p>` : ""}
+      </div>`, "arriba")
+  ].join("");
+  const campoEscena = aceptando ? "" : `
     <span class="etiqueta-campo">${t("Escenario")}</span>
     <div class="lucha-retar-escenas">
       <button type="button" data-escena="" class="lucha-retar-escena aleatorio ${retando.escena ? "" : "elegido"}">
@@ -470,13 +660,21 @@ async function pintarRetar() {
     ${problemas ? `<ul class="lucha-retar-problemas">${problemas}</ul>` : ""}`;
 
   dialogoRetar.querySelector("h2").innerHTML = `${icono("lucha")} ${aceptando ? t("Aceptar el reto") : t("Retar a un amigo")}`;
-  dialogoRetar.querySelector(".lucha-retar-cuerpo").innerHTML = `
-    ${aceptando ? "" : `<span class="etiqueta-campo">${t("Rival")}</span>`}
-    ${campoRival}
-    ${campoLocke}
-    ${campoReglas}
-    ${campoNivel}
-    ${campoEquipo}`;
+  // A la izquierda quién, con qué reglas, con qué equipo y dónde; a la derecha, el resto de opciones
+  const cuerpoRetar = dialogoRetar.querySelector(".lucha-retar-cuerpo");
+  cuerpoRetar.classList.toggle("dos-columnas", !aceptando);
+  cuerpoRetar.innerHTML = aceptando
+    ? `${campoRival}${campoLocke}${campoReglas}${campoEquipo}`
+    : `
+      <div class="lr-col">
+        <span class="etiqueta-campo">${t("Rival")}</span>
+        ${campoRival}
+        ${campoLocke}
+        ${campoReglas}
+        ${campoEquipo}
+        ${campoEscena}
+      </div>
+      <div class="lr-col">${campoNivel}</div>`;
   const ok = dialogoRetar.querySelector(".lucha-retar-ok");
   ok.textContent = aceptando ? t("Aceptar y luchar") : t("Retar");
   const faltan = aceptando ? (lucha && lucha.apuesta) > miSaldo() : retando.apuesta > miSaldo();
@@ -1745,6 +1943,7 @@ function pintarAcciones() {
   const rival = nombreEn(lucha, rivalDe(lucha, quienSoy()));
   const boton = vistaCombate.querySelector(".lucha-rendirse");
   boton.hidden = lucha.estado !== "jugando" || combate.terminado || abierto.espectador;
+  vistaCombate.querySelector(".lucha-abandono").hidden = boton.hidden || !puedoGanarPorAbandono(lucha);
 
   if (abierto.trampa) {
     caja.innerHTML = `<p class="lucha-espera error">${t("La elección de {nombre} no casa con la que selló: el combate se ha parado.", {
@@ -1775,8 +1974,8 @@ function pintarAcciones() {
         ? `${t("Gana {nombre}.", { nombre: escaparHTML(nombreEn(lucha, ganador)) })}${lucha.rendido ? ` ${t("({nombre} se rindió)", { nombre: escaparHTML(nombreEn(lucha, lucha.rendido)) })}` : lucha.porTiempo ? ` ${t("(a {nombre} se le acabó el tiempo)", { nombre: escaparHTML(nombreEn(lucha, lucha.porTiempo)) })}` : ""}`
       : lucha.abandono
         ? lucha.abandono === yo()
-          ? t("Has perdido: llevabas más de un día sin jugar. Gana {nombre}.", { nombre: escaparHTML(rival) })
-          : t("¡Has ganado! {nombre} llevaba más de un día sin jugar.", { nombre: escaparHTML(rival) })
+          ? t("Has perdido: llevabas más de dos días sin jugar. Gana {nombre}.", { nombre: escaparHTML(rival) })
+          : t("¡Has ganado! {nombre} llevaba más de dos días sin jugar.", { nombre: escaparHTML(rival) })
       : lucha.porTiempo
         ? lucha.porTiempo === yo()
           ? t("Se te ha acabado el tiempo {n} veces seguidas. Gana {nombre}.", { n: MAX_SIN_TIEMPO, nombre: escaparHTML(rival) })
@@ -1849,8 +2048,7 @@ function pintarAcciones() {
       return;
     }
     const abandono = !abierto.espectador && puedoGanarPorAbandono(lucha)
-      ? `<p class="lucha-espera">${t("{nombre} lleva más de un día sin jugar.", { nombre: escaparHTML(rival) })}
-          <button type="button" class="boton-gris lucha-abandono">${icono("trofeo")} ${t("Ganar por abandono")}</button></p>`
+      ? `<p class="lucha-espera">${t("{nombre} lleva más de dos días sin jugar: puedes terminar el combate (arriba, «Terminar»).", { nombre: escaparHTML(rival) })}</p>`
       : "";
     caja.innerHTML = `${relojHTML()}<p class="lucha-espera">${texto}</p>${abandono}`;
     return;
@@ -2261,6 +2459,7 @@ function esqueletoCombate(lucha) {
       </div>
       <small class="lucha-cabeza-datos">${escaparHTML(textoFormato(lucha.formato))} · ${escaparHTML(textoNivel(lucha.nivel))}${locke ? ` · ${escaparHTML(locke)}` : ""}</small>
       <button type="button" class="boton-gris lucha-sonido" title="${t("Sonido")}"></button>
+      <button type="button" class="boton-gris lucha-abandono" hidden title="${t("Lleva más de dos días sin jugar")}">${icono("trofeo")} ${t("Terminar")}</button>
       <button type="button" class="boton-gris lucha-rendirse" hidden>${icono("bandera")} ${t("Rendirse")}</button>
     </div>
     <div class="lucha-cuerpo">
@@ -2435,8 +2634,16 @@ function alCambiarLaAbierta() {
 async function alPulsarLista(e) {
   const fila = e.target.closest(".lucha-fila, .lucha-grande");
   const id = fila && fila.dataset.id;
-  if (e.target.closest(".lucha-retar")) return abrirDialogoRetar({});
+  const ver = e.target.closest("[data-ver]");
+  if (ver) return abrirTodo(ver.dataset.ver);
+  const retarA = e.target.closest(".lucha-retar");
+  if (retarA) {
+    if (dialogoTodo && dialogoTodo.open) dialogoTodo.close();
+    const { rival = "", locke = "", combate = "" } = retarA.dataset;
+    return abrirDialogoRetar({ rival, locke: locke ? { id: locke, combate } : null });
+  }
   if (!id) return;
+  if (dialogoTodo && dialogoTodo.open && e.target.closest("button")) dialogoTodo.close();
   if (e.target.closest(".lucha-aceptar")) return abrirAceptar(id);
   if (e.target.closest(".lucha-abrir")) return abrirCombate(id);
   if (e.target.closest(".lucha-abandono")) return pedirAbandono(id);
@@ -2459,12 +2666,12 @@ async function alPulsarLista(e) {
   return undefined;
 }
 
-// Ganar porque el otro lleva más de un día sin jugar (si es de un locke, suma la victoria)
+// Terminar (y ganar) porque el otro lleva más de dos días sin jugar (si es de un locke, suma la victoria)
 async function pedirAbandono(id) {
   const lucha = luchaPorId(id);
   if (!puedoGanarPorAbandono(lucha)) return;
   const rival = nombreEn(lucha, rivalDe(lucha, yo()));
-  if (!(await confirmar(t("¿Dar el combate por ganado? {nombre} lleva más de un día sin jugar.", { nombre: rival }), { aceptar: t("Ganar por abandono") }))) return;
+  if (!(await confirmar(t("¿Terminar el combate? {nombre} lleva más de dos días sin jugar: lo ganas tú.", { nombre: rival }), { aceptar: t("Terminar") }))) return;
   try {
     const apuntado = await ganarPorAbandono(id);
     if (apuntado && lucha.locke) await sumarVictoriaCombate(lucha.locke.id, lucha.locke.combate, yo());
@@ -2638,6 +2845,12 @@ export function iniciar() {
   vistaLista = seccion.querySelector(".lucha-inicio");
   vistaCombate = seccion.querySelector(".lucha-combate");
   dialogoRetar = document.querySelector("#dialogo-lucha-retar");
+  dialogoTodo = document.querySelector("#dialogo-lucha-todo");
+  dialogoTodo.addEventListener("click", (e) => {
+    if (e.target.closest(".lt-todo-cerrar")) return dialogoTodo.close();
+    alPulsarLista(e).catch((error) => console.error(error));
+    return undefined;
+  });
 
   vistaLista.addEventListener("click", (e) => {
     alPulsarLista(e).catch((error) => console.error(error));
@@ -2667,6 +2880,10 @@ export function iniciar() {
   });
   alCambiarPerfilesAmigos(() => {
     if (!vistaLista.hidden) pintarLista();
+  });
+  // Los combates pendientes salen de los lockes
+  alCambiarLockes(() => {
+    if (!vistaLista.hidden && !seccion.hidden) pintarLista();
   });
 }
 

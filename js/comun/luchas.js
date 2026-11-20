@@ -72,7 +72,7 @@ export function apuestaValida(n) {
   const numero = Number(n);
   return Number.isInteger(numero) && numero > 0 && numero <= APUESTA_MAXIMA ? numero : 0;
 }
-export const DIAS_ABANDONO = 1; // también en firestore.rules (abandonoBien)
+export const DIAS_ABANDONO = 2; // firestore.rules (abandonoBien) pide más de 1: con 2 también vale
 export const MAX_SIN_TIEMPO = 3;
 
 // Elecciones que esperan el sello del otro para destaparse: { "idLucha/n": "move 1|sal" }.
@@ -172,7 +172,7 @@ export function puedoGanarPorAbandono(lucha) {
   return Date.now() > desde + DIAS_ABANDONO * 86400000 + 60000;
 }
 
-// Gana quien lo pide porque el otro lleva más de un día sin jugar. Como terminar (true si lo ha apuntado).
+// Gana quien lo pide porque el otro lleva más de DIAS_ABANDONO días sin jugar. Como terminar (true si lo ha apuntado).
 export async function ganarPorAbandono(id) {
   const { bd, fn, usuario } = acceso();
   const referencia = fn.doc(bd, "luchas", id);

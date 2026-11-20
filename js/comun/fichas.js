@@ -384,6 +384,34 @@ export function porPrecio(lista) {
 // Lo que se compra (los marcos de metal, no)
 export const ARTICULOS = [...FONDOS_TIENDA, ...MARCOS.filter((marco) => marco.precio), ...TITULOS];
 
+// ---------- Ofertas del día ----------
+// Cada día, OFERTAS_DEL_DIA artículos de cada clase (fondos, marcos y títulos) al azar con un DESCUENTO: los
+// mismos para todos (la semilla es el día) y cambian a medianoche. Se paga lo de hoy y eso es lo que queda
+// apuntado en «compras».
+export const OFERTAS_DEL_DIA = 4;
+export const DESCUENTO = 0.25;
+
+let ofertasCalculadas = { dia: "", ids: [] };
+
+export function ofertasDeHoy() {
+  const dia = hoy();
+  if (ofertasCalculadas.dia === dia) return ofertasCalculadas.ids;
+  const azar = azarDelDia(`${dia}|tienda`);
+  const ids = [];
+  for (const clase of [FONDOS_TIENDA, MARCOS.filter((marco) => marco.precio), TITULOS]) {
+    const quedan = clase.slice();
+    for (let i = 0; i < OFERTAS_DEL_DIA && quedan.length; i++) ids.push(quedan.splice(Math.floor(azar() * quedan.length), 1)[0].id);
+  }
+  ofertasCalculadas = { dia, ids };
+  return ids;
+}
+
+// Lo que cuesta hoy (con la oferta, redondeado de 5 en 5)
+export function precioDeHoy(articulo) {
+  if (!articulo || !articulo.precio) return 0;
+  return ofertasDeHoy().includes(articulo.id) ? Math.round((articulo.precio * (1 - DESCUENTO)) / 5) * 5 : articulo.precio;
+}
+
 export function loTiene(perfil, id) {
   return Boolean(((perfil && perfil.compras) || {})[id]);
 }
@@ -451,7 +479,28 @@ export async function comprar(id) {
   const articulo = ARTICULOS.find((cada) => cada.id === id);
   if (!perfil || !articulo) return t("Inicia sesión para usar la Tienda.");
   if (loTiene(perfil, id)) return "";
-  if (saldo(perfil) < articulo.precio) return t("No tienes Pokédólares suficientes.");
-  await guardarMiPerfil({ [`compras.${id}`]: articulo.precio });
+  const precio = precioDeHoy(articulo);
+  if (saldo(perfil) < precio) return t("No tienes Pokédólares suficientes.");
+  await guardarMiPerfil({ [`compras.${id}`]: precio });
+  return "";
+}
+
+// El carrito del probador: compra lo que no tengas de «ids» y, en la misma escritura, te pone «ponerse»
+// ({ fondo, marco, titulo }). Devuelve "" si ha ido bien, o por qué no.
+export async function comprarYPoner(ids, ponerse = {}) {
+  const perfil = miPerfil();
+  if (!perfil) return t("Inicia sesión para usar la Tienda.");
+  const cambios = {};
+  let total = 0;
+  for (const id of ids) {
+    const articulo = ARTICULOS.find((cada) => cada.id === id);
+    if (!articulo || loTiene(perfil, id)) continue;
+    const precio = precioDeHoy(articulo);
+    total += precio;
+    cambios[`compras.${id}`] = precio;
+  }
+  if (saldo(perfil) < total) return t("No tienes Pokédólares suficientes.");
+  Object.assign(cambios, ponerse);
+  if (Object.keys(cambios).length) await guardarMiPerfil(cambios);
   return "";
 }

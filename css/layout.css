@@ -1515,3 +1515,38 @@ dialog textarea {
   background: color-mix(in srgb, rgb(var(--color-vista)) 85%, white);
 }
 
+
+/* El botón de arriba a la izquierda de cada sección (Crear equipo, Nuevo locke y «Lockes» al abrir uno,
+   «Combates» al abrir uno, Nueva partida): mismo alto, misma letra y mismo sitio en todas; el ancho, el
+   de su texto. (La lista de Combates no lleva barra: su «Luchar» va dentro de «Tu marcador».) Con dos ids de especificidad para ganar a las reglas de cada sección
+   (jugar.css y lucha.css se cargan después). */
+:is(#vista-equipos, #vista-lockes, #vista-lucha, #vista-jugar)
+  :is(#crear-equipo-nuevo, #nuevo-locke, .lockes-volver, .lucha-cabeza > .lucha-volver, .jugar-barra > .jugar-nueva-boton) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  gap: 0.4rem;
+  box-sizing: border-box;
+  height: 2.3rem;
+  min-width: 0;
+  margin-top: 0;
+  padding: 0 1.05rem;
+  border-radius: 0.45rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: bold;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+:is(#vista-equipos, #vista-lockes, #vista-lucha, #vista-jugar)
+  :is(#crear-equipo-nuevo, #nuevo-locke, .lockes-volver, .lucha-cabeza > .lucha-volver, .jugar-barra > .jugar-nueva-boton) .icono {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* Y sus barras empiezan arriba del todo, como la de Equipos */
+:is(#vista-lucha, #vista-jugar) :is(.lucha-cabeza, .jugar-barra) {
+  margin-top: 0;
+}

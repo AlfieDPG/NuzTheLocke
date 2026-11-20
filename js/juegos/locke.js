@@ -137,6 +137,42 @@ function gana(mios, equipo) {
   return j >= equipo.length && i < mios.length;
 }
 
+// El trío que gana, en su orden (de los órdenes buenos, el que deja más en pie). null si no hay ninguno.
+function trioGanador() {
+  let mejor = null;
+  const ordenes = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+  for (let a = 0; a < opciones.length; a++) {
+    for (let b = a + 1; b < opciones.length; b++) {
+      for (let c = b + 1; c < opciones.length; c++) {
+        const trio = [opciones[a], opciones[b], opciones[c]];
+        for (const orden of ordenes) {
+          const mios = orden.map((k) => trio[k]);
+          if (!gana(mios, lider.equipo)) continue;
+          const vivos = combatir(mios).vivos;
+          if (!mejor || vivos > mejor.vivos) mejor = { mios, vivos };
+        }
+      }
+    }
+  }
+  return mejor && mejor.mios;
+}
+
+// Al perder: con qué trío (y en qué orden) se ganaba. Así se ve que siempre se podía.
+function plantillaSolucion() {
+  const trio = trioGanador();
+  if (!trio) return "";
+  return `
+    <div class="lockedia-solucion">
+      <span>${t("Se ganaba con:")}</span>
+      ${trio.map((especie, k) => `
+        <span class="lockedia-solucion-poke">
+          <span class="lockedia-orden">${k + 1}</span>
+          ${imagenConRespaldo(urlsRetrato({ id: especie.id }), `alt="" data-quitar-si-falla`)}
+          <strong>${escaparHTML(nombreDe(especie))}</strong>
+        </span>`).join("")}
+    </div>`;
+}
+
 // ---------- Combate ----------
 
 const stats = (especie) => {
@@ -304,7 +340,7 @@ const cabeza = () => `
 
 function pintar() {
   if (estado.otroSitio) {
-    caja.innerHTML = cabeza() + plantillaFin(estado, t("Ya lo jugaste hoy."));
+    caja.innerHTML = cabeza() + plantillaFin(estado, t("Ya lo jugaste hoy.")) + (estado.acierto ? "" : plantillaSolucion());
     return;
   }
 
@@ -320,6 +356,7 @@ function pintar() {
       ${cabeza()}
       ${plantillaArena(mios, { ...ultimo, ataca: null }, null)}
       ${plantillaFin(estado, titulo)}
+      ${resultado.gana ? "" : plantillaSolucion()}
       ${plantillaRegistro(resultado.momentos)}`;
     return;
   }
